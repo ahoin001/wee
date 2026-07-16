@@ -35,43 +35,43 @@ function formatMs(ms) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-/** Per-size chrome tokens — mirrors Floating SpotifyPlayerView density. */
+/** Per-size chrome tokens — denser on S, roomier on L (Floating Spotify density). */
 function chromeForSize(sizeId) {
   switch (sizeId) {
     case 'S':
       return {
-        padMeta: 'gap-0 px-2 pb-0.5 pt-2',
-        padTransport: 'gap-2 px-1.5 pb-2 pt-0.5',
+        stackPad: 'gap-1.5 p-1.5',
+        glassPad: 'gap-0.5 px-2 py-1.5',
         title: 'text-[10px] leading-tight',
-        artist: 'text-[8px] tracking-[0.16em]',
+        artist: 'text-[8px] tracking-[0.14em]',
         showArtist: false,
         showProgress: false,
         showStatus: false,
         playBox: 'h-8 w-8 rounded-[0.85rem] border-b-4',
         playIcon: 14,
-        skipIcon: 16,
-        skipOpacity: 'opacity-50 hover:opacity-100',
-        dissolveH: 'h-[62%]',
+        skipIcon: 15,
+        skipOpacity: 'opacity-55 hover:opacity-100',
+        glassRadius: 'rounded-xl',
       };
     case 'T':
       return {
-        padMeta: 'gap-1 px-3 pb-1 pt-3',
-        padTransport: 'gap-4 px-2.5 pb-3.5 pt-1',
+        stackPad: 'gap-2 p-2.5',
+        glassPad: 'gap-1 px-3 py-2',
         title: 'text-sm leading-snug sm:text-base',
-        artist: 'text-[9px] tracking-[0.2em]',
+        artist: 'text-[9px] tracking-[0.18em]',
         showArtist: true,
         showProgress: true,
         showStatus: true,
         playBox: 'h-11 w-11 rounded-[1.15rem] border-b-[6px] sm:h-12 sm:w-12',
         playIcon: 20,
         skipIcon: 22,
-        skipOpacity: 'opacity-40 hover:opacity-100',
-        dissolveH: 'h-[48%]',
+        skipOpacity: 'opacity-45 hover:opacity-100',
+        glassRadius: 'rounded-2xl',
       };
     case 'L':
       return {
-        padMeta: 'gap-1.5 px-4 pb-1.5 pt-4',
-        padTransport: 'gap-6 px-3 pb-4 pt-1.5',
+        stackPad: 'gap-2.5 p-3',
+        glassPad: 'gap-1 px-3.5 py-2.5',
         title: 'text-base leading-snug sm:text-lg',
         artist: 'text-[10px] tracking-[0.2em]',
         showArtist: true,
@@ -80,24 +80,24 @@ function chromeForSize(sizeId) {
         playBox: 'h-14 w-14 rounded-[1.35rem] border-b-8 sm:h-16 sm:w-16 sm:rounded-[1.5rem]',
         playIcon: 26,
         skipIcon: 26,
-        skipOpacity: 'opacity-40 hover:opacity-100',
-        dissolveH: 'h-[44%]',
+        skipOpacity: 'opacity-45 hover:opacity-100',
+        glassRadius: 'rounded-[1.35rem]',
       };
     case 'M':
     default:
       return {
-        padMeta: 'gap-0.5 px-3 pb-0.5 pt-2.5',
-        padTransport: 'gap-4 px-3 pb-2.5 pt-1',
+        stackPad: 'gap-2 p-2',
+        glassPad: 'gap-0.5 px-2.5 py-2',
         title: 'text-xs leading-snug sm:text-sm',
-        artist: 'text-[9px] tracking-[0.18em]',
+        artist: 'text-[9px] tracking-[0.16em]',
         showArtist: true,
         showProgress: true,
         showStatus: true,
         playBox: 'h-10 w-10 rounded-[1.1rem] border-b-[5px]',
         playIcon: 18,
         skipIcon: 20,
-        skipOpacity: 'opacity-45 hover:opacity-100',
-        dissolveH: 'h-[54%]',
+        skipOpacity: 'opacity-50 hover:opacity-100',
+        glassRadius: 'rounded-2xl',
       };
   }
 }
@@ -304,9 +304,8 @@ function NowPlayingSlot({
       return {
         background: [
           'linear-gradient(to top,',
-          `color-mix(in srgb, ${primary} 38%, hsl(var(--color-pure-black))) 0%,`,
-          'hsl(var(--color-pure-black) / 0.55) 22%,',
-          'hsl(var(--color-pure-black) / 0.18) 52%,',
+          `color-mix(in srgb, ${primary} 28%, hsl(var(--color-pure-black))) 0%,`,
+          'hsl(var(--color-pure-black) / 0.35) 35%,',
           'transparent 100%)',
         ].join(' '),
       };
@@ -314,9 +313,8 @@ function NowPlayingSlot({
     return {
       background: [
         'linear-gradient(to top,',
-        'hsl(var(--color-pure-black) / 0.78) 0%,',
-        'hsl(var(--color-pure-black) / 0.42) 28%,',
-        'hsl(var(--color-pure-black) / 0.12) 58%,',
+        'hsl(var(--color-pure-black) / 0.55) 0%,',
+        'hsl(var(--color-pure-black) / 0.18) 55%,',
         'transparent 100%)',
       ].join(' '),
     };
@@ -334,20 +332,23 @@ function NowPlayingSlot({
     chrome.showProgress && hasTrack && durationMs > 0 && !interactionsLocked;
 
   const artistColor = extractedColors?.accent || extractedColors?.primary || null;
-  const typeOnArt = onArt
-    ? 'text-[hsl(var(--color-pure-white))] home-widget-float-type'
-    : 'text-[hsl(var(--text-primary))]';
-  const typeMutedOnArt = onArt
-    ? 'text-[hsl(var(--color-pure-white)/0.88)] home-widget-float-type'
-    : 'text-[hsl(var(--text-secondary))]';
 
   const playMotion = reducedMotion
     ? {}
     : { whileHover: { scale: 1.08, y: -2 }, whileTap: { scale: 0.92 } };
 
+  const glassPanelClass = [
+    'relative z-10 flex w-full flex-col border shadow-[var(--shadow-sm)]',
+    chrome.glassRadius,
+    chrome.glassPad,
+    onArt
+      ? 'border-[hsl(var(--color-pure-white)/0.28)] bg-[hsl(var(--color-pure-white)/0.18)] text-[hsl(var(--color-pure-white))] backdrop-blur-md'
+      : 'border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-md',
+  ].join(' ');
+
   const transportRow = showTransport ? (
     <div
-      className={`relative z-10 flex items-center justify-center ${chrome.padTransport}`}
+      className="relative z-10 flex items-center justify-center gap-3"
       role="group"
       aria-label="Playback controls"
     >
@@ -418,15 +419,25 @@ function NowPlayingSlot({
       >
         {hasTrack && hasArt ? (
           <>
+            {/* Soft ambient fill — hides SMTC thumbnail pixelation at the edges */}
             <img
               src={albumArtUrl}
               alt=""
-              className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+              className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-80 blur-[18px] saturate-125"
+              draggable={false}
+              decoding="async"
+              aria-hidden
+            />
+            {/* Sharp cover plane */}
+            <img
+              src={albumArtUrl}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover [image-rendering:auto] contrast-[1.04] saturate-[1.05]"
               draggable={false}
               decoding="async"
             />
             <div
-              className={`pointer-events-none absolute inset-x-0 bottom-0 ${chrome.dissolveH}`}
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%]"
               style={artDissolveStyle}
               aria-hidden
             />
@@ -442,20 +453,22 @@ function NowPlayingSlot({
           />
         ) : null}
 
-        <button
-          type="button"
-          className={`relative z-10 flex min-h-0 flex-1 flex-col justify-end text-left ${chrome.padMeta} ${
-            showTransport || showProgress ? 'pb-0' : ''
-          }`}
-          onClick={handleActivate}
-          disabled={interactionsLocked && !arrangeMode}
-          aria-label={hasTrack ? `Now playing: ${trackName} by ${artistLine}` : 'Now Playing'}
-        >
+        <div className={`relative z-10 mt-auto flex min-h-0 w-full flex-col ${chrome.stackPad}`}>
           {hasTrack ? (
-            <>
+            <button
+              type="button"
+              className={`${glassPanelClass} text-left`}
+              onClick={handleActivate}
+              disabled={interactionsLocked && !arrangeMode}
+              aria-label={`Now playing: ${trackName} by ${artistLine}`}
+            >
               {chrome.showStatus ? (
                 <span
-                  className={`flex items-center gap-1 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] ${typeMutedOnArt}`}
+                  className={`flex items-center gap-1 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] ${
+                    onArt
+                      ? 'text-[hsl(var(--color-pure-white)/0.82)]'
+                      : 'text-[hsl(var(--text-secondary))]'
+                  }`}
                 >
                   <Music
                     size={isCompact ? 9 : 11}
@@ -475,32 +488,71 @@ function NowPlayingSlot({
               ) : null}
 
               <span
-                className={`truncate font-black uppercase italic tracking-tighter ${chrome.title} ${typeOnArt}`}
+                className={`truncate font-black uppercase italic tracking-tighter ${chrome.title} ${
+                  onArt ? 'text-[hsl(var(--color-pure-white))]' : 'text-[hsl(var(--text-primary))]'
+                }`}
               >
                 {trackName}
               </span>
 
               {chrome.showArtist && artistLine ? (
                 <span
-                  className={[
-                    `truncate font-black uppercase ${chrome.artist} transition-colors duration-700`,
-                    !artistColor && !onArt ? 'text-[hsl(var(--primary))]' : '',
-                    !artistColor && onArt ? 'home-widget-float-type' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
+                  className={`truncate font-black uppercase ${chrome.artist}`}
                   style={{
                     color:
                       artistColor ||
-                      (onArt ? 'hsl(var(--color-pure-white) / 0.75)' : undefined),
+                      (onArt
+                        ? 'hsl(var(--color-pure-white) / 0.78)'
+                        : 'hsl(var(--primary))'),
                   }}
                 >
                   {artistLine}
                 </span>
               ) : null}
-            </>
+
+              {showProgress ? (
+                <div className="mt-1" aria-hidden>
+                  <div
+                    className={`h-1.5 overflow-hidden rounded-full ${
+                      onArt
+                        ? 'bg-[hsl(var(--color-pure-white)/0.22)]'
+                        : 'bg-[hsl(var(--border-primary)/0.35)]'
+                    }`}
+                  >
+                    <div
+                      className="h-full rounded-full transition-[width] duration-700 ease-out"
+                      style={{
+                        width: `${progressRatio * 100}%`,
+                        backgroundColor:
+                          extractedColors?.accent ||
+                          extractedColors?.primary ||
+                          'hsl(var(--primary))',
+                      }}
+                    />
+                  </div>
+                  {!isCompact && sizeId !== 'M' ? (
+                    <div
+                      className={`mt-0.5 flex justify-between text-[8px] font-bold uppercase tracking-wider ${
+                        onArt
+                          ? 'text-[hsl(var(--color-pure-white)/0.6)]'
+                          : 'text-[hsl(var(--text-tertiary))]'
+                      }`}
+                    >
+                      <span>{formatMs(progressMs)}</span>
+                      <span>{formatMs(durationMs)}</span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </button>
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-center">
+            <button
+              type="button"
+              className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-center"
+              onClick={handleActivate}
+              disabled={interactionsLocked && !arrangeMode}
+              aria-label="Now Playing"
+            >
               <Music
                 size={isCompact ? 22 : 28}
                 strokeWidth={2.25}
@@ -510,43 +562,11 @@ function NowPlayingSlot({
               <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
                 {emptyLabel}
               </span>
-            </div>
+            </button>
           )}
-        </button>
 
-        {showProgress ? (
-          <div
-            className="relative z-10 px-3 pb-0.5"
-            aria-hidden
-          >
-            <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--color-pure-white)/0.18)]">
-              <div
-                className="h-full rounded-full transition-[width] duration-700 ease-out"
-                style={{
-                  width: `${progressRatio * 100}%`,
-                  backgroundColor:
-                    extractedColors?.accent ||
-                    extractedColors?.primary ||
-                    'hsl(var(--primary))',
-                }}
-              />
-            </div>
-            {!isCompact && sizeId !== 'M' ? (
-              <div
-                className={`mt-0.5 flex justify-between font-bold uppercase tracking-wider ${
-                  onArt
-                    ? 'text-[hsl(var(--color-pure-white)/0.55)]'
-                    : 'text-[hsl(var(--text-tertiary))]'
-                } text-[8px]`}
-              >
-                <span>{formatMs(progressMs)}</span>
-                <span>{formatMs(durationMs)}</span>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {transportRow}
+          {transportRow}
+        </div>
 
         {hasTrack && takeoverAvailable && !isCompact && !interactionsLocked ? (
           <button

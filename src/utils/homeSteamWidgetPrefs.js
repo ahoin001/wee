@@ -1,8 +1,12 @@
 /**
  * Shared display prefs for Home Steam widgets (Recent / Most Played / Friends).
  * Persisted on `ui.homeSteamWidget`. Uses free Steam Web API fields already enriched.
+ *
+ * Cover density is fixed to Dense (`S`) — no user tile-size control.
+ * Gutters start at Roomy and step up (Wide / Spacious).
  */
 
+/** Dense cover grid config (only size used by Steam Home shelves). */
 export const HOME_STEAM_TILE_SIZES = Object.freeze({
   S: Object.freeze({
     id: 'S',
@@ -12,6 +16,7 @@ export const HOME_STEAM_TILE_SIZES = Object.freeze({
     capacity: 30,
     horizontalRows: 2,
   }),
+  // Legacy ids kept for older snapshots; normalize always coerces to S.
   M: Object.freeze({
     id: 'M',
     label: 'Medium',
@@ -30,23 +35,24 @@ export const HOME_STEAM_TILE_SIZES = Object.freeze({
   }),
 });
 
-export const HOME_STEAM_SCROLL_AXES = Object.freeze({
-  auto: 'auto',
-  vertical: 'vertical',
-  horizontal: 'horizontal',
+/**
+ * Spacing between cover tiles. Scale starts at Roomy (legacy tight/default map up).
+ */
+export const HOME_STEAM_GUTTERS = Object.freeze({
+  roomy: Object.freeze({ id: 'roomy', label: 'Roomy', gapClass: 'gap-2' }),
+  wide: Object.freeze({ id: 'wide', label: 'Wide', gapClass: 'gap-3' }),
+  spacious: Object.freeze({ id: 'spacious', label: 'Spacious', gapClass: 'gap-4' }),
 });
 
-/** Spacing between cover tiles in the Steam shelf grid. */
-export const HOME_STEAM_GUTTERS = Object.freeze({
-  tight: Object.freeze({ id: 'tight', label: 'Tight', gapClass: 'gap-0.5' }),
-  default: Object.freeze({ id: 'default', label: 'Default', gapClass: 'gap-1' }),
-  roomy: Object.freeze({ id: 'roomy', label: 'Roomy', gapClass: 'gap-2' }),
+/** Legacy gutter ids → current scale. */
+const LEGACY_GUTTER_MAP = Object.freeze({
+  tight: 'roomy',
+  default: 'roomy',
 });
 
 export const DEFAULT_HOME_STEAM_WIDGET = Object.freeze({
-  tileSize: 'M',
-  scrollAxis: 'auto',
-  gutter: 'default',
+  tileSize: 'S',
+  gutter: 'roomy',
   showPlaytime: true,
   showName: true,
 });
@@ -54,23 +60,22 @@ export const DEFAULT_HOME_STEAM_WIDGET = Object.freeze({
 /**
  * @param {unknown} raw
  * @returns {{
- *   tileSize: 'S' | 'M' | 'L',
- *   scrollAxis: 'auto' | 'vertical' | 'horizontal',
- *   gutter: 'tight' | 'default' | 'roomy',
+ *   tileSize: 'S',
+ *   gutter: 'roomy' | 'wide' | 'spacious',
  *   showPlaytime: boolean,
  *   showName: boolean,
  * }}
  */
 export function normalizeHomeSteamWidget(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
-  const tileSize = HOME_STEAM_TILE_SIZES[src.tileSize] ? src.tileSize : DEFAULT_HOME_STEAM_WIDGET.tileSize;
-  const scrollAxis = HOME_STEAM_SCROLL_AXES[src.scrollAxis]
-    ? src.scrollAxis
-    : DEFAULT_HOME_STEAM_WIDGET.scrollAxis;
-  const gutter = HOME_STEAM_GUTTERS[src.gutter] ? src.gutter : DEFAULT_HOME_STEAM_WIDGET.gutter;
+  const rawGutter = typeof src.gutter === 'string' ? src.gutter : '';
+  const mappedGutter = LEGACY_GUTTER_MAP[rawGutter] || rawGutter;
+  const gutter = HOME_STEAM_GUTTERS[mappedGutter]
+    ? mappedGutter
+    : DEFAULT_HOME_STEAM_WIDGET.gutter;
   return {
-    tileSize,
-    scrollAxis,
+    // Cover size control removed — always Dense.
+    tileSize: 'S',
     gutter,
     showPlaytime: src.showPlaytime !== false,
     // Default on for readable cover docks; explicit false still disables.
@@ -79,29 +84,28 @@ export function normalizeHomeSteamWidget(raw) {
 }
 
 /**
- * @param {'S'|'M'|'L'} tileSizeId
+ * @param {'S'|'M'|'L'} [_tileSizeId]
  */
-export function getHomeSteamTileSizeConfig(tileSizeId) {
-  return HOME_STEAM_TILE_SIZES[tileSizeId] || HOME_STEAM_TILE_SIZES.M;
+export function getHomeSteamTileSizeConfig(_tileSizeId) {
+  return HOME_STEAM_TILE_SIZES.S;
 }
 
 /**
- * @param {'tight'|'default'|'roomy'} gutterId
+ * @param {'roomy'|'wide'|'spacious'|string} gutterId
  */
 export function getHomeSteamGutterConfig(gutterId) {
-  return HOME_STEAM_GUTTERS[gutterId] || HOME_STEAM_GUTTERS.default;
+  const mapped = LEGACY_GUTTER_MAP[gutterId] || gutterId;
+  return HOME_STEAM_GUTTERS[mapped] || HOME_STEAM_GUTTERS.roomy;
 }
 
 /**
  * Taller / square widgets scroll vertically; wider widgets scroll horizontally.
- * @param {{ scrollAxis: string }} prefs
+ * Scroll axis is layout-driven (no manual toggle).
+ * @param {unknown} _prefs
  * @param {{ colSpan?: number, rowSpan?: number }} span
  * @returns {'vertical' | 'horizontal'}
  */
-export function resolveSteamShelfScrollAxis(prefs, { colSpan = 2, rowSpan = 2 } = {}) {
-  const axis = prefs?.scrollAxis;
-  if (axis === HOME_STEAM_SCROLL_AXES.horizontal) return 'horizontal';
-  if (axis === HOME_STEAM_SCROLL_AXES.vertical) return 'vertical';
+export function resolveSteamShelfScrollAxis(_prefs, { colSpan = 2, rowSpan = 2 } = {}) {
   const cols = Math.max(1, Number(colSpan) || 1);
   const rows = Math.max(1, Number(rowSpan) || 1);
   return cols > rows ? 'horizontal' : 'vertical';

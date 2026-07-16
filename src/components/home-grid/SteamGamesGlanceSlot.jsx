@@ -8,7 +8,9 @@ import { Gamepad2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { SteamCoverTile, SteamGamesShelf } from './SteamGamesShelf';
+import SteamWidgetHeading from './SteamWidgetHeading';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
+import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
@@ -29,7 +31,7 @@ const EMPTY_ENRICHED_GAMES = Object.freeze([]);
 
 const VARIANT_META = {
   recent: {
-    title: 'Steam Recent',
+    title: 'Recent',
     kindId: 'steamRecent',
     ariaLabel: 'Steam Recently Played',
     launchSource: 'steamRecent',
@@ -38,7 +40,7 @@ const VARIANT_META = {
     playtimeField: 'playtimeRecent',
   },
   mostPlayed: {
-    title: 'Steam Most Played',
+    title: 'Most Played',
     kindId: 'steamMostPlayed',
     ariaLabel: 'Steam Most Played',
     launchSource: 'steamMostPlayed',
@@ -97,6 +99,12 @@ function SteamGamesGlanceSlot({
   const surface = normalizeHomeWidgetSurface(slot?.surface);
   const colSpan = slot?.colSpan ?? sizePreset.colSpan ?? 2;
   const rowSpan = slot?.rowSpan ?? sizePreset.rowSpan ?? 2;
+  const layout = useMemo(
+    () => resolveHomeWidgetLayout(colSpan, rowSpan),
+    [colSpan, rowSpan]
+  );
+  // Covers are always Dense; density follows widget footprint for chrome only.
+  const coverDensity = layout.density === 'roomy' ? 'cozy' : 'compact';
 
   const games = useMemo(
     () => meta.sort(enrichedList).slice(0, capacity),
@@ -202,14 +210,14 @@ function SteamGamesGlanceSlot({
     <HomeWidgetShell
       surface={surface}
       selected={selected}
-      className="p-1.5"
+      className={layout.shellPadClass}
       onClick={handleActivate}
       aria-label={meta.ariaLabel}
     >
       {games.length === 0 ? (
         <button
           type="button"
-          className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-center transition-transform hover:scale-[1.02] active:scale-95"
+          className={`flex h-full w-full flex-col items-center justify-center text-center transition-transform hover:scale-[1.02] active:scale-95 ${layout.gapClass}`}
           onClick={(event) => {
             event.stopPropagation();
             if (arrangeMode && !punchMode) {
@@ -220,20 +228,27 @@ function SteamGamesGlanceSlot({
           }}
           disabled={interactionsLocked && !arrangeMode}
         >
-          <Gamepad2 size={28} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
+          <Gamepad2
+            size={layout.iconPx + 4}
+            strokeWidth={2.25}
+            className="text-[hsl(var(--primary))]"
+            aria-hidden
+          />
           <span className="max-w-[14rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
             {emptyHint}
           </span>
         </button>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-1">
-          <div className="flex shrink-0 items-center justify-between gap-1 px-0.5">
-            <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-              {meta.title}
-            </span>
-            <Gamepad2 size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
-          </div>
-          <SteamGamesShelf prefs={steamPrefs} colSpan={colSpan} rowSpan={rowSpan}>
+        <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
+          {layout.showHeader ? (
+            <SteamWidgetHeading title={meta.title} icon={Gamepad2} />
+          ) : null}
+          <SteamGamesShelf
+            prefs={steamPrefs}
+            colSpan={colSpan}
+            rowSpan={rowSpan}
+            coverDensity={coverDensity}
+          >
             {games.map((game) => (
               <SteamCoverTile
                 key={String(game.appId)}
@@ -243,6 +258,7 @@ function SteamGamesGlanceSlot({
                 playtimeMinutes={Number(game[meta.playtimeField] || game.playtimeForever || 0)}
                 showPlaytime={steamPrefs.showPlaytime}
                 showName={steamPrefs.showName}
+                density={coverDensity}
                 onActivate={() => handleLaunch(game)}
               />
             ))}

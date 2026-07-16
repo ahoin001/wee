@@ -1,12 +1,13 @@
 /**
  * Home-grid Clock tile — local time/date using ribbon time font + color prefs.
+ * Layout adapts to compact / wide / tall footprints.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Clock } from 'lucide-react';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
-import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
+import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import { useTimeColor, useTimeFont } from '../../utils/useConsolidatedAppHooks';
 import { DEFAULT_TIME_COLOR_HEX } from '../../design/runtimeColorStrings';
 import { useActivityInterval } from '../../hooks/useActivityInterval';
@@ -44,13 +45,10 @@ function ClockSlot({
     fireOnResume: true,
   });
 
-  const sizePreset = useMemo(
-    () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),
+  const layout = useMemo(
+    () => resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1),
     [slot?.colSpan, slot?.rowSpan]
   );
-  const isCompact = sizePreset?.id === 'S';
-  const showDate = sizePreset?.id === 'M' || sizePreset?.id === 'L' || sizePreset?.id === 'XL';
-  const isTall = (sizePreset?.rowSpan ?? 1) > 1;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
 
   const fontStack =
@@ -58,6 +56,16 @@ function ClockSlot({
       ? 'DigitalDisplayRegular-ODEO, monospace'
       : "'Orbitron', sans-serif";
   const color = timeColor || DEFAULT_TIME_COLOR_HEX;
+
+  const timeSizeClass = layout.isCompact
+    ? 'text-2xl'
+    : layout.isTall
+      ? 'text-5xl'
+      : layout.isWide
+        ? 'text-4xl'
+        : layout.density === 'roomy'
+          ? 'text-4xl'
+          : 'text-3xl';
 
   const handleActivate = useCallback(
     (event) => {
@@ -69,45 +77,71 @@ function ClockSlot({
     [arrangeMode, punchMode, onArrangeSelect, channelId]
   );
 
+  const timeBlock = (
+    <div
+      className={`home-widget-float-type leading-none tabular-nums ${timeSizeClass}`}
+      style={{ fontFamily: fontStack, color }}
+    >
+      {formatClockTime(now)}
+    </div>
+  );
+
+  const dateBlock =
+    !layout.isCompact ? (
+      <div
+        className={`home-widget-float-type font-black uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))] ${
+          layout.isTall || layout.density === 'roomy' ? 'text-xs' : 'text-[10px]'
+        }`}
+      >
+        {formatClockDate(now, { includeWeekday: true })}
+      </div>
+    ) : null;
+
   return (
     <HomeWidgetShell
       surface={surface}
       selected={selected}
-      className="p-2"
+      className={layout.shellPadClass}
       onClick={handleActivate}
       aria-label={`Clock ${formatClockTime(now)}`}
     >
-      <div
-        className={`flex h-full w-full min-h-0 flex-col items-center justify-center text-center ${
-          isCompact ? 'gap-0.5' : 'gap-1'
-        }`}
-      >
-        {!isCompact ? (
-          <div className="flex w-full items-center justify-between gap-1 px-0.5">
-            <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-              Clock
-            </span>
-            <Clock size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
+      {layout.isWide && !layout.isCompact ? (
+        <div className={`flex h-full w-full min-h-0 items-center justify-between ${layout.gapClass}`}>
+          <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1">
+            {layout.showHeader ? (
+              <span className={layout.kickerClass}>Clock</span>
+            ) : null}
+            {timeBlock}
           </div>
-        ) : null}
-        <div
-          className={`home-widget-float-type leading-none tabular-nums ${
-            isCompact ? 'text-2xl' : isTall ? 'text-5xl' : 'text-3xl'
-          }`}
-          style={{ fontFamily: fontStack, color }}
-        >
-          {formatClockTime(now)}
+          <div className="flex shrink-0 flex-col items-end justify-center gap-1 text-right">
+            <Clock
+              size={layout.iconPx - 8}
+              strokeWidth={2.5}
+              className="text-[hsl(var(--text-tertiary))]"
+              aria-hidden
+            />
+            {dateBlock}
+          </div>
         </div>
-        {showDate ? (
-          <div
-            className={`home-widget-float-type font-black uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))] ${
-              isTall ? 'text-xs' : 'text-[10px]'
-            }`}
-          >
-            {formatClockDate(now, { includeWeekday: !isCompact })}
-          </div>
-        ) : null}
-      </div>
+      ) : (
+        <div
+          className={`flex h-full w-full min-h-0 flex-col items-center justify-center text-center ${layout.gapClass}`}
+        >
+          {layout.showHeader ? (
+            <div className="flex w-full items-center justify-between gap-1 px-0.5">
+              <span className={`truncate ${layout.kickerClass}`}>Clock</span>
+              <Clock
+                size={12}
+                strokeWidth={2.5}
+                className="shrink-0 text-[hsl(var(--text-tertiary))]"
+                aria-hidden
+              />
+            </div>
+          ) : null}
+          {timeBlock}
+          {dateBlock}
+        </div>
+      )}
     </HomeWidgetShell>
   );
 }

@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784228904.0197473,
-    "ast_hash": "45065e0f21bd150af8292d614eaf4735",
+    "mtime": 1784229928.2827444,
+    "ast_hash": "c6db75f5ae198e7be7ca58512b1fac22",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -2090,13 +2090,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/AdminQuickAccessSlot.jsx": {
-    "mtime": 1784219496.20557,
-    "ast_hash": "3bcf49449c6834a174ff58c2c0dea655",
+    "mtime": 1784230210.286843,
+    "ast_hash": "479d355fc8b87ff57c31f54ddbbffd7f",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
-    "mtime": 1784214464.1416857,
-    "ast_hash": "0131ff9a10c2abbc2f802dcf4073fd23",
+    "mtime": 1784231159.5103426,
+    "ast_hash": "35f1dd70fe675dd5be533446bb3a6ed3",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardSwitcher.jsx": {
@@ -2205,13 +2205,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784226394.1624856,
-    "ast_hash": "bfefa4a43eda15e1491dd9ec965522a3",
+    "mtime": 1784230999.9852376,
+    "ast_hash": "5f6b3ab408d19b11d4273098625c77a6",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
-    "mtime": 1784223391.2575223,
-    "ast_hash": "4746a49398031c39750bd0b3551e4f66",
+    "mtime": 1784230041.49927,
+    "ast_hash": "3773e8f674b35d8cebd2ae06e8d1f7fe",
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyTakeoverController.jsx": {
@@ -2355,8 +2355,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/ClockSlot.jsx": {
-    "mtime": 1784209051.0692537,
-    "ast_hash": "10f7e72b54fe9060a864c3678cfc6c43",
+    "mtime": 1784229997.4517505,
+    "ast_hash": "714cae3d621a4e704ecbebe148491525",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetShell.jsx": {
@@ -2370,8 +2370,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/WeatherSlot.jsx": {
-    "mtime": 1784214468.856433,
-    "ast_hash": "afcfb2890ff2afee103426bdb3c9202f",
+    "mtime": 1784230022.5097492,
+    "ast_hash": "494e428fe6f9057998e283944f34bbc2",
     "semantic_hash": ""
   },
   "src/hooks/useHomeWeather.js": {
@@ -2395,8 +2395,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetGlassControls.jsx": {
-    "mtime": 1784209082.6034951,
-    "ast_hash": "14707f7ecdd3c3132123ebad55645715",
+    "mtime": 1784231135.0930026,
+    "ast_hash": "80a2bfb382bb743548f3477652403196",
     "semantic_hash": ""
   },
   "src/utils/homeWidgetGlass.js": {
@@ -2410,8 +2410,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesGlanceSlot.jsx": {
-    "mtime": 1784223330.2488601,
-    "ast_hash": "467c5b6144ea53676b054bc9bac5f8c5",
+    "mtime": 1784231163.110615,
+    "ast_hash": "cff459be4f45d6f50d2508195333bafb",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamMostPlayedSlot.jsx": {
@@ -2425,8 +2425,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamFriendsSlot.jsx": {
-    "mtime": 1784229716.496684,
-    "ast_hash": "ef06d852646c750c2f0b29a61496f43d",
+    "mtime": 1784230927.9951222,
+    "ast_hash": "8a89794aad9a87e5e59261189e8bc974",
     "semantic_hash": ""
   },
   "src/utils/overlayEscape.js": {
@@ -2435,13 +2435,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetSettingsPanel.jsx": {
-    "mtime": 1784228250.0982137,
-    "ast_hash": "9b5794e32c2b9e5251c8f358fce98465",
+    "mtime": 1784231123.6835542,
+    "ast_hash": "d742685fe3aee72b4b8f20cff54d61ea",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesShelf.jsx": {
-    "mtime": 1784229716.9231162,
-    "ast_hash": "658c0895ec94ec758964014344ac8356",
+    "mtime": 1784231163.377032,
+    "ast_hash": "fb4c2a88a430fe5addb6314017f9344e",
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingColorMatch.js": {
@@ -2450,8 +2450,8 @@
     "semantic_hash": ""
   },
   "src/utils/homeSteamWidgetPrefs.js": {
-    "mtime": 1784229663.7014363,
-    "ast_hash": "e3a4a4a2dd680db2842633b920f41909",
+    "mtime": 1784231105.0371907,
+    "ast_hash": "effa0a2ca54ef9f0fb5104cb499b0459",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeFadeScroll.jsx": {
@@ -2467,6 +2467,16 @@
   "src/utils/boardMutation.js": {
     "mtime": 1784228313.8870394,
     "ast_hash": "767a77f3c3d3596a86ddfe6bce0cd0cd",
+    "semantic_hash": ""
+  },
+  "src/utils/homeWidgetLayout.js": {
+    "mtime": 1784229979.5902083,
+    "ast_hash": "73222d04b28b48014d8aabb76317a196",
+    "semantic_hash": ""
+  },
+  "src/components/home-grid/SteamWidgetHeading.jsx": {
+    "mtime": 1784230876.42313,
+    "ast_hash": "82adb035ed468e21a417cd024442fa2d",
     "semantic_hash": ""
   }
 }

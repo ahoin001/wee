@@ -3,6 +3,7 @@
  * Writes `ui.homeWidgetGlass` so every surface:glass tile stays in harmony.
  */
 import React, { useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import Slider from '../../ui/Slider';
 import WButton from '../../ui/WButton';
@@ -12,7 +13,7 @@ import {
   normalizeHomeWidgetGlass,
 } from '../../utils/homeWidgetGlass';
 
-function HomeWidgetGlassControls() {
+function HomeWidgetGlassControls({ nested = false }) {
   const glass = useConsolidatedAppStore(
     useShallow((state) => normalizeHomeWidgetGlass(state.ui?.homeWidgetGlass))
   );
@@ -45,10 +46,16 @@ function HomeWidgetGlassControls() {
   }, [patchGlass]);
 
   return (
-    <div className="flex w-full flex-col gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
+    <div
+      className={
+        nested
+          ? 'flex w-full flex-col gap-1.5 px-0.5'
+          : 'flex w-full flex-col gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5'
+      }
+    >
       <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
         <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-          Shared frost · all glass tiles
+          {nested ? 'Glass frost' : 'Shared frost · all glass tiles'}
         </span>
         <WButton size="sm" variant="secondary" onClick={handleReset}>
           Reset look
@@ -109,5 +116,9 @@ function HomeWidgetGlassControls() {
     </div>
   );
 }
+
+HomeWidgetGlassControls.propTypes = {
+  nested: PropTypes.bool,
+};
 
 export default React.memo(HomeWidgetGlassControls);

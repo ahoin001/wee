@@ -6,8 +6,10 @@ import PropTypes from 'prop-types';
 import { Lock, Users } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
+import SteamWidgetHeading from './SteamWidgetHeading';
 import { WeeFadeScroll } from '../../ui/wee';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
+import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
@@ -22,7 +24,7 @@ const EMPTY_FRIENDS_PLAYING = Object.freeze([]);
 const PRIVATE_FRIENDS_HINT =
   'Friends list is private on Steam. Set Friends List → Public, then tap to retry.';
 
-function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile }) {
+function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile, layout }) {
   const gameId = friend.gameId ? String(friend.gameId) : '';
   const gameThumb = gameId ? STEAM_CDN_HEADER(gameId) : '';
   const coverFallback = gameId ? STEAM_CDN_LIBRARY_COVER(gameId) : '';
@@ -47,18 +49,32 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
         if (friend.gameId) onLaunchGame?.(friend);
         else onOpenProfile?.(friend);
       }}
-      className="group flex w-full min-w-0 items-center gap-2 rounded-[0.85rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] p-1.5 text-left shadow-[var(--shadow-sm)] backdrop-blur-sm transition-[transform,background-color,border-color] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--surface-elevated)/0.82)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70"
+      className={`group flex w-full min-w-0 items-center border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] text-left shadow-[var(--shadow-sm)] backdrop-blur-sm transition-[transform,background-color,border-color] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--surface-elevated)/0.82)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 ${layout.listRowClass}`}
     >
       <div className="relative shrink-0">
         {friend.avatarUrl ? (
           <img
             src={friend.avatarUrl}
             alt=""
-            className="h-9 w-9 rounded-full border border-[hsl(var(--border-primary)/0.45)] object-cover"
+            className={`rounded-full border border-[hsl(var(--border-primary)/0.45)] object-cover ${
+              layout.density === 'roomy'
+                ? 'h-10 w-10'
+                : layout.density === 'compact'
+                  ? 'h-7 w-7'
+                  : 'h-9 w-9'
+            }`}
             draggable={false}
           />
         ) : (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--surface-secondary))] text-[11px] font-black text-[hsl(var(--text-secondary))]">
+          <span
+            className={`flex items-center justify-center rounded-full bg-[hsl(var(--surface-secondary))] text-[11px] font-black text-[hsl(var(--text-secondary))] ${
+              layout.density === 'roomy'
+                ? 'h-10 w-10'
+                : layout.density === 'compact'
+                  ? 'h-7 w-7'
+                  : 'h-9 w-9'
+            }`}
+          >
             {(friend.personaName || '?').slice(0, 1).toUpperCase()}
           </span>
         )}
@@ -70,10 +86,18 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[length:var(--font-size-micro)] font-extrabold tracking-wide text-[hsl(var(--text-primary))]">
+        <div
+          className={`truncate font-extrabold tracking-wide text-[hsl(var(--text-primary))] ${
+            layout.density === 'roomy' ? 'text-[length:var(--font-size-caption)]' : 'text-[length:var(--font-size-micro)]'
+          }`}
+        >
           {friend.personaName}
         </div>
-        <div className="mt-0.5 truncate text-[9px] font-bold text-[hsl(var(--text-secondary))]">
+        <div
+          className={`mt-0.5 truncate font-bold text-[hsl(var(--text-secondary))] ${
+            layout.density === 'compact' ? 'text-[8px]' : 'text-[9px]'
+          }`}
+        >
           {friend.gameName ? (
             <>
               <span className="text-[hsl(var(--signal-success))]">Playing</span>
@@ -87,7 +111,9 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
       </div>
 
       {gameThumb ? (
-        <div className="relative h-9 w-[4.25rem] shrink-0 overflow-hidden rounded-md border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary))] shadow-[var(--shadow-sm)]">
+        <div
+          className={`relative shrink-0 overflow-hidden rounded-md border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary))] shadow-[var(--shadow-sm)] ${layout.listThumbClass}`}
+        >
           <img
             src={gameThumb}
             alt=""
@@ -118,6 +144,7 @@ FriendListRow.propTypes = {
   interactionsLocked: PropTypes.bool,
   onLaunchGame: PropTypes.func,
   onOpenProfile: PropTypes.func,
+  layout: PropTypes.object.isRequired,
 };
 
 function SteamFriendsSlot({
@@ -163,7 +190,14 @@ function SteamFriendsSlot({
       },
     [slot?.colSpan, slot?.rowSpan]
   );
-  const capacity = Math.max(Number(sizePreset.capacity) || 12, 8);
+  const layout = useMemo(
+    () => resolveHomeWidgetLayout(slot?.colSpan ?? 2, slot?.rowSpan ?? 2),
+    [slot?.colSpan, slot?.rowSpan]
+  );
+  const capacity = Math.max(
+    Number(sizePreset.capacity) || 12,
+    layout.density === 'roomy' ? 16 : 8
+  );
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
   const isPrivateFriends =
@@ -315,14 +349,14 @@ function SteamFriendsSlot({
     <HomeWidgetShell
       surface={surface}
       selected={selected}
-      className="p-1.5"
+      className={layout.shellPadClass}
       onClick={handleActivate}
       aria-label="Steam Friends playing"
     >
       {friends.length === 0 ? (
         <button
           type="button"
-          className="flex h-full w-full flex-col items-center justify-center gap-2 px-2 text-center transition-transform hover:scale-[1.02] active:scale-95"
+          className={`flex h-full w-full flex-col items-center justify-center px-2 text-center transition-transform hover:scale-[1.02] active:scale-95 ${layout.gapClass}`}
           onClick={(event) => {
             event.stopPropagation();
             if (arrangeMode && !punchMode) {
@@ -342,9 +376,9 @@ function SteamFriendsSlot({
           disabled={interactionsLocked && !arrangeMode}
         >
           {isPrivateFriends ? (
-            <Lock size={28} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
+            <Lock size={layout.iconPx} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
           ) : (
-            <Users size={28} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
+            <Users size={layout.iconPx} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
           )}
           <span className="max-w-[16rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
             {emptyHint}
@@ -356,20 +390,19 @@ function SteamFriendsSlot({
           ) : null}
         </button>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-          <div className="flex shrink-0 items-center justify-between gap-1 px-0.5">
-            <div className="min-w-0">
-              <div className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-                Friends in-game
-              </div>
-              <div className="truncate text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-                {friends.length} online
-              </div>
-            </div>
-            <Users size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
-          </div>
+        <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
+          <SteamWidgetHeading title="Friends" icon={Users} />
+          {layout.density !== 'compact' ? (
+            <p className="-mt-0.5 mb-0 px-0.5 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+              {friends.length} in-game
+            </p>
+          ) : null}
           <WeeFadeScroll axis="y" fadePx={28} hideScrollbar className="min-h-0 flex-1">
-            <div className="flex flex-col gap-1.5 pb-2">
+            <div
+              className={`pb-2 ${layout.gapClass} ${
+                layout.listColumns > 1 ? 'grid grid-cols-2' : 'flex flex-col'
+              }`}
+            >
               {friends.map((friend) => (
                 <FriendListRow
                   key={friend.steamId}
@@ -377,6 +410,7 @@ function SteamFriendsSlot({
                   interactionsLocked={interactionsLocked}
                   onLaunchGame={handleLaunchGame}
                   onOpenProfile={handleOpenProfile}
+                  layout={layout}
                 />
               ))}
             </div>

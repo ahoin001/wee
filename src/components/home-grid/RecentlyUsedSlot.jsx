@@ -4,8 +4,9 @@ import { History } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
-import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 
@@ -19,7 +20,14 @@ const LAUNCH_TYPE_FALLBACK_ICONS = {
   app: '⚡',
 };
 
-function RecentLaunchButton({ entry, onLaunch, compact = false }) {
+function RecentLaunchButton({ entry, onLaunch, size = 'md', showLabel = false }) {
+  const box =
+    size === 'sm'
+      ? 'h-9 w-9 text-base rounded-xl'
+      : size === 'lg'
+        ? 'h-12 w-12 text-xl rounded-2xl'
+        : 'h-11 w-11 text-lg rounded-2xl';
+
   return (
     <button
       type="button"
@@ -29,15 +37,22 @@ function RecentLaunchButton({ entry, onLaunch, compact = false }) {
         event.stopPropagation();
         onLaunch(entry);
       }}
-      className={`home-widget-float-tile flex items-center justify-center overflow-hidden rounded-2xl border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] text-[hsl(var(--text-primary))] shadow-[var(--shadow-sm)] transition-transform hover:scale-105 active:scale-95 ${
-        compact ? 'h-9 w-9 text-base' : 'h-11 w-11 text-lg'
+      className={`home-widget-float-tile flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] text-[hsl(var(--text-primary))] shadow-[var(--shadow-sm)] transition-transform hover:scale-105 active:scale-95 ${
+        showLabel ? 'w-full p-1.5' : ''
       }`}
     >
-      {entry.icon ? (
-        <img src={entry.icon} alt="" className="h-full w-full object-cover" draggable={false} />
-      ) : (
-        <span aria-hidden>{LAUNCH_TYPE_FALLBACK_ICONS[entry.launchType] || '⚡'}</span>
-      )}
+      <span className={`flex shrink-0 items-center justify-center overflow-hidden ${box}`}>
+        {entry.icon ? (
+          <img src={entry.icon} alt="" className="h-full w-full object-cover" draggable={false} />
+        ) : (
+          <span aria-hidden>{LAUNCH_TYPE_FALLBACK_ICONS[entry.launchType] || '⚡'}</span>
+        )}
+      </span>
+      {showLabel ? (
+        <span className="w-full truncate text-center text-[8px] font-black uppercase tracking-[0.06em] text-[hsl(var(--text-secondary))]">
+          {entry.label}
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -50,12 +65,12 @@ RecentLaunchButton.propTypes = {
     launchType: PropTypes.string,
   }).isRequired,
   onLaunch: PropTypes.func.isRequired,
-  compact: PropTypes.bool,
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  showLabel: PropTypes.bool,
 };
 
 /**
- * Home-grid Recently Used tile — relaunch recent apps from bounded history
- * (`channels.recentLaunches`, recorded by the channel launch path).
+ * Home-grid Recently Used tile — relaunch recent apps from bounded history.
  */
 function RecentlyUsedSlot({
   slot,
@@ -74,12 +89,16 @@ function RecentlyUsedSlot({
   );
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
 
+  const layout = useMemo(
+    () => resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1),
+    [slot?.colSpan, slot?.rowSpan]
+  );
   const sizePreset = useMemo(
     () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),
     [slot?.colSpan, slot?.rowSpan]
   );
   const capacity = sizePreset?.capacity ?? 0;
-  const isCompact = capacity === 0;
+  const isCompact = layout.isCompact || capacity === 0;
   const interactionsLocked = arrangeMode || punchMode;
 
   const visible = useMemo(
@@ -129,19 +148,21 @@ function RecentlyUsedSlot({
 
   const isEmpty = visible.length === 0;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
+  const iconSize = layout.density === 'roomy' ? 'lg' : layout.density === 'compact' || layout.isWide ? 'sm' : 'md';
+  const gridCols = layout.iconGridCols;
 
   return (
     <HomeWidgetShell
       surface={surface}
       selected={selected}
-      className="p-2"
+      className={layout.shellPadClass}
       onClick={handleTileActivate}
       aria-label="Recently Used"
     >
       {isEmpty ? (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-center">
+        <div className={`flex h-full w-full flex-col items-center justify-center text-center ${layout.gapClass}`}>
           <History
-            size={isCompact ? 22 : 28}
+            size={layout.iconPx}
             strokeWidth={2.25}
             className="text-[hsl(var(--primary))]"
             aria-hidden
@@ -173,25 +194,45 @@ function RecentlyUsedSlot({
             {visible[0].label}
           </span>
         </button>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-1 px-0.5">
-            <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-              Recently Used
-            </span>
-            <History size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
+      ) : layout.isWide && !layout.isTall ? (
+        <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
+          {layout.showHeader ? (
+            <div className="flex items-center justify-between gap-1 px-0.5">
+              <span className={`truncate ${layout.kickerClass}`}>Recently Used</span>
+              <History size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
+            </div>
+          ) : null}
+          <div className="flex min-h-0 flex-1 items-center justify-start gap-1.5 overflow-hidden">
+            {visible.map((entry) => (
+              <RecentLaunchButton
+                key={entry.key || entry.path}
+                entry={entry}
+                onLaunch={handleLaunch}
+                size={iconSize}
+                showLabel={false}
+              />
+            ))}
           </div>
+        </div>
+      ) : (
+        <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
+          {layout.showHeader ? (
+            <div className="flex items-center justify-between gap-1 px-0.5">
+              <span className={`truncate ${layout.kickerClass}`}>Recently Used</span>
+              <History size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
+            </div>
+          ) : null}
           <div
-            className={`grid min-h-0 flex-1 content-start gap-1.5 ${
-              sizePreset?.id === 'XL' ? 'grid-cols-5' : 'grid-cols-3'
-            }`}
+            className="grid min-h-0 flex-1 content-start gap-1.5"
+            style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}
           >
             {visible.map((entry) => (
               <RecentLaunchButton
                 key={entry.key || entry.path}
                 entry={entry}
                 onLaunch={handleLaunch}
-                compact={sizePreset?.id === 'M'}
+                size={iconSize}
+                showLabel={layout.showIconLabels}
               />
             ))}
           </div>

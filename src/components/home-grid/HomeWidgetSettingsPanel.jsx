@@ -20,8 +20,6 @@ import {
 import {
   DEFAULT_HOME_STEAM_WIDGET,
   HOME_STEAM_GUTTERS,
-  HOME_STEAM_SCROLL_AXES,
-  HOME_STEAM_TILE_SIZES,
   normalizeHomeSteamWidget,
 } from '../../utils/homeSteamWidgetPrefs';
 import {
@@ -93,57 +91,9 @@ function SteamWidgetSettings({ kindId }) {
   );
 
   return (
-    <div className="flex flex-col items-center gap-2.5">
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-          Cover size
-        </span>
-        <WeeSegmentedControl
-          size="sm"
-          ariaLabel="Steam cover tile size"
-          layoutId="homeArrangeSteamTileSize"
-          value={prefs.tileSize}
-          onChange={(tileSize) => patchPrefs({ tileSize })}
-          options={Object.values(HOME_STEAM_TILE_SIZES).map((size) => ({
-            value: size.id,
-            label: size.label,
-            title: `${size.label} · ${size.columns} columns`,
-          }))}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-          Scroll
-        </span>
-        <WeeSegmentedControl
-          size="sm"
-          ariaLabel="Steam shelf scroll direction"
-          layoutId="homeArrangeSteamScrollAxis"
-          value={prefs.scrollAxis}
-          onChange={(scrollAxis) => patchPrefs({ scrollAxis })}
-          options={[
-            {
-              value: HOME_STEAM_SCROLL_AXES.auto,
-              label: 'Auto',
-              title: 'Tall widgets scroll vertically; wide widgets scroll horizontally',
-            },
-            {
-              value: HOME_STEAM_SCROLL_AXES.vertical,
-              label: 'Vertical',
-              title: 'Always scroll vertically',
-            },
-            {
-              value: HOME_STEAM_SCROLL_AXES.horizontal,
-              label: 'Horizontal',
-              title: 'Always scroll horizontally',
-            },
-          ]}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+    <div className="flex w-full flex-col gap-2">
+      <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[auto_1fr] sm:gap-x-3">
+        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))] sm:text-right">
           Gutters
         </span>
         <WeeSegmentedControl
@@ -160,37 +110,39 @@ function SteamWidgetSettings({ kindId }) {
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        {showPlaytimeToggle ? (
+      {showPlaytimeToggle ? (
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start sm:pl-[4.5rem]">
           <WeeToggle
             checked={prefs.showPlaytime}
             onChange={(showPlaytime) => patchPrefs({ showPlaytime })}
             label="Playtime"
             title="Show hours played from Steam library stats"
           />
-        ) : null}
-        {showPlaytimeToggle ? (
           <WeeToggle
             checked={prefs.showName}
             onChange={(showName) => patchPrefs({ showName })}
             label="Titles"
             title="Show game name under each cover"
           />
-        ) : null}
-      </div>
-
-      <p className="m-0 max-w-[28rem] text-center text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-        Shared look for all Steam Home widgets. Playtime uses free Steam library stats.
-        Resize the tile to 3×2 for a wide horizontal shelf.
-      </p>
-
-      <button
-        type="button"
-        className="text-[9px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))] underline-offset-2 hover:text-[hsl(var(--text-secondary))] hover:underline"
-        onClick={() => patchPrefs({ ...DEFAULT_HOME_STEAM_WIDGET })}
-      >
-        Reset Steam look
-      </button>
+          <button
+            type="button"
+            className="text-[9px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))] underline-offset-2 hover:text-[hsl(var(--text-secondary))] hover:underline"
+            onClick={() => patchPrefs({ ...DEFAULT_HOME_STEAM_WIDGET })}
+          >
+            Reset
+          </button>
+        </div>
+      ) : (
+        <div className="flex justify-center sm:justify-start sm:pl-[4.5rem]">
+          <button
+            type="button"
+            className="text-[9px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))] underline-offset-2 hover:text-[hsl(var(--text-secondary))] hover:underline"
+            onClick={() => patchPrefs({ ...DEFAULT_HOME_STEAM_WIDGET })}
+          >
+            Reset Steam look
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -198,256 +150,6 @@ function SteamWidgetSettings({ kindId }) {
 SteamWidgetSettings.propTypes = {
   kindId: PropTypes.string,
 };
-
-function formatChars(n) {
-  const v = Number(n) || 0;
-  if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
-  return String(v);
-}
-
-function DebugRow({ label, value, ok }) {
-  return (
-    <div className="flex items-start justify-between gap-2 border-b border-[hsl(var(--border-primary)/0.15)] py-0.5 last:border-b-0">
-      <span className="shrink-0 text-[8px] font-black uppercase tracking-[0.1em] text-[hsl(var(--text-tertiary))]">
-        {label}
-      </span>
-      <span
-        className={[
-          'min-w-0 break-all text-right text-[9px] font-bold leading-snug',
-          ok === true
-            ? 'text-[hsl(var(--state-success))]'
-            : ok === false
-              ? 'text-[hsl(var(--state-warning))]'
-              : 'text-[hsl(var(--text-secondary))]',
-        ].join(' ')}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-DebugRow.propTypes = {
-  label: PropTypes.string.isRequired,
-  value: PropTypes.node,
-  ok: PropTypes.bool,
-};
-
-/** Live SMTC / Now Playing diagnostics for Apple Music art troubleshooting. */
-function NowPlayingSmtcDebugPanel() {
-  const {
-    preference,
-    systemEnabled,
-    systemMedia,
-    nowPlaying,
-  } = useConsolidatedAppStore(
-    useShallow((s) => ({
-      preference: s.ui?.nowPlayingSourcePreference || 'auto',
-      systemEnabled: s.ui?.systemMediaEnabled !== false,
-      systemMedia: s.systemMedia || null,
-      nowPlaying: s.nowPlaying || null,
-    }))
-  );
-
-  const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(true);
-
-  const session = systemMedia?.session || null;
-  const sessions = Array.isArray(systemMedia?.sessions) ? systemMedia.sessions : [];
-  const artDebug = systemMedia?.artDebug || null;
-  const compressNotes = Array.isArray(artDebug?.lastCompress) ? artDebug.lastCompress : [];
-  const diagnostics = Array.isArray(artDebug?.diagnostics) ? artDebug.diagnostics : [];
-
-  const primaryNote =
-    compressNotes.find((n) => n?.id && session?.id && n.id === session.id) ||
-    compressNotes.find((n) => n?.includeThumbnail) ||
-    compressNotes[0] ||
-    null;
-
-  const hasThumb = Boolean(session?.thumbnail);
-  const npHasArt = Boolean(nowPlaying?.albumArtUrl);
-  const bridgeStatus = !systemEnabled
-    ? 'disabled'
-    : systemMedia?.starting
-      ? 'starting'
-      : systemMedia?.error
-        ? 'error'
-        : systemMedia?.available
-          ? 'available'
-          : 'unavailable';
-
-  const dump = useMemo(
-    () => ({
-      preference,
-      systemEnabled,
-      bridgeStatus,
-      error: systemMedia?.error || null,
-      backendPath: artDebug?.backendPath || null,
-      sessionCount: sessions.length,
-      primary: session
-        ? {
-            app: session.sourceAppDisplayName || session.sourceAppUserModelId || '',
-            aumid: session.sourceAppUserModelId || '',
-            title: session.title || '',
-            artist: session.artist || '',
-            status: session.playbackStatus || '',
-            hasThumbnail: hasThumb,
-            thumbnailChars: session.thumbnail ? String(session.thumbnail).length : 0,
-            thumbnailMime: String(session.thumbnail || '').match(/^data:([^;]+)/)?.[1] || '',
-          }
-        : null,
-      nowPlaying: nowPlaying
-        ? {
-            source: nowPlaying.source || null,
-            appName: nowPlaying.appName || '',
-            trackName: nowPlaying.trackName || '',
-            hasAlbumArt: npHasArt,
-            albumArtChars: nowPlaying.albumArtUrl
-              ? String(nowPlaying.albumArtUrl).length
-              : 0,
-            controlsVia: nowPlaying.controlsVia || null,
-          }
-        : null,
-      lastCompress: compressNotes,
-      diagnostics,
-      updatedAt: artDebug?.updatedAt || null,
-    }),
-    [
-      preference,
-      systemEnabled,
-      bridgeStatus,
-      systemMedia?.error,
-      artDebug,
-      sessions.length,
-      session,
-      hasThumb,
-      nowPlaying,
-      npHasArt,
-      compressNotes,
-      diagnostics,
-    ]
-  );
-
-  const copyDump = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopied(false);
-    }
-  }, [dump]);
-
-  return (
-    <div className="w-full max-w-[28rem] rounded-xl border border-[hsl(var(--border-primary)/0.3)] bg-[hsl(var(--surface-secondary)/0.55)] px-2.5 py-2">
-      <div className="mb-1.5 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-secondary))]"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          SMTC debug {expanded ? '▾' : '▸'}
-        </button>
-        <button
-          type="button"
-          className="text-[8px] font-black uppercase tracking-[0.1em] text-[hsl(var(--text-tertiary))] underline-offset-2 hover:text-[hsl(var(--text-secondary))] hover:underline"
-          onClick={copyDump}
-        >
-          {copied ? 'Copied' : 'Copy dump'}
-        </button>
-      </div>
-
-      {expanded ? (
-        <div className="flex flex-col gap-0.5">
-          <DebugRow
-            label="Bridge"
-            value={bridgeStatus}
-            ok={bridgeStatus === 'available'}
-          />
-          <DebugRow label="Preference" value={preference} />
-          <DebugRow
-            label="Sessions"
-            value={`${sessions.length} open`}
-            ok={sessions.length > 0}
-          />
-          <DebugRow
-            label="Primary app"
-            value={
-              session
-                ? session.sourceAppDisplayName ||
-                  session.sourceAppUserModelId ||
-                  '—'
-                : 'none'
-            }
-            ok={Boolean(session)}
-          />
-          <DebugRow
-            label="Track"
-            value={session?.title || nowPlaying?.trackName || '—'}
-          />
-          <DebugRow
-            label="SMTC art"
-            value={
-              hasThumb
-                ? `yes · ${formatChars(String(session.thumbnail).length)} chars`
-                : primaryNote
-                  ? `no · ${primaryNote.status}/${primaryNote.reason}`
-                  : 'no'
-            }
-            ok={hasThumb}
-          />
-          <DebugRow
-            label="Tile art"
-            value={
-              npHasArt
-                ? `yes · ${formatChars(String(nowPlaying.albumArtUrl).length)} · ${nowPlaying.source || '?'}`
-                : 'no'
-            }
-            ok={npHasArt}
-          />
-          {primaryNote ? (
-            <DebugRow
-              label="Compress"
-              value={`${primaryNote.status} · ${primaryNote.reason || '—'} · in ${formatChars(primaryNote.rawChars)} → out ${formatChars(primaryNote.outChars)}${primaryNote.rawMime ? ` · ${primaryNote.rawMime}` : ''}`}
-              ok={primaryNote.hasOut}
-            />
-          ) : null}
-          {systemMedia?.error ? (
-            <DebugRow label="Error" value={systemMedia.error} ok={false} />
-          ) : null}
-          {artDebug?.backendPath ? (
-            <DebugRow
-              label="Backend"
-              value={String(artDebug.backendPath).split(/[/\\]/).slice(-2).join('/')}
-            />
-          ) : (
-            <DebugRow label="Backend" value="missing?" ok={false} />
-          )}
-          {diagnostics.length > 0 ? (
-            <div className="mt-1 rounded-lg bg-[hsl(var(--surface-primary)/0.35)] px-2 py-1">
-              <p className="m-0 mb-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-[hsl(var(--text-tertiary))]">
-                Bridge diagnostics
-              </p>
-              {diagnostics.slice(0, 4).map((d, i) => (
-                <p
-                  key={`${d.at}-${i}`}
-                  className="m-0 text-[8px] font-semibold leading-snug text-[hsl(var(--state-warning))]"
-                >
-                  {d.message}
-                </p>
-              ))}
-            </div>
-          ) : (
-            <p className="m-0 mt-1 text-[8px] font-bold text-[hsl(var(--text-tertiary))]">
-              No bridge diagnostics yet. Play in Apple Music — if title shows but SMTC art
-              is no, the app may not publish a thumbnail to Windows.
-            </p>
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function NowPlayingWidgetSettings() {
   const {
@@ -653,7 +355,6 @@ function NowPlayingWidgetSettings() {
         </p>
       ) : null}
 
-      <NowPlayingSmtcDebugPanel />
 
       <WeeModalShell
         isOpen={nameModalOpen}
@@ -708,45 +409,46 @@ function NowPlayingWidgetSettings() {
   );
 }
 
-function HomeWidgetSettingsPanel({ kindId }) {
+function HomeWidgetSettingsPanel({ kindId, nested = false }) {
+  let title = null;
+  let body = null;
+
   if (kindId === 'weather') {
-    return (
-      <div className="flex w-full flex-col gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
-        <span className="px-0.5 text-center text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
-          Widget settings · Weather
-        </span>
-        <WeatherWidgetSettings />
-      </div>
-    );
+    title = 'Weather';
+    body = <WeatherWidgetSettings />;
+  } else if (STEAM_KIND_IDS.has(kindId)) {
+    title = 'Steam';
+    body = <SteamWidgetSettings kindId={kindId} />;
+  } else if (kindId === 'nowPlaying') {
+    title = 'Now Playing';
+    body = <NowPlayingWidgetSettings />;
   }
 
-  if (STEAM_KIND_IDS.has(kindId)) {
-    return (
-      <div className="flex w-full flex-col gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
-        <span className="px-0.5 text-center text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
-          Widget settings · Steam
-        </span>
-        <SteamWidgetSettings kindId={kindId} />
-      </div>
-    );
-  }
+  if (!body) return null;
 
-  if (kindId === 'nowPlaying') {
-    return (
-      <div className="flex w-full flex-col gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
-        <span className="px-0.5 text-center text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
-          Widget settings · Now Playing
-        </span>
-        <NowPlayingWidgetSettings />
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <div
+      className={
+        nested
+          ? 'flex w-full flex-col gap-1.5 px-0.5'
+          : 'flex w-full flex-col gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5'
+      }
+    >
+      <span
+        className={`px-0.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))] ${
+          nested ? 'text-left' : 'text-center'
+        }`}
+      >
+        {nested ? title : `Widget settings · ${title}`}
+      </span>
+      {body}
+    </div>
+  );
 }
 
 HomeWidgetSettingsPanel.propTypes = {
   kindId: PropTypes.string,
+  nested: PropTypes.bool,
 };
 
 /** Whether Edit Home should expand the widget-settings tray for this kind. */

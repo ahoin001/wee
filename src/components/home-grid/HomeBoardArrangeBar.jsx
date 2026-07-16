@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Check, Grip, HelpCircle, MoreHorizontal, PenLine, Plus, Trash2 } from 'lucide-react';
+import { Check, Grip, HelpCircle, MoreHorizontal, PenLine, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { createWeeTransition } from '../../design/weeMotion';
 import {
   WeeGlassPill,
@@ -59,6 +59,7 @@ function HomeBoardArrangeBar({
     [onPickerOpenChange, pickerOpen]
   );
   const [moreOpen, setMoreOpen] = useState(false);
+  const [looksOpen, setLooksOpen] = useState(false);
 
   const systemSessions = useConsolidatedAppStore(
     useShallow((s) => (Array.isArray(s.systemMedia?.sessions) ? s.systemMedia.sessions : []))
@@ -67,6 +68,7 @@ function HomeBoardArrangeBar({
   useEffect(() => {
     if (!arrangeMode) {
       setMoreOpen(false);
+      setLooksOpen(false);
     }
   }, [arrangeMode]);
 
@@ -99,6 +101,15 @@ function HomeBoardArrangeBar({
     ? normalizeHomeWidgetSurface(selectedSlot?.surface)
     : null;
 
+  const hasWidgetSettings = homeSlotKindHasWidgetSettings(selectedSlot?.kind);
+  const showGlassLooks = selectedIsWidget && activeSurface === 'glass';
+  const showListenLooks = Boolean(selectedIsNowPlaying && typeof onSetListenApp === 'function');
+  const hasLooksPanel = showGlassLooks || hasWidgetSettings || showListenLooks;
+
+  useEffect(() => {
+    if (!hasLooksPanel) setLooksOpen(false);
+  }, [hasLooksPanel]);
+
   const listenAppValue = String(selectedSlot?.widget?.listenApp || 'any').trim() || 'any';
 
   const listenAppOptions = useMemo(() => {
@@ -129,11 +140,19 @@ function HomeBoardArrangeBar({
   const handleToggleQuickPicker = useCallback(() => {
     setPickerOpen((prev) => !prev);
     setMoreOpen(false);
+    setLooksOpen(false);
   }, [setPickerOpen]);
 
   const handleToggleMore = useCallback(() => {
     setMoreOpen((prev) => !prev);
     setPickerOpen(false);
+    setLooksOpen(false);
+  }, [setPickerOpen]);
+
+  const handleToggleLooks = useCallback(() => {
+    setLooksOpen((prev) => !prev);
+    setPickerOpen(false);
+    setMoreOpen(false);
   }, [setPickerOpen]);
 
   const handlePickKind = useCallback(
@@ -146,17 +165,14 @@ function HomeBoardArrangeBar({
 
   const hint = punchMode
     ? 'Tap tiles to punch wallpaper holes · toggle off under More when finished'
-    : selectedIsNowPlaying
-      ? 'Pick which desktop app this tile listens to · or Any for auto'
+    : looksOpen
+      ? 'Tune this widget’s look · Done when finished'
       : selectedIsWidget
-        ? `Drag the corner to resize · or pick a size · remove this ${selectedKindMeta?.label ?? ''} widget`.replace(
-            '  ',
-            ' '
-          )
+        ? `Resize · pick a size · Looks for ${selectedKindMeta?.label ?? 'widget'} prefs`
         : selectedIsEmptyChannel
           ? 'Empty slot — pick a widget below to place it here'
           : selectedKindMeta
-            ? 'Drag the corner to resize · or pick a size · drag tiles to reorder'
+            ? 'Drag a corner to resize · or pick a size · drag tiles to reorder'
             : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
 
   return (
@@ -253,6 +269,21 @@ function HomeBoardArrangeBar({
                 </>
               ) : null}
 
+              {hasLooksPanel ? (
+                <WeeButton
+                  variant={looksOpen ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={handleToggleLooks}
+                  aria-expanded={looksOpen}
+                  title="Widget look and display prefs"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <SlidersHorizontal size={13} strokeWidth={2.5} aria-hidden />
+                    Looks
+                  </span>
+                </WeeButton>
+              ) : null}
+
               <WeeButton
                 variant="secondary"
                 size="sm"
@@ -300,40 +331,28 @@ function HomeBoardArrangeBar({
               </div>
             </WeeContentCollapse>
 
-            <WeeContentCollapse
-              open={selectedIsWidget && activeSurface === 'glass'}
-              keepMounted={false}
-            >
-              <HomeWidgetGlassControls />
-            </WeeContentCollapse>
-
-            <WeeContentCollapse
-              open={Boolean(selectedIsNowPlaying && typeof onSetListenApp === 'function')}
-              keepMounted={false}
-            >
-              <div className="flex flex-col items-center gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
-                <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
-                  Listen to
-                </span>
-                <WeeSegmentedControl
-                  size="sm"
-                  ariaLabel="Now Playing app filter"
-                  layoutId="homeArrangeListenApp"
-                  value={listenAppValue}
-                  onChange={(value) => onSetListenApp?.(value)}
-                  options={listenAppOptions}
-                />
+            <WeeContentCollapse open={looksOpen && hasLooksPanel} keepMounted={false}>
+              <div className="flex max-h-[min(34vh,16rem)] flex-col gap-2.5 overflow-y-auto border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
+                {showGlassLooks ? <HomeWidgetGlassControls nested /> : null}
+                {showListenLooks ? (
+                  <div className="flex flex-col gap-1.5 px-0.5">
+                    <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
+                      Listen to
+                    </span>
+                    <WeeSegmentedControl
+                      size="sm"
+                      ariaLabel="Now Playing app filter"
+                      layoutId="homeArrangeListenApp"
+                      value={listenAppValue}
+                      onChange={(value) => onSetListenApp?.(value)}
+                      options={listenAppOptions}
+                    />
+                  </div>
+                ) : null}
+                {hasWidgetSettings ? (
+                  <HomeWidgetSettingsPanel kindId={selectedSlot?.kind} nested />
+                ) : null}
               </div>
-            </WeeContentCollapse>
-
-            <WeeContentCollapse
-              open={
-                selectedIsWidget &&
-                homeSlotKindHasWidgetSettings(selectedSlot?.kind)
-              }
-              keepMounted={false}
-            >
-              <HomeWidgetSettingsPanel kindId={selectedSlot?.kind} />
             </WeeContentCollapse>
 
             <WeeContentCollapse open={moreOpen} keepMounted={false}>

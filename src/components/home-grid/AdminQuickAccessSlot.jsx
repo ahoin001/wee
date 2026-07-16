@@ -10,6 +10,7 @@ import {
 import { WeeFadeScroll, WeeGooeyTileButton } from '../../ui/wee';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
+import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import {
   applyAdminPanelPowerActions,
   executeAdminCommand,
@@ -97,9 +98,13 @@ function AdminQuickAccessSlot({
     () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),
     [slot?.colSpan, slot?.rowSpan]
   );
+  const layout = useMemo(
+    () => resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1),
+    [slot?.colSpan, slot?.rowSpan]
+  );
   const capacity = sizePreset?.capacity ?? 0;
-  const isCompact = capacity === 0;
-  const isSingleRow = (sizePreset?.rowSpan ?? 1) <= 1;
+  const isCompact = capacity === 0 || layout.isCompact;
+  const isSingleRow = (sizePreset?.rowSpan ?? 1) <= 1 || (layout.isWide && layout.rowSpan <= 1);
   const layoutCells = layoutCellsForPreset(sizePreset?.id);
   const visibleCapacity = isCompact
     ? 0
@@ -115,8 +120,7 @@ function AdminQuickAccessSlot({
     return showMore ? overflow : [];
   }, [adminConfig.powerActions, isCompact, overflow, showMore]);
 
-  const gridColsClass =
-    sizePreset?.id === 'XL' ? 'grid-cols-3' : sizePreset?.id === 'L' ? 'grid-cols-2' : 'grid-cols-2';
+  const gridColsClass = sizePreset?.id === 'XL' ? 'grid-cols-3' : 'grid-cols-2';
 
   const interactionsLocked = arrangeMode || punchMode;
 
@@ -208,7 +212,7 @@ function AdminQuickAccessSlot({
       <HomeWidgetShell
         surface={surface}
         selected={selected}
-        className={isCompact || isSingleRow ? 'p-2' : 'p-2.5'}
+        className={layout.shellPadClass}
         onClick={handleTileActivate}
         aria-label="Admin Quick Access"
       >
@@ -221,7 +225,7 @@ function AdminQuickAccessSlot({
         {emptyInvite ? (
           <m.button
             type="button"
-            className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-[1rem] text-center"
+            className={`flex h-full w-full flex-col items-center justify-center rounded-[1rem] text-center ${layout.gapClass}`}
             onClick={openConfigure}
             disabled={interactionsLocked}
             whileHover={reducedMotion ? undefined : { scale: 1.03 }}
@@ -229,7 +233,7 @@ function AdminQuickAccessSlot({
             transition={pressTransition}
           >
             <Shield
-              size={isCompact ? 22 : 28}
+              size={layout.iconPx}
               strokeWidth={2.25}
               className="text-[hsl(var(--primary))]"
               aria-hidden
@@ -241,7 +245,7 @@ function AdminQuickAccessSlot({
         ) : isCompact ? (
           <m.button
             type="button"
-            className="flex h-full w-full flex-col items-center justify-center gap-1"
+            className={`flex h-full w-full flex-col items-center justify-center ${layout.gapClass}`}
             onClick={handleTileActivate}
             aria-label="Open Quick Access"
             disabled={interactionsLocked && !arrangeMode}
@@ -249,33 +253,38 @@ function AdminQuickAccessSlot({
             whileTap={reducedMotion ? undefined : { scale: 0.95 }}
             transition={pressTransition}
           >
-            <Shield size={26} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
+            <Shield
+              size={layout.iconPx + 2}
+              strokeWidth={2.25}
+              className="text-[hsl(var(--primary))]"
+              aria-hidden
+            />
             <span className="text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
               Quick
             </span>
           </m.button>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-1 px-0.5">
-              <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-                Quick Access
-              </span>
-              <m.button
-                type="button"
-                className="rounded-full p-1 text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface-tertiary)/0.6)] hover:text-[hsl(var(--text-primary))]"
-                onClick={openConfigure}
-                disabled={interactionsLocked}
-                aria-label="Configure Quick Access"
-                title="Configure"
-                whileHover={reducedMotion ? undefined : { scale: 1.12, rotate: 12 }}
-                whileTap={reducedMotion ? undefined : { scale: 0.92 }}
-                transition={pressTransition}
-              >
-                <Settings2 size={14} strokeWidth={2.5} aria-hidden />
-              </m.button>
-            </div>
+          <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
+            {layout.showHeader ? (
+              <div className="flex items-center justify-between gap-1 px-0.5">
+                <span className={`truncate ${layout.kickerClass}`}>Quick Access</span>
+                <m.button
+                  type="button"
+                  className="rounded-full p-1 text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface-tertiary)/0.6)] hover:text-[hsl(var(--text-primary))]"
+                  onClick={openConfigure}
+                  disabled={interactionsLocked}
+                  aria-label="Configure Quick Access"
+                  title="Configure"
+                  whileHover={reducedMotion ? undefined : { scale: 1.12, rotate: 12 }}
+                  whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+                  transition={pressTransition}
+                >
+                  <Settings2 size={layout.density === 'roomy' ? 16 : 14} strokeWidth={2.5} aria-hidden />
+                </m.button>
+              </div>
+            ) : null}
             {isSingleRow ? (
-              <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 px-0.5">
+              <div className={`flex min-h-0 flex-1 flex-col justify-center px-0.5 ${layout.gapClass}`}>
                 {visible.map((action, index) => (
                   <MotionDiv
                     key={action.id}
@@ -332,7 +341,7 @@ function AdminQuickAccessSlot({
                 ) : null}
               </div>
             ) : (
-              <div className={`grid min-h-0 flex-1 auto-rows-fr gap-1.5 ${gridColsClass}`}>
+              <div className={`grid min-h-0 flex-1 auto-rows-fr ${layout.gapClass} ${gridColsClass}`}>
                 {visible.map((action, index) => (
                   <MotionDiv
                     key={action.id}

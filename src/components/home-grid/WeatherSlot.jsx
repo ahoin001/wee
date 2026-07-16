@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
 import { CloudSun, Droplets, MapPin, Wind } from 'lucide-react';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
-import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
+import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import { useHomeWeather } from '../../hooks/useHomeWeather';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
@@ -31,12 +31,12 @@ function WeatherSlot({
     enabled: true,
   });
 
-  const sizePreset = useMemo(
-    () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),
+  const layout = useMemo(
+    () => resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1),
     [slot?.colSpan, slot?.rowSpan]
   );
-  const isCompact = sizePreset?.id === 'S';
-  const isTall = (sizePreset?.rowSpan ?? 1) > 1;
+  const { isCompact, isTall, isWide, showHeader, shellPadClass, gapClass, kickerClass, density } =
+    layout;
   const showMeta = !isCompact;
   const showForecast = isTall && Array.isArray(daily) && daily.length > 1;
   const interactionsLocked = arrangeMode || punchMode;
@@ -79,7 +79,7 @@ function WeatherSlot({
     <HomeWidgetShell
       surface={surface}
       selected={selected}
-      className="relative overflow-hidden p-2"
+      className={`relative overflow-hidden ${shellPadClass}`}
       onClick={handleActivate}
       aria-label={ariaLabel}
     >
@@ -94,7 +94,7 @@ function WeatherSlot({
       />
 
       {!current ? (
-        <div className="relative z-[1] flex h-full w-full flex-col items-center justify-center gap-1.5 text-center">
+        <div className={`relative z-[1] flex h-full w-full flex-col items-center justify-center text-center ${gapClass}`}>
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] shadow-[var(--shadow-soft)]">
             <CloudSun
               size={isCompact ? 20 : 24}
@@ -114,7 +114,7 @@ function WeatherSlot({
           ) : null}
         </div>
       ) : isCompact ? (
-        <div className="relative z-[1] flex h-full w-full flex-col items-center justify-center gap-1">
+        <div className={`relative z-[1] flex h-full w-full flex-col items-center justify-center ${gapClass}`}>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[hsl(var(--border-primary)/0.3)] bg-[hsl(var(--surface-elevated)/0.6)] text-xl leading-none shadow-[var(--shadow-soft)]">
             <span aria-hidden>{current.emoji}</span>
           </div>
@@ -123,27 +123,35 @@ function WeatherSlot({
           </span>
         </div>
       ) : (
-        <div className="relative z-[1] flex min-h-0 flex-1 flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-1 px-0.5">
-            <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-              Weather
-            </span>
-            <CloudSun size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
-          </div>
+        <div className={`relative z-[1] flex min-h-0 flex-1 flex-col ${gapClass}`}>
+          {showHeader ? (
+            <div className="flex items-center justify-between gap-1 px-0.5">
+              <span className={`truncate ${kickerClass}`}>Weather</span>
+              <CloudSun size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
+            </div>
+          ) : null}
 
-          <div className={`flex min-h-0 flex-1 items-center gap-2.5 ${isTall ? 'flex-col' : 'flex-row'}`}>
-            <div className={`flex items-center gap-2.5 ${isTall ? 'w-full justify-center' : 'min-w-0 flex-1'}`}>
+          <div
+            className={`flex min-h-0 flex-1 items-center ${gapClass} ${
+              isTall ? 'flex-col' : 'flex-row'
+            }`}
+          >
+            <div
+              className={`flex items-center ${gapClass} ${
+                isTall ? 'w-full justify-center' : 'min-w-0 flex-1'
+              }`}
+            >
               <div
                 className={`flex shrink-0 items-center justify-center rounded-2xl border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.62)] shadow-[var(--shadow-soft)] ${
-                  isTall ? 'h-14 w-14 text-3xl' : 'h-12 w-12 text-2xl'
+                  isTall || density === 'roomy' ? 'h-14 w-14 text-3xl' : 'h-12 w-12 text-2xl'
                 }`}
               >
                 <span aria-hidden>{current.emoji}</span>
               </div>
-              <div className="min-w-0 text-left">
+              <div className={`min-w-0 ${isWide && !isTall ? 'text-left' : isTall ? 'text-center' : 'text-left'}`}>
                 <div
                   className={`home-widget-float-type font-black tabular-nums leading-none text-[hsl(var(--text-primary))] ${
-                    isTall ? 'text-4xl' : 'text-3xl'
+                    isTall || density === 'roomy' ? 'text-4xl' : 'text-3xl'
                   }`}
                 >
                   {formatTemp(current.temperature)}
@@ -161,7 +169,9 @@ function WeatherSlot({
 
             {showMeta ? (
               <div
-                className={`flex flex-wrap gap-1.5 ${isTall ? 'w-full justify-center' : 'shrink-0 flex-col'}`}
+                className={`flex flex-wrap ${gapClass} ${
+                  isTall ? 'w-full justify-center' : isWide ? 'shrink-0 flex-row' : 'shrink-0 flex-col'
+                }`}
               >
                 {Number.isFinite(current.humidity) ? (
                   <div className="home-widget-float-chip inline-flex items-center gap-1 rounded-full border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.55)] px-2 py-1 text-[9px] font-bold text-[hsl(var(--text-secondary))]">
@@ -179,8 +189,8 @@ function WeatherSlot({
             ) : null}
 
             {showForecast ? (
-              <div className="grid w-full grid-cols-2 gap-1.5">
-                {daily.slice(1, 3).map((day) => (
+              <div className={`grid w-full gap-1.5 ${density === 'roomy' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {daily.slice(1, density === 'roomy' ? 4 : 3).map((day) => (
                   <div
                     key={day.date}
                     className="home-widget-float-chip flex items-center gap-1.5 rounded-xl border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.58)] px-2 py-1.5 shadow-[var(--shadow-soft)]"

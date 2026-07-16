@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784228602.4146912,
-    "ast_hash": "0c3a31f10fb48e574569cb94df4b29a6",
+    "mtime": 1784229928.2827444,
+    "ast_hash": "c6db75f5ae198e7be7ca58512b1fac22",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -2090,8 +2090,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/AdminQuickAccessSlot.jsx": {
-    "mtime": 1784219496.20557,
-    "ast_hash": "3bcf49449c6834a174ff58c2c0dea655",
+    "mtime": 1784230210.286843,
+    "ast_hash": "479d355fc8b87ff57c31f54ddbbffd7f",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
@@ -2205,13 +2205,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784226394.1624856,
-    "ast_hash": "bfefa4a43eda15e1491dd9ec965522a3",
+    "mtime": 1784230999.9852376,
+    "ast_hash": "5f6b3ab408d19b11d4273098625c77a6",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
-    "mtime": 1784223391.2575223,
-    "ast_hash": "4746a49398031c39750bd0b3551e4f66",
+    "mtime": 1784230041.49927,
+    "ast_hash": "3773e8f674b35d8cebd2ae06e8d1f7fe",
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyTakeoverController.jsx": {
@@ -2315,8 +2315,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeSlotResizeHandle.jsx": {
-    "mtime": 1784165543.6746511,
-    "ast_hash": "f9a2c043297d04fdf2a4aa158c374e40",
+    "mtime": 1784229647.0300238,
+    "ast_hash": "c8af9660e39902d43f1d5aab794cdfe6",
     "semantic_hash": ""
   },
   "src/components/widgets/MusicReactiveBars.jsx": {
@@ -2325,8 +2325,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useHomeSlotResize.js": {
-    "mtime": 1784165528.1914015,
-    "ast_hash": "6eba918333c4d7a92f53640422366815",
+    "mtime": 1784229647.0949006,
+    "ast_hash": "5d8587f8c320bca6b994d34d3e28ac05",
     "semantic_hash": ""
   },
   "src/hooks/useMusicReactiveLevels.js": {
@@ -2355,8 +2355,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/ClockSlot.jsx": {
-    "mtime": 1784209051.0692537,
-    "ast_hash": "10f7e72b54fe9060a864c3678cfc6c43",
+    "mtime": 1784229997.4517505,
+    "ast_hash": "714cae3d621a4e704ecbebe148491525",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetShell.jsx": {
@@ -2370,8 +2370,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/WeatherSlot.jsx": {
-    "mtime": 1784214468.856433,
-    "ast_hash": "afcfb2890ff2afee103426bdb3c9202f",
+    "mtime": 1784230022.5097492,
+    "ast_hash": "494e428fe6f9057998e283944f34bbc2",
     "semantic_hash": ""
   },
   "src/hooks/useHomeWeather.js": {
@@ -2410,8 +2410,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesGlanceSlot.jsx": {
-    "mtime": 1784223330.2488601,
-    "ast_hash": "467c5b6144ea53676b054bc9bac5f8c5",
+    "mtime": 1784230909.1227088,
+    "ast_hash": "77af722ae3a9b913940881bdc937e721",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamMostPlayedSlot.jsx": {
@@ -2425,8 +2425,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamFriendsSlot.jsx": {
-    "mtime": 1784223361.4719746,
-    "ast_hash": "6d031fafc37e130082106ff7051dda1d",
+    "mtime": 1784230927.9951222,
+    "ast_hash": "8a89794aad9a87e5e59261189e8bc974",
     "semantic_hash": ""
   },
   "src/utils/overlayEscape.js": {
@@ -2435,13 +2435,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetSettingsPanel.jsx": {
-    "mtime": 1784228250.0982137,
-    "ast_hash": "9b5794e32c2b9e5251c8f358fce98465",
+    "mtime": 1784231046.2464416,
+    "ast_hash": "8445a0d4c0944fa9750ac26ab69aec78",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesShelf.jsx": {
-    "mtime": 1784224906.7094715,
-    "ast_hash": "efc1a255516504afb456222a4b483fce",
+    "mtime": 1784230177.2398498,
+    "ast_hash": "f88cf5264b838a4031bc8de5e16a1e16",
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingColorMatch.js": {
@@ -2450,8 +2450,8 @@
     "semantic_hash": ""
   },
   "src/utils/homeSteamWidgetPrefs.js": {
-    "mtime": 1784224916.4092617,
-    "ast_hash": "e861e34a738fc96c13a1d4bb2702e9ac",
+    "mtime": 1784231046.214801,
+    "ast_hash": "dcef656ca45b809afff0de565ee2f23f",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeFadeScroll.jsx": {
@@ -2467,6 +2467,16 @@
   "src/utils/boardMutation.js": {
     "mtime": 1784228313.8870394,
     "ast_hash": "767a77f3c3d3596a86ddfe6bce0cd0cd",
+    "semantic_hash": ""
+  },
+  "src/utils/homeWidgetLayout.js": {
+    "mtime": 1784229979.5902083,
+    "ast_hash": "73222d04b28b48014d8aabb76317a196",
+    "semantic_hash": ""
+  },
+  "src/components/home-grid/SteamWidgetHeading.jsx": {
+    "mtime": 1784230876.42313,
+    "ast_hash": "82adb035ed468e21a417cd024442fa2d",
     "semantic_hash": ""
   }
 }
