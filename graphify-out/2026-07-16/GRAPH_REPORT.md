@@ -1,7 +1,7 @@
 # Graph Report - wee  (2026-07-16)
 
 ## Corpus Check
-- 464 files · ~309,274 words
+- 464 files · ~309,130 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -436,7 +436,7 @@ Nodes (15): useWallpaperAmbientColor(), adjustL(), applyPrimaryAccentFromHex(), 
 
 ### Community 72 - "cors"
 Cohesion: 0.18
-Nodes (11): better-sqlite3, cors, jszip, lucide-react, dependencies, better-sqlite3, cors, jszip (+3 more)
+Nodes (11): cors, jszip, lucide-react, dependencies, cors, jszip, lucide-react, prop-types (+3 more)
 
 ### Community 73 - "@dnd-kit/core"
 Cohesion: 0.29

@@ -11,6 +11,7 @@ import { applyAdminPanelPowerActions, normalizeAdminPanelConfig } from '../../ut
 import { normalizeNowPlayingExperience } from '../../utils/spotifyTakeover';
 import { logError } from '../../utils/logger';
 import ShortcutCaptureControl from './ShortcutCaptureControl';
+import SteamIntegrationSettings from './SteamIntegrationSettings';
 import './api-integrations-settings.css';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 
@@ -124,16 +125,20 @@ const ApiIntegrationsSettingsTab = () => {
 
   const systemMediaStatusLabel = useMemo(() => {
     if (!systemMediaEnabled) return 'Off';
+    if (nowPlayingSourcePreference === 'spotify') {
+      return 'Idle (Spotify preferred)';
+    }
+    if (systemMedia?.starting) return 'Starting…';
     if (systemMedia?.error) return systemMedia.error;
     if (systemMedia?.available) return 'Available on this PC';
-    return 'Checking…';
-  }, [systemMediaEnabled, systemMedia]);
+    return 'Starting…';
+  }, [systemMediaEnabled, systemMedia, nowPlayingSourcePreference]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
       <SettingsTabPageHeader
         title="API & Widgets"
-        subtitle="External services — Spotify auth & deep widget options"
+        subtitle="External services — Spotify, Steam, system media & widget options"
       />
 
       <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-5" className="mb-2">
@@ -151,6 +156,9 @@ const ApiIntegrationsSettingsTab = () => {
           .
         </Text>
       </WeeModalFieldCard>
+
+      <SteamIntegrationSettings />
+
       <WeeSettingsCollapsibleSection
         icon={Music}
         title="Spotify Integration"

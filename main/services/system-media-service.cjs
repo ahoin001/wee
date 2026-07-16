@@ -3,8 +3,12 @@
  * Uses windows-media-sessions (stdio .NET bridge) — no native addons.
  * Soft-fails on non-Windows or missing package.
  *
- * start/stop are serialized: concurrent stop cannot tear down a bridge that a
- * newer start just opened (React Strict Mode / effect remount races).
+ * Lifecycle rule (prevents toggle deadlock):
+ * - `stop()` never awaits `startPromise` (that caused start↔stop circular waits).
+ * - `start()` may await an in-flight `stopPromise` only *before* creating its own work.
+ * - A monotonic `runId` invalidates in-flight starts when stop wins; start bails at checkpoints.
+ * - After stop, a new `start()` waits for the dying start to finish, then opens a fresh bridge
+ *   (never joins a cancelled startPromise as if it were a successful subscribe).
  *
  * First-snapshot wait uses a long timeout + one recreate retry — the bundled
  * .NET backend (~40MB) can take >5s on cold start / AV scan, and the package's
@@ -21,6 +25,7 @@ const FIRST_SNAPSHOT_RETRIES = 1;
 function createSystemMediaService({ getMainWindow, execFile, platform }) {
   let unsubscribe = null;
   let started = false;
+  /** Package loaded and usable on this machine (independent of subscription). */
   let available = false;
   let lastError = null;
   let lastSessions = [];
@@ -34,6 +39,12 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
   let stopPromise = null;
   /** @type {Promise<object> | null} */
   let startPromise = null;
+  /**
+   * Bumped on every stop (and each new start attempt). In-flight start work
+   * compares against its captured id and bails instead of resurrecting a
+   * torn-down bridge — without awaiting stop (no deadlock).
+   */
+  let runId = 0;
 
   function isWindows() {
     return (platform || process.platform) === 'win32';
@@ -109,6 +120,7 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
     win.webContents.send('system-media:update', {
       available,
       error: lastError,
+      started,
       sessions: sessions || [],
     });
   }
@@ -145,16 +157,30 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
     };
   }
 
+  function isCurrentRun(myRun) {
+    return myRun === runId;
+  }
+
   /**
    * Wait for the first backend snapshot, recreating the manager on timeout.
-   * The package BackendProcess cannot restart after stop() (`stopping` sticks).
+   * @param {number} myRun
    */
-  async function awaitFirstSessions() {
+  async function awaitFirstSessions(myRun) {
     let lastErr = null;
 
     for (let attempt = 0; attempt <= FIRST_SNAPSHOT_RETRIES; attempt++) {
+      if (!isCurrentRun(myRun)) {
+        const cancelErr = new Error('System media start cancelled');
+        cancelErr.code = 'cancelled';
+        throw cancelErr;
+      }
       if (attempt > 0) {
         await disposeManager();
+        if (!isCurrentRun(myRun)) {
+          const cancelErr = new Error('System media start cancelled');
+          cancelErr.code = 'cancelled';
+          throw cancelErr;
+        }
       }
 
       const manager = getOrCreateManager();
@@ -168,9 +194,24 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
 
       try {
         await manager.waitForReady(FIRST_SNAPSHOT_TIMEOUT_MS);
+        if (!isCurrentRun(myRun)) {
+          const cancelErr = new Error('System media start cancelled');
+          cancelErr.code = 'cancelled';
+          throw cancelErr;
+        }
         const sessions = await manager.getAllSessions();
+        if (!isCurrentRun(myRun)) {
+          const cancelErr = new Error('System media start cancelled');
+          cancelErr.code = 'cancelled';
+          throw cancelErr;
+        }
         return Array.isArray(sessions) ? sessions : [];
       } catch (err) {
+        if (err?.code === 'cancelled' || !isCurrentRun(myRun)) {
+          const cancelErr = new Error('System media start cancelled');
+          cancelErr.code = 'cancelled';
+          throw cancelErr;
+        }
         lastErr = err;
       }
     }
@@ -178,35 +219,42 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
     throw lastErr || new Error('Timed out waiting for first backend snapshot');
   }
 
+  async function awaitSettled(promise) {
+    if (!promise) return;
+    try {
+      await promise;
+    } catch {
+      /* ignore */
+    }
+  }
+
   /**
-   * Start SMTC subscription. Always await an in-flight stop *before* joining or
-   * creating a start — otherwise a Strict Mode remount can share a start that a
-   * concurrent stop then tears down, leaving the bridge dead with no listener.
+   * Start SMTC subscription.
    */
   async function start() {
-    if (stopPromise) {
-      try {
-        await stopPromise;
-      } catch {
-        /* ignore */
-      }
+    // Finish teardown before opening a new bridge (safe: stop does not await us).
+    await awaitSettled(stopPromise);
+
+    if (started && sessionManager) return getStatus();
+
+    // Let a cancelled/dying start finish — do not treat it as a successful join.
+    await awaitSettled(startPromise);
+    await awaitSettled(stopPromise);
+
+    if (started && sessionManager) return getStatus();
+
+    // Another caller may have started between awaits.
+    if (startPromise) {
+      return startPromise;
     }
 
-    if (started) return getStatus();
-    if (startPromise) return startPromise;
+    const myRun = ++runId;
 
-    startPromise = (async () => {
-      // Re-check after any interleaved stop that finished while we were queued.
-      if (stopPromise) {
-        try {
-          await stopPromise;
-        } catch {
-          /* ignore */
-        }
+    const pending = (async () => {
+      if (!isCurrentRun(myRun)) {
+        return getStatus();
       }
-      if (started) return getStatus();
 
-      started = true;
       const pkg = loadPackage();
       if (!pkg) {
         started = false;
@@ -215,20 +263,25 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       }
 
       try {
-        const sessions = await awaitFirstSessions();
-        // If stop won the race mid-fetch, don't resurrect a torn-down bridge.
-        if (!started) {
+        const sessions = await awaitFirstSessions(myRun);
+        if (!isCurrentRun(myRun)) {
           await disposeManager();
           return getStatus();
         }
+        started = true;
         lastError = null;
         available = true;
         onSessions(sessions);
       } catch (err) {
-        lastError = err?.message || String(err);
-        available = false;
-        // Leave started=false so a later start()/toggle can retry cleanly.
+        const cancelled = err?.code === 'cancelled' || !isCurrentRun(myRun);
         started = false;
+        if (cancelled) {
+          await disposeManager();
+          return getStatus();
+        }
+        lastError = err?.message || String(err);
+        // Package may still be loadable even if the first snapshot failed.
+        available = Boolean(mediaSessionsPkg);
         await disposeManager();
         lastSessions = [];
         lastFingerprint = '';
@@ -239,31 +292,36 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       return getStatus();
     })();
 
+    startPromise = pending;
+
     try {
-      return await startPromise;
+      return await pending;
     } finally {
-      startPromise = null;
+      if (startPromise === pending) {
+        startPromise = null;
+      }
     }
   }
 
+  /**
+   * Stop SMTC subscription.
+   * Invalidates in-flight starts immediately (runId++) and disposes the manager.
+   * Does **not** await startPromise — that was the toggle deadlock.
+   */
   async function stop() {
+    runId += 1;
+    started = false;
+
     if (stopPromise) return stopPromise;
 
     stopPromise = (async () => {
-      // Wait for an in-flight start so we don't shutdown under it.
-      if (startPromise) {
-        try {
-          await startPromise;
-        } catch {
-          /* ignore */
-        }
-      }
-
-      started = false;
       await disposeManager();
       lastSessions = [];
       lastFingerprint = '';
       lastPushAt = 0;
+      // Keep `available` if the package loaded — settings can still say the PC supports SMTC.
+      lastError = null;
+      broadcast([]);
     })();
 
     try {

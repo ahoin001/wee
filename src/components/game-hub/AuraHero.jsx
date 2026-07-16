@@ -112,7 +112,8 @@ export default function AuraHero({
       ) : null}
       {showSteamApiKeyHint ? (
         <p className="aura-hub-hero__subline">
-          Sign in on Steam, open your profile page, and copy the ID from the URL.
+          Add STEAM_WEB_API_KEY to your local .env (steamcommunity.com/dev/apikey), then restart Wee.
+          Steam profile and enrichment live under API &amp; Widgets.
         </p>
       ) : null}
       <div className="aura-hub-hero__headline-wrap">
@@ -141,9 +142,9 @@ export default function AuraHero({
         <button
           type="button"
           className="aura-hub-btn aura-hub-btn--ghost aura-hub-hero__settings-btn"
-          onClick={() => openSettingsToTab(SETTINGS_TAB_ID.GAMEHUB)}
+          onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS)}
         >
-          Open Game Hub Settings
+          Open API &amp; Widgets
         </button>
       ) : null}
     </>

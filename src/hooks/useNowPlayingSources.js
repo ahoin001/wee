@@ -89,6 +89,7 @@ export function useNowPlayingSources() {
     setSystemMediaState({
       available: lastMetaRef.current.available,
       error: lastMetaRef.current.error,
+      starting: false,
       session: session ? toStoredSession(session) : null,
     });
   };
@@ -102,6 +103,7 @@ export function useNowPlayingSources() {
     if (!api) {
       setSystemMediaState({
         available: false,
+        starting: false,
         error: 'System media API unavailable',
         session: null,
       });
@@ -109,7 +111,7 @@ export function useNowPlayingSources() {
     }
 
     if (!wantsSystem) {
-      // Drop retain and stop for real — user turned system media off.
+      // Drop retain and stop for real — user turned system media off, or Spotify-only preference.
       if (smtcReleaseTimer) {
         clearTimeout(smtcReleaseTimer);
         smtcReleaseTimer = null;
@@ -117,9 +119,37 @@ export function useNowPlayingSources() {
       smtcRetainCount = 0;
       api.stop?.().catch(() => {});
       lastSessionsRef.current = [];
-      lastMetaRef.current = { available: lastMetaRef.current.available, error: null };
-      setSystemMediaState({ session: null });
-      return undefined;
+      lastMetaRef.current = { available: false, error: null };
+      setSystemMediaState({
+        session: null,
+        starting: false,
+        error: null,
+        available: false,
+      });
+
+      // Soft package probe only while the toggle is on but preference is Spotify
+      // (bridge idle). Cancel if this effect is replaced (toggle / preference change).
+      let probeCancelled = false;
+      if (systemMediaEnabled && typeof api.getStatus === 'function') {
+        api
+          .getStatus()
+          .then((status) => {
+            if (probeCancelled || !status) return;
+            setSystemMediaState({
+              available: Boolean(status.available),
+              error: status.error || null,
+              starting: false,
+            });
+            lastMetaRef.current = {
+              available: Boolean(status.available),
+              error: status.error || null,
+            };
+          })
+          .catch(() => {});
+      }
+      return () => {
+        probeCancelled = true;
+      };
     }
 
     let unsub = null;
@@ -142,6 +172,8 @@ export function useNowPlayingSources() {
     }
     smtcRetainCount += 1;
 
+    setSystemMediaState({ starting: true, error: null });
+
     (async () => {
       try {
         const status = await api.start();
@@ -149,8 +181,13 @@ export function useNowPlayingSources() {
         applyPayload(status);
       } catch (err) {
         if (cancelled) return;
+        lastMetaRef.current = {
+          available: false,
+          error: err?.message || String(err),
+        };
         setSystemMediaState({
           available: false,
+          starting: false,
           error: err?.message || String(err),
           session: null,
         });
@@ -167,12 +204,13 @@ export function useNowPlayingSources() {
           smtcReleaseTimer = null;
           if (smtcRetainCount === 0) {
             api.stop?.().catch(() => {});
+            // Don't wipe UI mid Strict Mode remount — the next mount sets starting again.
           }
         }, 75);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publishPrimary uses stable setState + refs
-  }, [wantsSystem, setSystemMediaState]);
+  }, [wantsSystem, systemMediaEnabled, setSystemMediaState]);
 
   // Filter-only: re-pick primary session when Spotify exclusion flips — no SMTC restart.
   useEffect(() => {

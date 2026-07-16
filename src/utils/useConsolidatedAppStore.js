@@ -572,6 +572,7 @@ useConsolidatedAppStore = create(
         /** Windows SMTC candidate + capability (transient session payload; enabled lives on ui). */
         systemMedia: {
           available: false,
+          starting: false,
           error: null,
           session: null,
         },

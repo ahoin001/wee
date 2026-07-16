@@ -1,6 +1,7 @@
 /**
- * SteamID64 helpers for Game Hub settings / enrichment.
+ * SteamID64 helpers for settings / enrichment.
  * Accepts raw 17-digit IDs or pasted profile URLs / XML snippets.
+ * Vanity URLs (/id/name) are not resolved — callers get a specific error.
  */
 
 /**
@@ -26,6 +27,23 @@ export function parseSteamId64(raw) {
 }
 
 /**
+ * @param {string} text
+ * @returns {boolean}
+ */
+function looksLikeVanityProfileUrl(text) {
+  return /steamcommunity\.com\/id\/[^/\s?#]+/i.test(text);
+}
+
+/**
+ * @param {string} text
+ * @returns {boolean}
+ */
+function looksLikeBareUsername(text) {
+  // Single token, no digits, no URL — likely a custom Steam name, not SteamID64.
+  return /^[a-zA-Z][a-zA-Z0-9_-]{2,63}$/.test(text) && !/\d/.test(text);
+}
+
+/**
  * @param {unknown} raw
  * @returns {{ ok: true, steamId: string } | { ok: false, error: string }}
  */
@@ -34,12 +52,31 @@ export function validateSteamId64Input(raw) {
   if (!text) {
     return { ok: false, error: 'SteamID64 is required, or use Clear to remove it.' };
   }
+
   const steamId = parseSteamId64(text);
-  if (!steamId) {
+  if (steamId) {
+    return { ok: true, steamId };
+  }
+
+  if (looksLikeVanityProfileUrl(text)) {
     return {
       ok: false,
-      error: 'Couldn’t find a 17-digit SteamID64. Paste the ID, a profile URL, or the community XML value.',
+      error:
+        'Custom profile URLs (/id/yourname) are not resolved automatically. Open “Where to find SteamID64” for the community XML page, or paste a /profiles/<17-digit> URL.',
     };
   }
-  return { ok: true, steamId };
+
+  if (looksLikeBareUsername(text)) {
+    return {
+      ok: false,
+      error:
+        'That looks like a Steam username, not a SteamID64. Use “Where to find SteamID64” to open your community XML and copy the 17-digit <steamID64> value.',
+    };
+  }
+
+  return {
+    ok: false,
+    error:
+      'Couldn’t find a 17-digit SteamID64. Paste the ID, a /profiles/<id> URL, or the community XML value — not a custom /id/ name.',
+  };
 }

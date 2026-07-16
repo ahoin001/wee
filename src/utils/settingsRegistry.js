@@ -60,9 +60,9 @@ export const SETTINGS_TAB_META = Object.freeze([
     label: 'Game Hub',
     icon: '🎮',
     color: 'hsl(var(--settings-tab-layout))',
-    description: 'SteamID64 and enrichment controls',
+    description: 'Hub visuals, onboarding & library experience',
     categoryId: 'home',
-    keywords: ['steam', 'epic', 'games', 'library', 'collections', 'aura'],
+    keywords: ['epic', 'games', 'library', 'collections', 'aura', 'hub', 'backdrop'],
   },
 
   // —— Appearance ——
@@ -165,11 +165,11 @@ export const SETTINGS_TAB_META = Object.freeze([
     label: 'API & Widgets',
     icon: '🔌',
     color: 'hsl(var(--settings-tab-api))',
-    description: 'Spotify auth & deep widget options',
+    description: 'Spotify, Steam, system media & widget options',
     categoryId: 'integrations',
     keywords: [
-      'spotify', 'now playing', 'takeover', 'immersive', 'system info',
-      'admin panel', 'floating widgets', 'integrations',
+      'spotify', 'steam', 'steamid', 'enrichment', 'now playing', 'takeover', 'immersive',
+      'system info', 'admin panel', 'floating widgets', 'integrations',
     ],
   },
 

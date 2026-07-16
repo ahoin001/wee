@@ -150,9 +150,9 @@ function SteamRecentSlot({
     [interactionsLocked, beginLaunchFeedback, endLaunchFeedback, showLaunchError]
   );
 
-  const openGameHubSettings = useCallback(() => {
+  const openSteamApiSettings = useCallback(() => {
     if (interactionsLocked && !arrangeMode) return;
-    openSettingsToTab(SETTINGS_TAB_ID.GAMEHUB);
+    openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);
   }, [interactionsLocked, arrangeMode]);
 
   const handleActivate = useCallback(
@@ -164,7 +164,7 @@ function SteamRecentSlot({
       }
       if (interactionsLocked) return;
       if (recent.length === 0) {
-        openGameHubSettings();
+        openSteamApiSettings();
         return;
       }
       if (isCompact && recent[0]) {
@@ -178,19 +178,19 @@ function SteamRecentSlot({
       recent,
       isCompact,
       handleLaunch,
-      openGameHubSettings,
+      openSteamApiSettings,
       onArrangeSelect,
       channelId,
     ]
   );
 
   const emptyHint = !steamId
-    ? 'Set SteamID in Game Hub settings'
+    ? 'Set SteamID in API & Widgets'
     : !apiEnabled
-      ? 'Enable Steam Web API in Game Hub'
+      ? 'Enable Steam Web API in API & Widgets'
       : lastSyncedAt
         ? 'No recent Steam play yet'
-        : 'Sync Steam from Game Hub';
+        : 'Sync Steam from API & Widgets'
 
   return (
     <HomeWidgetShell
@@ -210,7 +210,7 @@ function SteamRecentSlot({
               onArrangeSelect?.(channelId);
               return;
             }
-            openGameHubSettings();
+            openSteamApiSettings();
           }}
           disabled={interactionsLocked && !arrangeMode}
         >
