@@ -1,5 +1,6 @@
 /**
  * Home-grid Steam glance tile — recent or most-played from enrichment cache.
+ * Fills the slot with a responsive capsule grid (no 1×1 compact path).
  */
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
@@ -8,7 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
+import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
@@ -22,6 +23,7 @@ import {
 const VARIANT_META = {
   recent: {
     title: 'Steam Recent',
+    kindId: 'steamRecent',
     ariaLabel: 'Steam Recently Played',
     launchSource: 'steamRecent',
     emptyNoData: 'No recent Steam play yet',
@@ -29,12 +31,15 @@ const VARIANT_META = {
   },
   mostPlayed: {
     title: 'Steam Most Played',
+    kindId: 'steamMostPlayed',
     ariaLabel: 'Steam Most Played',
     launchSource: 'steamMostPlayed',
     emptyNoData: 'No playtime data yet',
     sort: sortMostPlayedSteamGames,
   },
 };
+
+const GRID_COLS = 3;
 
 function SteamCapsuleButton({ game, onLaunch }) {
   const appId = String(game.appId);
@@ -47,12 +52,12 @@ function SteamCapsuleButton({ game, onLaunch }) {
         event.stopPropagation();
         onLaunch(game);
       }}
-      className="home-widget-float-tile aspect-[2/3] w-full overflow-hidden rounded-xl border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] shadow-[var(--shadow-sm)] transition-transform hover:scale-105 active:scale-95"
+      className="home-widget-float-tile relative min-h-0 min-w-0 overflow-hidden rounded-xl border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
     >
       <img
         src={STEAM_CDN_CAPSULE(appId)}
         alt=""
-        className="h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover"
         draggable={false}
         loading="lazy"
       />
@@ -93,12 +98,18 @@ function SteamGamesGlanceSlot({
   const softRefreshTried = useRef(false);
 
   const sizePreset = useMemo(
-    () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),
-    [slot?.colSpan, slot?.rowSpan]
+    () =>
+      matchHomeSlotSizePreset(meta.kindId, slot?.colSpan ?? 2, slot?.rowSpan ?? 2) || {
+        id: 'M',
+        colSpan: 2,
+        rowSpan: 2,
+        capacity: 6,
+      },
+    [meta.kindId, slot?.colSpan, slot?.rowSpan]
   );
-  const capacity =
-    sizePreset?.id === 'S' ? 1 : sizePreset?.id === 'M' ? 3 : sizePreset?.id === 'L' ? 6 : 4;
-  const isCompact = sizePreset?.id === 'S';
+
+  const capacity = Number(sizePreset.capacity) || 6;
+  const gridRows = Math.max(1, Math.ceil(capacity / GRID_COLS));
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
 
@@ -179,19 +190,13 @@ function SteamGamesGlanceSlot({
       if (interactionsLocked) return;
       if (games.length === 0) {
         openSteamApiSettings();
-        return;
-      }
-      if (isCompact && games[0]) {
-        void handleLaunch(games[0]);
       }
     },
     [
       arrangeMode,
       punchMode,
       interactionsLocked,
-      games,
-      isCompact,
-      handleLaunch,
+      games.length,
       openSteamApiSettings,
       onArrangeSelect,
       channelId,
@@ -230,44 +235,26 @@ function SteamGamesGlanceSlot({
           }}
           disabled={interactionsLocked && !arrangeMode}
         >
-          <Gamepad2
-            size={isCompact ? 22 : 28}
-            strokeWidth={2.25}
-            className="text-[hsl(var(--primary))]"
-            aria-hidden
-          />
-          <span className="max-w-[12rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-            {isCompact ? 'Steam' : emptyHint}
-          </span>
-        </button>
-      ) : isCompact ? (
-        <button
-          type="button"
-          className="flex h-full w-full flex-col items-center justify-center gap-1 transition-transform hover:scale-[1.03] active:scale-95"
-          onClick={handleActivate}
-          aria-label={`Launch ${games[0].name}`}
-          title={games[0].name}
-          disabled={interactionsLocked && !arrangeMode}
-        >
-          <img
-            src={STEAM_CDN_CAPSULE(String(games[0].appId))}
-            alt=""
-            className="h-10 w-7 rounded-md object-cover"
-            draggable={false}
-          />
-          <span className="max-w-full truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-            {games[0].name}
+          <Gamepad2 size={28} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
+          <span className="max-w-[14rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+            {emptyHint}
           </span>
         </button>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-1 px-0.5">
+          <div className="flex shrink-0 items-center justify-between gap-1 px-0.5">
             <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
               {meta.title}
             </span>
             <Gamepad2 size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
           </div>
-          <div className="grid min-h-0 flex-1 content-start gap-1.5 grid-cols-3">
+          <div
+            className="grid min-h-0 flex-1 gap-1.5"
+            style={{
+              gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
+            }}
+          >
             {games.map((game) => (
               <SteamCapsuleButton
                 key={String(game.appId)}

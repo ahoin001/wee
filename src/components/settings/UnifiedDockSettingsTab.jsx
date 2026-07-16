@@ -273,6 +273,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
       };
       if (value === 'neonTrace') {
         next.chromeEffectGlowStrength = defaults.glowStrength;
+        next.chromeEffectNeonColorMode = defaults.neonColorMode;
       }
       setRibbonState(next);
       saveSetting('ribbon', 'chromeEffect', value);
@@ -280,6 +281,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
       saveSetting('ribbon', 'chromeEffectSpeed', defaults.speed);
       if (value === 'neonTrace') {
         saveSetting('ribbon', 'chromeEffectGlowStrength', defaults.glowStrength);
+        saveSetting('ribbon', 'chromeEffectNeonColorMode', defaults.neonColorMode);
       }
     },
     [ribbon?.glassWiiRibbon, saveSetting, setRibbonState]
@@ -305,6 +307,14 @@ const UnifiedDockSettingsTab = React.memo(() => {
     (value) => {
       setRibbonState({ chromeEffectGlowStrength: value });
       saveSetting('ribbon', 'chromeEffectGlowStrength', value);
+    },
+    [saveSetting, setRibbonState]
+  );
+
+  const handleChromeEffectNeonColorModeChange = useCallback(
+    (value) => {
+      setRibbonState({ chromeEffectNeonColorMode: value });
+      saveSetting('ribbon', 'chromeEffectNeonColorMode', value);
     },
     [saveSetting, setRibbonState]
   );
@@ -520,6 +530,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
             onChromeEffectIntensityChange={handleChromeEffectIntensityChange}
             onChromeEffectSpeedChange={handleChromeEffectSpeedChange}
             onChromeEffectGlowStrengthChange={handleChromeEffectGlowStrengthChange}
+            onChromeEffectNeonColorModeChange={handleChromeEffectNeonColorModeChange}
             onChromeEffectIdleOnlyChange={handleChromeEffectIdleOnlyChange}
           />
         );

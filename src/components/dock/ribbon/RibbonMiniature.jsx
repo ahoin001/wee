@@ -136,7 +136,8 @@ function RibbonMiniature({ className = '' }) {
       chromeEffect: state.ribbon.chromeEffect ?? 'none',
       chromeEffectIntensity: state.ribbon.chromeEffectIntensity ?? 0.55,
       chromeEffectSpeed: state.ribbon.chromeEffectSpeed ?? 1,
-      chromeEffectGlowStrength: state.ribbon.chromeEffectGlowStrength ?? 0.7,
+      chromeEffectGlowStrength: state.ribbon.chromeEffectGlowStrength ?? 0.6,
+      chromeEffectNeonColorMode: state.ribbon.chromeEffectNeonColorMode ?? 'mono',
       chromeEffectIdleOnly: state.ribbon.chromeEffectIdleOnly ?? false,
       ribbonButtonConfigs: state.ribbon.ribbonButtonConfigs,
     }))
@@ -217,6 +218,7 @@ function RibbonMiniature({ className = '' }) {
             intensity={ribbon.chromeEffectIntensity}
             speed={ribbon.chromeEffectSpeed}
             glowStrength={ribbon.chromeEffectGlowStrength}
+            neonColorMode={ribbon.chromeEffectNeonColorMode}
             glowColor={ribbonGlowHex}
             hovered={false}
             idleOnly={false}

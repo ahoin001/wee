@@ -32,10 +32,12 @@ import {
   removeHomeWidgetFromSpaceData,
   setHomeSlotSpanInSpaceData,
   setHomeSlotSurfaceInSpaceData,
+  setHomeSlotWidgetPatchInSpaceData,
   syncSpaceDataFromLegacyMaps,
 } from './homeGridSlots';
 import { canPlaceSpan, applySlotSpan } from './homeGridOccupancy';
 import { getHomeSlotSizePresetById } from './homeSlotSizePresets';
+import { getHomeSlotSizePreset } from '../components/home-grid/slotKindRegistry';
 import {
   migrateChannelsLegacyGlassSurfaces,
   normalizeHomeWidgetSurface,
@@ -212,6 +214,8 @@ useConsolidatedAppStore = create(
            * All glass tiles read this so they stay visually harmonious.
            */
           homeWidgetGlass: { ...DEFAULT_HOME_WIDGET_GLASS, surfacesMigrated: false },
+          /** Home Weather tile display unit: 'F' | 'C'. Persisted. Default Fahrenheit. */
+          homeWeatherTempUnit: 'F',
           // Modal states
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
@@ -299,7 +303,8 @@ useConsolidatedAppStore = create(
           chromeEffectIntensity: 0.55,
           chromeEffectSpeed: 1,
           chromeEffectIdleOnly: false,
-          chromeEffectGlowStrength: 0.7,
+          chromeEffectGlowStrength: 0.6,
+          chromeEffectNeonColorMode: 'mono',
           ribbonButtonConfigs: [],
           presetsButtonConfig: {
             type: 'icon',
@@ -559,6 +564,8 @@ useConsolidatedAppStore = create(
           canSkipNext: false,
           canSkipPrevious: false,
           appName: '',
+          controlsVia: null,
+          sourceAppUserModelId: '',
           updatedAt: 0,
         },
 
@@ -568,6 +575,8 @@ useConsolidatedAppStore = create(
           starting: false,
           error: null,
           session: null,
+          /** @type {Array<object>} Full SMTC snapshot for per-tile app filters */
+          sessions: [],
         },
 
         /**
@@ -800,6 +809,9 @@ useConsolidatedAppStore = create(
           },
           library: {
             enrichedGames: [],
+            friendsPlaying: [],
+            friendsPlayingFetchedAt: null,
+            friendsPlayingError: null,
             shelves: {
               recentlyPlayed: [],
               mostPlayed: [],
@@ -1168,8 +1180,12 @@ useConsolidatedAppStore = create(
               const key = normalizeChannelSpaceKey(spaceKey);
               const index = channelIndex | 0;
               if (index < 0 || !kindId) return state;
+              // Prefer kind-specific presets (e.g. Steam 2×2/2×3) over global S/M/L/XL.
               const preset =
-                getHomeSlotSizePresetById(sizePresetId) || getHomeSlotSizePresetById('S');
+                getHomeSlotSizePreset(kindId, sizePresetId) ||
+                getHomeSlotSizePresetById(sizePresetId) ||
+                getHomeSlotSizePresetById('S');
+              if (!preset) return state;
               const apply = (channelsData) => {
                 const layout = resolveLayout(channelsData);
                 const slots = Array.isArray(channelsData.slots) ? channelsData.slots : [];
@@ -1246,6 +1262,19 @@ useConsolidatedAppStore = create(
             const nextSurface = normalizeHomeWidgetSurface(surface);
             const apply = (channelsData) =>
               setHomeSlotSurfaceInSpaceData(channelsData, index, nextSurface);
+            if (key === 'workspaces') {
+              return { channels: patchSecondaryChannelSpace(state, apply) };
+            }
+            return { channels: patchHomeChannelSpace(state, key, apply) };
+          }),
+
+          setHomeSlotWidgetForSpace: (spaceKey, channelIndex, widgetPatch) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const index = channelIndex | 0;
+            if (index < 0) return state;
+            if (!widgetPatch || typeof widgetPatch !== 'object') return state;
+            const apply = (channelsData) =>
+              setHomeSlotWidgetPatchInSpaceData(channelsData, index, widgetPatch);
             if (key === 'workspaces') {
               return { channels: patchSecondaryChannelSpace(state, apply) };
             }
@@ -2087,6 +2116,7 @@ useConsolidatedAppStore = create(
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),
               homeWidgetGlass: { ...DEFAULT_HOME_WIDGET_GLASS, surfacesMigrated: true },
+              homeWeatherTempUnit: 'F',
               showUpdateModal: false,
               updateDismissedVersion: '',
               isAuthModalOpen: false,
@@ -2130,7 +2160,8 @@ useConsolidatedAppStore = create(
               chromeEffectIntensity: 0.55,
               chromeEffectSpeed: 1,
               chromeEffectIdleOnly: false,
-              chromeEffectGlowStrength: 0.7,
+              chromeEffectGlowStrength: 0.6,
+              chromeEffectNeonColorMode: 'mono',
               ribbonButtonConfigs: [],
               presetsButtonConfig: {
                 type: 'icon',
@@ -2332,6 +2363,9 @@ useConsolidatedAppStore = create(
               },
               library: {
                 enrichedGames: [],
+                friendsPlaying: [],
+                friendsPlayingFetchedAt: null,
+                friendsPlayingError: null,
                 shelves: {
                   recentlyPlayed: [],
                   mostPlayed: [],

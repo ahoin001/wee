@@ -25,6 +25,10 @@ function registerGameSourceHandlers({
     return await gameSourceService.getSteamEnrichedGames({ steamId, apiKey });
   });
 
+  ipcMain.handle('steam:getFriendsPlaying', async (_event, { steamId, apiKey } = {}) => {
+    return await gameSourceService.getSteamFriendsPlaying({ steamId, apiKey });
+  });
+
   ipcMain.handle('steam:getClientLibraryMetadata', async (_event, { steamId } = {}) => {
     return await gameSourceService.getSteamClientLibraryMetadata({ steamId });
   });

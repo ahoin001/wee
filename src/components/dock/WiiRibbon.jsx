@@ -99,13 +99,15 @@ const WiiRibbonComponent = ({
     chromeEffectSpeed,
     chromeEffectIdleOnly,
     chromeEffectGlowStrength,
+    chromeEffectNeonColorMode,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       chromeEffect: state.ribbon.chromeEffect ?? 'none',
       chromeEffectIntensity: state.ribbon.chromeEffectIntensity ?? 0.55,
       chromeEffectSpeed: state.ribbon.chromeEffectSpeed ?? 1,
       chromeEffectIdleOnly: state.ribbon.chromeEffectIdleOnly ?? false,
-      chromeEffectGlowStrength: state.ribbon.chromeEffectGlowStrength ?? 0.7,
+      chromeEffectGlowStrength: state.ribbon.chromeEffectGlowStrength ?? 0.6,
+      chromeEffectNeonColorMode: state.ribbon.chromeEffectNeonColorMode ?? 'mono',
     }))
   );
   const [buttonConfigs, setButtonConfigs] = useState([
@@ -648,6 +650,7 @@ const WiiRibbonComponent = ({
           intensity={chromeEffectIntensity}
           speed={chromeEffectSpeed}
           glowStrength={chromeEffectGlowStrength}
+          neonColorMode={chromeEffectNeonColorMode}
           glowColor={ribbonGlowHex}
           hovered={isRibbonHovered}
           idleOnly={chromeEffectIdleOnly}

@@ -1,5 +1,5 @@
 /**
- * Ribbon chrome FX catalog — single source of truth for ids, labels, and
+ * Ribbon dock FX catalog — single source of truth for ids, labels, and
  * per-effect intensity/speed defaults (applied when the user picks a new mode).
  */
 
@@ -29,6 +29,15 @@ export const RIBBON_CHROME_GLASS_SOFT_MODES = [
   'musicBand',
 ];
 
+/** Neon race color modes — mono glow, dual opposite comets, or spectrum chase. */
+export const RIBBON_NEON_COLOR_MODES = ['mono', 'duo', 'spectrum'];
+
+export const RIBBON_NEON_COLOR_MODE_OPTIONS = [
+  { value: 'mono', label: 'Mono' },
+  { value: 'duo', label: 'Duo' },
+  { value: 'spectrum', label: 'Spectrum' },
+];
+
 /**
  * @typedef {{
  *   id: string,
@@ -39,6 +48,7 @@ export const RIBBON_CHROME_GLASS_SOFT_MODES = [
  *   defaultIntensityGlass?: number,
  *   defaultSpeedGlass?: number,
  *   defaultGlowStrength?: number,
+ *   defaultNeonColorMode?: string,
  * }} RibbonChromeEffectMeta
  */
 
@@ -47,14 +57,14 @@ const META_BY_ID = {
   none: {
     id: 'none',
     label: 'None',
-    description: 'No chrome surface effect.',
+    description: 'No ribbon dock surface effect.',
     defaultIntensity: 0.55,
     defaultSpeed: 1,
   },
   shimmer: {
     id: 'shimmer',
     label: 'Shimmer',
-    description: 'A soft highlight sweep across the ribbon face.',
+    description: 'A soft highlight that tiles seamlessly across the ribbon face.',
     defaultIntensity: 0.55,
     defaultSpeed: 1,
     defaultIntensityGlass: 0.7,
@@ -62,28 +72,29 @@ const META_BY_ID = {
   pulse: {
     id: 'pulse',
     label: 'Pulse',
-    description: 'Gentle heartbeat glow that fills the silhouette.',
+    description: 'A calm breathing glow — soft band, not a hard metronome.',
     defaultIntensity: 0.65,
-    defaultSpeed: 0.85,
+    defaultSpeed: 0.75,
     defaultIntensityGlass: 0.8,
   },
   neonTrace: {
     id: 'neonTrace',
-    label: 'Neon trace',
-    description: 'A soft light comet glides along the ribbon bow with a short glowing trail.',
-    defaultIntensity: 0.55,
-    defaultSpeed: 0.65,
-    /** Bloom / tip glow (0–1); separate from overall intensity. */
-    defaultGlowStrength: 0.55,
+    label: 'Neon race',
+    description:
+      'A neon segment races the ribbon outline forever — dim baseline, bright comet, seamless loop.',
+    defaultIntensity: 0.6,
+    defaultSpeed: 0.7,
+    defaultGlowStrength: 0.6,
+    defaultNeonColorMode: 'mono',
   },
   aurora: {
     id: 'aurora',
     label: 'Aurora',
-    description: 'Drifting color bands layered over the ribbon.',
+    description: 'Slow drifting color bands — living field, not a short ping-pong.',
     defaultIntensity: 0.65,
-    defaultSpeed: 0.9,
+    defaultSpeed: 0.85,
     defaultIntensityGlass: 0.8,
-    defaultSpeedGlass: 0.95,
+    defaultSpeedGlass: 0.9,
   },
   ripple: {
     id: 'ripple',
@@ -111,7 +122,7 @@ const META_BY_ID = {
   sparkle: {
     id: 'sparkle',
     label: 'Sparkle',
-    description: 'Soft light motes that rise gently from the bow — calm fairy-particle feel.',
+    description: 'Soft light motes rising from the bow — continuous fairy-particle field.',
     defaultIntensity: 0.45,
     defaultSpeed: 0.75,
   },
@@ -144,7 +155,7 @@ const META_BY_ID = {
 /** Milliseconds after unhover before Idle-only FX start animating. */
 export const RIBBON_CHROME_IDLE_DELAY_MS = 2500;
 
-/** Hover dampen multiplier when Idle only is off (keeps FX from fighting gooey buttons). */
+/** Hover dampen multiplier when Idle only is off (CSS opacity wrapper — no filter rebuild). */
 export const RIBBON_CHROME_HOVER_DAMPEN = 0.55;
 
 /** Runtime glass intensity multiplier applied on top of user intensity for soft modes. */
@@ -158,15 +169,21 @@ export function getRibbonChromeEffectMeta(id) {
   return META_BY_ID[id] || META_BY_ID.none;
 }
 
-/** Default neon-trace bloom when unset (0–1). */
-export const RIBBON_CHROME_DEFAULT_GLOW_STRENGTH = 0.55;
+/** Default neon bloom when unset (0–1). */
+export const RIBBON_CHROME_DEFAULT_GLOW_STRENGTH = 0.6;
+
+export const RIBBON_CHROME_DEFAULT_NEON_COLOR_MODE = 'mono';
+
+export function isRibbonNeonColorMode(id) {
+  return RIBBON_NEON_COLOR_MODES.includes(id);
+}
 
 /**
  * Defaults applied when the user picks a chrome mode.
  * Soft modes use glass-aware intensity/speed when glass ribbon is on.
  * @param {string} [id]
  * @param {{ glass?: boolean }} [opts]
- * @returns {{ intensity: number, speed: number, glowStrength: number }}
+ * @returns {{ intensity: number, speed: number, glowStrength: number, neonColorMode: string }}
  */
 export function getRibbonChromeEffectDefaults(id, { glass = false } = {}) {
   const meta = getRibbonChromeEffectMeta(id);
@@ -177,6 +194,7 @@ export function getRibbonChromeEffectDefaults(id, { glass = false } = {}) {
       : meta.defaultIntensity,
     speed: useGlass ? (meta.defaultSpeedGlass ?? meta.defaultSpeed) : meta.defaultSpeed,
     glowStrength: meta.defaultGlowStrength ?? RIBBON_CHROME_DEFAULT_GLOW_STRENGTH,
+    neonColorMode: meta.defaultNeonColorMode ?? RIBBON_CHROME_DEFAULT_NEON_COLOR_MODE,
   };
 }
 
@@ -184,7 +202,7 @@ export function isRibbonChromeGlassSoftMode(id) {
   return RIBBON_CHROME_GLASS_SOFT_MODES.includes(id);
 }
 
-/** Options for WeeSegmentedControl / pickers (excludes nothing — includes None). */
+/** Options for pickers (includes None). */
 export function getRibbonChromeEffectOptions() {
   return RIBBON_CHROME_EFFECTS.map((id) => ({
     value: id,

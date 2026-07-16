@@ -137,9 +137,10 @@ export function useChannelInteractions({
   }, [onChannelSave, updateChannelConfig]);
 
   const handleRightClick = useCallback((e) => {
+    // Live Board Studio owns the board context menu — let the event bubble.
+    if (interactionsLocked) return;
     e.preventDefault();
     e.stopPropagation();
-    if (interactionsLocked) return;
     openChannelModal();
   }, [interactionsLocked, openChannelModal]);
 

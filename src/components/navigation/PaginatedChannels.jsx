@@ -20,10 +20,11 @@ import {
   HomeSlotResizeHandle,
   getHomeSlotKind,
   getHomeSlotSizePreset,
+  pickPlaceableSizePresetId,
 } from '../home-grid';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
-import { getSlotAt, isChannelSlotEmpty } from '../../utils/homeGridSlots';
+import { getSlotAt, isChannelSlotEmpty, isNonChannelSlot } from '../../utils/homeGridSlots';
 import { canPlaceSpan, getSlotSpan } from '../../utils/homeGridOccupancy';
 import {
   getHomeSlotSizePresetById,
@@ -112,6 +113,9 @@ const PaginatedChannelsInner = React.memo(() => {
   );
   const setHomeSlotSurfaceForSpace = useConsolidatedAppStore(
     (s) => s.actions.setHomeSlotSurfaceForSpace
+  );
+  const setHomeSlotWidgetForSpace = useConsolidatedAppStore(
+    (s) => s.actions.setHomeSlotWidgetForSpace
   );
   const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
   const reducedMotion = useReducedMotion();
@@ -370,26 +374,25 @@ const PaginatedChannelsInner = React.memo(() => {
   ]);
 
   /**
-   * Place a registry widget kind — M by default when it fits, else S.
-   * With a replace target set, the pick overwrites that configured channel
-   * behind the shared confirmation dialog.
+   * Place a registry widget kind — prefer the kind's default size, then fall back
+   * to the largest kind preset that fits (Steam never places as 1×1).
    */
   const handleAddWidget = useCallback(
     (kindId) => {
       if (!kindId) return;
       const slots = Array.isArray(boardSlots) ? boardSlots : [];
-      const mPreset = getHomeSlotSizePresetById('M');
-      const fitsM = (anchorIndex, selfIndex = null) =>
-        mPreset &&
-        canPlaceSpan({
-          slots,
-          anchorIndex,
-          colSpan: mPreset.colSpan,
-          rowSpan: mPreset.rowSpan,
-          columns: gridConfig.columns,
-          rows: gridConfig.rows,
-          selfIndex,
-        });
+      const resolvePresetId = (anchorIndex, selfIndex = null) =>
+        pickPlaceableSizePresetId(kindId, (preset) =>
+          canPlaceSpan({
+            slots,
+            anchorIndex,
+            colSpan: preset.colSpan,
+            rowSpan: preset.rowSpan,
+            columns: gridConfig.columns,
+            rows: gridConfig.rows,
+            selfIndex,
+          })
+        );
 
       if (replaceTargetIndex != null) {
         const targetIndex = replaceTargetIndex;
@@ -410,7 +413,7 @@ const PaginatedChannelsInner = React.memo(() => {
                 channelSpaceKey,
                 targetIndex,
                 kindId,
-                fitsM(targetIndex, targetIndex) ? 'M' : 'S',
+                resolvePresetId(targetIndex, targetIndex),
                 { replace: true }
               );
               setHomeBoardSelectedSlotIndex(targetIndex);
@@ -426,7 +429,7 @@ const PaginatedChannelsInner = React.memo(() => {
         channelSpaceKey,
         addTargetIndex,
         kindId,
-        fitsM(addTargetIndex) ? 'M' : 'S'
+        resolvePresetId(addTargetIndex)
       );
       setHomeBoardSelectedSlotIndex(addTargetIndex);
     },
@@ -506,6 +509,16 @@ const PaginatedChannelsInner = React.memo(() => {
     [homeBoardSelectedSlotIndex, setHomeSlotSurfaceForSpace, channelSpaceKey]
   );
 
+  const handleSetListenApp = useCallback(
+    (listenApp) => {
+      if (homeBoardSelectedSlotIndex == null) return;
+      setHomeSlotWidgetForSpace(channelSpaceKey, homeBoardSelectedSlotIndex, {
+        listenApp: String(listenApp || 'any').trim() || 'any',
+      });
+    },
+    [homeBoardSelectedSlotIndex, setHomeSlotWidgetForSpace, channelSpaceKey]
+  );
+
   /** Free-form span commit from the corner resize grabber. */
   const handleSetSlotSpan = useCallback(
     (channelIndex, colSpan, rowSpan) => {
@@ -537,11 +550,48 @@ const PaginatedChannelsInner = React.memo(() => {
 
   /** Unified board context menu — remember which tile (if any) was under the right-click. */
   const [contextTileIndex, setContextTileIndex] = useState(null);
-  const handleBoardContextMenuCapture = useCallback((event) => {
-    const tile = event.target?.closest?.('[data-channel-id]');
-    const match = tile ? /^channel-(\d+)$/.exec(tile.getAttribute('data-channel-id') || '') : null;
-    setContextTileIndex(match ? Number(match[1]) : null);
-  }, []);
+  const handleBoardContextMenuCapture = useCallback(
+    (event) => {
+      // Channels use data-channel-id; widgets live in ChannelSlotDnd (data-channel-slot).
+      const byId = event.target?.closest?.('[data-channel-id]');
+      const idMatch = byId
+        ? /^channel-(\d+)$/.exec(byId.getAttribute('data-channel-id') || '')
+        : null;
+      const bySlot = !idMatch ? event.target?.closest?.('[data-channel-slot]') : null;
+      const slotAttr = bySlot?.getAttribute?.('data-channel-slot');
+      const index = idMatch
+        ? Number(idMatch[1])
+        : slotAttr != null && slotAttr !== ''
+          ? Number(slotAttr)
+          : null;
+      const resolved =
+        index != null && Number.isFinite(index) ? index : null;
+      setContextTileIndex(resolved);
+
+      if (resolved == null || !Array.isArray(boardSlots)) return;
+
+      const slot = boardSlots[resolved];
+      if (!isNonChannelSlot(slot)) return;
+
+      // Already editing — just select this widget for the tray.
+      if (homeBoardArrangeMode) {
+        setHomeBoardSelectedSlotIndex(resolved);
+        return;
+      }
+
+      // Right-clicking a Home widget jumps straight into Edit Home (where widgets are adjusted).
+      event.preventDefault();
+      event.stopPropagation();
+      enterHomeBoardArrange();
+      setHomeBoardSelectedSlotIndex(resolved);
+    },
+    [
+      boardSlots,
+      homeBoardArrangeMode,
+      enterHomeBoardArrange,
+      setHomeBoardSelectedSlotIndex,
+    ]
+  );
 
   const contextTileSlot =
     contextTileIndex != null && Array.isArray(boardSlots) ? boardSlots[contextTileIndex] : null;
@@ -1369,6 +1419,7 @@ const PaginatedChannelsInner = React.memo(() => {
             onRemoveWidget={handleRemoveWidget}
             onSetSizePreset={handleSetSizePreset}
             onSetSurface={handleSetSurface}
+            onSetListenApp={handleSetListenApp}
             blockedPresetIds={blockedSizePresetIds}
             pickerOpen={arrangePickerOpen}
             onPickerOpenChange={setArrangePickerOpen}
@@ -1412,7 +1463,7 @@ const PaginatedChannelsInner = React.memo(() => {
               >
                 <WeeGlassPill className="pointer-events-auto flex items-center gap-2.5 rounded-full px-4 py-2">
                   <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                    Tip: Edit Home lives in the spaces rail — or right-click the board / press Ctrl+E
+                    Tip: right-click a widget to edit it — or use the spaces rail / Ctrl+E
                   </span>
                   <button
                     type="button"

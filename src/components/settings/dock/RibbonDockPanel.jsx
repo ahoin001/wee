@@ -21,6 +21,7 @@ import {
   getRibbonChromeEffectMeta,
   getRibbonChromeEffectOptions,
   isRibbonChromeGlassSoftMode,
+  RIBBON_NEON_COLOR_MODE_OPTIONS,
 } from '../../dock/ribbon/ribbonChromeEffectMeta';
 import { openSettingsToDockSubtab } from '../../../utils/settingsNavigation';
 
@@ -189,6 +190,7 @@ function RibbonDockPanel({
   onChromeEffectIntensityChange,
   onChromeEffectSpeedChange,
   onChromeEffectGlowStrengthChange,
+  onChromeEffectNeonColorModeChange,
   onChromeEffectIdleOnlyChange,
 }) {
   const glassOn = ribbon?.glassWiiRibbon ?? false;
@@ -200,7 +202,8 @@ function RibbonDockPanel({
   const chromeEffect = ribbon?.chromeEffect ?? 'none';
   const chromeIntensity = ribbon?.chromeEffectIntensity ?? 0.55;
   const chromeSpeed = ribbon?.chromeEffectSpeed ?? 1;
-  const chromeGlowStrength = ribbon?.chromeEffectGlowStrength ?? 0.7;
+  const chromeGlowStrength = ribbon?.chromeEffectGlowStrength ?? 0.6;
+  const chromeNeonColorMode = ribbon?.chromeEffectNeonColorMode ?? 'mono';
   const chromeIdleOnly = ribbon?.chromeEffectIdleOnly ?? false;
 
   return (
@@ -334,7 +337,7 @@ function RibbonDockPanel({
 
       <WeeSettingsCollapsibleSection
         icon={Sparkles}
-        title="Chrome effects"
+        title="Ribbon Dock Effects"
         description="Surface FX on the ribbon body (not ambient particles)."
         defaultOpen={false}
       >
@@ -379,31 +382,50 @@ function RibbonDockPanel({
                   max={1}
                   step={0.05}
                   onChange={onChromeEffectIntensityChange}
-                  ariaLabel="Chrome effect intensity"
+                  ariaLabel="Ribbon dock effect intensity"
                 />
                 <ScaleRow
                   label="Speed"
-                  hint="Animation pace for the selected chrome effect."
+                  hint="Animation pace for the selected ribbon dock effect."
                   valueDisplay={`${Number(chromeSpeed).toFixed(2)}×`}
                   value={chromeSpeed}
                   min={0.25}
                   max={2}
                   step={0.05}
                   onChange={onChromeEffectSpeedChange}
-                  ariaLabel="Chrome effect speed"
+                  ariaLabel="Ribbon dock effect speed"
                 />
                 <WeeRevealWhen when={chromeEffect === 'neonTrace'}>
-                  <ScaleRow
-                    label="Glow strength"
-                    hint="Soft bloom around the light tip (fairy / sacred-light feel)."
-                    valueDisplay={`${Math.round(chromeGlowStrength * 100)}%`}
-                    value={chromeGlowStrength}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    onChange={onChromeEffectGlowStrengthChange}
-                    ariaLabel="Neon trace glow strength"
-                  />
+                  <div className="surface-controls">
+                    <div>
+                      <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
+                        Neon color
+                      </Text>
+                      <WSelect
+                        value={chromeNeonColorMode}
+                        onChange={onChromeEffectNeonColorModeChange}
+                        options={RIBBON_NEON_COLOR_MODE_OPTIONS}
+                        className="w-full"
+                      />
+                      <Text
+                        variant="caption"
+                        className="!mb-0 !mt-2 block text-[hsl(var(--text-tertiary))]"
+                      >
+                        Mono uses ribbon glow. Duo adds an opposite comet. Spectrum hues the race.
+                      </Text>
+                    </div>
+                    <ScaleRow
+                      label="Glow strength"
+                      hint="Bloom weight on the racing neon segment."
+                      valueDisplay={`${Math.round(chromeGlowStrength * 100)}%`}
+                      value={chromeGlowStrength}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={onChromeEffectGlowStrengthChange}
+                      ariaLabel="Neon race glow strength"
+                    />
+                  </div>
                 </WeeRevealWhen>
                 <SettingsToggleFieldCard
                   hoverAccent="none"
@@ -450,6 +472,7 @@ RibbonDockPanel.propTypes = {
   onChromeEffectIntensityChange: PropTypes.func.isRequired,
   onChromeEffectSpeedChange: PropTypes.func.isRequired,
   onChromeEffectGlowStrengthChange: PropTypes.func.isRequired,
+  onChromeEffectNeonColorModeChange: PropTypes.func.isRequired,
   onChromeEffectIdleOnlyChange: PropTypes.func.isRequired,
 };
 

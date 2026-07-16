@@ -66,10 +66,17 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
       progressMs: s.nowPlaying?.progressMs || 0,
       durationMs: s.nowPlaying?.durationMs || 0,
       appName: s.nowPlaying?.appName || '',
+      controlsVia: s.nowPlaying?.controlsVia || null,
     }))
   );
 
+  // SMTC-first display for Free desktop players; Web API only when it owns the row.
   const isSystemSource = nowPlaying.source === 'system';
+  const useApiControls =
+    nowPlaying.controlsVia === 'spotify-api' ||
+    (nowPlaying.source === 'spotify' && nowPlaying.controlsVia !== 'system-keys');
+  const useSystemKeys =
+    nowPlaying.controlsVia === 'system-keys' || (isSystemSource && !useApiControls);
   const currentTrack = isSystemSource
     ? nowPlaying.trackName
       ? {
@@ -187,7 +194,7 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
   } = usePlaybackSeek({
     durationMs,
     onCommitSeek: handleSeekCommit,
-    disabled: isFreeTierConnected || isSystemSource,
+    disabled: isFreeTierConnected || useSystemKeys || !isPremium,
   });
 
   const runSystemTransport = useCallback(async (action) => {
@@ -199,28 +206,28 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
   }, []);
 
   const handlePrevious = useCallback(() => {
-    if (isSystemSource) {
+    if (useSystemKeys) {
       void runSystemTransport('previous');
       return;
     }
-    spotifyManager?.skipToPrevious?.();
-  }, [isSystemSource, runSystemTransport, spotifyManager]);
+    if (useApiControls) spotifyManager?.skipToPrevious?.();
+  }, [useSystemKeys, useApiControls, runSystemTransport, spotifyManager]);
 
   const handleTogglePlay = useCallback(() => {
-    if (isSystemSource) {
+    if (useSystemKeys) {
       void runSystemTransport('playPause');
       return;
     }
-    spotifyManager?.togglePlayback?.();
-  }, [isSystemSource, runSystemTransport, spotifyManager]);
+    if (useApiControls) spotifyManager?.togglePlayback?.();
+  }, [useSystemKeys, useApiControls, runSystemTransport, spotifyManager]);
 
   const handleNext = useCallback(() => {
-    if (isSystemSource) {
+    if (useSystemKeys) {
       void runSystemTransport('next');
       return;
     }
-    spotifyManager?.skipToNext?.();
-  }, [isSystemSource, runSystemTransport, spotifyManager]);
+    if (useApiControls) spotifyManager?.skipToNext?.();
+  }, [useSystemKeys, useApiControls, runSystemTransport, spotifyManager]);
 
   const handleOpenSpotifyIntegrationSettings = useCallback(() => {
     openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);

@@ -1,6 +1,6 @@
 /**
- * Home-grid Now Playing tile — reads the shared nowPlaying projection
- * (Spotify and/or Windows system media).
+ * Home-grid Now Playing tile — SMTC-first display for free desktop players;
+ * Premium Spotify Web API for transport when available.
  */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
@@ -15,6 +15,14 @@ import {
   normalizeNowPlayingExperience,
   toggleSpotifyTakeover,
 } from '../../utils/spotifyTakeover';
+import { isSpotifyPremiumUser } from '../../utils/spotifyTier';
+import {
+  EMPTY_NOW_PLAYING,
+  nowPlayingFromSpotify,
+  nowPlayingFromSystemSession,
+  pickPrimarySystemSession,
+  resolveNowPlaying,
+} from '../../utils/nowPlayingShape';
 
 function NowPlayingSlot({
   slot,
@@ -24,44 +32,77 @@ function NowPlayingSlot({
   selected = false,
   onArrangeSelect,
 }) {
+  const listenApp = String(slot?.widget?.listenApp || 'any').trim() || 'any';
+
   const {
-    trackName,
-    artistLine,
-    albumArtUrl,
-    isPlaying,
-    source,
-    appName,
-    canPlay,
-    canPause,
-    canSkipNext,
-    canSkipPrevious,
-    spotifyConnected,
+    globalNp,
+    sessions,
+    preference,
     systemEnabled,
     systemAvailable,
-    takeoverAvailable,
+    spotifyConnected,
+    spotifyPremium,
+    spotifySlice,
+    takeoverExperienceOn,
   } = useConsolidatedAppStore(
-    useShallow((state) => {
-      const np = state.nowPlaying || {};
-      return {
-        trackName: np.trackName || '',
-        artistLine: np.artistLine || '',
-        albumArtUrl: np.albumArtUrl || '',
-        isPlaying: Boolean(np.isPlaying),
-        source: np.source,
-        appName: np.appName || '',
-        canPlay: Boolean(np.canPlay),
-        canPause: Boolean(np.canPause),
-        canSkipNext: Boolean(np.canSkipNext),
-        canSkipPrevious: Boolean(np.canSkipPrevious),
-        spotifyConnected: Boolean(state.spotify.isConnected),
-        systemEnabled: state.ui.systemMediaEnabled !== false,
-        systemAvailable: Boolean(state.systemMedia?.available),
-        takeoverAvailable:
-          np.source === 'spotify' &&
-          normalizeNowPlayingExperience(state.spotify.nowPlayingExperience) !== 'off',
-      };
-    })
+    useShallow((state) => ({
+      globalNp: state.nowPlaying || EMPTY_NOW_PLAYING,
+      sessions: Array.isArray(state.systemMedia?.sessions) ? state.systemMedia.sessions : [],
+      preference: state.ui.nowPlayingSourcePreference || 'auto',
+      systemEnabled: state.ui.systemMediaEnabled !== false,
+      systemAvailable: Boolean(state.systemMedia?.available),
+      spotifyConnected: Boolean(state.spotify.isConnected),
+      spotifyPremium: isSpotifyPremiumUser(state.spotify.currentUser),
+      spotifySlice: state.spotify,
+      takeoverExperienceOn:
+        normalizeNowPlayingExperience(state.spotify.nowPlayingExperience) !== 'off',
+    }))
   );
+
+  // Optional per-tile app filter — otherwise use the shared nowPlaying SSOT.
+  const np = useMemo(() => {
+    if (listenApp === 'any') return globalNp;
+    const session = pickPrimarySystemSession(sessions, { listenApp });
+    if (!session) {
+      return { ...EMPTY_NOW_PLAYING };
+    }
+    return resolveNowPlaying({
+      preference,
+      systemEnabled,
+      spotifyConnected,
+      spotifyPremium,
+      spotifyCandidate: spotifyConnected ? nowPlayingFromSpotify(spotifySlice) : null,
+      systemCandidate: nowPlayingFromSystemSession(session),
+    });
+  }, [
+    listenApp,
+    globalNp,
+    sessions,
+    preference,
+    systemEnabled,
+    spotifyConnected,
+    spotifyPremium,
+    spotifySlice,
+  ]);
+
+  const {
+    trackName = '',
+    artistLine = '',
+    albumArtUrl = '',
+    isPlaying = false,
+    source = null,
+    appName = '',
+    canPlay = false,
+    canPause = false,
+    canSkipNext = false,
+    canSkipPrevious = false,
+    controlsVia = null,
+  } = np || {};
+
+  const useApiControls =
+    controlsVia === 'spotify-api' || (source === 'spotify' && controlsVia !== 'system-keys');
+  const useSystemKeys =
+    controlsVia === 'system-keys' || (source === 'system' && !useApiControls);
 
   const sizePreset = useMemo(
     () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),
@@ -86,26 +127,27 @@ function NowPlayingSlot({
 
   const runTransport = useCallback(
     async (action) => {
-      if (source === 'spotify') {
+      if (useApiControls) {
         const manager = useConsolidatedAppStore.getState().actions.spotifyManager;
         if (action === 'playPause') await manager?.togglePlayback?.();
         else if (action === 'next') await manager?.skipToNext?.();
         else if (action === 'previous') await manager?.skipToPrevious?.();
         return;
       }
-      if (source === 'system') {
+      if (useSystemKeys) {
         await window.api?.systemMedia?.transport?.(action);
       }
     },
-    [source]
+    [useApiControls, useSystemKeys]
   );
 
   const emptyLabel = useMemo(() => {
     if (hasTrack) return '';
+    if (listenApp !== 'any') return 'Play in that app';
     if (spotifyConnected || (systemEnabled && systemAvailable)) return 'Play something';
     if (systemEnabled) return 'Start a player';
     return 'Connect Spotify';
-  }, [hasTrack, spotifyConnected, systemEnabled, systemAvailable]);
+  }, [hasTrack, listenApp, spotifyConnected, systemEnabled, systemAvailable]);
 
   const handleActivate = useCallback(
     (event) => {
@@ -120,12 +162,12 @@ function NowPlayingSlot({
         return;
       }
       if (!hasTrack) return;
-      // Spotify → floating widget; system (Apple Music, etc.) → play/pause only.
-      if (source === 'spotify') {
+      // Open floating media widget for Spotify API path; SMTC → play/pause.
+      if (useApiControls || source === 'spotify') {
         openMediaWidget();
         return;
       }
-      if (source === 'system') {
+      if (useSystemKeys) {
         void runTransport('playPause');
       }
     },
@@ -138,6 +180,8 @@ function NowPlayingSlot({
       systemEnabled,
       systemAvailable,
       source,
+      useApiControls,
+      useSystemKeys,
       onArrangeSelect,
       channelId,
       openMediaWidget,
@@ -163,10 +207,14 @@ function NowPlayingSlot({
       : '';
 
   const showTransport =
-    hasTrack && !isCompact && !interactionsLocked && (source === 'spotify' || source === 'system');
+    hasTrack && !isCompact && !interactionsLocked && (useApiControls || useSystemKeys);
 
-  const playPauseEnabled = isPlaying ? canPause || source === 'spotify' : canPlay || source === 'spotify';
+  const playPauseEnabled = isPlaying
+    ? canPause || useApiControls
+    : canPlay || useApiControls;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
+  const takeoverAvailable =
+    (source === 'spotify' || useApiControls) && takeoverExperienceOn;
 
   return (
     <HomeWidgetShell
@@ -207,7 +255,7 @@ function NowPlayingSlot({
               <Music size={11} strokeWidth={2.5} className="text-[hsl(var(--primary))]" aria-hidden />
               <span className="truncate">{statusLabel}</span>
               {source === 'system' && !isCompact ? (
-                <span className="shrink-0 text-[hsl(var(--text-tertiary))]">· System</span>
+                <span className="shrink-0 text-[hsl(var(--text-tertiary))]">· Desktop</span>
               ) : null}
             </span>
             {!isCompact ? (
@@ -257,7 +305,7 @@ function NowPlayingSlot({
             className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40 home-widget-float-chip"
             title="Previous"
             aria-label="Previous track"
-            disabled={!canSkipPrevious && source !== 'spotify'}
+            disabled={!canSkipPrevious && !useApiControls}
             onClick={handleTransportClick('previous')}
           >
             <SkipBack size={14} strokeWidth={2.5} aria-hidden />
@@ -281,7 +329,7 @@ function NowPlayingSlot({
             className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40 home-widget-float-chip"
             title="Next"
             aria-label="Next track"
-            disabled={!canSkipNext && source !== 'spotify'}
+            disabled={!canSkipNext && !useApiControls}
             onClick={handleTransportClick('next')}
           >
             <SkipForward size={14} strokeWidth={2.5} aria-hidden />

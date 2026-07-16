@@ -11,6 +11,14 @@ import {
 
 export { HOME_SLOT_SIZE_PRESETS };
 
+/** Picker section order + labels for Edit Home “Add widget”. */
+export const HOME_SLOT_PICKER_CATEGORIES = Object.freeze([
+  Object.freeze({ id: 'steam', label: 'Steam' }),
+  Object.freeze({ id: 'media', label: 'Media' }),
+  Object.freeze({ id: 'glance', label: 'Glance' }),
+  Object.freeze({ id: 'system', label: 'System' }),
+]);
+
 /** Now Playing reads best as art + track text — 3×2 (XL) is all dead space. */
 const NOW_PLAYING_SIZE_PRESETS = Object.freeze({
   S: HOME_SLOT_SIZE_PRESETS.S,
@@ -18,11 +26,21 @@ const NOW_PLAYING_SIZE_PRESETS = Object.freeze({
   L: HOME_SLOT_SIZE_PRESETS.L,
 });
 
-/** Glance tiles (clock / weather / steam) — S compact + M/L; no XL. */
+/** Clock / weather — keep S for compact glance. */
 const GLANCE_TILE_SIZE_PRESETS = Object.freeze({
   S: HOME_SLOT_SIZE_PRESETS.S,
   M: HOME_SLOT_SIZE_PRESETS.M,
   L: HOME_SLOT_SIZE_PRESETS.L,
+});
+
+/**
+ * Steam tiles: never 1×1. Min 2 columns; 2 / 3 / 4 rows tall.
+ * (Default home grid is 3 rows — 2×4 clamps to 2×3 until the page has more rows.)
+ */
+export const STEAM_TILE_SIZE_PRESETS = Object.freeze({
+  M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 6 }),
+  L: Object.freeze({ id: 'L', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 9 }),
+  XL: Object.freeze({ id: 'XL', label: '2×4', colSpan: 2, rowSpan: 4, capacity: 12 }),
 });
 
 export const HOME_SLOT_KINDS = {
@@ -41,6 +59,7 @@ export const HOME_SLOT_KINDS = {
     label: 'Quick Access',
     description: 'Pin admin & system actions to a tile',
     icon: '🛡️',
+    category: 'system',
     colSpan: HOME_SLOT_SIZE_PRESETS.S.colSpan,
     rowSpan: HOME_SLOT_SIZE_PRESETS.S.rowSpan,
     defaultSizePreset: 'M',
@@ -52,8 +71,9 @@ export const HOME_SLOT_KINDS = {
   nowPlaying: {
     id: 'nowPlaying',
     label: 'Now Playing',
-    description: 'Live Spotify track on a tile',
+    description: 'Desktop music from Spotify, Apple Music, and more',
     icon: '🎵',
+    category: 'media',
     colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
     rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
     defaultSizePreset: 'M',
@@ -66,6 +86,7 @@ export const HOME_SLOT_KINDS = {
     label: 'Recently Used',
     description: 'Relaunch your last apps fast',
     icon: '🕘',
+    category: 'system',
     colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
     rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
     defaultSizePreset: 'M',
@@ -78,6 +99,7 @@ export const HOME_SLOT_KINDS = {
     label: 'Clock',
     description: 'Local time and date at a glance',
     icon: '🕐',
+    category: 'glance',
     colSpan: HOME_SLOT_SIZE_PRESETS.S.colSpan,
     rowSpan: HOME_SLOT_SIZE_PRESETS.S.rowSpan,
     defaultSizePreset: 'M',
@@ -90,6 +112,7 @@ export const HOME_SLOT_KINDS = {
     label: 'Weather',
     description: 'Local conditions via Open-Meteo',
     icon: '⛅',
+    category: 'glance',
     colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
     rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
     defaultSizePreset: 'M',
@@ -102,10 +125,11 @@ export const HOME_SLOT_KINDS = {
     label: 'Steam Recent',
     description: 'Recently played Steam games',
     icon: '🎮',
-    colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
-    rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
+    category: 'steam',
+    colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
+    rowSpan: STEAM_TILE_SIZE_PRESETS.M.rowSpan,
     defaultSizePreset: 'M',
-    sizePresets: GLANCE_TILE_SIZE_PRESETS,
+    sizePresets: STEAM_TILE_SIZE_PRESETS,
     render: 'SteamRecentSlot',
     placeable: true,
   },
@@ -114,11 +138,25 @@ export const HOME_SLOT_KINDS = {
     label: 'Steam Most Played',
     description: 'Your highest lifetime playtime titles',
     icon: '🏆',
-    colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
-    rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
+    category: 'steam',
+    colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
+    rowSpan: STEAM_TILE_SIZE_PRESETS.M.rowSpan,
     defaultSizePreset: 'M',
-    sizePresets: GLANCE_TILE_SIZE_PRESETS,
+    sizePresets: STEAM_TILE_SIZE_PRESETS,
     render: 'SteamMostPlayedSlot',
+    placeable: true,
+  },
+  steamFriends: {
+    id: 'steamFriends',
+    label: 'Steam Friends',
+    description: 'Friends & what they’re playing',
+    icon: '👥',
+    category: 'steam',
+    colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
+    rowSpan: STEAM_TILE_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: STEAM_TILE_SIZE_PRESETS,
+    render: 'SteamFriendsSlot',
     placeable: true,
   },
 };
@@ -148,6 +186,38 @@ export function listPlaceableHomeSlotKinds() {
 }
 
 /**
+ * Placeable kinds grouped for the Edit Home picker.
+ * @returns {Array<{ id: string, label: string, kinds: Array<typeof HOME_SLOT_KINDS[keyof typeof HOME_SLOT_KINDS]> }>}
+ */
+export function listPlaceableHomeSlotKindsGrouped() {
+  const kinds = listPlaceableHomeSlotKinds();
+  const byCat = new Map();
+  for (const kind of kinds) {
+    const catId = kind.category || 'system';
+    if (!byCat.has(catId)) byCat.set(catId, []);
+    byCat.get(catId).push(kind);
+  }
+  const groups = [];
+  for (const cat of HOME_SLOT_PICKER_CATEGORIES) {
+    const list = byCat.get(cat.id);
+    if (list?.length) {
+      groups.push({ id: cat.id, label: cat.label, kinds: list });
+      byCat.delete(cat.id);
+    }
+  }
+  for (const [id, list] of byCat) {
+    if (list.length) {
+      groups.push({
+        id,
+        label: id.charAt(0).toUpperCase() + id.slice(1),
+        kinds: list,
+      });
+    }
+  }
+  return groups;
+}
+
+/**
  * @param {string} kindId
  * @param {string} presetId
  * @returns {{ id: string, label: string, colSpan: number, rowSpan: number, capacity: number } | null}
@@ -172,4 +242,28 @@ export function matchHomeSlotSizePreset(kindId, colSpan, rowSpan) {
   return (
     Object.values(kind.sizePresets).find((p) => p.colSpan === cs && p.rowSpan === rs) ?? null
   );
+}
+
+/**
+ * Prefer kind.defaultSizePreset, then remaining kind presets largest-first that fit.
+ * @param {string} kindId
+ * @param {(preset: { id: string, colSpan: number, rowSpan: number }) => boolean} fits
+ * @returns {string}
+ */
+export function pickPlaceableSizePresetId(kindId, fits) {
+  const kind = getHomeSlotKind(kindId);
+  const presets = kind?.sizePresets
+    ? Object.values(kind.sizePresets)
+    : Object.values(HOME_SLOT_SIZE_PRESETS);
+  const preferredId = kind?.defaultSizePreset || 'M';
+  const ordered = [
+    ...presets.filter((p) => p.id === preferredId),
+    ...presets
+      .filter((p) => p.id !== preferredId)
+      .sort((a, b) => b.colSpan * b.rowSpan - a.colSpan * a.rowSpan),
+  ];
+  for (const preset of ordered) {
+    if (typeof fits === 'function' && fits(preset)) return preset.id;
+  }
+  return preferredId;
 }

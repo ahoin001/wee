@@ -237,6 +237,7 @@ const selectPersistedUi = (ui = {}) => ({
       : 'auto',
   systemMediaEnabled: ui.systemMediaEnabled !== false,
   homeWidgetGlass: normalizeHomeWidgetGlass(ui.homeWidgetGlass),
+  homeWeatherTempUnit: ui.homeWeatherTempUnit === 'C' ? 'C' : 'F',
 });
 
 /** Strip modal / loading chrome — prefs only. */

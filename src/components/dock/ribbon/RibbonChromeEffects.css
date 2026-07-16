@@ -1,60 +1,66 @@
-/* Path-masked ribbon chrome FX — CSS vars from RibbonChromeEffects.jsx */
+/* Path-masked ribbon dock FX — CSS vars from RibbonChromeEffects.jsx */
 
 .ribbon-chrome-effects {
   overflow: hidden;
+  /* Hover dampen is opacity-only so filters/strokes stay stable (no mid-anim rebuild). */
+  opacity: var(--ribbon-fx-hover-opacity, 1);
 }
 
-/* —— Shimmer —— */
+/* —— Shimmer (periodic tiled sweep — end ≡ start) —— */
 .ribbon-chrome-effects--animate .ribbon-fx-shimmer-band {
-  animation: ribbon-fx-shimmer-sweep var(--ribbon-fx-duration, 2.4s) linear infinite;
+  animation: ribbon-fx-shimmer-tile var(--ribbon-fx-duration, 2.4s) linear infinite;
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-shimmer-band {
-  transform: translateX(10%) skewX(-6deg);
+  transform: translate3d(-12%, 0, 0);
   opacity: var(--ribbon-fx-opacity, 0.5);
 }
 
-/* —— Pulse (heartbeat: quick rise, slow fall) —— */
+/* —— Pulse (narrow breathing band) —— */
 .ribbon-chrome-effects--animate .ribbon-fx-pulse-fill {
-  animation: ribbon-fx-pulse-heartbeat var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
+  animation: ribbon-fx-pulse-breathe calc(var(--ribbon-fx-duration, 2.4s) * 1.35) ease-in-out infinite;
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-pulse-fill {
-  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.45);
-}
-
-/* —— Neon (soft comet along top bow — SMIL drives dash + tip in lockstep) —— */
-.ribbon-fx-neon-group {
-  mix-blend-mode: screen;
-}
-
-.ribbon-chrome-effects--static .ribbon-fx-neon-trace {
   opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.55);
 }
 
-.ribbon-chrome-effects--static .ribbon-fx-neon-tip {
-  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.8);
+/* —— Neon race (closed-outline periodic dash — seamless circuit) —— */
+.ribbon-fx-neon-group {
+  /* Avoid soft-light; plus-lighter/screen is cheaper when needed — default: normal + alpha */
 }
 
-/* —— Aurora —— */
+.ribbon-chrome-effects--animate .ribbon-fx-neon-race {
+  animation: ribbon-fx-neon-race var(--ribbon-fx-neon-duration, 3.2s) linear infinite;
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-neon-race--duo-b {
+  animation-delay: calc(var(--ribbon-fx-neon-duration, 3.2s) * -0.5);
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-neon-hue {
+  animation: ribbon-fx-neon-hue calc(var(--ribbon-fx-neon-duration, 3.2s) * 2.4) linear infinite;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-neon-race {
+  stroke-dashoffset: 28;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-neon-baseline {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.7);
+}
+
+/* —— Aurora (incommensurate slow drifts — living field) —— */
 .ribbon-fx-aurora-group {
-  mix-blend-mode: soft-light;
-}
-
-.ribbon-chrome-effects--glass .ribbon-fx-aurora-group {
   mix-blend-mode: screen;
 }
 
 .ribbon-chrome-effects--animate .ribbon-fx-aurora-band--a {
-  animation: ribbon-fx-aurora-drift-a calc(var(--ribbon-fx-duration, 2.4s) * 1.35) ease-in-out infinite alternate;
+  animation: ribbon-fx-aurora-drift-a calc(var(--ribbon-fx-duration, 2.4s) * 1.618) linear infinite;
 }
 
 .ribbon-chrome-effects--animate .ribbon-fx-aurora-band--b {
-  animation: ribbon-fx-aurora-drift-b calc(var(--ribbon-fx-duration, 2.4s) * 1.7) ease-in-out infinite alternate;
-}
-
-.ribbon-chrome-effects--animate .ribbon-fx-aurora-band--c {
-  animation: ribbon-fx-aurora-drift-c calc(var(--ribbon-fx-duration, 2.4s) * 2.1) ease-in-out infinite alternate;
+  animation: ribbon-fx-aurora-drift-b calc(var(--ribbon-fx-duration, 2.4s) * 2.414) linear infinite;
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-aurora-band {
@@ -105,7 +111,7 @@
   opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.5);
 }
 
-/* —— Sparkle (calm rising light-motes — dock water-drop / fairy light feel) —— */
+/* —— Sparkle (continuous field — soft life cycle, no group blur) —— */
 .ribbon-chrome-effects[data-ribbon-fx='sparkle'],
 .ribbon-chrome-effects[data-ribbon-fx='neonTrace'] {
   overflow: visible;
@@ -114,11 +120,10 @@
 .ribbon-fx-sparkle-mote {
   transform-box: fill-box;
   transform-origin: center;
-  will-change: transform, opacity;
 }
 
 .ribbon-chrome-effects--animate .ribbon-fx-sparkle-mote {
-  animation: ribbon-fx-sparkle-rise var(--ribbon-fx-sparkle-life, 4s) ease-out infinite;
+  animation: ribbon-fx-sparkle-rise var(--ribbon-fx-sparkle-life, 4s) ease-in-out infinite;
   animation-delay: var(--ribbon-fx-sparkle-delay, 0s);
 }
 
@@ -149,58 +154,67 @@
 
 /* —— Keyframes —— */
 
-@keyframes ribbon-fx-shimmer-sweep {
+/* Two identical highlight lobes; shift by half width so loop is invisible. */
+@keyframes ribbon-fx-shimmer-tile {
   from {
-    transform: translateX(-38%) skewX(-6deg);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(38%) skewX(-6deg);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
-@keyframes ribbon-fx-pulse-heartbeat {
+@keyframes ribbon-fx-pulse-breathe {
   0%,
   100% {
-    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.2);
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.42);
   }
-  18% {
-    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.9);
-  }
-  32% {
-    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.4);
-  }
-  48% {
-    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.75);
-  }
-  70% {
-    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.28);
+  50% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.78);
   }
 }
 
-@keyframes ribbon-fx-aurora-drift-a {
+/* pathLength=100 periodic race — offset by full period. */
+@keyframes ribbon-fx-neon-race {
   from {
-    transform: translateX(-12%) translateY(4%);
+    stroke-dashoffset: 0;
   }
   to {
-    transform: translateX(14%) translateY(-3%);
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes ribbon-fx-neon-hue {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+/* Continuous drift loops (end ≈ start via soft cycle of small travel). */
+@keyframes ribbon-fx-aurora-drift-a {
+  0% {
+    transform: translate3d(-6%, 2%, 0);
+  }
+  50% {
+    transform: translate3d(7%, -2%, 0);
+  }
+  100% {
+    transform: translate3d(-6%, 2%, 0);
   }
 }
 
 @keyframes ribbon-fx-aurora-drift-b {
-  from {
-    transform: translateX(10%) translateY(-5%);
+  0% {
+    transform: translate3d(5%, -3%, 0);
   }
-  to {
-    transform: translateX(-16%) translateY(6%);
+  50% {
+    transform: translate3d(-8%, 3%, 0);
   }
-}
-
-@keyframes ribbon-fx-aurora-drift-c {
-  from {
-    transform: translateX(-8%) scale(1);
-  }
-  to {
-    transform: translateX(12%) scale(1.05);
+  100% {
+    transform: translate3d(5%, -3%, 0);
   }
 }
 
@@ -267,30 +281,30 @@
 }
 
 /**
- * Soft mote life: spawn near the bow, drift up & slightly sideways, fade —
- * same calm rhythm as dock water-drop particles.
+ * Soft mote life: spawn near-zero alpha, peak mid-life, die at zero —
+ * ease-in-out so the restart at 0% matches 100% (both invisible).
  */
 @keyframes ribbon-fx-sparkle-rise {
   0% {
     opacity: 0;
-    transform: translate(0, 5px) scale(0.35);
+    transform: translate(0, 4px) scale(0.4);
   }
-  12% {
-    opacity: 0.9;
-    transform: translate(calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.25), 0) scale(1);
+  18% {
+    opacity: 0.85;
+    transform: translate(calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.3), -2px) scale(1);
   }
   55% {
-    opacity: 0.55;
+    opacity: 0.5;
     transform: translate(
         calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.7),
         calc(var(--ribbon-fx-sparkle-rise, -24px) * 0.55)
       )
-      scale(0.92);
+      scale(0.9);
   }
   100% {
     opacity: 0;
     transform: translate(var(--ribbon-fx-sparkle-drift, 0px), var(--ribbon-fx-sparkle-rise, -24px))
-      scale(0.28);
+      scale(0.3);
   }
 }
 
@@ -316,6 +330,8 @@
 @media (prefers-reduced-motion: reduce) {
   .ribbon-chrome-effects--animate .ribbon-fx-shimmer-band,
   .ribbon-chrome-effects--animate .ribbon-fx-pulse-fill,
+  .ribbon-chrome-effects--animate .ribbon-fx-neon-race,
+  .ribbon-chrome-effects--animate .ribbon-fx-neon-hue,
   .ribbon-chrome-effects--animate .ribbon-fx-aurora-band,
   .ribbon-chrome-effects--animate .ribbon-fx-ripple,
   .ribbon-chrome-effects--animate .ribbon-fx-ember-pool,

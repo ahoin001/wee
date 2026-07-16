@@ -12,9 +12,17 @@ import {
 } from '../../ui/wee';
 import { isChannelSlotEmpty, isNonChannelSlot } from '../../utils/homeGridSlots';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
-import { getHomeSlotKind, listPlaceableHomeSlotKinds, matchHomeSlotSizePreset } from './slotKindRegistry';
+import { getHomeSlotKind, listPlaceableHomeSlotKindsGrouped, matchHomeSlotSizePreset } from './slotKindRegistry';
 import HomeWidgetGlassControls from './HomeWidgetGlassControls';
+import HomeWidgetSettingsPanel, {
+  homeSlotKindHasWidgetSettings,
+} from './HomeWidgetSettingsPanel';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import {
+  systemSessionAppFilterValue,
+  systemSessionAppLabel,
+} from '../../utils/nowPlayingShape';
+import { useShallow } from 'zustand/react/shallow';
 
 const MotionDiv = m.div;
 
@@ -35,6 +43,7 @@ function HomeBoardArrangeBar({
   onRemoveWidget,
   onSetSizePreset,
   onSetSurface,
+  onSetListenApp,
   blockedPresetIds = [],
   pickerOpen = false,
   onPickerOpenChange,
@@ -51,6 +60,10 @@ function HomeBoardArrangeBar({
   );
   const [moreOpen, setMoreOpen] = useState(false);
 
+  const systemSessions = useConsolidatedAppStore(
+    useShallow((s) => (Array.isArray(s.systemMedia?.sessions) ? s.systemMedia.sessions : []))
+  );
+
   useEffect(() => {
     if (!arrangeMode) {
       setMoreOpen(false);
@@ -61,9 +74,10 @@ function HomeBoardArrangeBar({
     useConsolidatedAppStore.getState().actions.ensureHomeWidgetSurfaceMigration?.();
   }, []);
 
-  const placeableKinds = useMemo(() => listPlaceableHomeSlotKinds(), []);
+  const placeableGroups = useMemo(() => listPlaceableHomeSlotKindsGrouped(), []);
 
   const selectedIsWidget = isNonChannelSlot(selectedSlot);
+  const selectedIsNowPlaying = selectedIsWidget && selectedSlot?.kind === 'nowPlaying';
   const selectedIsEmptyChannel =
     selectedSlot != null && !selectedIsWidget && isChannelSlotEmpty(selectedSlot);
   const selectedKindMeta = selectedSlot
@@ -85,6 +99,33 @@ function HomeBoardArrangeBar({
     ? normalizeHomeWidgetSurface(selectedSlot?.surface)
     : null;
 
+  const listenAppValue = String(selectedSlot?.widget?.listenApp || 'any').trim() || 'any';
+
+  const listenAppOptions = useMemo(() => {
+    const seen = new Set();
+    const opts = [{ value: 'any', label: 'Any', title: 'Show whichever desktop player is active' }];
+    for (const session of systemSessions) {
+      const value = systemSessionAppFilterValue(session);
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      const label = systemSessionAppLabel(session);
+      opts.push({
+        value,
+        label: label.length > 14 ? `${label.slice(0, 12)}…` : label,
+        title: `Only show media from ${label}`,
+      });
+    }
+    // Keep a custom saved filter visible even if that app is not currently in SMTC.
+    if (listenAppValue !== 'any' && !seen.has(listenAppValue)) {
+      opts.push({
+        value: listenAppValue,
+        label: listenAppValue.length > 14 ? `${listenAppValue.slice(0, 12)}…` : listenAppValue,
+        title: `Only show media from ${listenAppValue}`,
+      });
+    }
+    return opts;
+  }, [systemSessions, listenAppValue]);
+
   const handleToggleQuickPicker = useCallback(() => {
     setPickerOpen((prev) => !prev);
     setMoreOpen(false);
@@ -105,16 +146,18 @@ function HomeBoardArrangeBar({
 
   const hint = punchMode
     ? 'Tap tiles to punch wallpaper holes · toggle off under More when finished'
-    : selectedIsWidget
-      ? `Drag the corner to resize · or pick S–XL · remove this ${selectedKindMeta?.label ?? ''} widget`.replace(
-          '  ',
-          ' '
-        )
-      : selectedIsEmptyChannel
-        ? 'Empty slot — pick a widget below to place it here'
-        : selectedKindMeta
-          ? 'Drag the corner to resize · or pick S–XL · drag tiles to reorder'
-          : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
+    : selectedIsNowPlaying
+      ? 'Pick which desktop app this tile listens to · or Any for auto'
+      : selectedIsWidget
+        ? `Drag the corner to resize · or pick a size · remove this ${selectedKindMeta?.label ?? ''} widget`.replace(
+            '  ',
+            ' '
+          )
+        : selectedIsEmptyChannel
+          ? 'Empty slot — pick a widget below to place it here'
+          : selectedKindMeta
+            ? 'Drag the corner to resize · or pick a size · drag tiles to reorder'
+            : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
 
   return (
     <AnimatePresence>
@@ -232,18 +275,27 @@ function HomeBoardArrangeBar({
             </div>
 
             <WeeContentCollapse open={pickerOpen} keepMounted={false}>
-              <div className="flex flex-wrap items-stretch justify-center gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
-                {placeableKinds.map((kind) => (
-                  <WeeGooeyTileButton
-                    key={kind.id}
-                    orientation="row"
-                    icon={kind.icon ?? '🧩'}
-                    label={kind.label}
-                    description={kind.description}
-                    reducedMotion={reducedMotion}
-                    onClick={() => handlePickKind(kind.id)}
-                    className="min-w-[11rem] max-w-[15rem]"
-                  />
+              <div className="flex max-h-[min(42vh,22rem)] flex-col gap-3 overflow-y-auto border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
+                {placeableGroups.map((group) => (
+                  <div key={group.id} className="flex flex-col gap-1.5">
+                    <span className="px-1 text-[9px] font-black uppercase tracking-[0.16em] text-[hsl(var(--text-tertiary))]">
+                      {group.label}
+                    </span>
+                    <div className="flex flex-wrap items-stretch justify-center gap-2">
+                      {group.kinds.map((kind) => (
+                        <WeeGooeyTileButton
+                          key={kind.id}
+                          orientation="row"
+                          icon={kind.icon ?? '🧩'}
+                          label={kind.label}
+                          description={kind.description}
+                          reducedMotion={reducedMotion}
+                          onClick={() => handlePickKind(kind.id)}
+                          className="min-w-[11rem] max-w-[15rem]"
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </WeeContentCollapse>
@@ -253,6 +305,35 @@ function HomeBoardArrangeBar({
               keepMounted={false}
             >
               <HomeWidgetGlassControls />
+            </WeeContentCollapse>
+
+            <WeeContentCollapse
+              open={Boolean(selectedIsNowPlaying && typeof onSetListenApp === 'function')}
+              keepMounted={false}
+            >
+              <div className="flex flex-col items-center gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
+                <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
+                  Listen to
+                </span>
+                <WeeSegmentedControl
+                  size="sm"
+                  ariaLabel="Now Playing app filter"
+                  layoutId="homeArrangeListenApp"
+                  value={listenAppValue}
+                  onChange={(value) => onSetListenApp?.(value)}
+                  options={listenAppOptions}
+                />
+              </div>
+            </WeeContentCollapse>
+
+            <WeeContentCollapse
+              open={
+                selectedIsWidget &&
+                homeSlotKindHasWidgetSettings(selectedSlot?.kind)
+              }
+              keepMounted={false}
+            >
+              <HomeWidgetSettingsPanel kindId={selectedSlot?.kind} />
             </WeeContentCollapse>
 
             <WeeContentCollapse open={moreOpen} keepMounted={false}>
@@ -312,6 +393,7 @@ HomeBoardArrangeBar.propTypes = {
   onRemoveWidget: PropTypes.func,
   onSetSizePreset: PropTypes.func,
   onSetSurface: PropTypes.func,
+  onSetListenApp: PropTypes.func,
   blockedPresetIds: PropTypes.arrayOf(PropTypes.string),
   pickerOpen: PropTypes.bool,
   onPickerOpenChange: PropTypes.func,

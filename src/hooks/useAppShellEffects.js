@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { applyPrimaryAccentFromHex } from '../utils/theme/applyPrimaryAccentFromHex';
 import { applyAmbientRoleTokens } from '../utils/theme/extractImagePalette';
 import { resolveEffectiveAccent } from '../utils/theme/resolveEffectiveAccent';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { handleShellEscapeKey } from '../utils/overlayEscape';
 
 export const useCursorEffect = (useCustomCursor, cursorStyle) => {
   useEffect(() => {
@@ -148,12 +150,26 @@ export const useGlobalKeyHandlers = ({
       }
     };
 
+    /**
+     * Escape: close any open modal/overlay first; only open Quick Menu when the shell is clear.
+     * Capture phase so we win over the remapped Quick Menu shortcut on the same key.
+     * When result is `defer`, do not preventDefault — ChannelModal / arrange own Escape.
+     */
     const handleEscapeKey = (event) => {
-      if (event.key !== 'Escape') {
+      if (event.key !== 'Escape') return;
+      if (event.defaultPrevented) return;
+      if (
+        event.target?.tagName === 'INPUT' ||
+        event.target?.tagName === 'TEXTAREA' ||
+        event.target?.isContentEditable
+      ) {
         return;
       }
 
+      // Quick Menu: prefer its animated close path.
       if (showSettingsActionMenu) {
+        event.preventDefault();
+        event.stopPropagation();
         if (settingsActionMenuRef.current?.handleClose) {
           settingsActionMenuRef.current.handleClose();
         } else {
@@ -162,15 +178,28 @@ export const useGlobalKeyHandlers = ({
         return;
       }
 
-      handleSettingsActionMenuOpen();
+      const result = handleShellEscapeKey(useConsolidatedAppStore, {
+        openQuickMenu: handleSettingsActionMenuOpen,
+      });
+
+      if (result === 'defer') {
+        return;
+      }
+
+      if (result !== 'none') {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keydown', handleEscapeKey);
+    // Capture phase so we can decide before remapped shortcut toggles the menu open
+    // while a modal is closing in the same tick.
+    document.addEventListener('keydown', handleEscapeKey, true);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keydown', handleEscapeKey);
+      document.removeEventListener('keydown', handleEscapeKey, true);
     };
   }, [
     showSettingsActionMenu,

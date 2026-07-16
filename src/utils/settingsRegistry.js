@@ -112,7 +112,7 @@ export const SETTINGS_TAB_META = Object.freeze([
     description: 'Classic & Ribbon dock settings',
     categoryId: 'dock-nav',
     keywords: [
-      'ribbon', 'classic', 'glass', 'glow', 'chrome effects', 'particles',
+      'ribbon', 'classic', 'glass', 'glow', 'ribbon dock effects', 'chrome effects', 'particles',
       'buttons', 'animations', 'surface',
     ],
   },

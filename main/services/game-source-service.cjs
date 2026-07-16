@@ -227,6 +227,123 @@ function createGameSourceService({ fs, path, vdf, os, scanCacheFile = null }) {
       };
     }
   }
+
+  /**
+   * Friends currently in a game (GetFriendList + GetPlayerSummaries).
+   * Requires a public friend list on the Steam profile.
+   */
+  async function getSteamFriendsPlaying({ steamId, apiKey }) {
+    if (!steamId) {
+      return {
+        friends: [],
+        status: 'error',
+        statusCode: 'missing-steam-id',
+        statusReason: 'SteamID64 is required for friends.',
+        error: 'Steam ID is required for friends.',
+      };
+    }
+    const resolvedApiKey = apiKey || process.env.STEAM_WEB_API_KEY;
+    if (!resolvedApiKey) {
+      return {
+        friends: [],
+        status: 'error',
+        statusCode: 'missing-api-key',
+        statusReason:
+          'Steam Web API key is not configured. Paste your key under Settings → API & Widgets → Steam connection.',
+        error: 'Steam Web API key is not configured.',
+      };
+    }
+
+    try {
+      const friendListUrl =
+        `https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key=${encodeURIComponent(resolvedApiKey)}&steamid=${encodeURIComponent(steamId)}&relationship=friend`;
+      const friendRes = await fetch(friendListUrl);
+      if (!friendRes.ok) {
+        const isPrivate = friendRes.status === 401 || friendRes.status === 403;
+        return {
+          friends: [],
+          status: 'error',
+          statusCode: isPrivate ? 'private-friends' : 'api-error',
+          statusReason: isPrivate
+            ? 'Friend list appears private. Set friends list to public on Steam.'
+            : 'Steam friend list request failed.',
+          error: isPrivate
+            ? 'Friend list appears private.'
+            : 'Steam friend list request failed.',
+        };
+      }
+
+      const friendJson = await friendRes.json();
+      const friendIds = (friendJson?.friendslist?.friends || [])
+        .map((f) => String(f?.steamid || ''))
+        .filter(Boolean);
+      if (friendIds.length === 0) {
+        return {
+          friends: [],
+          status: 'ok',
+          statusCode: 'ok',
+          statusReason: 'No Steam friends found.',
+          fetchedAt: Date.now(),
+        };
+      }
+
+      const chunks = [];
+      for (let i = 0; i < friendIds.length; i += 100) {
+        chunks.push(friendIds.slice(i, i + 100));
+      }
+
+      const players = [];
+      for (const chunk of chunks) {
+        const summariesUrl =
+          `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${encodeURIComponent(resolvedApiKey)}&steamids=${encodeURIComponent(chunk.join(','))}`;
+        const summaryRes = await fetch(summariesUrl);
+        if (!summaryRes.ok) continue;
+        const summaryJson = await summaryRes.json();
+        const batch = summaryJson?.response?.players;
+        if (Array.isArray(batch)) players.push(...batch);
+      }
+
+      const friends = players
+        .filter((p) => p?.gameid || p?.gameextrainfo)
+        .map((p) => ({
+          steamId: String(p.steamid || ''),
+          personaName: typeof p.personaname === 'string' ? p.personaname : 'Friend',
+          avatarUrl:
+            typeof p.avatarfull === 'string'
+              ? p.avatarfull
+              : p.avatarmedium || p.avatar || '',
+          profileUrl: typeof p.profileurl === 'string' ? p.profileurl : '',
+          gameId: p.gameid ? String(p.gameid) : '',
+          gameName: typeof p.gameextrainfo === 'string' ? p.gameextrainfo : '',
+          personaState: Number(p.personastate || 0),
+        }))
+        .filter((f) => f.steamId)
+        .sort((a, b) =>
+          (a.personaName || '').localeCompare(b.personaName || '', undefined, {
+            sensitivity: 'base',
+          })
+        );
+
+      return {
+        friends,
+        status: 'ok',
+        statusCode: 'ok',
+        statusReason: friends.length
+          ? `${friends.length} friend${friends.length === 1 ? '' : 's'} in-game.`
+          : 'No friends currently in a game.',
+        fetchedAt: Date.now(),
+      };
+    } catch (error) {
+      return {
+        friends: [],
+        status: 'error',
+        statusCode: 'network-error',
+        statusReason: 'Network error while fetching Steam friends.',
+        error: error?.message || 'Failed to fetch Steam friends.',
+      };
+    }
+  }
+
   async function getInstalledSteamGames() {
     try {
       loadPersistedScanCache();
@@ -696,6 +813,7 @@ function createGameSourceService({ fs, path, vdf, os, scanCacheFile = null }) {
   return {
     getInstalledSteamGames,
     getSteamEnrichedGames,
+    getSteamFriendsPlaying,
     getSteamClientLibraryMetadata,
     detectSteamInstallation,
     getSteamLibraries,

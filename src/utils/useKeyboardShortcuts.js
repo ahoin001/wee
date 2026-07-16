@@ -5,6 +5,7 @@ import { getModifierFromKeyboardEvent, handleGlobalShortcut } from './keyboardSh
 import { openSettingsToTab } from './settingsNavigation';
 import { toggleHomeBoardArrange } from '../hooks/useHomeBoardArrange';
 import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
+import { closeTopOverlayOnEscape, isBlockingOverlayOpen } from './overlayEscape';
 
 const useKeyboardShortcuts = () => {
   const { keyboardShortcuts, setUIState, setFloatingWidgetsState, setSpacesState } = useConsolidatedAppStore(
@@ -18,6 +19,9 @@ const useKeyboardShortcuts = () => {
 
   const handleKeyDown = useCallback(
     (event) => {
+      if (event.defaultPrevented) {
+        return;
+      }
       if (
         event.target.tagName === 'INPUT' ||
         event.target.tagName === 'TEXTAREA' ||
@@ -158,6 +162,11 @@ const useKeyboardShortcuts = () => {
 
     window.toggleSettingsMenu = () => {
       const state = getState();
+      // Escape / Quick Menu chord: never open the menu on top of a modal.
+      if (isBlockingOverlayOpen(state.ui)) {
+        closeTopOverlayOnEscape(state);
+        return;
+      }
       setUIState?.({ showSettingsActionMenu: !state.ui.showSettingsActionMenu });
     };
 

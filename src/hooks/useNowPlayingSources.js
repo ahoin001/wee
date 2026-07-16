@@ -9,13 +9,14 @@ import { useSharedSpotifyPlaybackSampler } from './useSharedSpotifyPlaybackSampl
  * @param {object} session
  */
 function toStoredSession(session) {
+  if (!session || typeof session !== 'object') return null;
   return {
     id: session.id,
-    sourceAppUserModelId: session.sourceAppUserModelId,
-    sourceAppDisplayName: session.sourceAppDisplayName,
-    title: session.title,
-    artist: session.artist,
-    albumTitle: session.albumTitle,
+    sourceAppUserModelId: session.sourceAppUserModelId || '',
+    sourceAppDisplayName: session.sourceAppDisplayName || '',
+    title: session.title || '',
+    artist: session.artist || '',
+    albumTitle: session.albumTitle || '',
     playbackStatus: session.playbackStatus,
     timeline: session.timeline
       ? {
@@ -31,7 +32,7 @@ function toStoredSession(session) {
           canSkipPrevious: session.controls.canSkipPrevious,
         }
       : undefined,
-    thumbnail: session.thumbnail,
+    thumbnail: session.thumbnail || '',
   };
 }
 
@@ -47,55 +48,46 @@ let smtcReleaseTimer = null;
  * Owns system-media (SMTC) subscription + shared Spotify sampler.
  * Mount once from App — event-driven SMTC, no renderer poll of system sessions.
  *
- * Lifecycle (start/stop) is separate from Spotify-exclusion filtering so a Web API
- * flag flip never tears down the Windows media bridge.
+ * Free-first: SMTC stays up for Auto/System so desktop Spotify / Apple Music / etc.
+ * always feed the tile. Spotify Web API is sampled separately for Premium controls.
  */
 export function useNowPlayingSources() {
   useSharedSpotifyPlaybackSampler();
 
-  const { systemMediaEnabled, preference, spotifyConnected, playerWebApiForbidden } =
-    useConsolidatedAppStore(
-      useShallow((s) => ({
-        systemMediaEnabled: s.ui.systemMediaEnabled !== false,
-        preference: s.ui.nowPlayingSourcePreference || 'auto',
-        spotifyConnected: Boolean(s.spotify.isConnected),
-        playerWebApiForbidden: Boolean(s.spotify.playerWebApiForbidden),
-      }))
-    );
+  const { systemMediaEnabled, preference } = useConsolidatedAppStore(
+    useShallow((s) => ({
+      systemMediaEnabled: s.ui.systemMediaEnabled !== false,
+      preference: s.ui.nowPlayingSourcePreference || 'auto',
+    }))
+  );
 
   const setSystemMediaState = useConsolidatedAppStore((s) => s.actions.setSystemMediaState);
-
-  const excludeSpotifyRef = useRef(false);
-  // When Web API cannot supply playback, keep Spotify's SMTC session so the tile still reacts.
-  excludeSpotifyRef.current =
-    preference === 'auto' &&
-    spotifyConnected &&
-    systemMediaEnabled &&
-    !playerWebApiForbidden;
 
   const lastSessionsRef = useRef([]);
   const lastMetaRef = useRef({ available: false, error: null });
 
   const publishPrimary = (sessions, meta = {}) => {
     const list = Array.isArray(sessions) ? sessions : [];
-    lastSessionsRef.current = list;
+    const storedList = list.map(toStoredSession).filter(Boolean);
+    lastSessionsRef.current = storedList;
     if (meta.available != null) lastMetaRef.current.available = Boolean(meta.available);
     if (Object.prototype.hasOwnProperty.call(meta, 'error')) {
       lastMetaRef.current.error = meta.error || null;
     }
-    const session = pickPrimarySystemSession(list, {
-      excludeSpotify: excludeSpotifyRef.current,
-    });
+    // Never exclude Spotify from SMTC — Free users rely on desktop SMTC for display.
+    const session = pickPrimarySystemSession(storedList, {});
     setSystemMediaState({
       available: lastMetaRef.current.available,
       error: lastMetaRef.current.error,
       starting: false,
-      session: session ? toStoredSession(session) : null,
+      sessions: storedList,
+      session: session || null,
     });
   };
 
-  const wantsSystem =
-    systemMediaEnabled && (preference === 'system' || preference === 'auto');
+  // Keep SMTC running whenever the user wants system/auto display — including when
+  // preference is Spotify (so Free desktop Spotify still works as a fallback).
+  const wantsSystem = systemMediaEnabled;
 
   // Lifecycle only — start/stop the bridge when system media is wanted.
   useEffect(() => {
@@ -106,12 +98,12 @@ export function useNowPlayingSources() {
         starting: false,
         error: 'System media API unavailable',
         session: null,
+        sessions: [],
       });
       return undefined;
     }
 
     if (!wantsSystem) {
-      // Drop retain and stop for real — user turned system media off, or Spotify-only preference.
       if (smtcReleaseTimer) {
         clearTimeout(smtcReleaseTimer);
         smtcReleaseTimer = null;
@@ -122,34 +114,12 @@ export function useNowPlayingSources() {
       lastMetaRef.current = { available: false, error: null };
       setSystemMediaState({
         session: null,
+        sessions: [],
         starting: false,
         error: null,
         available: false,
       });
-
-      // Soft package probe only while the toggle is on but preference is Spotify
-      // (bridge idle). Cancel if this effect is replaced (toggle / preference change).
-      let probeCancelled = false;
-      if (systemMediaEnabled && typeof api.getStatus === 'function') {
-        api
-          .getStatus()
-          .then((status) => {
-            if (probeCancelled || !status) return;
-            setSystemMediaState({
-              available: Boolean(status.available),
-              error: status.error || null,
-              starting: false,
-            });
-            lastMetaRef.current = {
-              available: Boolean(status.available),
-              error: status.error || null,
-            };
-          })
-          .catch(() => {});
-      }
-      return () => {
-        probeCancelled = true;
-      };
+      return undefined;
     }
 
     let unsub = null;
@@ -165,7 +135,6 @@ export function useNowPlayingSources() {
 
     unsub = api.onUpdate?.(applyPayload);
 
-    // Cancel a pending Strict Mode release from the previous effect instance.
     if (smtcReleaseTimer) {
       clearTimeout(smtcReleaseTimer);
       smtcReleaseTimer = null;
@@ -190,6 +159,7 @@ export function useNowPlayingSources() {
           starting: false,
           error: err?.message || String(err),
           session: null,
+          sessions: [],
         });
       }
     })();
@@ -198,34 +168,25 @@ export function useNowPlayingSources() {
       cancelled = true;
       if (typeof unsub === 'function') unsub();
       smtcRetainCount = Math.max(0, smtcRetainCount - 1);
-      // Defer stop so Strict Mode remount (acquire again) can cancel it.
       if (smtcRetainCount === 0) {
         smtcReleaseTimer = setTimeout(() => {
           smtcReleaseTimer = null;
           if (smtcRetainCount === 0) {
             api.stop?.().catch(() => {});
-            // Don't wipe UI mid Strict Mode remount — the next mount sets starting again.
           }
         }, 75);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publishPrimary uses stable setState + refs
-  }, [wantsSystem, systemMediaEnabled, setSystemMediaState]);
+  }, [wantsSystem, setSystemMediaState]);
 
-  // Filter-only: re-pick primary session when Spotify exclusion flips — no SMTC restart.
+  // Preference changes only affect reconcile (via setUIState), not SMTC membership.
   useEffect(() => {
     if (!wantsSystem) return;
     if (!lastSessionsRef.current.length && !lastMetaRef.current.available) return;
     publishPrimary(lastSessionsRef.current, lastMetaRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs + setState; excludeSpotifyRef updated each render
-  }, [
-    wantsSystem,
-    preference,
-    spotifyConnected,
-    playerWebApiForbidden,
-    systemMediaEnabled,
-    setSystemMediaState,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsSystem, preference, setSystemMediaState]);
 }
 
 export default useNowPlayingSources;

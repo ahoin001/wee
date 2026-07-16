@@ -125,14 +125,35 @@ const ApiIntegrationsSettingsTab = () => {
 
   const systemMediaStatusLabel = useMemo(() => {
     if (!systemMediaEnabled) return 'Off';
-    if (nowPlayingSourcePreference === 'spotify') {
-      return 'Idle (Spotify preferred)';
-    }
     if (systemMedia?.starting) return 'Starting…';
     if (systemMedia?.error) return systemMedia.error;
-    if (systemMedia?.available) return 'Available on this PC';
+    if (systemMedia?.available) {
+      const sessions = Array.isArray(systemMedia.sessions) ? systemMedia.sessions : [];
+      const session = systemMedia.session;
+      const app =
+        session?.sourceAppDisplayName ||
+        session?.sourceAppUserModelId ||
+        '';
+      if (session && (session.title || session.artist || app)) {
+        return app ? `Listening · ${app}` : 'Listening';
+      }
+      if (sessions.length > 0) {
+        return `${sessions.length} desktop session${sessions.length === 1 ? '' : 's'}`;
+      }
+      return 'Ready — play in Spotify, Apple Music, or a browser';
+    }
     return 'Starting…';
-  }, [systemMediaEnabled, systemMedia, nowPlayingSourcePreference]);
+  }, [systemMediaEnabled, systemMedia]);
+
+  const systemMediaDetectedLine = useMemo(() => {
+    const session = systemMedia?.session;
+    if (!systemMediaEnabled || !session) return '';
+    const app =
+      session.sourceAppDisplayName || session.sourceAppUserModelId || 'Player';
+    const title = session.title || session.artist || session.albumTitle || '';
+    if (!title && !session.sourceAppDisplayName && !session.sourceAppUserModelId) return '';
+    return title ? `${app} — ${title}${session.artist && session.title ? ` · ${session.artist}` : ''}` : app;
+  }, [systemMediaEnabled, systemMedia]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
@@ -338,30 +359,25 @@ const ApiIntegrationsSettingsTab = () => {
       <WeeSettingsCollapsibleSection
         icon={Radio}
         title="System media & Now Playing"
-        description="Apple Music, browsers, and other Windows players via SMTC"
+        description="Desktop players via Windows SMTC — works for Free users; Premium Spotify adds Web API controls"
         defaultOpen={false}
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
           <div className="mb-6 flex items-center justify-between gap-4 rounded-lg bg-[hsl(var(--surface-tertiary))] p-4">
             <div className="min-w-0">
               <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
-                Listen to Windows media sessions
+                Listen to desktop music apps
               </Text>
               <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
-                Feeds the Home Now Playing tile and floating widget when another app is playing.
-                Status: {systemMediaStatusLabel}
+                Shows what Spotify Desktop, Apple Music, browsers, and other apps are playing —
+                no Premium required. Status: {systemMediaStatusLabel}
               </Text>
-              {systemMediaEnabled && systemMedia?.session?.title ? (
+              {systemMediaDetectedLine ? (
                 <Text variant="caption" className="mt-1.5 truncate text-xs text-[hsl(var(--text-secondary))]">
                   Detected:{' '}
                   <span className="font-semibold text-[hsl(var(--text-primary))]">
-                    {systemMedia.session.sourceAppDisplayName ||
-                      systemMedia.session.sourceAppUserModelId ||
-                      'Player'}
+                    {systemMediaDetectedLine}
                   </span>
-                  {' — '}
-                  {systemMedia.session.title}
-                  {systemMedia.session.artist ? ` · ${systemMedia.session.artist}` : ''}
                 </Text>
               ) : null}
             </div>
@@ -381,8 +397,9 @@ const ApiIntegrationsSettingsTab = () => {
             ]}
           />
           <Text variant="caption" className="mt-3 text-xs text-[hsl(var(--text-tertiary))]">
-            Auto picks whichever session is currently playing. Ribbon chrome “Music band” reacts only
-            while music is playing.
+            Auto prefers desktop media (SMTC) for everyone. Spotify Web API is used for Premium
+            transport controls when Spotify is the playing app. Free users stay on desktop display
+            + media keys. Edit Home → Now Playing can filter to a single app.
           </Text>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>

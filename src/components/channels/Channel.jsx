@@ -292,10 +292,11 @@ const Channel = React.memo(({
       : `Launch ${launchLabel || effectiveConfig?.title || 'channel'}`;
 
   /**
-   * On the Home board the unified right-click menu (PaginatedChannels) owns context clicks —
-   * let the event bubble so Configure / Arrange / Punch show in one place.
+   * Right-click opens the channel editor (Configure) on every space.
+   * In Live Board Studio (`interactionsLocked`) we leave the event alone so the
+   * Home board context menu can offer Arrange / Replace / Punch.
    */
-  const tileContextMenuHandler = channelSpaceKey === 'home' ? undefined : handleRightClick;
+  const tileContextMenuHandler = handleRightClick;
 
   const handleImageSelect = (mediaItem) => {
     const mediaUrl = getStoragePublicObjectUrl('media-library', mediaItem.file_url);

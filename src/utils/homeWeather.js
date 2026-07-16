@@ -13,6 +13,56 @@ export const HOME_WEATHER_FALLBACK_COORDS = Object.freeze({
   label: 'Central US',
 });
 
+/** Persisted `ui.homeWeatherTempUnit` — Open-Meteo temps stay °C; convert on display. */
+export const HOME_WEATHER_TEMP_UNITS = Object.freeze({ F: 'F', C: 'C' });
+
+/**
+ * @param {unknown} value
+ * @returns {'F' | 'C'}
+ */
+export function normalizeHomeWeatherTempUnit(value) {
+  return value === HOME_WEATHER_TEMP_UNITS.C
+    ? HOME_WEATHER_TEMP_UNITS.C
+    : HOME_WEATHER_TEMP_UNITS.F;
+}
+
+/**
+ * @param {number} celsius
+ * @returns {number}
+ */
+export function celsiusToFahrenheit(celsius) {
+  return celsius * (9 / 5) + 32;
+}
+
+/**
+ * @param {number} valueCelsius Open-Meteo temperature_2m (°C)
+ * @param {'F' | 'C'} unit
+ * @param {{ includeUnit?: boolean }} [opts]
+ * @returns {string}
+ */
+export function formatHomeWeatherTemp(valueCelsius, unit, { includeUnit = true } = {}) {
+  if (!Number.isFinite(valueCelsius)) return '—';
+  const u = normalizeHomeWeatherTempUnit(unit);
+  const value = u === HOME_WEATHER_TEMP_UNITS.C ? valueCelsius : celsiusToFahrenheit(valueCelsius);
+  const rounded = Math.round(value);
+  return includeUnit ? `${rounded}°${u}` : `${rounded}°`;
+}
+
+/**
+ * Open-Meteo wind_speed_10m is km/h by default.
+ * @param {number} kmh
+ * @param {'F' | 'C'} unit Prefer mph when Fahrenheit (US default).
+ * @returns {string}
+ */
+export function formatHomeWeatherWind(kmh, unit) {
+  if (!Number.isFinite(kmh)) return '—';
+  const u = normalizeHomeWeatherTempUnit(unit);
+  if (u === HOME_WEATHER_TEMP_UNITS.C) {
+    return `${Math.round(kmh)} km/h`;
+  }
+  return `${Math.round(kmh * 0.621371)} mph`;
+}
+
 /**
  * @param {number} code
  * @returns {{ label: string, emoji: string }}

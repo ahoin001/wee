@@ -298,8 +298,10 @@ const SteamIntegrationSettings = React.memo(() => {
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
                 Together, SteamID64 + API key let Wee read your public library stats from Steam’s servers.
                 That powers Game Hub playtime shelves, and Home widgets for{' '}
-                <span className="font-bold text-[hsl(var(--text-secondary))]">Steam Recent</span> and{' '}
+                <span className="font-bold text-[hsl(var(--text-secondary))]">Steam Recent</span>,{' '}
                 <span className="font-bold text-[hsl(var(--text-secondary))]">Steam Most Played</span>
+                , and{' '}
+                <span className="font-bold text-[hsl(var(--text-secondary))]">Steam Friends</span>
                 {' '}(place them via Edit Home).
               </Text>
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
@@ -452,8 +454,8 @@ const SteamIntegrationSettings = React.memo(() => {
                 More Steam can do later
               </WeeSectionEyebrow>
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                Same connection can later power friend activity, store tags, news, and live player counts.
-                Today it feeds library playtime, Game Hub shelves, and the two Home Steam widgets.
+                Same connection also powers the Home Steam Friends widget (in-game friends). Friend
+                lists must be public. Future ideas: store tags, news, and live player counts.
               </Text>
             </div>
           </div>

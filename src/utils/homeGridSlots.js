@@ -52,7 +52,10 @@ export function createHomeWidgetSlot(kindId, span = {}) {
     rowSpan: span.rowSpan ?? 1,
     surface: normalizeHomeWidgetSurface(span.surface),
     channel: null,
-    widget: { widgetId: kindId },
+    widget: {
+      widgetId: kindId,
+      ...(kindId === 'nowPlaying' ? { listenApp: 'any' } : {}),
+    },
   };
 }
 
@@ -491,6 +494,31 @@ export function setHomeSlotSurfaceInSpaceData(spaceData, channelIndex, surface) 
   slots[index] = {
     ...slots[index],
     surface: normalizeHomeWidgetSurface(surface),
+  };
+  const legacy = projectSlotsToLegacyMaps(slots);
+  return { ...input, slots, ...legacy };
+}
+
+/**
+ * Patch `slot.widget` on a non-channel Home tile (e.g. Now Playing `listenApp`).
+ * @param {Record<string, unknown>} spaceData
+ * @param {number} channelIndex
+ * @param {Record<string, unknown>} widgetPatch
+ */
+export function setHomeSlotWidgetPatchInSpaceData(spaceData, channelIndex, widgetPatch) {
+  const input = spaceData && typeof spaceData === 'object' ? spaceData : {};
+  const slots = Array.isArray(input.slots) ? [...input.slots] : [];
+  const index = channelIndex | 0;
+  if (index < 0 || index >= slots.length || !slots[index]) return input;
+  if (!isNonChannelSlot(slots[index])) return input;
+  if (!widgetPatch || typeof widgetPatch !== 'object') return input;
+
+  const prev = slots[index];
+  const prevWidget =
+    prev.widget && typeof prev.widget === 'object' ? prev.widget : { widgetId: prev.kind };
+  slots[index] = {
+    ...prev,
+    widget: { ...prevWidget, ...widgetPatch },
   };
   const legacy = projectSlotsToLegacyMaps(slots);
   return { ...input, slots, ...legacy };
