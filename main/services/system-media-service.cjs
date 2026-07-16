@@ -1,13 +1,22 @@
 /**
  * Windows SMTC (system media) main-process service.
- * Uses windows-media-sessions (stdio .NET bridge) — no native node addons.
+ * Uses windows-media-sessions (stdio .NET bridge) — no native addons.
  * Soft-fails on non-Windows or missing package.
  *
  * start/stop are serialized: concurrent stop cannot tear down a bridge that a
  * newer start just opened (React Strict Mode / effect remount races).
+ *
+ * First-snapshot wait uses a long timeout + one recreate retry — the bundled
+ * .NET backend (~40MB) can take >5s on cold start / AV scan, and the package's
+ * BackendProcess leaves `stopping=true` after stop so the same manager cannot
+ * respawn (must createSessionManager again).
  */
 
 const TIMELINE_COALESCE_MS = 400;
+/** Default package wait is 5s; cold .NET spawn often needs longer. */
+const FIRST_SNAPSHOT_TIMEOUT_MS = 20000;
+/** Extra attempt after timeout with a fresh SessionManager. */
+const FIRST_SNAPSHOT_RETRIES = 1;
 
 function createSystemMediaService({ getMainWindow, execFile, platform }) {
   let unsubscribe = null;
@@ -17,7 +26,10 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
   let lastSessions = [];
   let lastPushAt = 0;
   let lastFingerprint = '';
-  let mediaSessionsApi = null;
+  /** @type {typeof import('windows-media-sessions') | null} */
+  let mediaSessionsPkg = null;
+  /** @type {import('windows-media-sessions').SessionManager | null} */
+  let sessionManager = null;
   /** @type {Promise<void> | null} */
   let stopPromise = null;
   /** @type {Promise<object> | null} */
@@ -27,8 +39,8 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
     return (platform || process.platform) === 'win32';
   }
 
-  function loadApi() {
-    if (mediaSessionsApi) return mediaSessionsApi;
+  function loadPackage() {
+    if (mediaSessionsPkg) return mediaSessionsPkg;
     if (!isWindows()) {
       available = false;
       lastError = 'System media is only available on Windows.';
@@ -36,15 +48,42 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
     }
     try {
       // Lazy require so non-Windows / missing package never crash main boot.
-      mediaSessionsApi = require('windows-media-sessions');
+      mediaSessionsPkg = require('windows-media-sessions');
       available = true;
       lastError = null;
-      return mediaSessionsApi;
+      return mediaSessionsPkg;
     } catch (err) {
       available = false;
       lastError = err?.message || 'windows-media-sessions unavailable';
-      mediaSessionsApi = null;
+      mediaSessionsPkg = null;
       return null;
+    }
+  }
+
+  function getOrCreateManager() {
+    if (sessionManager) return sessionManager;
+    const pkg = loadPackage();
+    if (!pkg?.createSessionManager) return null;
+    sessionManager = pkg.createSessionManager();
+    return sessionManager;
+  }
+
+  async function disposeManager() {
+    if (typeof unsubscribe === 'function') {
+      try {
+        unsubscribe();
+      } catch {
+        /* ignore */
+      }
+      unsubscribe = null;
+    }
+    if (sessionManager) {
+      try {
+        await sessionManager.stop();
+      } catch {
+        /* ignore */
+      }
+      sessionManager = null;
     }
   }
 
@@ -76,6 +115,9 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
 
   function onSessions(sessions) {
     lastSessions = Array.isArray(sessions) ? sessions : [];
+    // A live snapshot means the bridge is healthy — clear sticky start timeouts.
+    lastError = null;
+    available = true;
     const fp = sessionFingerprint(lastSessions);
     const now = Date.now();
     // Coalesce rapid timeline ticks so renderer store isn't hammered.
@@ -90,9 +132,9 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
   }
 
   function getStatus() {
-    if (!started && isWindows() && !mediaSessionsApi && !lastError) {
+    if (!started && isWindows() && !mediaSessionsPkg && !lastError) {
       // Probe without starting the subscription — tells settings UI if the bridge loads.
-      loadApi();
+      loadPackage();
     }
     return {
       available,
@@ -101,6 +143,39 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       sessions: lastSessions,
       platform: platform || process.platform,
     };
+  }
+
+  /**
+   * Wait for the first backend snapshot, recreating the manager on timeout.
+   * The package BackendProcess cannot restart after stop() (`stopping` sticks).
+   */
+  async function awaitFirstSessions() {
+    let lastErr = null;
+
+    for (let attempt = 0; attempt <= FIRST_SNAPSHOT_RETRIES; attempt++) {
+      if (attempt > 0) {
+        await disposeManager();
+      }
+
+      const manager = getOrCreateManager();
+      if (!manager) {
+        throw new Error(lastError || 'windows-media-sessions unavailable');
+      }
+
+      if (typeof unsubscribe !== 'function') {
+        unsubscribe = manager.onSessionsChanged(onSessions);
+      }
+
+      try {
+        await manager.waitForReady(FIRST_SNAPSHOT_TIMEOUT_MS);
+        const sessions = await manager.getAllSessions();
+        return Array.isArray(sessions) ? sessions : [];
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+
+    throw lastErr || new Error('Timed out waiting for first backend snapshot');
   }
 
   /**
@@ -132,27 +207,32 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       if (started) return getStatus();
 
       started = true;
-      const api = loadApi();
-      if (!api) {
+      const pkg = loadPackage();
+      if (!pkg) {
+        started = false;
         broadcast([]);
         return getStatus();
       }
 
       try {
-        unsubscribe = api.onSessionsChanged(onSessions);
-        try {
-          const sessions = await api.getAllSessions();
-          // If stop won the race mid-fetch, don't resurrect a torn-down bridge.
-          if (!started) return getStatus();
-          onSessions(sessions);
-        } catch (err) {
-          lastError = err?.message || String(err);
-          available = false;
-          broadcast([]);
+        const sessions = await awaitFirstSessions();
+        // If stop won the race mid-fetch, don't resurrect a torn-down bridge.
+        if (!started) {
+          await disposeManager();
+          return getStatus();
         }
+        lastError = null;
+        available = true;
+        onSessions(sessions);
       } catch (err) {
         lastError = err?.message || String(err);
         available = false;
+        // Leave started=false so a later start()/toggle can retry cleanly.
+        started = false;
+        await disposeManager();
+        lastSessions = [];
+        lastFingerprint = '';
+        lastPushAt = 0;
         broadcast([]);
       }
 
@@ -180,21 +260,7 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       }
 
       started = false;
-      if (typeof unsubscribe === 'function') {
-        try {
-          unsubscribe();
-        } catch {
-          /* ignore */
-        }
-        unsubscribe = null;
-      }
-      if (mediaSessionsApi?.shutdown) {
-        try {
-          await mediaSessionsApi.shutdown();
-        } catch {
-          /* ignore */
-        }
-      }
+      await disposeManager();
       lastSessions = [];
       lastFingerprint = '';
       lastPushAt = 0;
