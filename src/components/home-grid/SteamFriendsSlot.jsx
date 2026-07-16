@@ -21,6 +21,8 @@ import { steamEnrichmentIpcArgs } from '../../utils/steamGamesGlance';
 
 const FRIENDS_TTL_MS = 2 * 60 * 1000;
 const STEAM_FRIENDS_PRIVACY_URL = 'https://steamcommunity.com/my/edit/settings';
+/** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
+const EMPTY_FRIENDS_PLAYING = Object.freeze([]);
 
 const PRIVATE_FRIENDS_HINT =
   'Friends list is private on Steam. Set Friends List → Public, then tap to retry.';
@@ -78,22 +80,29 @@ function SteamFriendsSlot({
     steamId,
     apiKeyConfigured,
     apiEnabled,
-    steamPrefs,
+    homeSteamWidgetRaw,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
-      friendsPlaying: state.gameHub?.library?.friendsPlaying || [],
+      // Never allocate || [] / normalize() inside useShallow — new refs → React #185.
+      friendsPlaying: state.gameHub?.library?.friendsPlaying,
       friendsPlayingFetchedAt: state.gameHub?.library?.friendsPlayingFetchedAt || 0,
       friendsPlayingError: state.gameHub?.library?.friendsPlayingError || null,
       friendsPlayingStatusCode: state.gameHub?.library?.friendsPlayingStatusCode || null,
       steamId: state.gameHub?.profile?.steamId || '',
       apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
       apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
-      steamPrefs: normalizeHomeSteamWidget(state.ui?.homeSteamWidget),
+      homeSteamWidgetRaw: state.ui?.homeSteamWidget,
     }))
   );
   const setGameHubState = useConsolidatedAppStore((s) => s.actions.setGameHubState);
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
   const [loading, setLoading] = useState(false);
+
+  const steamPrefs = useMemo(
+    () => normalizeHomeSteamWidget(homeSteamWidgetRaw),
+    [homeSteamWidgetRaw]
+  );
+  const friendsList = Array.isArray(friendsPlaying) ? friendsPlaying : EMPTY_FRIENDS_PLAYING;
 
   const sizePreset = useMemo(
     () =>
@@ -116,8 +125,8 @@ function SteamFriendsSlot({
     /private/i.test(String(friendsPlayingError || ''));
 
   const friends = useMemo(
-    () => (Array.isArray(friendsPlaying) ? friendsPlaying : []).slice(0, capacity),
-    [friendsPlaying, capacity]
+    () => friendsList.slice(0, capacity),
+    [friendsList, capacity]
   );
 
   useEffect(() => {

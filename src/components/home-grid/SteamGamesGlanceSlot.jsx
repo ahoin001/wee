@@ -24,6 +24,9 @@ import {
   steamEnrichmentIpcArgs,
 } from '../../utils/steamGamesGlance';
 
+/** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
+const EMPTY_ENRICHED_GAMES = Object.freeze([]);
+
 const VARIANT_META = {
   recent: {
     title: 'Steam Recent',
@@ -55,20 +58,27 @@ function SteamGamesGlanceSlot({
   onArrangeSelect,
 }) {
   const meta = VARIANT_META[variant] || VARIANT_META.recent;
-  const { enrichedGames, steamId, apiKeyConfigured, apiEnabled, lastSyncedAt, steamPrefs } =
+  const { enrichedGames, steamId, apiKeyConfigured, apiEnabled, lastSyncedAt, homeSteamWidgetRaw } =
     useConsolidatedAppStore(
       useShallow((state) => ({
-        enrichedGames: state.gameHub?.library?.enrichedGames || [],
+        // Never allocate || [] / normalize() inside useShallow — new refs → React #185.
+        enrichedGames: state.gameHub?.library?.enrichedGames,
         steamId: state.gameHub?.profile?.steamId || '',
         apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
         apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
         lastSyncedAt: state.gameHub?.library?.lastSyncedAt || 0,
-        steamPrefs: normalizeHomeSteamWidget(state.ui?.homeSteamWidget),
+        homeSteamWidgetRaw: state.ui?.homeSteamWidget,
       }))
     );
   const setGameHubState = useConsolidatedAppStore((s) => s.actions.setGameHubState);
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
   const softRefreshTried = useRef(false);
+
+  const steamPrefs = useMemo(
+    () => normalizeHomeSteamWidget(homeSteamWidgetRaw),
+    [homeSteamWidgetRaw]
+  );
+  const enrichedList = Array.isArray(enrichedGames) ? enrichedGames : EMPTY_ENRICHED_GAMES;
 
   const sizePreset = useMemo(
     () =>
@@ -89,8 +99,8 @@ function SteamGamesGlanceSlot({
   const rowSpan = slot?.rowSpan ?? sizePreset.rowSpan ?? 2;
 
   const games = useMemo(
-    () => meta.sort(enrichedGames).slice(0, capacity),
-    [enrichedGames, capacity, meta]
+    () => meta.sort(enrichedList).slice(0, capacity),
+    [enrichedList, capacity, meta]
   );
 
   useEffect(() => {

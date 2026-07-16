@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784221138.5951872,
-    "ast_hash": "d752e4aeb9ca904bc74842c33f328fcb",
+    "mtime": 1784222054.9572814,
+    "ast_hash": "ed5b0d2c49e06033b09a647afb0a9c6e",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/App.jsx": {
-    "mtime": 1784218277.894765,
-    "ast_hash": "c596995be6276efeafa38a3fe87f91b5",
+    "mtime": 1784223376.8511076,
+    "ast_hash": "7f2401f7724af4e18a4712b154086464",
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanel.jsx": {
@@ -375,9 +375,9 @@
     "semantic_hash": "d721030a8daff33cc4c742dc5891fef4"
   },
   "src/components/game-hub/GameCardContextMenu.jsx": {
-    "mtime": 1776479611.6120965,
-    "ast_hash": "f1940d08f45e7a40d882f3963330a169",
-    "semantic_hash": "f1940d08f45e7a40d882f3963330a169"
+    "mtime": 1784223390.2712107,
+    "ast_hash": "0be6e38f2c4f13ab3f1996e9e9ac0c08",
+    "semantic_hash": ""
   },
   "src/components/game-hub/GameHubGameArtPanel.jsx": {
     "mtime": 1783954233.3682492,
@@ -1620,8 +1620,8 @@
     "semantic_hash": "9bae3cc722b431c91804ab938946a863"
   },
   "src/utils/useKeyboardShortcuts.js": {
-    "mtime": 1784213918.1825614,
-    "ast_hash": "988ec0755e7c1a7775693376269e025a",
+    "mtime": 1784223376.7461915,
+    "ast_hash": "fe7311de386e263cee67786c58bff461",
     "semantic_hash": ""
   },
   "src/utils/usePerformanceOptimization.js": {
@@ -2175,8 +2175,8 @@
     "semantic_hash": ""
   },
   "src/components/palette/CommandPalette.jsx": {
-    "mtime": 1784139451.8846004,
-    "ast_hash": "48794f8e6eafdf5bdada44dead66d983",
+    "mtime": 1784223374.8558297,
+    "ast_hash": "e2cd4df6472d3601a7a285f7b1b64f09",
     "semantic_hash": ""
   },
   "src/utils/commandCatalog.js": {
@@ -2205,13 +2205,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784218319.97155,
-    "ast_hash": "1d449108f6fb2973937556852fb6b90a",
+    "mtime": 1784223357.356543,
+    "ast_hash": "091c59b844146ac5f6fabeea1bd71e3d",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
-    "mtime": 1784209055.8290224,
-    "ast_hash": "5621b67f6634b2d689bbec275c638649",
+    "mtime": 1784223391.2575223,
+    "ast_hash": "4746a49398031c39750bd0b3551e4f66",
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyTakeoverController.jsx": {
@@ -2290,8 +2290,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockLivePreview.jsx": {
-    "mtime": 1784150487.6550026,
-    "ast_hash": "4167c0a313d3f8f9be7b6748bddee662",
+    "mtime": 1784223398.665879,
+    "ast_hash": "ff75aa5f5ca6e9a57ef71a0681fe870c",
     "semantic_hash": ""
   },
   "src/components/settings/dock/RibbonLivePreview.jsx": {
@@ -2410,8 +2410,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesGlanceSlot.jsx": {
-    "mtime": 1784218209.7250552,
-    "ast_hash": "8e5e8f4199153097f5205f15f9b48b36",
+    "mtime": 1784223330.2488601,
+    "ast_hash": "467c5b6144ea53676b054bc9bac5f8c5",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamMostPlayedSlot.jsx": {
@@ -2425,8 +2425,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamFriendsSlot.jsx": {
-    "mtime": 1784218242.2710612,
-    "ast_hash": "b81327fa0eba157649e653a44c9f68c1",
+    "mtime": 1784223361.4719746,
+    "ast_hash": "6d031fafc37e130082106ff7051dda1d",
     "semantic_hash": ""
   },
   "src/utils/overlayEscape.js": {
@@ -2435,8 +2435,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetSettingsPanel.jsx": {
-    "mtime": 1784218314.5959961,
-    "ast_hash": "5d8a2101093e11e629f9e0656712fbb5",
+    "mtime": 1784223372.5958433,
+    "ast_hash": "d076824ecbd092079f2ca83136d05b48",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesShelf.jsx": {
@@ -2455,8 +2455,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeFadeScroll.jsx": {
-    "mtime": 1784219477.141811,
-    "ast_hash": "583876d8ed5867ea4841d50c6dc26d3e",
+    "mtime": 1784223393.9305441,
+    "ast_hash": "ebaad19d2b9fea0f6cb920507d03066c",
     "semantic_hash": ""
   }
 }

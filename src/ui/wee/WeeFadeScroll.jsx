@@ -61,6 +61,8 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
     });
   }, [measure]);
 
+  // Remove `children` from deps — new element refs every parent render would
+  // re-bind observers unnecessarily. Measure on mount/axis change only; RO covers size.
   useEffect(() => {
     const el = localRef.current;
     if (!el) return undefined;
@@ -74,7 +76,7 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
       window.removeEventListener('resize', scheduleMeasure);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [measure, scheduleMeasure, children]);
+  }, [measure, scheduleMeasure]);
 
   const handleScroll = useCallback(
     (event) => {

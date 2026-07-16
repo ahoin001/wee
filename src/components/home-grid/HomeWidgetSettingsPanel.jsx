@@ -2,7 +2,7 @@
  * Edit Home — per-kind widget settings for the selected tile.
  * Extend the switch when a new placeable kind needs arrange-tray controls.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { WeeSegmentedControl, WeeToggle } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -20,9 +20,8 @@ import {
 const STEAM_KIND_IDS = new Set(['steamRecent', 'steamMostPlayed', 'steamFriends']);
 
 function WeatherWidgetSettings() {
-  const tempUnit = useConsolidatedAppStore((s) =>
-    normalizeHomeWeatherTempUnit(s.ui?.homeWeatherTempUnit)
-  );
+  const tempUnitRaw = useConsolidatedAppStore((s) => s.ui?.homeWeatherTempUnit);
+  const tempUnit = normalizeHomeWeatherTempUnit(tempUnitRaw);
   const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
 
   const handleUnitChange = useCallback(
@@ -61,7 +60,11 @@ function WeatherWidgetSettings() {
 }
 
 function SteamWidgetSettings({ kindId }) {
-  const prefs = useConsolidatedAppStore((s) => normalizeHomeSteamWidget(s.ui?.homeSteamWidget));
+  const homeSteamWidgetRaw = useConsolidatedAppStore((s) => s.ui?.homeSteamWidget);
+  const prefs = useMemo(
+    () => normalizeHomeSteamWidget(homeSteamWidgetRaw),
+    [homeSteamWidgetRaw]
+  );
   const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
   const showPlaytimeToggle = kindId === 'steamRecent' || kindId === 'steamMostPlayed';
 

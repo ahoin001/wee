@@ -6,6 +6,8 @@ import ClassicWiiDock from '../../dock/ClassicWiiDock';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import { wallpaperEntryUrlKey } from '../../../utils/wallpaperShape';
 
+const EMPTY_RIBBON_BUTTON_CONFIGS = Object.freeze([]);
+
 /**
  * 1:1 scaled live preview of the classic Wii dock — mounts the real ClassicWiiDock
  * (its layout is fully percentage-based, so it scales with container width) in a
@@ -14,7 +16,11 @@ import { wallpaperEntryUrlKey } from '../../../utils/wallpaperShape';
 function ClassicDockLivePreview({ sticky = true }) {
   const dock = useConsolidatedAppStore((state) => state.dock);
   const buttonConfigs = useConsolidatedAppStore(
-    useShallow((state) => state.ribbon.ribbonButtonConfigs || [])
+    useShallow((state) =>
+      Array.isArray(state.ribbon.ribbonButtonConfigs)
+        ? state.ribbon.ribbonButtonConfigs
+        : EMPTY_RIBBON_BUTTON_CONFIGS
+    )
   );
   const wallpaperUrl = useConsolidatedAppStore((state) =>
     wallpaperEntryUrlKey(state.wallpaper?.current)

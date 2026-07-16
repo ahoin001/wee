@@ -5,6 +5,10 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useGameHubTileDialogs } from './useGameHubTileDialogs';
 
+const EMPTY_FAVORITE_IDS = Object.freeze([]);
+const EMPTY_WEE_COLLECTIONS = Object.freeze([]);
+const EMPTY_CUSTOM_ART = Object.freeze({});
+
 /**
  * Radix context menu for hub tiles: favorites, art, Wee collections (portal content matches hub chrome).
  * @param {object} props
@@ -29,13 +33,20 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
     customArtByGameId,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
-      favoriteGameIds: state.gameHub?.ui?.favoriteGameIds || [],
-      weeCollections: state.gameHub?.library?.weeCollections || [],
+      favoriteGameIds: Array.isArray(state.gameHub?.ui?.favoriteGameIds)
+        ? state.gameHub.ui.favoriteGameIds
+        : EMPTY_FAVORITE_IDS,
+      weeCollections: Array.isArray(state.gameHub?.library?.weeCollections)
+        ? state.gameHub.library.weeCollections
+        : EMPTY_WEE_COLLECTIONS,
       toggleGameHubFavorite: state.actions.toggleGameHubFavorite,
       addGameToWeeCollection: state.actions.addGameToWeeCollection,
       removeGameFromWeeCollection: state.actions.removeGameFromWeeCollection,
       setGameHubCustomArt: state.actions.setGameHubCustomArt,
-      customArtByGameId: state.gameHub?.ui?.customArtByGameId || {},
+      customArtByGameId:
+        state.gameHub?.ui?.customArtByGameId && typeof state.gameHub.ui.customArtByGameId === 'object'
+          ? state.gameHub.ui.customArtByGameId
+          : EMPTY_CUSTOM_ART,
     }))
   );
 

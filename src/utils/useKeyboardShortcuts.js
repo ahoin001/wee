@@ -7,10 +7,15 @@ import { toggleHomeBoardArrange } from '../hooks/useHomeBoardArrange';
 import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
 import { closeTopOverlayOnEscape, isBlockingOverlayOpen } from './overlayEscape';
 
+/** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
+const EMPTY_KEYBOARD_SHORTCUTS = Object.freeze([]);
+
 const useKeyboardShortcuts = () => {
   const { keyboardShortcuts, setUIState, setFloatingWidgetsState, setSpacesState } = useConsolidatedAppStore(
     useShallow((state) => ({
-      keyboardShortcuts: state.ui?.keyboardShortcuts || [],
+      keyboardShortcuts: Array.isArray(state.ui?.keyboardShortcuts)
+        ? state.ui.keyboardShortcuts
+        : EMPTY_KEYBOARD_SHORTCUTS,
       setUIState: state.actions?.setUIState,
       setFloatingWidgetsState: state.actions?.setFloatingWidgetsState,
       setSpacesState: state.actions?.setSpacesState,

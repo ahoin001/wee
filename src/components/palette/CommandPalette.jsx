@@ -9,6 +9,8 @@ import { executeAdminCommand } from '../../utils/adminPanelCommands';
 import { enterSessionAwayIfIntensive } from '../../hooks/useSessionPowerSync';
 
 const MAX_RECENTS = 6;
+/** Stable empty fallback — never allocate `|| []` in a zustand selector. */
+const EMPTY_PALETTE_RECENTS = Object.freeze([]);
 
 /**
  * Ctrl+Space command palette — keyboard-first, instant open/close (no entrance
@@ -80,7 +82,7 @@ function CommandPalette() {
   );
   const activeSpaceId = useConsolidatedAppStore((s) => (isOpen ? s.spaces.activeSpaceId : null));
   const recentCommandIds = useConsolidatedAppStore((s) =>
-    Array.isArray(s.ui.commandPaletteRecent) ? s.ui.commandPaletteRecent : []
+    Array.isArray(s.ui.commandPaletteRecent) ? s.ui.commandPaletteRecent : EMPTY_PALETTE_RECENTS
   );
 
   const commands = useMemo(() => {

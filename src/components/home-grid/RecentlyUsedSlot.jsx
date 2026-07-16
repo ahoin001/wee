@@ -9,6 +9,8 @@ import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 
+const EMPTY_RECENT_LAUNCHES = Object.freeze([]);
+
 const LAUNCH_TYPE_FALLBACK_ICONS = {
   url: '🌐',
   steam: '🎮',
@@ -64,7 +66,11 @@ function RecentlyUsedSlot({
   onArrangeSelect,
 }) {
   const recentLaunches = useConsolidatedAppStore(
-    useShallow((state) => state.channels.recentLaunches || [])
+    useShallow((state) =>
+      Array.isArray(state.channels.recentLaunches)
+        ? state.channels.recentLaunches
+        : EMPTY_RECENT_LAUNCHES
+    )
   );
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
 

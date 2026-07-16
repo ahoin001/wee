@@ -379,8 +379,8 @@ function App() {
   const [visitedSpaces, setVisitedSpaces] = useState(null);
   useEffect(() => {
     setVisitedSpaces((prev) => {
-      const base = prev ?? new Set();
-      const next = new Set(base);
+      if (prev?.has(activeSpaceId)) return prev;
+      const next = new Set(prev ?? []);
       next.add(activeSpaceId);
       return next;
     });

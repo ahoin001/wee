@@ -24,6 +24,9 @@ import {
   resolveNowPlaying,
 } from '../../utils/nowPlayingShape';
 
+/** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
+const EMPTY_SYSTEM_SESSIONS = Object.freeze([]);
+
 function TransportButton({
   label,
   title,
@@ -88,7 +91,10 @@ function NowPlayingSlot({
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       globalNp: state.nowPlaying || EMPTY_NOW_PLAYING,
-      sessions: Array.isArray(state.systemMedia?.sessions) ? state.systemMedia.sessions : [],
+      // Never allocate || [] inside useShallow — new refs → React #185.
+      sessions: Array.isArray(state.systemMedia?.sessions)
+        ? state.systemMedia.sessions
+        : EMPTY_SYSTEM_SESSIONS,
       preference: state.ui.nowPlayingSourcePreference || 'auto',
       systemEnabled: state.ui.systemMediaEnabled !== false,
       systemAvailable: Boolean(state.systemMedia?.available),
