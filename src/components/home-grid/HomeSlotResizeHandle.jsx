@@ -19,6 +19,8 @@ function HomeSlotResizeHandle({
   slots,
   columns,
   rows,
+  maxColSpan,
+  maxRowSpan,
   onCommit,
   onResizeActiveChange,
 }) {
@@ -34,6 +36,8 @@ function HomeSlotResizeHandle({
     slots,
     columns,
     rows,
+    maxColSpan,
+    maxRowSpan,
     onCommit,
     onResizeStart: () => onResizeActiveChange?.(true),
     onResizeEnd: () => onResizeActiveChange?.(false),
@@ -150,12 +154,16 @@ HomeSlotResizeHandle.propTypes = {
   slots: PropTypes.array,
   columns: PropTypes.number.isRequired,
   rows: PropTypes.number.isRequired,
+  maxColSpan: PropTypes.number,
+  maxRowSpan: PropTypes.number,
   onCommit: PropTypes.func.isRequired,
   onResizeActiveChange: PropTypes.func,
 };
 
 HomeSlotResizeHandle.defaultProps = {
   slots: [],
+  maxColSpan: undefined,
+  maxRowSpan: undefined,
   onResizeActiveChange: undefined,
 };
 

@@ -16,6 +16,8 @@ import {
  * @param {Array} args.slots
  * @param {number} args.columns
  * @param {number} args.rows
+ * @param {number} [args.maxColSpan] — kind registry ceiling (e.g. Now Playing max 2)
+ * @param {number} [args.maxRowSpan]
  * @param {(colSpan: number, rowSpan: number) => void} args.onCommit
  * @param {() => void} [args.onResizeStart]
  * @param {() => void} [args.onResizeEnd]
@@ -28,6 +30,8 @@ export function useHomeSlotResize({
   slots,
   columns,
   rows,
+  maxColSpan = Infinity,
+  maxRowSpan = Infinity,
   onCommit,
   onResizeStart,
   onResizeEnd,
@@ -45,7 +49,17 @@ export function useHomeSlotResize({
 
   const resolveCandidate = useCallback(
     (nextCol, nextRow) => {
-      const clamped = clampSpanToPage(anchorIndex, nextCol, nextRow, columns, rows);
+      const kindCapped = {
+        colSpan: Math.min(Math.max(1, nextCol | 0), Number.isFinite(maxColSpan) ? maxColSpan : nextCol),
+        rowSpan: Math.min(Math.max(1, nextRow | 0), Number.isFinite(maxRowSpan) ? maxRowSpan : nextRow),
+      };
+      const clamped = clampSpanToPage(
+        anchorIndex,
+        kindCapped.colSpan,
+        kindCapped.rowSpan,
+        columns,
+        rows
+      );
       const valid = canPlaceSpan({
         slots,
         anchorIndex,
@@ -57,7 +71,7 @@ export function useHomeSlotResize({
       });
       return { ...clamped, valid };
     },
-    [anchorIndex, columns, rows, slots]
+    [anchorIndex, columns, rows, slots, maxColSpan, maxRowSpan]
   );
 
   const handlePointerDown = useCallback(

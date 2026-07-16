@@ -343,6 +343,19 @@ const ApiIntegrationsSettingsTab = () => {
                 Feeds the Home Now Playing tile and floating widget when another app is playing.
                 Status: {systemMediaStatusLabel}
               </Text>
+              {systemMediaEnabled && systemMedia?.session?.title ? (
+                <Text variant="caption" className="mt-1.5 truncate text-xs text-[hsl(var(--text-secondary))]">
+                  Detected:{' '}
+                  <span className="font-semibold text-[hsl(var(--text-primary))]">
+                    {systemMedia.session.sourceAppDisplayName ||
+                      systemMedia.session.sourceAppUserModelId ||
+                      'Player'}
+                  </span>
+                  {' — '}
+                  {systemMedia.session.title}
+                  {systemMedia.session.artist ? ` · ${systemMedia.session.artist}` : ''}
+                </Text>
+              ) : null}
             </div>
             <WToggle checked={systemMediaEnabled} onChange={handleSystemMediaToggle} />
           </div>

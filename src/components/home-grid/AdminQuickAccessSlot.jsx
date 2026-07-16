@@ -7,7 +7,7 @@ import {
   createWeeTransition,
   useWeeMotion,
 } from '../../design/weeMotion';
-import { WeeGlassPill, WeeGooeyIconButton, WeeGooeyTileButton } from '../../ui/wee';
+import { WeeGlassPill, WeeGooeyTileButton } from '../../ui/wee';
 import {
   applyAdminPanelPowerActions,
   executeAdminCommand,
@@ -42,37 +42,22 @@ function splitActionsByCapacity(actions, capacity) {
   };
 }
 
-/** Icon-only disc for the M (single-row) footprint — space-rail press physics. */
-function ActionIconDisc({ action, onClick, reducedMotion = false }) {
-  return (
-    <WeeGooeyIconButton
-      variant="outline"
-      size="sm"
-      reducedMotion={reducedMotion}
-      title={action.name}
-      aria-label={action.name}
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick(action);
-      }}
-      className="!rounded-2xl"
-    >
-      <span className="text-base leading-none" aria-hidden>
-        {action.icon || '⚡'}
-      </span>
-    </WeeGooeyIconButton>
-  );
+/**
+ * Layout cell count for labeled Quick Access grids (icon + label rows).
+ * Preset capacity remains the shared data ceiling; visible count uses min(capacity, layoutCells).
+ */
+function layoutCellsForPreset(presetId) {
+  switch (presetId) {
+    case 'M':
+      return 3; // 2 actions + More
+    case 'L':
+      return 6; // 2×3 grid
+    case 'XL':
+      return 9; // 3×3 grid
+    default:
+      return 0;
+  }
 }
-
-ActionIconDisc.propTypes = {
-  action: PropTypes.shape({
-    id: PropTypes.string,
-    name: PropTypes.string,
-    icon: PropTypes.string,
-  }).isRequired,
-  onClick: PropTypes.func.isRequired,
-  reducedMotion: PropTypes.bool,
-};
 
 /**
  * Home-grid Admin Quick Access — WeeGlassPill action pad.
@@ -112,18 +97,24 @@ function AdminQuickAccessSlot({
   );
   const capacity = sizePreset?.capacity ?? 0;
   const isCompact = capacity === 0;
-  /** M (2×1) has only one row of height — icon discs; L/XL get labeled tiles. */
   const isSingleRow = (sizePreset?.rowSpan ?? 1) <= 1;
+  const layoutCells = layoutCellsForPreset(sizePreset?.id);
+  const visibleCapacity = isCompact
+    ? 0
+    : Math.min(capacity > 0 ? capacity : layoutCells, layoutCells || capacity);
 
   const { visible, overflow, showMore } = useMemo(
-    () => splitActionsByCapacity(adminConfig.powerActions, capacity),
-    [adminConfig.powerActions, capacity]
+    () => splitActionsByCapacity(adminConfig.powerActions, visibleCapacity),
+    [adminConfig.powerActions, visibleCapacity]
   );
 
   const moreActions = useMemo(() => {
     if (isCompact) return adminConfig.powerActions;
     return showMore ? overflow : [];
   }, [adminConfig.powerActions, isCompact, overflow, showMore]);
+
+  const gridColsClass =
+    sizePreset?.id === 'XL' ? 'grid-cols-3' : sizePreset?.id === 'L' ? 'grid-cols-2' : 'grid-cols-2';
 
   const interactionsLocked = arrangeMode || punchMode;
 
@@ -287,38 +278,7 @@ function AdminQuickAccessSlot({
               </m.button>
             </div>
             {isSingleRow ? (
-              <div className="flex min-h-0 flex-1 flex-wrap content-center items-center gap-1.5 px-0.5">
-                {visible.map((action) => (
-                  <ActionIconDisc
-                    key={action.id}
-                    action={action}
-                    onClick={handleActionClick}
-                    reducedMotion={reducedMotion}
-                  />
-                ))}
-                {showMore ? (
-                  <WeeGooeyIconButton
-                    variant="outline"
-                    size="sm"
-                    reducedMotion={reducedMotion}
-                    aria-label="More actions"
-                    title="More"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (!interactionsLocked) setMoreOpen(true);
-                    }}
-                    className="!rounded-2xl !border-dashed !border-[hsl(var(--border-primary)/0.45)] !bg-[hsl(var(--surface-tertiary)/0.55)] !text-[hsl(var(--text-secondary))] !shadow-none"
-                  >
-                    <MoreHorizontal size={16} strokeWidth={2.5} aria-hidden />
-                  </WeeGooeyIconButton>
-                ) : null}
-              </div>
-            ) : (
-              <div
-                className={`grid min-h-0 flex-1 auto-rows-fr gap-1.5 ${
-                  sizePreset?.id === 'XL' ? 'grid-cols-5' : 'grid-cols-3'
-                }`}
-              >
+              <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 px-0.5">
                 {visible.map((action, index) => (
                   <MotionDiv
                     key={action.id}
@@ -329,7 +289,64 @@ function AdminQuickAccessSlot({
                     custom={index}
                   >
                     <WeeGooeyTileButton
-                      orientation="stack"
+                      orientation="row"
+                      icon={action.icon || '⚡'}
+                      label={action.name}
+                      title={action.name}
+                      reducedMotion={reducedMotion}
+                      className="h-full w-full !py-1.5 !px-2.5"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleActionClick(action);
+                      }}
+                    />
+                  </MotionDiv>
+                ))}
+                {showMore ? (
+                  <MotionDiv
+                    className="min-h-0 min-w-0"
+                    variants={tileVariants}
+                    initial="closed"
+                    animate="open"
+                    custom={visible.length}
+                  >
+                    <WeeGooeyTileButton
+                      orientation="row"
+                      dashed
+                      icon={
+                        <MoreHorizontal
+                          size={16}
+                          strokeWidth={2.5}
+                          className="text-[hsl(var(--text-secondary))]"
+                          aria-hidden
+                        />
+                      }
+                      label="More"
+                      title="More actions"
+                      aria-label="More actions"
+                      reducedMotion={reducedMotion}
+                      className="h-full w-full !py-1.5 !px-2.5"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (!interactionsLocked) setMoreOpen(true);
+                      }}
+                    />
+                  </MotionDiv>
+                ) : null}
+              </div>
+            ) : (
+              <div className={`grid min-h-0 flex-1 auto-rows-fr gap-1.5 ${gridColsClass}`}>
+                {visible.map((action, index) => (
+                  <MotionDiv
+                    key={action.id}
+                    className="min-h-0 min-w-0"
+                    variants={tileVariants}
+                    initial="closed"
+                    animate="open"
+                    custom={index}
+                  >
+                    <WeeGooeyTileButton
+                      orientation="row"
                       icon={action.icon || '⚡'}
                       label={action.name}
                       title={action.name}
@@ -351,7 +368,7 @@ function AdminQuickAccessSlot({
                     custom={visible.length}
                   >
                     <WeeGooeyTileButton
-                      orientation="stack"
+                      orientation="row"
                       dashed
                       icon={
                         <MoreHorizontal

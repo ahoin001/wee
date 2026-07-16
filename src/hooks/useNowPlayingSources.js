@@ -11,18 +11,24 @@ import { useSharedSpotifyPlaybackSampler } from './useSharedSpotifyPlaybackSampl
 export function useNowPlayingSources() {
   useSharedSpotifyPlaybackSampler();
 
-  const { systemMediaEnabled, preference, spotifyConnected } = useConsolidatedAppStore(
-    useShallow((s) => ({
-      systemMediaEnabled: s.ui.systemMediaEnabled !== false,
-      preference: s.ui.nowPlayingSourcePreference || 'auto',
-      spotifyConnected: Boolean(s.spotify.isConnected),
-    }))
-  );
+  const { systemMediaEnabled, preference, spotifyConnected, playerWebApiForbidden } =
+    useConsolidatedAppStore(
+      useShallow((s) => ({
+        systemMediaEnabled: s.ui.systemMediaEnabled !== false,
+        preference: s.ui.nowPlayingSourcePreference || 'auto',
+        spotifyConnected: Boolean(s.spotify.isConnected),
+        playerWebApiForbidden: Boolean(s.spotify.playerWebApiForbidden),
+      }))
+    );
 
   const setSystemMediaState = useConsolidatedAppStore((s) => s.actions.setSystemMediaState);
   const excludeSpotifyRef = useRef(false);
+  // When Web API cannot supply playback, keep Spotify's SMTC session so the tile still reacts.
   excludeSpotifyRef.current =
-    preference === 'auto' && spotifyConnected && systemMediaEnabled;
+    preference === 'auto' &&
+    spotifyConnected &&
+    systemMediaEnabled &&
+    !playerWebApiForbidden;
 
   useEffect(() => {
     const api = window.api?.systemMedia;
@@ -108,7 +114,7 @@ export function useNowPlayingSources() {
       if (typeof unsub === 'function') unsub();
       api.stop?.().catch(() => {});
     };
-  }, [systemMediaEnabled, preference, setSystemMediaState]);
+  }, [systemMediaEnabled, preference, playerWebApiForbidden, setSystemMediaState]);
 }
 
 export default useNowPlayingSources;

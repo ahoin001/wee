@@ -1089,6 +1089,15 @@ const PaginatedChannelsInner = React.memo(() => {
         Boolean(kindMeta?.sizePresets) &&
         (isWidgetSlot || !isChannelSlotEmpty(slotAt));
       const { colSpan, rowSpan } = getSlotSpan(slotAt);
+      const kindMaxSpan = kindMeta?.sizePresets
+        ? Object.values(kindMeta.sizePresets).reduce(
+            (acc, preset) => ({
+              colSpan: Math.max(acc.colSpan, preset.colSpan | 0),
+              rowSpan: Math.max(acc.rowSpan, preset.rowSpan | 0),
+            }),
+            { colSpan: 1, rowSpan: 1 }
+          )
+        : null;
 
       return (
       <ChannelSlotDnd
@@ -1118,6 +1127,8 @@ const PaginatedChannelsInner = React.memo(() => {
             slots={Array.isArray(channelData?.slots) ? channelData.slots : []}
             columns={gridConfig.columns}
             rows={gridConfig.rows}
+            maxColSpan={kindMaxSpan?.colSpan}
+            maxRowSpan={kindMaxSpan?.rowSpan}
             onCommit={(nextCol, nextRow) => handleSetSlotSpan(channelIndex, nextCol, nextRow)}
             onResizeActiveChange={(active) => {
               setResizeActiveIndex(active ? channelIndex : null);

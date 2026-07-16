@@ -4,7 +4,7 @@
  */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Maximize2, Music } from 'lucide-react';
+import { Maximize2, Music, Pause, Play, SkipBack, SkipForward } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { WeeGlassPill } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -30,6 +30,10 @@ function NowPlayingSlot({
     isPlaying,
     source,
     appName,
+    canPlay,
+    canPause,
+    canSkipNext,
+    canSkipPrevious,
     spotifyConnected,
     systemEnabled,
     systemAvailable,
@@ -44,6 +48,10 @@ function NowPlayingSlot({
         isPlaying: Boolean(np.isPlaying),
         source: np.source,
         appName: np.appName || '',
+        canPlay: Boolean(np.canPlay),
+        canPause: Boolean(np.canPause),
+        canSkipNext: Boolean(np.canSkipNext),
+        canSkipPrevious: Boolean(np.canSkipPrevious),
         spotifyConnected: Boolean(state.spotify.isConnected),
         systemEnabled: state.ui.systemMediaEnabled !== false,
         systemAvailable: Boolean(state.systemMedia?.available),
@@ -60,6 +68,7 @@ function NowPlayingSlot({
   );
   const isCompact = sizePreset?.id === 'S';
   const isTall = (sizePreset?.rowSpan ?? 1) > 1;
+  const isWide = (sizePreset?.colSpan ?? 1) > 1;
   const interactionsLocked = arrangeMode || punchMode;
   const hasTrack = Boolean(trackName);
 
@@ -73,6 +82,22 @@ function NowPlayingSlot({
       spotify: { ...floatingWidgets.spotify, visible: true },
     });
   }, []);
+
+  const runTransport = useCallback(
+    async (action) => {
+      if (source === 'spotify') {
+        const manager = useConsolidatedAppStore.getState().actions.spotifyManager;
+        if (action === 'playPause') await manager?.togglePlayback?.();
+        else if (action === 'next') await manager?.skipToNext?.();
+        else if (action === 'previous') await manager?.skipToPrevious?.();
+        return;
+      }
+      if (source === 'system') {
+        await window.api?.systemMedia?.transport?.(action);
+      }
+    },
+    [source]
+  );
 
   const emptyLabel = useMemo(() => {
     if (hasTrack) return '';
@@ -93,7 +118,15 @@ function NowPlayingSlot({
         openSettingsToTab('api-integrations');
         return;
       }
-      openMediaWidget();
+      if (!hasTrack) return;
+      // Spotify → floating widget; system (Apple Music, etc.) → play/pause only.
+      if (source === 'spotify') {
+        openMediaWidget();
+        return;
+      }
+      if (source === 'system') {
+        void runTransport('playPause');
+      }
     },
     [
       arrangeMode,
@@ -103,10 +136,21 @@ function NowPlayingSlot({
       spotifyConnected,
       systemEnabled,
       systemAvailable,
+      source,
       onArrangeSelect,
       channelId,
       openMediaWidget,
+      runTransport,
     ]
+  );
+
+  const handleTransportClick = useCallback(
+    (action) => (event) => {
+      event.stopPropagation();
+      if (interactionsLocked) return;
+      void runTransport(action);
+    },
+    [interactionsLocked, runTransport]
   );
 
   const statusLabel = isPlaying
@@ -117,6 +161,11 @@ function NowPlayingSlot({
       ? 'Paused'
       : '';
 
+  const showTransport =
+    hasTrack && !isCompact && !interactionsLocked && (source === 'spotify' || source === 'system');
+
+  const playPauseEnabled = isPlaying ? canPause || source === 'spotify' : canPlay || source === 'spotify';
+
   return (
     <WeeGlassPill
       as="div"
@@ -125,79 +174,123 @@ function NowPlayingSlot({
           ? 'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--surface-primary)/0)]'
           : ''
       }`}
-      onClick={handleActivate}
       role="group"
       aria-label="Now Playing"
     >
+      {hasTrack && albumArtUrl ? (
+        <>
+          <img
+            src={albumArtUrl}
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            draggable={false}
+          />
+          <div
+            className={`pointer-events-none absolute inset-0 ${
+              isTall
+                ? 'bg-gradient-to-t from-[hsl(var(--surface-primary)/0.92)] via-[hsl(var(--surface-primary)/0.35)] to-transparent'
+                : 'bg-gradient-to-t from-[hsl(var(--surface-primary)/0.88)] via-[hsl(var(--surface-primary)/0.28)] to-transparent'
+            }`}
+          />
+        </>
+      ) : null}
+
       <button
         type="button"
-        className="relative flex h-full w-full flex-col overflow-hidden rounded-[1.2rem] text-left"
+        className={`relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-0.5 text-left ${
+          isTall ? 'p-3.5' : isWide ? 'p-3' : 'p-2.5'
+        } ${showTransport ? 'pb-0' : ''}`}
         onClick={handleActivate}
         disabled={interactionsLocked && !arrangeMode}
         aria-label={hasTrack ? `Now playing: ${trackName} by ${artistLine}` : 'Now Playing'}
       >
-        {hasTrack && albumArtUrl ? (
+        {hasTrack ? (
           <>
-            <img
-              src={albumArtUrl}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              draggable={false}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--surface-primary)/0.88)] via-[hsl(var(--surface-primary)/0.28)] to-transparent" />
-          </>
-        ) : null}
-
-        <div
-          className={`relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-0.5 ${
-            isTall ? 'p-3.5' : 'p-2.5'
-          }`}
-        >
-          {hasTrack ? (
-            <>
-              <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-                <Music size={11} strokeWidth={2.5} className="text-[hsl(var(--primary))]" aria-hidden />
-                {statusLabel}
-                {source === 'system' && !isCompact ? (
-                  <span className="truncate opacity-70">· System</span>
-                ) : null}
-              </span>
-              {!isCompact ? (
-                <>
+            <span className="flex items-center gap-1.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
+              <Music size={11} strokeWidth={2.5} className="text-[hsl(var(--primary))]" aria-hidden />
+              <span className="truncate">{statusLabel}</span>
+              {source === 'system' && !isCompact ? (
+                <span className="shrink-0 text-[hsl(var(--text-tertiary))]">· System</span>
+              ) : null}
+            </span>
+            {!isCompact ? (
+              <>
+                <span
+                  className={`truncate font-black text-[hsl(var(--text-primary))] ${
+                    isTall ? 'text-base leading-snug' : 'text-sm'
+                  }`}
+                >
+                  {trackName}
+                </span>
+                {artistLine ? (
                   <span
-                    className={`truncate font-black text-[hsl(var(--text-primary))] ${
-                      isTall ? 'text-base' : 'text-sm'
+                    className={`truncate font-semibold text-[hsl(var(--text-secondary))] ${
+                      isTall ? 'text-xs' : 'text-[length:var(--font-size-caption)]'
                     }`}
                   >
-                    {trackName}
+                    {artistLine}
                   </span>
-                  {artistLine ? (
-                    <span
-                      className={`truncate font-semibold text-[hsl(var(--text-secondary))] ${
-                        isTall ? 'text-xs' : 'text-[11px]'
-                      }`}
-                    >
-                      {artistLine}
-                    </span>
-                  ) : null}
-                </>
-              ) : null}
-            </>
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-center">
-              <Music
-                size={isCompact ? 22 : 28}
-                strokeWidth={2.25}
-                className="text-[hsl(var(--primary))]"
-                aria-hidden
-              />
-              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                {emptyLabel}
-              </span>
-            </div>
-          )}
-        </div>
+                ) : null}
+              </>
+            ) : null}
+          </>
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-center">
+            <Music
+              size={isCompact ? 22 : 28}
+              strokeWidth={2.25}
+              className="text-[hsl(var(--primary))]"
+              aria-hidden
+            />
+            <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+              {emptyLabel}
+            </span>
+          </div>
+        )}
       </button>
+
+      {showTransport ? (
+        <div
+          className={`relative z-10 flex items-center gap-1 px-3 ${isTall ? 'pb-3.5 pt-1.5' : 'pb-2.5 pt-1'}`}
+          role="group"
+          aria-label="Playback controls"
+        >
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40"
+            title="Previous"
+            aria-label="Previous track"
+            disabled={!canSkipPrevious && source !== 'spotify'}
+            onClick={handleTransportClick('previous')}
+          >
+            <SkipBack size={14} strokeWidth={2.5} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)] transition-transform hover:scale-110 disabled:opacity-40"
+            title={isPlaying ? 'Pause' : 'Play'}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            disabled={!playPauseEnabled}
+            onClick={handleTransportClick('playPause')}
+          >
+            {isPlaying ? (
+              <Pause size={15} strokeWidth={2.5} aria-hidden />
+            ) : (
+              <Play size={15} strokeWidth={2.5} className="ml-0.5" aria-hidden />
+            )}
+          </button>
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40"
+            title="Next"
+            aria-label="Next track"
+            disabled={!canSkipNext && source !== 'spotify'}
+            onClick={handleTransportClick('next')}
+          >
+            <SkipForward size={14} strokeWidth={2.5} aria-hidden />
+          </button>
+        </div>
+      ) : null}
 
       {hasTrack && takeoverAvailable && !isCompact && !interactionsLocked ? (
         <button
