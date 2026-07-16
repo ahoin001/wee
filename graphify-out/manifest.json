@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784216608.7355337,
-    "ast_hash": "d36a588fd2a9ab78539aee139a393969",
+    "mtime": 1784218683.914241,
+    "ast_hash": "de9d8be67d89c3f663e0e7bdd3448224",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -585,9 +585,9 @@
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyGradientOverlay.jsx": {
-    "mtime": 1776091212.2369304,
-    "ast_hash": "2aa873c9933e34cc60ac414e17517b1c",
-    "semantic_hash": "2aa873c9933e34cc60ac414e17517b1c"
+    "mtime": 1784218379.9017186,
+    "ast_hash": "9a88c4b764bcf2f8f25e314318de6807",
+    "semantic_hash": ""
   },
   "src/components/overlays/SpotifyImmersiveOverlay.jsx": {
     "mtime": 1784139451.8856373,
@@ -595,9 +595,9 @@
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyLiveGradientWallpaper.jsx": {
-    "mtime": 1776717260.3519123,
-    "ast_hash": "fdbb5165f8121da796f1b97a35eef233",
-    "semantic_hash": "fdbb5165f8121da796f1b97a35eef233"
+    "mtime": 1784218382.0760431,
+    "ast_hash": "39a2bb71fc69c0d6d4b3cfaf820bb971",
+    "semantic_hash": ""
   },
   "src/components/overlays/WallpaperOverlay.jsx": {
     "mtime": 1776549705.651814,
@@ -1295,8 +1295,8 @@
     "semantic_hash": "6682d42d377aafaf0bbd79d797f21358"
   },
   "src/ui/wee/index.js": {
-    "mtime": 1784154194.88207,
-    "ast_hash": "c21b5f9064a7ae12ea0d35f6dbf41b59",
+    "mtime": 1784219484.6091557,
+    "ast_hash": "ca78ad28d37f34dddc1da4bb3df88789",
     "semantic_hash": ""
   },
   "src/utils/AudioManager.js": {
@@ -2090,8 +2090,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/AdminQuickAccessSlot.jsx": {
-    "mtime": 1784209068.9321785,
-    "ast_hash": "06068cc77ca0f26728c739bc7f539f76",
+    "mtime": 1784219496.20557,
+    "ast_hash": "3bcf49449c6834a174ff58c2c0dea655",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
@@ -2452,6 +2452,11 @@
   "src/utils/homeSteamWidgetPrefs.js": {
     "mtime": 1784218194.9616985,
     "ast_hash": "ad1b919c9745646c0362d87849d40ea9",
+    "semantic_hash": ""
+  },
+  "src/ui/wee/WeeFadeScroll.jsx": {
+    "mtime": 1784219477.141811,
+    "ast_hash": "583876d8ed5867ea4841d50c6dc26d3e",
     "semantic_hash": ""
   }
 }

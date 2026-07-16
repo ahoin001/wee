@@ -422,6 +422,8 @@
   --wee-collapse-duration: 420ms;
   --wee-collapse-duration-reduced: 100ms;
   --wee-collapse-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Soft edge fade for scrollable shelves (WeeFadeScroll) */
+  --wee-scroll-fade: 40px;
 
   /* Launch cinematic (origin tile settles, board recedes, dock yields) —
      mirrors LAUNCH_CINEMATIC_MS in src/utils/launchCinematic.js (one launch-domain clock) */

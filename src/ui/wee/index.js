@@ -29,6 +29,7 @@ export { default as WeeSettingsCollapsibleSection } from './WeeSettingsCollapsib
 export { default as WeeContentCollapse } from './WeeContentCollapse';
 export { default as WeeRevealWhen } from './WeeRevealWhen';
 export { default as WeeMorphStack } from './WeeMorphStack';
+export { default as WeeFadeScroll } from './WeeFadeScroll';
 export { default as WeeDockSettingsSubtabs } from './WeeDockSettingsSubtabs';
 export { default as WeeSettingsSection } from './WeeSettingsSection';
 export { default as WeeSlider } from './WeeSlider';

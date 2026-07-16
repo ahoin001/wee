@@ -7,7 +7,7 @@ import {
   createWeeTransition,
   useWeeMotion,
 } from '../../design/weeMotion';
-import { WeeGooeyTileButton } from '../../ui/wee';
+import { WeeFadeScroll, WeeGooeyTileButton } from '../../ui/wee';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import {
@@ -424,7 +424,8 @@ function AdminQuickAccessSlot({
                   </button>
                 </div>
               </div>
-              <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+              <WeeFadeScroll axis="y" fadePx={28} className="min-h-0 flex-1">
+                <div className="space-y-1 pb-2">
                 {(isCompact ? adminConfig.powerActions : moreActions).map((action) => (
                   <m.button
                     key={action.id}
@@ -441,7 +442,8 @@ function AdminQuickAccessSlot({
                     <span className="truncate">{action.name}</span>
                   </m.button>
                 ))}
-              </div>
+                </div>
+              </WeeFadeScroll>
             </MotionDiv>
           ) : null}
         </AnimatePresence>

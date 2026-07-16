@@ -615,8 +615,8 @@
     "semantic_hash": "94cd73e45d240ce6e7199f2651f265b2"
   },
   "src/components/settings/ApiIntegrationsSettingsTab.jsx": {
-    "mtime": 1784218325.793779,
-    "ast_hash": "08b5b19da272987a86ec53bf589c58c2",
+    "mtime": 1784218343.347502,
+    "ast_hash": "92a198d1350f5a04235d7d3386d51c76",
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
