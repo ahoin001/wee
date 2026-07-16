@@ -11,7 +11,7 @@ function registerSystemMediaHandlers({ ipcMain, systemMediaService, getMainWindo
 
   ipcMain.handle('system-media:start', async () => {
     try {
-      const status = systemMediaService.start();
+      const status = await systemMediaService.start();
       return { success: true, ...status };
     } catch (error) {
       return { success: false, available: false, error: error.message, sessions: [] };

@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784155905.8704648,
-    "ast_hash": "fe6a82432bdcf587147b9d7c1844df44",
+    "mtime": 1784158256.0123546,
+    "ast_hash": "8382eeeefe1474e18e9631ae1f0f0320",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -555,8 +555,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784156042.3824515,
-    "ast_hash": "39bc09533cc2884f91d3b18868c7f94c",
+    "mtime": 1784165544.2050242,
+    "ast_hash": "f56ee6600820b7346f14f5e3b71d344a",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -615,8 +615,8 @@
     "semantic_hash": "94cd73e45d240ce6e7199f2651f265b2"
   },
   "src/components/settings/ApiIntegrationsSettingsTab.jsx": {
-    "mtime": 1784139451.8856373,
-    "ast_hash": "a77146b2fbbbc2a88fad3da9b57b29ec",
+    "mtime": 1784165577.145253,
+    "ast_hash": "4e2b23210c110422e1ecd1ece8966afc",
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
@@ -1985,8 +1985,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/RibbonChromeEffects.jsx": {
-    "mtime": 1783970874.9755423,
-    "ast_hash": "de77ce2c25db2e7a5963fb8edaefbe53",
+    "mtime": 1784156179.358031,
+    "ast_hash": "3733f1418e4b495fc02b77c9543ca450",
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/ribbonChromeEffectMeta.js": {
@@ -2090,8 +2090,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/AdminQuickAccessSlot.jsx": {
-    "mtime": 1784154341.2953122,
-    "ast_hash": "e40cf9a4d847a633fa8f7c395dcf8cc2",
+    "mtime": 1784165589.9226978,
+    "ast_hash": "3ec418b05291570d88dd7e8e2f2399c7",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
@@ -2205,8 +2205,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784156041.3259428,
-    "ast_hash": "0d80c62db4a9a8f6fccba0493d144bfc",
+    "mtime": 1784165527.9750724,
+    "ast_hash": "58fd805341da0949d6e3ae0e40b38ce1",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2315,8 +2315,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeSlotResizeHandle.jsx": {
-    "mtime": 1784156002.1261816,
-    "ast_hash": "f845cba0aabdedff2701373c8771287f",
+    "mtime": 1784165543.6746511,
+    "ast_hash": "f9a2c043297d04fdf2a4aa158c374e40",
     "semantic_hash": ""
   },
   "src/components/widgets/MusicReactiveBars.jsx": {
@@ -2325,8 +2325,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useHomeSlotResize.js": {
-    "mtime": 1784156050.9488342,
-    "ast_hash": "f49c0677527269cebe0dceee05ec4f1f",
+    "mtime": 1784165528.1914015,
+    "ast_hash": "6eba918333c4d7a92f53640422366815",
     "semantic_hash": ""
   },
   "src/hooks/useMusicReactiveLevels.js": {
@@ -2335,8 +2335,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingSources.js": {
-    "mtime": 1784156016.8722587,
-    "ast_hash": "5d267ccc98d09049a6a9ebe3c18db5a5",
+    "mtime": 1784165598.0880265,
+    "ast_hash": "240a5aac7804beb4e2e9c05d64a8d678",
     "semantic_hash": ""
   },
   "src/hooks/useSharedSpotifyPlaybackSampler.js": {

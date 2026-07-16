@@ -107,7 +107,7 @@ export function nowPlayingFromSystemSession(session) {
       updatedAt: Date.now(),
     });
   }
-  const status = session.playbackStatus;
+  const status = String(session.playbackStatus || '').toLowerCase();
   const isPlaying = status === 'playing';
   const controls = session.controls || {};
   return normalizeNowPlaying({
@@ -192,14 +192,16 @@ export function pickPrimarySystemSession(sessions, opts = {}) {
       })
     : list;
 
+  const statusOf = (s) => String(s?.playbackStatus || '').toLowerCase();
+
   const playing = filtered.filter(
-    (s) => s?.playbackStatus === 'playing' && (s.title || s.thumbnail)
+    (s) => statusOf(s) === 'playing' && (s.title || s.thumbnail)
   );
   if (playing.length) return playing[0];
 
   const paused = filtered.filter(
     (s) =>
-      (s?.playbackStatus === 'paused' || s?.playbackStatus === 'opened') &&
+      (statusOf(s) === 'paused' || statusOf(s) === 'opened') &&
       (s.title || s.thumbnail)
   );
   return paused[0] || filtered[0] || null;

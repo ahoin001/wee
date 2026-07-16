@@ -191,6 +191,7 @@
   "189": "1. THE THREE DIALS (Core Configuration)",
   "190": "useChannelModalHoverSound.js",
   "191": "better-sqlite3",
+  "192": "@dnd-kit/core",
   "194": "spotify-web-api-js",
   "195": "@tanstack/react-virtual"
 }

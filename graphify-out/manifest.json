@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784158256.0123546,
-    "ast_hash": "8382eeeefe1474e18e9631ae1f0f0320",
+    "mtime": 1784166732.4531503,
+    "ast_hash": "e01624d8a594d875ccc630d71755809a",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -2335,8 +2335,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingSources.js": {
-    "mtime": 1784165598.0880265,
-    "ast_hash": "240a5aac7804beb4e2e9c05d64a8d678",
+    "mtime": 1784167994.8088713,
+    "ast_hash": "f949551ce6d844c866511cea78ac37ad",
     "semantic_hash": ""
   },
   "src/hooks/useSharedSpotifyPlaybackSampler.js": {
@@ -2345,8 +2345,8 @@
     "semantic_hash": ""
   },
   "src/utils/nowPlayingShape.js": {
-    "mtime": 1784155940.0465877,
-    "ast_hash": "24ae7d4a3215225c8f97909876e1704f",
+    "mtime": 1784168023.6832592,
+    "ast_hash": "4eb687a65848a4bd8ea403cba6cf6c63",
     "semantic_hash": ""
   },
   "src/utils/reconcileNowPlaying.js": {
