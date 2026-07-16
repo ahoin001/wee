@@ -24,7 +24,7 @@ export const SETTINGS_TAB_ID = {
   MONITOR: 'monitor',
   MOTION: 'motion',
   NAVIGATION: 'navigation',
-  /** Home setups tab id (kept as `workspaces` for route stability). */
+  /** Shell / Media Hub tab id (kept as `workspaces` for route stability). */
   WORKSPACES: 'workspaces',
 };
 

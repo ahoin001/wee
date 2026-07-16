@@ -140,7 +140,7 @@ export function buildPresetDataFromStore({
       useCustomCursor: ui.useCustomCursor,
       classicMode: ui.classicMode,
       spotifyMatchEnabled: includeSpotifyPalette ? false : (ui.spotifyMatchEnabled ?? false),
-      wallpaperMatchEnabled: ui.wallpaperMatchEnabled ?? false,
+      wallpaperMatchEnabled: ui.wallpaperMatchEnabled !== false,
     },
     dock: cloneSafe(dock, {}),
     appearanceBySpace: {

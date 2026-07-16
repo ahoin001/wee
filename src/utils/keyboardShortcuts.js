@@ -213,8 +213,8 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'open-settings-workspaces-tab',
-    name: 'Open Home setups Settings',
-    description: 'Open settings modal to Home setups tab',
+    name: 'Open Shell Settings',
+    description: 'Open settings modal to Shell tab (Media Hub / space rail)',
     defaultKey: 'w',
     defaultModifier: 'ctrl+shift',
     action: 'openSettingsModal',
@@ -244,13 +244,14 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'open-workspace-switcher',
-    name: 'Open Workspace Switcher',
-    description: 'Open the workspace / home profile switcher',
+    name: 'Open Looks Settings',
+    description: 'Open Looks (saved visual vibes) — Home setups switcher was removed',
     defaultKey: 'j',
     defaultModifier: 'ctrl',
-    action: 'openWorkspaceSwitcher',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'themes' },
     category: 'Navigation',
-    icon: '🪟'
+    icon: '🎨'
   },
   {
     id: 'open-update-modal',

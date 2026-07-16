@@ -89,7 +89,7 @@ export function captureSpaceAppearanceFromState(storeState) {
       useCustomCursor: ui.useCustomCursor,
       classicMode: ui.classicMode,
       spotifyMatchEnabled: ui.spotifyMatchEnabled ?? false,
-      wallpaperMatchEnabled: ui.wallpaperMatchEnabled ?? false,
+      wallpaperMatchEnabled: ui.wallpaperMatchEnabled !== false,
     },
   };
 }

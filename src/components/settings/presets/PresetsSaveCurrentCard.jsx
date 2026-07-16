@@ -1,10 +1,9 @@
 import React from 'react';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
-import WToggle from '../../../ui/WToggle';
 import WInput from '../../../ui/WInput';
 
-/** "Save current as preset" form + include toggles — body only (parent provides wee shell). */
+/** "Save current as Look" form — visual-only (shareable). */
 const PresetsSaveCurrentCard = React.memo(
   ({
     newPresetName,
@@ -12,9 +11,6 @@ const PresetsSaveCurrentCard = React.memo(
     onSave,
     error,
     captureNotice,
-    includeHomeChannels,
-    onIncludeHomeChannelsChange,
-    onOpenHomeProfiles,
     customPresetCount,
     maxCustomPresets,
     isSaving = false,
@@ -24,7 +20,7 @@ const PresetsSaveCurrentCard = React.memo(
         <WInput
           variant="wee"
           type="text"
-          placeholder="Preset name"
+          placeholder="Look name"
           value={newPresetName}
           onChange={(e) => onNewPresetNameChange(e.target.value)}
           maxLength={32}
@@ -37,31 +33,14 @@ const PresetsSaveCurrentCard = React.memo(
           onClick={onSave}
           disabled={isSaving || customPresetCount >= maxCustomPresets}
         >
-          {isSaving ? 'Capturing…' : 'Save Preset'}
+          {isSaving ? 'Capturing…' : 'Save Look'}
         </Button>
       </div>
 
       <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-        Visual-only presets are shareable. Board presets (Home + Focus, including punched holes) stay on this PC.
+        Saves wallpaper, colors, and dock as a shareable Look. Channel boards stay on Home and Focus —
+        arrange them live on those spaces.
       </Text>
-
-      <div className="flex flex-col gap-3 border-t border-[hsl(var(--border-primary)/0.35)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
-        <Button variant="tertiary" size="sm" onClick={onOpenHomeProfiles} className="w-fit" disabled={isSaving}>
-          Open Home setups
-        </Button>
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:ml-auto">
-          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))] sm:text-right">
-            Include Home + Focus boards (local only)
-          </Text>
-          <WToggle
-            checked={includeHomeChannels}
-            onChange={onIncludeHomeChannelsChange}
-            label="Include channel boards"
-            disableLabelClick
-            disabled={isSaving}
-          />
-        </div>
-      </div>
 
       {error ? (
         <Text variant="caption" className="!m-0 text-[hsl(var(--state-error))]">
@@ -78,7 +57,7 @@ const PresetsSaveCurrentCard = React.memo(
       ) : null}
       {customPresetCount >= maxCustomPresets ? (
         <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-          You can save up to {maxCustomPresets} custom presets (plus Spotify Match).
+          You can save up to {maxCustomPresets} custom looks (plus Spotify Match).
         </Text>
       ) : null}
     </div>

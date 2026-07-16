@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Bookmark, Home, Library, Music, Palette, Users } from 'lucide-react';
+import { Bookmark, Library, Music, Palette, Users } from 'lucide-react';
 import { getCommunityPresetUpdates, uploadPreset, downloadPreset } from '../../utils/supabase';
 import {
   capturePresetThumbnailDataUrl,
@@ -66,12 +66,6 @@ const PRESET_UPDATE_SCOPE_OPTIONS = [
     subtitle: 'Colors, wallpaper, dock & chrome. Shareable and exportable.',
     Icon: Palette,
   },
-  {
-    value: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
-    title: 'Look + channel boards',
-    subtitle: 'Also overwrite Home + Focus boards (punched holes included). Stays on this PC.',
-    Icon: Home,
-  },
 ];
 
 const PresetsSettingsTab = React.memo(() => {
@@ -113,8 +107,8 @@ const PresetsSettingsTab = React.memo(() => {
     custom_image_name: null,
     selectedPreset: null,
   });
-  /** Local saves default to boards + look; community share stays visual-only. */
-  const [includeHomeChannels, setIncludeHomeChannels] = useState(true);
+  /** New Looks are always visual-only (shareable). Boards live on Home / Focus spaces. */
+  const selectedCaptureScope = PRESET_SCOPE_VISUAL;
   const [updateScopeDialog, setUpdateScopeDialog] = useState(null);
   const [updateScopeModalOpen, setUpdateScopeModalOpen] = useState(false);
   const [updateScopeModalMounted, setUpdateScopeModalMounted] = useState(false);
@@ -196,10 +190,7 @@ const PresetsSettingsTab = React.memo(() => {
 
   const customPresetCount = presets.filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
   const normalizedProfiles = normalizeWorkspacesState(workspaces);
-  const hasActiveProfile = Boolean(normalizedProfiles.activeWorkspaceId);
-  const selectedCaptureScope = includeHomeChannels
-    ? PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
-    : PRESET_SCOPE_VISUAL;
+  const hasActiveProfile = false;
   const hasPresetName = useCallback(
     (name, excludeId = null) => {
       const normalized = normalizePresetName(name);
@@ -966,7 +957,7 @@ const PresetsSettingsTab = React.memo(() => {
         <WeeSettingsCollapsibleSection
           icon={Bookmark}
           title="Save current look"
-          description="Capture wallpaper, colors, dock, and Home appearance as a named preset."
+          description="Capture wallpaper, colors, and dock as a shareable Look."
           defaultOpen
         >
           <PresetsSaveCurrentCard
@@ -978,9 +969,6 @@ const PresetsSettingsTab = React.memo(() => {
             onSave={handleSave}
             error={error}
             captureNotice={captureNotice}
-            includeHomeChannels={includeHomeChannels}
-            onIncludeHomeChannelsChange={setIncludeHomeChannels}
-            onOpenHomeProfiles={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'workspaces' })}
             customPresetCount={customPresetCount}
             maxCustomPresets={MAX_CUSTOM_PRESETS}
             isSaving={isSavingPreset}

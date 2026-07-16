@@ -207,8 +207,8 @@ useConsolidatedAppStore = create(
           classicMode: false,
           /** Ribbon/shell follow Spotify album-art colors (synced with Spotify Match preset). */
           spotifyMatchEnabled: false,
-          /** Live-follow accents extracted from the on-screen wallpaper. */
-          wallpaperMatchEnabled: false,
+          /** Live-follow accents extracted from the on-screen wallpaper. On by default. */
+          wallpaperMatchEnabled: true,
           /**
            * Derived ambient palette cache (rehydrated from wallpaper URL while match is on).
            * Consumers must not style from this directly — use resolveEffectiveAccent / --primary*.
@@ -2152,7 +2152,7 @@ useConsolidatedAppStore = create(
               showDock: true,
               classicMode: false,
               spotifyMatchEnabled: false,
-              wallpaperMatchEnabled: false,
+              wallpaperMatchEnabled: true,
               ambientColor: { ...DEFAULT_AMBIENT_COLOR },
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),

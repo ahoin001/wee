@@ -10,6 +10,7 @@ import { CLASSIC_DOCK_DEFAULT_COLORS as DOCK_DEFAULT } from '../../design/classi
 import { useWeeMotion } from '../../design/weeMotion';
 import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { syncActiveSpaceAppearanceCapture } from '../../utils/appearance/spaceAppearance';
+import { disableLiveMatchForManualAccent } from '../../utils/appearance/disableLiveMatchForManualAccent';
 import { WeeDockSettingsSubtabs } from '../../ui/wee';
 import DockTypePanel from './dock/DockTypePanel';
 import ClassicDockPanel from './dock/ClassicDockPanel';
@@ -170,6 +171,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
     (e) => {
       setRibbonState({ ribbonColor: e.target.value });
       saveSetting('ribbon', 'ribbonColor', e.target.value);
+      void disableLiveMatchForManualAccent({ persist: true });
     },
     [saveSetting, setRibbonState]
   );
@@ -178,6 +180,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
     (e) => {
       setRibbonState({ ribbonGlowColor: e.target.value });
       saveSetting('ribbon', 'ribbonGlowColor', e.target.value);
+      void disableLiveMatchForManualAccent({ persist: true });
     },
     [saveSetting, setRibbonState]
   );

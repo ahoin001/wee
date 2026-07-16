@@ -161,7 +161,7 @@ function App() {
       ribbonColor: state.ribbon.ribbonColor,
       ribbonGlowColor: state.ribbon.ribbonGlowColor,
       dynamicRibbonColorEnabled: state.ribbon.dynamicRibbonColorEnabled ?? false,
-      wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled ?? false,
+      wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
       ambientPalette: state.ui.ambientColor?.palette ?? null,
       spotifyMatchEnabled: state.ui.spotifyMatchEnabled ?? false,
       spotifyExtractedColors: state.spotify?.extractedColors ?? null,

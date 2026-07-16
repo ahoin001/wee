@@ -5,12 +5,14 @@ import { AnimatePresence, m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import {
   Code2,
+  Image,
   Layers,
   Maximize,
   Monitor,
   Moon,
   Mouse,
   Music,
+  Palette,
   PanelsTopLeft,
   RefreshCw,
   Settings,
@@ -20,6 +22,11 @@ import {
 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { IS_DEV } from '../../utils/env';
+import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
+import {
+  defaultAtmosphereLookName,
+  saveCurrentAtmosphereLookPreset,
+} from '../../utils/presets/saveCurrentAtmosphereLookPreset';
 import WToggle from '../../ui/WToggle';
 import WeeButton from '../../ui/wee/WeeButton';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
@@ -104,21 +111,41 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
     updateAvailable,
     wheelSwitchSpaces,
     wheelHomePageTilt,
+    wallpaperMatchEnabled,
+    spotifyMatchEnabled,
+    nowPlayingActive,
+    canSaveAtmosphereLook,
   } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      isDarkMode: state.ui.isDarkMode,
-      useCustomCursor: state.ui.useCustomCursor,
-      cursorStyle: state.ui.cursorStyle,
-      showDock: state.ui.showDock,
-      classicMode: state.ui.classicMode,
-      updateAvailable: state.app.updateAvailable,
-      wheelSwitchSpaces: Boolean(state.navigation?.wheelSwitchSpaces),
-      wheelHomePageTilt: state.navigation?.wheelHomePageTilt !== false,
-    }))
+    useShallow((state) => {
+      const np = state.nowPlaying;
+      const hasNp =
+        Boolean(np?.trackName) ||
+        Boolean(np?.albumArtUrl) ||
+        Boolean(np?.isPlaying);
+      const extracted = state.spotify?.extractedColors?.primary;
+      const wallpaperOn = state.ui.wallpaperMatchEnabled !== false;
+      const spotifyOn = Boolean(state.ui.spotifyMatchEnabled);
+      return {
+        isDarkMode: state.ui.isDarkMode,
+        useCustomCursor: state.ui.useCustomCursor,
+        cursorStyle: state.ui.cursorStyle,
+        showDock: state.ui.showDock,
+        classicMode: state.ui.classicMode,
+        updateAvailable: state.app.updateAvailable,
+        wheelSwitchSpaces: Boolean(state.navigation?.wheelSwitchSpaces),
+        wheelHomePageTilt: state.navigation?.wheelHomePageTilt !== false,
+        wallpaperMatchEnabled: wallpaperOn,
+        spotifyMatchEnabled: spotifyOn,
+        nowPlayingActive: hasNp || spotifyOn,
+        canSaveAtmosphereLook: Boolean(extracted) || wallpaperOn || spotifyOn,
+      };
+    })
   );
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
   const setNavigationState = useConsolidatedAppStore((state) => state.actions.setNavigationState);
   const { backdropTransition, modalTransition } = useWeeMotion();
+  const [atmosphereStatus, setAtmosphereStatus] = React.useState('');
+  const [savingLook, setSavingLook] = React.useState(false);
 
   useEffect(() => {
     if (useCustomCursor) {
@@ -195,6 +222,42 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
   const toggleWheelHomePageTilt = useCallback(() => {
     setNavigationState({ wheelHomePageTilt: !wheelHomePageTilt });
   }, [setNavigationState, wheelHomePageTilt]);
+
+  const toggleWallpaperMatch = useCallback(() => {
+    const next = !wallpaperMatchEnabled;
+    setUIState({ wallpaperMatchEnabled: next });
+    void saveUnifiedSettingsSnapshot({ ui: { wallpaperMatchEnabled: next } });
+    setAtmosphereStatus(next ? 'Wallpaper Color Match on' : 'Wallpaper Color Match off — pick your own colors in Dock or Colors');
+  }, [setUIState, wallpaperMatchEnabled]);
+
+  const toggleSpotifyMatch = useCallback(() => {
+    const next = !spotifyMatchEnabled;
+    setUIState({ spotifyMatchEnabled: next });
+    void saveUnifiedSettingsSnapshot({ ui: { spotifyMatchEnabled: next } });
+    setAtmosphereStatus(
+      next
+        ? 'Now Playing Color Match on (overrides wallpaper while music plays)'
+        : 'Now Playing Color Match off'
+    );
+  }, [setUIState, spotifyMatchEnabled]);
+
+  const saveAtmosphereLook = useCallback(async () => {
+    if (savingLook) return;
+    setSavingLook(true);
+    setAtmosphereStatus('');
+    try {
+      const result = await saveCurrentAtmosphereLookPreset({
+        name: defaultAtmosphereLookName(),
+      });
+      if (!result.ok) {
+        setAtmosphereStatus(result.error || 'Could not save look');
+        return;
+      }
+      setAtmosphereStatus(`Saved “${result.preset.name}” under Looks`);
+    } finally {
+      setSavingLook(false);
+    }
+  }, [savingLook]);
 
   const toggleFullscreen = useCallback(() => {
     if (window.api?.toggleFullscreen) {
@@ -300,6 +363,45 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
             </div>
 
             <div className="wee-modal-scroll min-h-0 flex-1 space-y-10 overflow-y-auto px-8 py-8 md:px-10">
+              <section className="space-y-4">
+                <p className="ml-0.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
+                  Atmosphere
+                </p>
+                <div className="flex flex-col gap-3">
+                  <QuickToggleRow
+                    label="Wallpaper Color Match"
+                    icon={Image}
+                    active={wallpaperMatchEnabled}
+                    onToggle={toggleWallpaperMatch}
+                  />
+                  {nowPlayingActive ? (
+                    <QuickToggleRow
+                      label="Now Playing Color Match"
+                      icon={Palette}
+                      active={spotifyMatchEnabled}
+                      onToggle={toggleSpotifyMatch}
+                    />
+                  ) : null}
+                  {canSaveAtmosphereLook ? (
+                    <ActionButtonRow
+                      label={savingLook ? 'Saving look…' : 'Save these colors as Look'}
+                      icon={Palette}
+                      onClick={saveAtmosphereLook}
+                    />
+                  ) : null}
+                </div>
+                {atmosphereStatus ? (
+                  <p className="m-0 text-[11px] font-semibold text-[hsl(var(--text-secondary))]">
+                    {atmosphereStatus}
+                  </p>
+                ) : (
+                  <p className="m-0 text-[11px] text-[hsl(var(--text-tertiary))]">
+                    Wallpaper match is on by default. Picking a ribbon color in Dock turns match off so
+                    you know you&apos;re on manual colors.
+                  </p>
+                )}
+              </section>
+
               <section className="space-y-4">
                 <p className="ml-0.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
                   Quick toggles

@@ -34,7 +34,7 @@ function useWallpaperSettingsController() {
         appearanceBySpace: state.appearanceBySpace,
         activeSpaceId: state.spaces.activeSpaceId,
         channels: state.channels,
-        wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled ?? false,
+        wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
         ribbon: state.ribbon,
       }))
     );

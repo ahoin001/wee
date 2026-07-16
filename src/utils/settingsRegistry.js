@@ -48,14 +48,14 @@ export const SETTINGS_TAB_META = Object.freeze([
   },
   {
     id: 'workspaces',
-    label: 'Home setups',
+    label: 'Shell',
     icon: '🧩',
     color: 'hsl(var(--settings-tab-workspaces))',
-    description: 'Switch Home board layouts & scenes',
+    description: 'Space rail — Media Hub & shell options',
     categoryId: 'home',
     keywords: [
-      'profiles', 'workspaces', 'home setups', 'switch', 'scenes', 'setups',
-      'home profiles', 'board layout',
+      'shell', 'media hub', 'space rail', 'focus', 'home', 'rail',
+      'profiles', 'workspaces', 'home setups',
     ],
   },
   {

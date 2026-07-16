@@ -30,7 +30,7 @@ export function useWallpaperAmbientColor() {
     setRibbonState,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
-      wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled ?? false,
+      wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
       activeSpaceId: state.spaces.activeSpaceId,
       wallpaperCurrent: state.wallpaper?.current,
       appearanceBySpace: state.appearanceBySpace,

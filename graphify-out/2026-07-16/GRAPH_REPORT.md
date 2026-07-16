@@ -1,7 +1,7 @@
 # Graph Report - wee  (2026-07-16)
 
 ## Corpus Check
-- 481 files · ~329,598 words
+- 481 files · ~329,613 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -281,7 +281,7 @@ Nodes (31): App(), LazyAdminPanelWidget, LazyClassicWiiDock, LazyCommandPalette,
 
 ### Community 10 - "SettingsModal.jsx"
 Cohesion: 0.09
-Nodes (17): DevReactProfiler(), ColorsSettingsTab, GameHubSettingsTab, GeneralSettingsTab, MonitorSettingsTab, MotionFeedbackSettingsTab, NavigationPillSettingsTab, SettingsActionMenu (+9 more)
+Nodes (16): DevReactProfiler(), ColorsSettingsTab, GameHubSettingsTab, GeneralSettingsTab, MonitorSettingsTab, MotionFeedbackSettingsTab, NavigationPillSettingsTab, SettingsActionMenu (+8 more)
 
 ### Community 11 - "AdminPanel.jsx"
 Cohesion: 0.33
@@ -349,15 +349,15 @@ Nodes (31): WiiChannelStrip(), HomeSlotResizeHandle(), RESIZE_CORNERS, createWee
 
 ### Community 29 - "useWeeMotion"
 Cohesion: 0.07
-Nodes (21): UnifiedAppPathSearch(), WeeChannelModal(), PrimaryActionsModal, PrimaryActionsModalComponent(), WeeButton(), WeeChoiceTileGrid(), readCollapseDurationMs(), WeeContentCollapse() (+13 more)
+Nodes (21): UnifiedAppPathSearch(), WeeChannelModal(), PrimaryActionsModal, PrimaryActionsModalComponent(), WeeChoiceTileGrid(), readCollapseDurationMs(), WeeContentCollapse(), WeeDescriptionToggleRow() (+13 more)
 
 ### Community 30 - "mediaLibraryCache.js"
 Cohesion: 0.14
 Nodes (24): ImageSearchModal(), MEDIA_LIBRARY_FILETYPE_OPTIONS, MEDIA_LIBRARY_PAGE_SIZE_OPTIONS, MEDIA_LIBRARY_SORT_OPTIONS, useMediaLibraryBrowser(), clearMatchCache(), clearMediaLibraryCache(), filterMediaLibraryCache() (+16 more)
 
 ### Community 31 - "weeMotion.js"
-Cohesion: 0.20
-Nodes (19): HomeBoardArrangeBar(), homeSlotKindHasWidgetSettings(), getHomeSlotKind(), getHomeSlotSizePreset(), GLANCE_TILE_SIZE_PRESETS, HOME_SLOT_KINDS, HOME_SLOT_PICKER_CATEGORIES, listHomeSlotKinds() (+11 more)
+Cohesion: 0.21
+Nodes (18): HomeBoardArrangeBar(), getHomeSlotKind(), getHomeSlotSizePreset(), GLANCE_TILE_SIZE_PRESETS, HOME_SLOT_KINDS, HOME_SLOT_PICKER_CATEGORIES, listHomeSlotKinds(), listPlaceableHomeSlotKinds() (+10 more)
 
 ### Community 32 - "keyboardShortcuts.js"
 Cohesion: 0.23
@@ -472,8 +472,8 @@ Cohesion: 0.16
 Nodes (17): getRibbonChromeEffectDefaults(), getRibbonChromeEffectOptions(), isRibbonChromeEffectId(), isRibbonNeonColorMode(), META_BY_ID, RIBBON_CHROME_EFFECTS, RIBBON_CHROME_GLASS_SOFT_MODES, RIBBON_NEON_COLOR_MODE_OPTIONS (+9 more)
 
 ### Community 75 - "@dnd-kit/utilities"
-Cohesion: 0.27
-Nodes (9): HomeWidgetSettingsPanel(), STEAM_KIND_IDS, SteamWidgetSettings(), WeatherWidgetSettings(), DEFAULT_HOME_STEAM_WIDGET, HOME_STEAM_GUTTERS, HOME_STEAM_TILE_SIZES, LEGACY_GUTTER_MAP (+1 more)
+Cohesion: 0.26
+Nodes (10): homeSlotKindHasWidgetSettings(), HomeWidgetSettingsPanel(), STEAM_KIND_IDS, SteamWidgetSettings(), WeatherWidgetSettings(), DEFAULT_HOME_STEAM_WIDGET, HOME_STEAM_GUTTERS, HOME_STEAM_TILE_SIZES (+2 more)
 
 ### Community 76 - "electron-updater"
 Cohesion: 0.25
@@ -512,16 +512,16 @@ Cohesion: 0.46
 Nodes (5): HomeWidgetGlassControls(), HomeWidgetShell, DEFAULT_HOME_WIDGET_GLASS, homeWidgetGlassCssVars(), normalizeHomeWidgetGlass()
 
 ### Community 85 - "p-queue"
-Cohesion: 0.09
-Nodes (18): UnifiedAppPathCard, ChannelModalChannelArtPanel(), readStoredArtSubtab(), ChannelPathSmartSuggestions(), MediaLibraryBrowser(), Text(), variantMap, WeeCard() (+10 more)
+Cohesion: 0.17
+Nodes (13): ChannelModalChannelArtPanel(), readStoredArtSubtab(), MediaLibraryBrowser(), VARIANT_MAP, WeeButton(), WeeSegmentedControl(), downloadMedia(), isSupportedGalleryStillUpload() (+5 more)
 
 ### Community 86 - "prop-types"
 Cohesion: 0.25
 Nodes (22): isPlainObject(), pruneKeyedCacheForPersistence(), buildSettingsSnapshotFromStore(), CANONICAL_SETTINGS_KEYS, CHANNEL_DATA_SLOT_KEYED_MAPS, deepMerge(), isPlainObject(), mergeChannelData() (+14 more)
 
 ### Community 87 - "@radix-ui/react-context-menu"
-Cohesion: 0.10
-Nodes (32): AuraLibrarySection(), HomePageIndicator(), statusLabel(), UpdateModal(), WeeUpdateProgress(), PLAYFUL_AMPLITUDE, PLAYFUL_SPRINGS, PLAYFUL_VARIANTS (+24 more)
+Cohesion: 0.09
+Nodes (35): AuraLibrarySection(), HomePageIndicator(), statusLabel(), UpdateModal(), WeeUpdateProgress(), PLAYFUL_AMPLITUDE, PLAYFUL_SPRINGS, PLAYFUL_VARIANTS (+27 more)
 
 ### Community 88 - "experience-roadmap-invariants.mjs"
 Cohesion: 0.29
@@ -676,8 +676,8 @@ Cohesion: 0.22
 Nodes (9): 18. EXTRA CREATIVITY & IMPLEMENTATION EDGE, Composition variety check, Conversion focus, Cross-section contrast, CTA specificity, Cultural / tonal alignment, Data-viz restraint, Image variety inside one comp (+1 more)
 
 ### Community 149 - "test-settings-merge.mjs"
-Cohesion: 0.14
-Nodes (17): PresetsCommunityCard, PresetsSaveCurrentCard, PresetsSavedListCard, PresetsSpotifyMatchSection, PRESET_UPDATE_SCOPE_OPTIONS, PresetsSettingsTab, SecondaryChannelProfilesCard, WorkspaceSwitcherModal() (+9 more)
+Cohesion: 0.21
+Nodes (12): SecondaryChannelProfilesCard, WorkspacesSettingsTab, WorkspaceSwitcherModal(), WeeCard(), applyWorkspaceSnapshot(), buildWorkspaceDataFromStore(), createWorkspaceFromCurrentState(), createWorkspaceId() (+4 more)
 
 ### Community 150 - "9. AI TELLS (Forbidden Patterns)"
 Cohesion: 0.25
@@ -784,8 +784,8 @@ Cohesion: 0.53
 Nodes (5): HOME_WIDGET_SURFACES, isNonChannelSlotLike(), migrateChannelsLegacyGlassSurfaces(), migrateLegacyGlassSurfacesToBasic(), migrateSpaceDataLegacyGlassSurfaces()
 
 ### Community 182 - "useFloatingWidgetFrame"
-Cohesion: 0.11
-Nodes (13): CommunityPresets(), PresetListItem, AuraHubModalFrame(), ImageModal(), useDialogExitPresence(), variantNameFromDefinition(), buttonVariants, variantSecondarySurface (+5 more)
+Cohesion: 0.07
+Nodes (21): CommunityPresets(), PresetListItem, UnifiedAppPathCard, ChannelPathSmartSuggestions(), AuraHubModalFrame(), ImageModal(), PresetsCommunityCard, PresetsSaveCurrentCard (+13 more)
 
 ### Community 183 - "useHubSpaceEntrance.js"
 Cohesion: 0.60

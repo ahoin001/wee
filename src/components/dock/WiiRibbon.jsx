@@ -110,7 +110,7 @@ const WiiRibbonComponent = ({
       activeSpaceId: state.spaces.activeSpaceId,
       appearanceBySpace: state.appearanceBySpace,
       channels: state.channels,
-      wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled ?? false,
+      wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
     }))
   );
   const boardCurrentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });

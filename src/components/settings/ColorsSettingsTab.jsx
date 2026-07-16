@@ -46,7 +46,7 @@ const ColorsSettingsTab = React.memo(() => {
     }))
   );
 
-  const wallpaperMatchEnabled = ui?.wallpaperMatchEnabled ?? false;
+  const wallpaperMatchEnabled = ui?.wallpaperMatchEnabled !== false;
   const ambient = ui?.ambientColor || DEFAULT_AMBIENT_COLOR;
   const seeds = Array.isArray(ambient.seeds) ? ambient.seeds : [];
   const palette = ambient.palette;
@@ -122,6 +122,7 @@ const ColorsSettingsTab = React.memo(() => {
     });
     setUIState({
       wallpaperMatchEnabled: false,
+      spotifyMatchEnabled: false,
       ambientColor: { ...DEFAULT_AMBIENT_COLOR },
     });
 
@@ -131,7 +132,7 @@ const ColorsSettingsTab = React.memo(() => {
     });
 
     await saveUnifiedSettingsSnapshot({
-      ui: { wallpaperMatchEnabled: false },
+      ui: { wallpaperMatchEnabled: false, spotifyMatchEnabled: false },
       ribbon: {
         ribbonColor: surface,
         ribbonGlowColor: glow,
@@ -187,7 +188,7 @@ const ColorsSettingsTab = React.memo(() => {
     <div className="settings-wee-tab-root pb-12 [contain:layout]">
       <SettingsTabPageHeader
         title="Colors"
-        subtitle="Match your wallpaper, follow Spotify, or pick ribbon accents"
+        subtitle="Match wallpaper (default on), follow Now Playing, or pick ribbon accents — Quick menu for everyday toggles"
       />
 
       <div className="mb-6">
@@ -202,7 +203,8 @@ const ColorsSettingsTab = React.memo(() => {
                 Match wallpaper
               </Text>
               <Text variant="desc" className="!m-0">
-                Live accents from the wallpaper on screen. Spotify Match still wins while it&apos;s on.
+                Live accents from the wallpaper on screen. On by default — also in the Quick menu.
+                Now Playing Color Match still wins while it&apos;s on.
               </Text>
             </div>
             <WToggle

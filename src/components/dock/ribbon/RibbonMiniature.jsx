@@ -152,7 +152,7 @@ function RibbonMiniature({ className = '' }) {
     }))
   );
   const wallpaperMatchEnabled = useConsolidatedAppStore(
-    (state) => state.ui.wallpaperMatchEnabled ?? false
+    (state) => state.ui.wallpaperMatchEnabled !== false
   );
 
   // Static timestamp per mount — the preview does not need a ticking clock.

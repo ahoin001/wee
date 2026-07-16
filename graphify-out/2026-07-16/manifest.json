@@ -555,8 +555,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784236000.1130865,
-    "ast_hash": "c7555c72b17de748c33e4dea180b1bd2",
+    "mtime": 1784236251.2845085,
+    "ast_hash": "3a907c88392220c6c1322788464de75e",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -2010,8 +2010,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/slotKindRegistry.js": {
-    "mtime": 1784234090.1850467,
-    "ast_hash": "b98cb5f311f8dae9b1419d5c2511032b",
+    "mtime": 1784236251.4319725,
+    "ast_hash": "7e0d5c50bb2b64767e9b472bea9167b6",
     "semantic_hash": ""
   },
   "src/hooks/useWallpaperAmbientColor.js": {

@@ -219,7 +219,7 @@ const selectPersistedUi = (ui = {}) => ({
   showDock: ui.showDock ?? true,
   classicMode: ui.classicMode ?? false,
   spotifyMatchEnabled: ui.spotifyMatchEnabled ?? false,
-  wallpaperMatchEnabled: ui.wallpaperMatchEnabled ?? false,
+  wallpaperMatchEnabled: ui.wallpaperMatchEnabled !== false,
   channelOpacity: ui.channelOpacity ?? 1,
   keyboardShortcuts: Array.isArray(ui.keyboardShortcuts) ? ui.keyboardShortcuts : [],
   motionFeedback: mergeMotionFeedback(ui.motionFeedback),

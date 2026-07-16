@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784232824.7106695,
-    "ast_hash": "0011f38519007e2987b9a59ba3efc54d",
+    "mtime": 1784236400.7543993,
+    "ast_hash": "fa6d17badfde9b7f2f33b9a4a9c8452a",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/App.jsx": {
-    "mtime": 1784228075.2310445,
-    "ast_hash": "3fc8bca011c1362a8a3461e0171e465c",
+    "mtime": 1784237394.1414185,
+    "ast_hash": "a07553dfe5d7eb5d13fe06dd7a136b90",
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanel.jsx": {
@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/WiiRibbon.jsx": {
-    "mtime": 1784235696.1515143,
-    "ast_hash": "049c599e02e54e1f53fabac5030f93de",
+    "mtime": 1784237394.8492737,
+    "ast_hash": "c17dedeaba7d68c55d442ac5e421a8f6",
     "semantic_hash": ""
   },
   "src/components/dock/WiiStyleButton.jsx": {
@@ -625,8 +625,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
-    "mtime": 1784235272.1248717,
-    "ast_hash": "56908dd8bc8752a940a03ac623077d52",
+    "mtime": 1784237385.612978,
+    "ast_hash": "697a661566576788ec40a3f725307394",
     "semantic_hash": ""
   },
   "src/components/settings/GameHubSettingsTab.jsx": {
@@ -660,8 +660,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/PresetsSettingsTab.jsx": {
-    "mtime": 1784235270.1245935,
-    "ast_hash": "64c2c8559055e08193e06aad96534bd5",
+    "mtime": 1784237390.131172,
+    "ast_hash": "f95117c01242948c668883d94e7a7766",
     "semantic_hash": ""
   },
   "src/components/settings/SaveButton.jsx": {
@@ -675,8 +675,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/SettingsActionMenu.jsx": {
-    "mtime": 1784139451.883068,
-    "ast_hash": "ce48b97b3abc48cb7971e190041313d5",
+    "mtime": 1784237344.1296532,
+    "ast_hash": "5e1e228055e8d26b9775ad1910379d47",
     "semantic_hash": ""
   },
   "src/components/settings/SettingsModal.jsx": {
@@ -730,8 +730,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/UnifiedDockSettingsTab.jsx": {
-    "mtime": 1784209526.0567565,
-    "ast_hash": "50f09532af8889305810c124d3eae4ce",
+    "mtime": 1784237315.9735982,
+    "ast_hash": "e3a14cd14e9a667648aae973200d8abd",
     "semantic_hash": ""
   },
   "src/components/settings/UpdatesSettingsTab.jsx": {
@@ -740,13 +740,13 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1784235788.5419192,
-    "ast_hash": "66c8f9d87ec78a2fdee23705a5e050eb",
+    "mtime": 1784237394.1953723,
+    "ast_hash": "c3255427a4099a8e3a0e38fa02a247bc",
     "semantic_hash": ""
   },
   "src/components/settings/WorkspacesSettingsTab.jsx": {
-    "mtime": 1784235271.064921,
-    "ast_hash": "97b7b44b4648001eab4e0bcf09731346",
+    "mtime": 1784237351.4748588,
+    "ast_hash": "4e566f17d3fbd9eec4f678cae4fc61e0",
     "semantic_hash": ""
   },
   "src/components/settings/dock/AnimationsDockPanel.jsx": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/presets/PresetsSaveCurrentCard.jsx": {
-    "mtime": 1784235271.4570966,
-    "ast_hash": "5e7f0139ea05b851aa43983fd8e9ac2e",
+    "mtime": 1784237354.5031304,
+    "ast_hash": "964d81b666a3717ebe05df39a58c934c",
     "semantic_hash": ""
   },
   "src/components/settings/presets/PresetsSavedListCard.jsx": {
@@ -1325,8 +1325,8 @@
     "semantic_hash": "aa63f48e75bcd9d9244a43c540b92bca"
   },
   "src/utils/appearance/spaceAppearance.js": {
-    "mtime": 1784235871.4258952,
-    "ast_hash": "7c81d921164b112f5e44fc7f83233d4e",
+    "mtime": 1784237320.0106175,
+    "ast_hash": "ec3c67018f621bda992e410982174ad0",
     "semantic_hash": ""
   },
   "src/utils/authService.js": {
@@ -1425,8 +1425,8 @@
     "semantic_hash": ""
   },
   "src/utils/keyboardShortcuts.js": {
-    "mtime": 1784235275.4655645,
-    "ast_hash": "06fdad07eeb6e3ee6594588628186511",
+    "mtime": 1784237379.2490993,
+    "ast_hash": "fb8a10424a16e4e53031711ae37afe4c",
     "semantic_hash": ""
   },
   "src/utils/launchErrorMessages.js": {
@@ -1490,8 +1490,8 @@
     "semantic_hash": ""
   },
   "src/utils/presets/buildPresetSnapshot.js": {
-    "mtime": 1784235563.8461206,
-    "ast_hash": "ab835e0a5fbd77b260a8fcb6c127ef57",
+    "mtime": 1784237379.7070408,
+    "ast_hash": "1046daf8b874b0991ad5e2435c4a0a4c",
     "semantic_hash": ""
   },
   "src/utils/presets/importCommunityPresetFlow.js": {
@@ -1525,8 +1525,8 @@
     "semantic_hash": "2f9d59760e07f194ba3ec6911bd02abe"
   },
   "src/utils/settingsNavigation.js": {
-    "mtime": 1784235765.7074885,
-    "ast_hash": "5f949a72d56da4a1036eedc80048e4f4",
+    "mtime": 1784237379.7070408,
+    "ast_hash": "b5b7c5da6e45a7cbf02c3f45a00bba8d",
     "semantic_hash": ""
   },
   "src/utils/spotifyService.js": {
@@ -1575,8 +1575,8 @@
     "semantic_hash": ""
   },
   "src/utils/store/settingsPersistenceContract.js": {
-    "mtime": 1784235979.547064,
-    "ast_hash": "d159083c81ede05dccfb4cd6d3c90387",
+    "mtime": 1784237305.8890011,
+    "ast_hash": "f41d07413da9708b5a4f5ebf7920d7cf",
     "semantic_hash": ""
   },
   "src/utils/store/storeContracts.ts": {
@@ -1610,8 +1610,8 @@
     "semantic_hash": "541dd4bec18629467fdcb48e0506fb0f"
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784228322.3958054,
-    "ast_hash": "d72bf856509580c350f1b58db9ce82fb",
+    "mtime": 1784237311.7464077,
+    "ast_hash": "69b1519eb5890ef86901bd70343c93ab",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -2015,8 +2015,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useWallpaperAmbientColor.js": {
-    "mtime": 1784228473.1916149,
-    "ast_hash": "6cff5d49b1b413812f27c116ca5de8c8",
+    "mtime": 1784237395.3669126,
+    "ast_hash": "147c97d5dc3062e3112500ccfff74f47",
     "semantic_hash": ""
   },
   "src/hooks/useWheelNavigation.js": {
@@ -2185,8 +2185,8 @@
     "semantic_hash": ""
   },
   "src/utils/settingsRegistry.js": {
-    "mtime": 1784235766.2789278,
-    "ast_hash": "a93fd0b36674fbdd5cdaa7747f78b341",
+    "mtime": 1784237354.4417844,
+    "ast_hash": "7f136a25a2e344f08fcbcd9c6026c5a7",
     "semantic_hash": ""
   },
   ".impeccable/critique/2026-07-15T16-35-33Z__src-components-home-grid.md": {
@@ -2305,8 +2305,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/RibbonMiniature.jsx": {
-    "mtime": 1784209504.614632,
-    "ast_hash": "e98bb6a01783fa5a0c0c3a41629b51d2",
+    "mtime": 1784237395.9750814,
+    "ast_hash": "679c7c3a365f7f86383f34e5ce3b8a89",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGooeyTileButton.jsx": {
@@ -2492,6 +2492,16 @@
   "src/utils/appearance/resolveEffectiveRibbonLook.js": {
     "mtime": 1784235552.4851649,
     "ast_hash": "b22b5d9b73f44342b3b1e6beaed6bacf",
+    "semantic_hash": ""
+  },
+  "src/utils/appearance/disableLiveMatchForManualAccent.js": {
+    "mtime": 1784237300.4957304,
+    "ast_hash": "86993fdb73bb8eb06d4449735f28053c",
+    "semantic_hash": ""
+  },
+  "src/utils/presets/saveCurrentAtmosphereLookPreset.js": {
+    "mtime": 1784237300.4967382,
+    "ast_hash": "b416faeb4aa16d21ad7d4ce7eaee3908",
     "semantic_hash": ""
   }
 }
