@@ -760,6 +760,7 @@ function App() {
                     timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
                     timeFont={timeFont ?? 'default'}
                     particleSettings={dock}
+                    shellTransitionMs={spaceWorldDurationMs}
                   />
                 )}
               </div>

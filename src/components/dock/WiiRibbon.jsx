@@ -79,6 +79,8 @@ const WiiRibbonComponent = ({
   ribbonHoverAnimationEnabled = true,
   particleSettings = {},
   onParticleSettingsChange: _onParticleSettingsChange,
+  /** Live shell duration from App (includes rapid multi-hop shortening). */
+  shellTransitionMs = RIBBON_SPACE_TRANSITION_MS,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -151,9 +153,13 @@ const WiiRibbonComponent = ({
     [liveRibbonLook, spaceRibbon, boardCurrentPage, supportsPerPageRibbon]
   );
   const lastSpaceForRibbonRef = React.useRef(activeSpaceId);
+  const spaceTweenMs =
+    typeof shellTransitionMs === 'number' && shellTransitionMs > 0
+      ? shellTransitionMs
+      : RIBBON_SPACE_TRANSITION_MS;
   const ribbonTweenMs =
     lastSpaceForRibbonRef.current !== activeSpaceId
-      ? RIBBON_SPACE_TRANSITION_MS
+      ? spaceTweenMs
       : RIBBON_PAGE_TRANSITION_MS;
   React.useEffect(() => {
     lastSpaceForRibbonRef.current = activeSpaceId;

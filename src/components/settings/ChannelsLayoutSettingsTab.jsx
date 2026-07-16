@@ -1,14 +1,13 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { m, useReducedMotion } from 'framer-motion';
-import { Activity, Aperture, EyeOff, Info, LayoutGrid, Minus, Monitor, Plus, Sparkles } from 'lucide-react';
+import { Activity, Aperture, Info, LayoutGrid, Minus, Monitor, Plus, Sparkles } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import {
   WeeButton,
   WeeDescriptionToggleRow,
-  WeeGlassPill,
   WeeHelpLinkButton,
   WeeHelpParagraph,
   WeeModalFieldCard,
@@ -19,7 +18,7 @@ import {
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsMultiToggleChips from './SettingsMultiToggleChips';
-import SettingsLivePreviewFrame from './SettingsLivePreviewFrame';
+import ChannelBoardLivePreview from './ChannelBoardLivePreview';
 import { HomeBoardSwitcher } from '../home-grid';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -29,6 +28,7 @@ import {
   resolveLayout,
   resolveLayoutForPage,
   WII_LAYOUT_PRESET,
+  WII_STRIP_PEEK_PERCENT,
 } from '../../utils/channelLayoutSystem';
 import {
   getChannelDataSlice,
@@ -125,135 +125,6 @@ function LayoutStepper({ label, value, min, max, onChange, ariaLabel }) {
   );
 }
 
-function BoardLivePreview({
-  layout,
-  slotMeta,
-  pageSlotIndices,
-  punchHoleMode,
-  onToggleSlot,
-  safePreviewPage,
-  totalPages,
-  onPreviewPage,
-  currentPage,
-  wallpaperUrl,
-}) {
-  const reduceMotion = useReducedMotion();
-  const press = createWeeTransition('press', { reducedMotion: reduceMotion });
-  const hiddenCount = pageSlotIndices.filter((i) => isSlotHidden(slotMeta, i)).length;
-
-  const canvasStyle = wallpaperUrl
-    ? {
-        backgroundImage: [
-          'linear-gradient(hsl(var(--surface-tertiary) / 0.72), hsl(var(--surface-tertiary) / 0.72))',
-          `url("${String(wallpaperUrl).replace(/\\/g, '/').replace(/"/g, '')}")`,
-        ].join(', '),
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    : undefined;
-
-  const headerAside = (
-    <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
-      <span className="rounded-full bg-[hsl(var(--surface-secondary))] px-3 py-1">
-        Page {String(safePreviewPage + 1).padStart(2, '0')}
-        {currentPage === safePreviewPage ? ' · live' : ''}
-      </span>
-      {hiddenCount > 0 ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--surface-wii-tint))] px-3 py-1 text-[hsl(var(--primary))]">
-          <EyeOff size={12} aria-hidden /> {hiddenCount} hole{hiddenCount === 1 ? '' : 's'}
-        </span>
-      ) : null}
-    </div>
-  );
-
-  const beforeCanvas =
-    totalPages > 1 ? (
-      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Preview page">
-        {Array.from({ length: totalPages }, (_, page) => {
-          const selected = safePreviewPage === page;
-          return (
-            <m.button
-              key={`preview-page-${page}`}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => onPreviewPage(page)}
-              whileHover={reduceMotion ? undefined : { scale: 1.06 }}
-              whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-              transition={press}
-              className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ${
-                selected
-                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                  : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
-              }`}
-            >
-              Page {page + 1}
-            </m.button>
-          );
-        })}
-      </div>
-    ) : null;
-
-  return (
-    <SettingsLivePreviewFrame
-      eyebrow="Live board"
-      caption={
-        punchHoleMode
-          ? 'Tap a tile to punch a wallpaper hole — holes stay put when you reorder.'
-          : 'Preview updates as you change size. Turn on Punch holes to edit.'
-      }
-      headerAside={headerAside}
-      beforeCanvas={beforeCanvas}
-      sticky
-      minHeightClassName="min-h-[11.5rem] md:min-h-[13rem]"
-      canvasStyle={canvasStyle}
-    >
-      <div
-        className="relative z-[1] mx-auto grid h-full w-full max-w-xl gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${layout.rows}, minmax(2.4rem, 1fr))`,
-        }}
-        role="group"
-        aria-label="Channel board preview"
-      >
-        {pageSlotIndices.map((slotIndex) => {
-          const hidden = isSlotHidden(slotMeta, slotIndex);
-          return (
-            <m.button
-              key={`preview-slot-${slotIndex}`}
-              type="button"
-              disabled={!punchHoleMode}
-              onClick={() => onToggleSlot(slotIndex)}
-              whileHover={
-                reduceMotion || !punchHoleMode
-                  ? undefined
-                  : { scale: 1.05, y: -1 }
-              }
-              whileTap={reduceMotion || !punchHoleMode ? undefined : { scale: 0.92 }}
-              transition={press}
-              title={
-                punchHoleMode
-                  ? hidden
-                    ? 'Show this slot'
-                    : 'Hide this slot'
-                  : `Slot ${slotIndex + 1}`
-              }
-              className={`relative flex min-h-[2.4rem] items-center justify-center rounded-xl border-2 text-[10px] font-bold uppercase tracking-wide ${
-                hidden
-                  ? 'border-dashed border-[hsl(var(--border-secondary))] bg-transparent text-[hsl(var(--text-tertiary))]'
-                  : 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)]'
-              } ${punchHoleMode ? 'cursor-pointer' : 'cursor-default'}`}
-            >
-              {hidden ? <EyeOff size={14} aria-hidden /> : slotIndex + 1}
-            </m.button>
-          );
-        })}
-      </div>
-    </SettingsLivePreviewFrame>
-  );
-}
-
 const ChannelsLayoutSettingsTab = React.memo(() => {
   const channels = useConsolidatedAppStore((state) => state.channels);
   const ribbonColors = useConsolidatedAppStore(
@@ -277,11 +148,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   );
   const motionFeedback = useConsolidatedAppStore((state) => state.ui.motionFeedback);
   const gooeyPrefs = useMemo(() => mergeMotionFeedback(motionFeedback).gooey, [motionFeedback]);
-  const reduceMotion = useReducedMotion();
-  const press = useMemo(
-    () => createWeeTransition('press', { reducedMotion: reduceMotion }),
-    [reduceMotion]
-  );
   const floatingWidgets = useConsolidatedAppStore((state) => state.floatingWidgets);
   const setSpacesState = useConsolidatedAppStore((state) => state.actions.setSpacesState);
   const [punchHoleMode, setPunchHoleMode] = useState(false);
@@ -289,12 +155,23 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   /** Explicit board target; defaults follow the active channel space (Home vs Focus). */
   const [boardPickerKey, setBoardPickerKey] = useState(null);
   const [pageOnlyLayout, setPageOnlyLayout] = useState(false);
+  const [layoutStatus, setLayoutStatus] = useState('');
   const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
 
   const activeChannelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
   const layoutSpaceKey = boardPickerKey || activeChannelSpaceKey;
   const isFocusBoard = layoutSpaceKey === 'workspaces';
   const boardLabel = isFocusBoard ? 'Focus' : 'Home';
+
+  /** When switching Home/Focus, preview the live navigation page for that board. */
+  useEffect(() => {
+    const data = getChannelDataSlice(
+      useConsolidatedAppStore.getState().channels,
+      layoutSpaceKey
+    );
+    setPreviewPage(data?.navigation?.currentPage || 0);
+    setLayoutStatus('');
+  }, [layoutSpaceKey]);
 
   /** Close Settings and open Live Board Studio on Home (primary arrange/punch surface). */
   const handleArrangeOnHome = useCallback(() => {
@@ -371,12 +248,42 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
           { [field]: value },
           { pageOnly: true, pageIndex: safePreviewPage }
         );
+        setLayoutStatus(`Page ${safePreviewPage + 1} size updated. Live strip uses the board maximum.`);
         return;
       }
+      const hadOverrides = Object.keys(currentData?.layoutByPage || {}).length > 0;
       actions.setChannelLayoutForSpace(layoutSpaceKey, { [field]: value });
+      if (hadOverrides && (field === 'columns' || field === 'rows' || field === 'totalPages')) {
+        setLayoutStatus('Page overrides cleared — board size applies to all pages.');
+      } else {
+        setLayoutStatus('');
+      }
     },
-    [actions, layoutSpaceKey, pageOnlyLayout, safePreviewPage]
+    [actions, currentData?.layoutByPage, layoutSpaceKey, pageOnlyLayout, safePreviewPage]
   );
+
+  const handleResetToClassic = useCallback(() => {
+    actions.setChannelLayoutForSpace(layoutSpaceKey, {
+      columns: WII_LAYOUT_PRESET.columns,
+      rows: WII_LAYOUT_PRESET.rows,
+      totalPages: WII_LAYOUT_PRESET.totalPages,
+      peekPercent: WII_STRIP_PEEK_PERCENT,
+    });
+    setPageOnlyLayout(false);
+    setLayoutStatus(
+      `Reset ${boardLabel} to classic ${WII_LAYOUT_PRESET.columns}×${WII_LAYOUT_PRESET.rows}×${WII_LAYOUT_PRESET.totalPages}.`
+    );
+  }, [actions, boardLabel, layoutSpaceKey]);
+
+  /** Clear layoutByPage for the preview page by writing strip columns/rows as a page override (no-op delete). */
+  const handleClearPageOverride = useCallback(() => {
+    actions.setChannelLayoutForSpace(
+      layoutSpaceKey,
+      { columns: stripLayout.columns, rows: stripLayout.rows },
+      { pageOnly: true, pageIndex: safePreviewPage }
+    );
+    setLayoutStatus(`Cleared page ${safePreviewPage + 1} size — using board grid.`);
+  }, [actions, layoutSpaceKey, safePreviewPage, stripLayout.columns, stripLayout.rows]);
 
   const handleToggleSlotHidden = useCallback(
     (channelIndex) => {
@@ -501,73 +408,76 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
       <SettingsTabPageHeader
         title="Channel & layout"
-        subtitle="Shape Home or Focus boards, place widgets, and tune how tiles look and move"
+        subtitle="Set Home or Focus grid size, place widgets, and tune how tiles look and move"
       />
 
       <div className="flex flex-col gap-5">
         <WeeSettingsCollapsibleSection
           icon={LayoutGrid}
           title="Board studio"
-          description="Size the grid, peek at pages, and punch wallpaper holes."
+          description="Set grid size here. Reorder, resize tiles, and punch holes in Edit Home."
           defaultOpen
         >
-          <WeeGlassPill className="relative overflow-hidden rounded-[2.5rem] p-6 md:p-7">
-            <div className="relative z-[1] flex flex-wrap items-end justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <span className="inline-flex rounded-full bg-[hsl(var(--primary))] px-3 py-1 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-on-accent))]">
-                  {boardLabel} board
-                </span>
-                <m.h2
-                  key={`${layoutSpaceKey}-${layout.columns}-${layout.rows}-${stripLayout.totalPages}`}
-                  initial={reduceMotion ? false : { y: 8, opacity: 0.4 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={press}
-                  className="m-0 mt-3 text-[clamp(1.85rem,4vw,2.4rem)] font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--text-primary))]"
-                >
-                  {layout.columns} × {layout.rows} × {stripLayout.totalPages}
-                </m.h2>
-                <p className="mt-2 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--text-secondary))]">
-                  {totalChannels} slots · classic default {WII_LAYOUT_PRESET.columns}×
-                  {WII_LAYOUT_PRESET.rows}×{WII_LAYOUT_PRESET.totalPages}
-                  {pageOnlyLayout && pageLayout.hasPageOverride ? ' · page override' : ''}
-                </p>
-                <div className="mt-4 max-w-sm">
-                  <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                    Board
-                  </WeeSectionEyebrow>
-                  <WeeSegmentedControl
-                    ariaLabel="Channel board to edit"
-                    value={layoutSpaceKey}
-                    onChange={(key) => setBoardPickerKey(key)}
-                    options={[
-                      { value: 'home', label: 'Home' },
-                      { value: 'workspaces', label: 'Focus' },
-                    ]}
-                    size="sm"
-                  />
-                </div>
-              </div>
-              {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
-                <Text variant="caption" className="!m-0 max-w-[14rem] text-[hsl(var(--text-tertiary))]">
-                  You’re in a Hub — pick Home or Focus above to choose which board to edit.
-                </Text>
-              ) : null}
+          <div className="flex flex-col gap-2">
+            <WeeSectionEyebrow className="block" trackingClassName="tracking-[0.14em]">
+              Grid size
+            </WeeSectionEyebrow>
+            <h2 className="m-0 text-xl font-black tracking-tight text-[hsl(var(--text-primary))] md:text-2xl">
+              {boardLabel} · {layout.columns}×{layout.rows}×{stripLayout.totalPages}
+            </h2>
+            <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+              {totalChannels} slots · classic {WII_LAYOUT_PRESET.columns}×{WII_LAYOUT_PRESET.rows}×
+              {WII_LAYOUT_PRESET.totalPages}
+              {pageLayout.hasPageOverride ? ' · this page has a custom size' : ''}
+            </Text>
+            <div className="mt-2 max-w-sm">
+              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+                Board
+              </WeeSectionEyebrow>
+              <WeeSegmentedControl
+                ariaLabel="Channel board to edit"
+                value={layoutSpaceKey}
+                onChange={(key) => setBoardPickerKey(key)}
+                options={[
+                  { value: 'home', label: 'Home' },
+                  { value: 'workspaces', label: 'Focus' },
+                ]}
+                size="sm"
+              />
             </div>
-            <LayoutGrid
-              className="pointer-events-none absolute -bottom-8 -right-4 h-36 w-36 rotate-12 text-[hsl(var(--text-primary))] opacity-[0.06]"
-              strokeWidth={1.25}
-              aria-hidden
-            />
-          </WeeGlassPill>
+            {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
+              <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                You&apos;re in a Hub — pick Home or Focus above to choose which grid to edit.
+              </Text>
+            ) : null}
+          </div>
+
+          <ChannelBoardLivePreview
+            layout={{
+              columns: layout.columns,
+              rows: layout.rows,
+            }}
+            slotMeta={slotMeta}
+            slots={currentData.slots}
+            configuredChannels={currentData.configuredChannels}
+            pageSlotIndices={pageSlotIndices}
+            punchHoleMode={punchHoleMode}
+            onToggleSlot={handleToggleSlotHidden}
+            safePreviewPage={safePreviewPage}
+            totalPages={stripLayout.totalPages}
+            onPreviewPage={setPreviewPage}
+            currentPage={currentPage}
+            wallpaperUrl={wallpaperPreviewUrl || null}
+          />
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] px-4 py-3">
             <div className="min-w-0 max-w-md">
               <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                This page only
+                Advanced · This page only
               </WeeSectionEyebrow>
               <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-                Columns/rows apply to preview page {safePreviewPage + 1}. Pages &amp; peek stay
-                board-wide. Live strip geometry uses the board max (space layout).
+                Columns/rows apply to preview page {safePreviewPage + 1} only. Pages &amp; peek stay
+                board-wide. The live strip still uses the board maximum so scrolling stays stable.
               </Text>
             </div>
             <WToggle
@@ -611,35 +521,51 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               ariaLabel="next-page peek percent"
             />
           </div>
-          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-            Shrinking the board keeps channels that still fit; extras are cleared. Growing adds empty slots.
-            Peek % controls how much of the next page shows at the strip’s edge.
-            {isFocusBoard
-              ? ' Focus board size is independent of Home.'
-              : ' Home board size is independent of Focus.'}
-          </Text>
 
-          <div className="flex flex-col gap-4 rounded-[2rem] border-2 border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--surface-wii-tint)/0.5)] p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <WeeButton type="button" variant="secondary" onClick={handleResetToClassic}>
+              Reset to classic
+            </WeeButton>
+            {pageLayout.hasPageOverride ? (
+              <WeeButton type="button" variant="secondary" onClick={handleClearPageOverride}>
+                Clear this page&apos;s size
+              </WeeButton>
+            ) : null}
+          </div>
+
+          {layoutStatus ? (
+            <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]" role="status">
+              {layoutStatus}
+            </Text>
+          ) : (
+            <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+              Shrinking keeps channels that still fit; extras are cleared. Growing adds empty slots.
+              Peek % is how much of the next page shows at the strip edge. Home and Focus sizes are
+              independent.
+            </Text>
+          )}
+
+          <div className="flex flex-col gap-4 rounded-[1.75rem] border-2 border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--surface-wii-tint)/0.5)] p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 max-w-xl">
                 <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                  {isFocusBoard ? 'Open Focus' : 'Live Board Studio'}
+                  {isFocusBoard ? 'Open Focus' : 'Edit on the board'}
                 </WeeSectionEyebrow>
                 <Text variant="body" className="!m-0 !font-black !text-[hsl(var(--text-primary))]">
                   {isFocusBoard
-                    ? 'Arrange on the Focus board'
-                    : 'Arrange tiles and widgets on Home'}
+                    ? 'Arrange tiles on Focus'
+                    : 'Reorder, resize widgets, and punch holes'}
                 </Text>
                 <Text variant="desc" className="!mt-2 !mb-0 text-[hsl(var(--text-secondary))]">
                   {isFocusBoard
-                    ? 'Live Board Studio (drag, widgets, punch) is Home-primary. Open Focus to edit that board in place; punch holes here in the preview.'
-                    : 'Closes settings and edits the board in place — reorder tiles, add widgets, and punch wallpaper holes right where they live.'}
+                    ? 'Edit Home is Home-primary for Live Board Studio. Open Focus to arrange that grid in place; punch holes in the preview above.'
+                    : 'Closes settings and edits the grid in place — does not change columns, rows, or pages.'}
                 </Text>
               </div>
               <WeeButton
                 type="button"
                 variant="primary"
-                className="!rounded-full !px-5 !py-3 shrink-0"
+                className="shrink-0"
                 onClick={isFocusBoard ? handleOpenFocusBoard : handleArrangeOnHome}
               >
                 {isFocusBoard ? 'Open Focus' : 'Edit Home'}
@@ -652,8 +578,8 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                 </WeeSectionEyebrow>
                 <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
                   {isFocusBoard
-                    ? 'Edit holes in the preview below for Focus. On Home, Live Board Studio is the primary punch surface.'
-                    : 'Prefer Live Board Studio for punching on Home — or edit holes in the preview below.'}
+                    ? 'Edit holes in the live grid above for Focus.'
+                    : 'Prefer Edit Home for punching — or edit holes in the preview above.'}
                 </Text>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -661,53 +587,28 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                   <WeeButton
                     type="button"
                     variant="secondary"
-                    className="!rounded-full !px-4 !py-2.5 shrink-0"
+                    className="shrink-0"
                     onClick={handlePunchOnHome}
                   >
                     Punch on Home
                   </WeeButton>
                 ) : null}
-                <m.button
+                <WeeButton
                   type="button"
+                  variant={punchHoleMode ? 'primary' : 'secondary'}
+                  className="shrink-0"
                   aria-pressed={punchHoleMode}
                   onClick={() => setPunchHoleMode((v) => !v)}
-                  whileHover={reduceMotion ? undefined : { scale: 1.04 }}
-                  whileTap={reduceMotion ? undefined : { scale: 0.95 }}
-                  transition={press}
-                  className={`rounded-full px-4 py-2.5 text-[10px] font-black uppercase tracking-wide ${
-                    punchHoleMode
-                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
-                      : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
-                  }`}
                 >
                   {punchHoleMode ? 'Done editing' : 'Edit in preview'}
-                </m.button>
+                </WeeButton>
               </div>
             </div>
           </div>
 
-          <BoardLivePreview
-            layout={{
-              columns: layout.columns,
-              rows: layout.rows,
-              totalPages: stripLayout.totalPages,
-              channelsPerPage: layout.channelsPerPage,
-              totalChannels: stripLayout.totalChannels,
-            }}
-            slotMeta={slotMeta}
-            pageSlotIndices={pageSlotIndices}
-            punchHoleMode={punchHoleMode}
-            onToggleSlot={handleToggleSlotHidden}
-            safePreviewPage={safePreviewPage}
-            totalPages={stripLayout.totalPages}
-            onPreviewPage={setPreviewPage}
-            currentPage={currentPage}
-            wallpaperUrl={wallpaperPreviewUrl || null}
-          />
-
           <HomeBoardSwitcher />
 
-          <div className="flex flex-col gap-3 rounded-[2rem] border-2 border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--surface-wii-tint)/0.45)] p-5 md:flex-row md:items-start md:gap-4">
+          <div className="flex flex-col gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--surface-wii-tint)/0.45)] p-5 md:flex-row md:items-start md:gap-4">
             <Info className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--primary))]" aria-hidden />
             <div className="min-w-0">
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
@@ -755,7 +656,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             hoverAccent="none"
             titleClassName={TOGGLE_TITLE}
             title="Admin panel widget"
-            desc="Floating Quick Access menu for Windows tools. You can also pin Quick Access onto the Home board."
+            desc="Floating Quick Access menu for Windows tools. You can also pin Quick Access on Home."
             checked={Boolean(floatingWidgets?.adminPanel?.visible)}
             onChange={(next) => handleToggleFloatingWidget('adminPanel', next)}
           />
@@ -773,7 +674,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             <WeeButton
               type="button"
               variant="secondary"
-              className="!rounded-full !px-4 !py-2.5 shrink-0"
+              className="shrink-0"
               onClick={handleArrangeOnHome}
             >
               Edit Home

@@ -20,3 +20,15 @@ export const SPACE_SHELL_RAPID_WINDOW_MS = 1000;
 
 /** Shared easing for shell-aligned transitions (CSS). */
 export const SPACE_SHELL_EASE_CSS = 'cubic-bezier(0.16, 1, 0.3, 1)';
+
+/**
+ * JS approximation of `SPACE_SHELL_EASE_CSS` for RAF tweens (ribbon look, etc.).
+ * Snappy early progress + soft settle — matches wallpaper/space-world feel better than easeOutCubic.
+ * @param {number} t — 0…1
+ * @returns {number}
+ */
+export function easeSpaceShell(t) {
+  const x = Math.max(0, Math.min(1, t));
+  // easeOutQuint — close to cubic-bezier(0.16, 1, 0.3, 1) without solving a cubic each frame
+  return 1 - (1 - x) ** 5;
+}

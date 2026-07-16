@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Check, Grip, HelpCircle, MoreHorizontal, PenLine, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Check, Grip, HelpCircle, PenLine, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { createWeeTransition } from '../../design/weeMotion';
 import {
   WeeGlassPill,
@@ -28,8 +28,7 @@ const MotionDiv = m.div;
 
 /**
  * Edit Home contextual tray — visible only while `homeBoardArrangeMode` is on.
- * Sits above the dock. Primary actions: Add widget (registry picker), size/remove for the
- * selected widget, Done. Wallpaper holes (punch) live behind More.
+ * Sits above the dock. Primary actions: Add widget, size/remove, Looks, Punch holes, Done.
  */
 function HomeBoardArrangeBar({
   arrangeMode,
@@ -58,7 +57,6 @@ function HomeBoardArrangeBar({
     },
     [onPickerOpenChange, pickerOpen]
   );
-  const [moreOpen, setMoreOpen] = useState(false);
   const [looksOpen, setLooksOpen] = useState(false);
 
   const systemSessions = useConsolidatedAppStore(
@@ -67,7 +65,6 @@ function HomeBoardArrangeBar({
 
   useEffect(() => {
     if (!arrangeMode) {
-      setMoreOpen(false);
       setLooksOpen(false);
     }
   }, [arrangeMode]);
@@ -139,21 +136,19 @@ function HomeBoardArrangeBar({
 
   const handleToggleQuickPicker = useCallback(() => {
     setPickerOpen((prev) => !prev);
-    setMoreOpen(false);
-    setLooksOpen(false);
-  }, [setPickerOpen]);
-
-  const handleToggleMore = useCallback(() => {
-    setMoreOpen((prev) => !prev);
-    setPickerOpen(false);
     setLooksOpen(false);
   }, [setPickerOpen]);
 
   const handleToggleLooks = useCallback(() => {
     setLooksOpen((prev) => !prev);
     setPickerOpen(false);
-    setMoreOpen(false);
   }, [setPickerOpen]);
+
+  const handleTogglePunch = useCallback(() => {
+    setPickerOpen(false);
+    setLooksOpen(false);
+    onTogglePunch?.();
+  }, [onTogglePunch, setPickerOpen]);
 
   const handlePickKind = useCallback(
     (kindId) => {
@@ -164,7 +159,7 @@ function HomeBoardArrangeBar({
   );
 
   const hint = punchMode
-    ? 'Tap tiles to punch wallpaper holes · toggle off under More when finished'
+    ? 'Tap tiles to punch wallpaper holes · toggle Punch off when finished'
     : looksOpen
       ? 'Tune this widget’s look · Done when finished'
       : selectedIsWidget
@@ -285,17 +280,29 @@ function HomeBoardArrangeBar({
               ) : null}
 
               <WeeButton
-                variant="secondary"
+                variant={punchMode ? 'primary' : 'secondary'}
                 size="sm"
-                onClick={handleToggleMore}
-                aria-expanded={moreOpen}
-                aria-label="More editing tools"
+                aria-pressed={punchMode}
+                onClick={handleTogglePunch}
+                title="Punch see-through holes in the grid to show wallpaper"
               >
                 <span className="flex items-center gap-1.5">
-                  <MoreHorizontal size={13} strokeWidth={2.5} aria-hidden />
-                  More
+                  <PenLine size={13} strokeWidth={2.5} aria-hidden />
+                  Punch
                 </span>
               </WeeButton>
+
+              {typeof onReopenGuide === 'function' ? (
+                <WeeButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={onReopenGuide}
+                  title="Show the Edit Home tips again"
+                  aria-label="Show Edit Home tips"
+                >
+                  <HelpCircle size={13} strokeWidth={2.5} aria-hidden />
+                </WeeButton>
+              ) : null}
 
               <WeeButton variant="primary" size="sm" onClick={onDone}>
                 <span className="flex items-center gap-1.5">
@@ -351,41 +358,6 @@ function HomeBoardArrangeBar({
                 ) : null}
                 {hasWidgetSettings ? (
                   <HomeWidgetSettingsPanel kindId={selectedSlot?.kind} nested />
-                ) : null}
-              </div>
-            </WeeContentCollapse>
-
-            <WeeContentCollapse open={moreOpen} keepMounted={false}>
-              <div className="flex flex-wrap items-center justify-center gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
-                <WeeButton
-                  variant={punchMode ? 'primary' : 'secondary'}
-                  size="sm"
-                  aria-pressed={punchMode}
-                  onClick={onTogglePunch}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <PenLine size={13} strokeWidth={2.5} aria-hidden />
-                    Wallpaper holes
-                  </span>
-                </WeeButton>
-                <span className="text-[length:var(--font-size-micro)] font-bold uppercase tracking-[0.1em] text-[hsl(var(--text-tertiary))]">
-                  Punch see-through holes in the grid to show wallpaper
-                </span>
-                {typeof onReopenGuide === 'function' ? (
-                  <WeeButton
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      onReopenGuide();
-                      setMoreOpen(false);
-                    }}
-                    title="Show the Edit Home tips again"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <HelpCircle size={13} strokeWidth={2.5} aria-hidden />
-                      Show tips
-                    </span>
-                  </WeeButton>
                 ) : null}
               </div>
             </WeeContentCollapse>

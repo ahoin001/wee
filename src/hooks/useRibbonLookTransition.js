@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { CHANNEL_PAGE_FLIP_MS } from '../utils/channelLayoutSystem';
-import { SPACE_SHELL_TRANSITION_MS_DEFAULT } from '../design/spaceShellMotion';
+import {
+  easeSpaceShell,
+  SPACE_SHELL_TRANSITION_MS_DEFAULT,
+} from '../design/spaceShellMotion';
 import { pickRibbonLook } from '../utils/appearance/resolveEffectiveRibbonLook';
 
 /**
@@ -43,13 +46,19 @@ function lerpHex(fromHex, toHex, t) {
   return toHex([lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]);
 }
 
-function easeOutCubic(t) {
-  return 1 - (1 - t) ** 3;
-}
+/**
+ * Page ribbon color morph — slightly shorter than CHANNEL_PAGE_FLIP_MS so accents
+ * settle as the board/wallpaper land (feels reactive, not lagging the flip).
+ */
+export const RIBBON_PAGE_TRANSITION_MS = Math.round(CHANNEL_PAGE_FLIP_MS * 0.7);
+
+/** Fallback when App has not passed the live shell duration (rapid-aware). */
+export const RIBBON_SPACE_TRANSITION_MS = SPACE_SHELL_TRANSITION_MS_DEFAULT;
 
 /**
  * Paint-only ribbon look tween when the resolved Surfaces look changes.
  * Does not write the store every frame — returns display values for WiiRibbon.
+ * Duration/ease track shell wallpaper crossfade so space/page switches feel reactive.
  *
  * @param {{
  *   targetLook: object,
@@ -59,7 +68,7 @@ function easeOutCubic(t) {
  */
 export function useRibbonLookTransition({
   targetLook,
-  durationMs = CHANNEL_PAGE_FLIP_MS,
+  durationMs = RIBBON_PAGE_TRANSITION_MS,
   ambientOverride = false,
 }) {
   const reducedMotion = useReducedMotion();
@@ -113,7 +122,7 @@ export function useRibbonLookTransition({
 
     const tick = (now) => {
       const t = Math.min(1, (now - startRef.current) / durationMs);
-      const e = easeOutCubic(t);
+      const e = easeSpaceShell(t);
       const from = fromRef.current;
       const to = toRef.current;
       const mixed = {
@@ -153,8 +162,5 @@ export function useRibbonLookTransition({
 
   return displayLook;
 }
-
-export const RIBBON_PAGE_TRANSITION_MS = CHANNEL_PAGE_FLIP_MS;
-export const RIBBON_SPACE_TRANSITION_MS = SPACE_SHELL_TRANSITION_MS_DEFAULT;
 
 export default useRibbonLookTransition;

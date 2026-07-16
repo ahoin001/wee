@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784236400.7543993,
-    "ast_hash": "fa6d17badfde9b7f2f33b9a4a9c8452a",
+    "mtime": 1784237583.6201808,
+    "ast_hash": "8e4f9a2a9896b4b042a4edbb6adf2144",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/App.jsx": {
-    "mtime": 1784237394.1414185,
-    "ast_hash": "a07553dfe5d7eb5d13fe06dd7a136b90",
+    "mtime": 1784238247.5474622,
+    "ast_hash": "267df2c380c005f656c56d1fa3d3b26f",
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanel.jsx": {
@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/WiiRibbon.jsx": {
-    "mtime": 1784237394.8492737,
-    "ast_hash": "c17dedeaba7d68c55d442ac5e421a8f6",
+    "mtime": 1784238243.7789502,
+    "ast_hash": "d2bbbd691f88a683949dfdb6e6f32dbf",
     "semantic_hash": ""
   },
   "src/components/dock/WiiStyleButton.jsx": {
@@ -620,8 +620,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
-    "mtime": 1784235325.0745676,
-    "ast_hash": "a66bd35663be7fcce6f1dd28f9edb4dd",
+    "mtime": 1784237969.4446921,
+    "ast_hash": "4fc1948fc6b24622fc4a6aca717a6c3e",
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
@@ -970,9 +970,9 @@
     "semantic_hash": "14d31c228f71a4c4e2284c32b1be1af2"
   },
   "src/design/spaceShellMotion.js": {
-    "mtime": 1776717982.3459773,
-    "ast_hash": "74160bd39d2a62519bf2db221b43e250",
-    "semantic_hash": "74160bd39d2a62519bf2db221b43e250"
+    "mtime": 1784238227.472986,
+    "ast_hash": "398cb982bc2b1be73b9b84ddd94c42ba",
+    "semantic_hash": ""
   },
   "src/design/spotifyGooeyTokens.js": {
     "mtime": 1776695132.269899,
@@ -2095,8 +2095,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
-    "mtime": 1784231159.5103426,
-    "ast_hash": "35f1dd70fe675dd5be533446bb3a6ed3",
+    "mtime": 1784238051.0072339,
+    "ast_hash": "6646ab400cc298c8977438a1ff2ff03a",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardSwitcher.jsx": {
@@ -2485,8 +2485,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useRibbonLookTransition.js": {
-    "mtime": 1784235584.8189318,
-    "ast_hash": "ed75718a39ed6fdc2f6c2f837ddfb49a",
+    "mtime": 1784238241.0575051,
+    "ast_hash": "e8c7436aad53898aa3f4ad79b7355789",
     "semantic_hash": ""
   },
   "src/utils/appearance/resolveEffectiveRibbonLook.js": {
@@ -2502,6 +2502,11 @@
   "src/utils/presets/saveCurrentAtmosphereLookPreset.js": {
     "mtime": 1784237300.4967382,
     "ast_hash": "b416faeb4aa16d21ad7d4ce7eaee3908",
+    "semantic_hash": ""
+  },
+  "src/components/settings/ChannelBoardLivePreview.jsx": {
+    "mtime": 1784237901.765173,
+    "ast_hash": "449ea0bbc35b711a945b6d03563aab16",
     "semantic_hash": ""
   }
 }
