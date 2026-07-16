@@ -3,6 +3,7 @@
  */
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { Clock } from 'lucide-react';
 import { WeeFadeScroll } from '../../ui/wee';
 import {
   STEAM_CDN_HEADER,
@@ -14,6 +15,53 @@ import {
   getHomeSteamTileSizeConfig,
   resolveSteamShelfScrollAxis,
 } from '../../utils/homeSteamWidgetPrefs';
+
+/**
+ * Frosted title + playtime dock at the bottom of a cover tile.
+ */
+function SteamCoverDetailPanel({ name, playLabel, footer }) {
+  if (!name && !playLabel && !footer) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0">
+      <div
+        className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[hsl(var(--surface-primary)/0.94)] via-[hsl(var(--surface-primary)/0.45)] to-transparent"
+        aria-hidden
+      />
+      <div className="relative m-1 overflow-hidden rounded-[0.65rem] border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated)/0.72)] p-1.5 shadow-[var(--shadow-sm)] backdrop-blur-md">
+        {footer ? <div className="mb-1 min-w-0">{footer}</div> : null}
+        {name ? (
+          <div className="truncate text-[length:var(--font-size-micro)] font-extrabold leading-tight tracking-wide text-[hsl(var(--text-primary))] [text-shadow:0_1px_2px_hsl(var(--surface-primary)/0.55)]">
+            {name}
+          </div>
+        ) : null}
+        {playLabel ? (
+          <div
+            className={`inline-flex max-w-full items-center gap-1 rounded-full border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-primary)/0.55)] px-1.5 py-0.5 ${
+              name ? 'mt-1' : ''
+            }`}
+          >
+            <Clock
+              size={9}
+              strokeWidth={2.75}
+              className="shrink-0 text-[hsl(var(--primary))]"
+              aria-hidden
+            />
+            <span className="truncate text-[9px] font-black tabular-nums tracking-wide text-[hsl(var(--text-primary))]">
+              {playLabel}
+            </span>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+SteamCoverDetailPanel.propTypes = {
+  name: PropTypes.string,
+  playLabel: PropTypes.string,
+  footer: PropTypes.node,
+};
 
 export function SteamCoverTile({
   appId,
@@ -31,6 +79,7 @@ export function SteamCoverTile({
   const primarySrc =
     (typeof imageUrl === 'string' && imageUrl.trim()) || (id ? STEAM_CDN_LIBRARY_COVER(id) : '');
   const playLabel = showPlaytime ? formatSteamPlaytimeShort(playtimeMinutes) : '';
+  const displayName = showName && name ? name : '';
 
   return (
     <button
@@ -41,13 +90,13 @@ export function SteamCoverTile({
         event.stopPropagation();
         onActivate?.(event);
       }}
-      className="home-widget-float-tile group relative aspect-[2/3] w-full min-w-0 overflow-hidden rounded-lg border border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.88)] text-left shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
+      className="home-widget-float-tile group relative aspect-[2/3] w-full min-w-0 overflow-hidden rounded-[0.85rem] border border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.88)] text-left shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
     >
       {primarySrc ? (
         <img
           src={primarySrc}
           alt=""
-          className="absolute inset-0 h-full w-full object-contain"
+          className="absolute inset-0 h-full w-full object-cover"
           draggable={false}
           loading="lazy"
           onError={(event) => {
@@ -63,23 +112,7 @@ export function SteamCoverTile({
         <div className="absolute inset-0 bg-[hsl(var(--surface-secondary))]" />
       )}
 
-      {(playLabel || showName || footer) && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[hsl(var(--surface-primary)/0.92)] via-[hsl(var(--surface-primary)/0.35)] to-transparent pt-5">
-          <div className="flex min-w-0 flex-col gap-0.5 p-1">
-            {footer}
-            {showName && name ? (
-              <span className="truncate text-[8px] font-black uppercase tracking-[0.06em] text-[hsl(var(--text-primary))]">
-                {name}
-              </span>
-            ) : null}
-            {playLabel ? (
-              <span className="w-fit rounded-md bg-[hsl(var(--surface-elevated)/0.85)] px-1 py-px text-[8px] font-black tabular-nums text-[hsl(var(--text-secondary))]">
-                {playLabel}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      )}
+      <SteamCoverDetailPanel name={displayName} playLabel={playLabel} footer={footer} />
     </button>
   );
 }
@@ -133,14 +166,12 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children }) {
       onWheel={(event) => {
         event.stopPropagation();
         if (!isHorizontal) return;
-        // Prefer horizontal wheel/trackpad intent when the shelf scrolls sideways.
         if (Math.abs(event.deltaX) < Math.abs(event.deltaY) && event.deltaY) {
           event.currentTarget.scrollLeft += event.deltaY;
           event.preventDefault();
         }
       }}
     >
-      {/* Slight end padding keeps a peek of the next row/column past the clip edge */}
       <div
         className={`grid content-start ${gutterCfg.gapClass} ${
           isHorizontal ? 'h-full w-max min-w-full pr-4' : 'pb-4'

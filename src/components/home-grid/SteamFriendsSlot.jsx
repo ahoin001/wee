@@ -1,67 +1,123 @@
 /**
- * Home-grid Steam Friends — friends currently in a game.
+ * Home-grid Steam Friends — console-style list of friends in-game.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Lock, Users } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
-import { SteamCoverTile, SteamGamesShelf } from './SteamGamesShelf';
+import { WeeFadeScroll } from '../../ui/wee';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { openExternalUrl, openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
-import {
-  getHomeSteamTileSizeConfig,
-  normalizeHomeSteamWidget,
-} from '../../utils/homeSteamWidgetPrefs';
-import { steamEnrichmentIpcArgs } from '../../utils/steamGamesGlance';
+import { steamEnrichmentIpcArgs, STEAM_CDN_HEADER, STEAM_CDN_LIBRARY_COVER } from '../../utils/steamGamesGlance';
 
 const FRIENDS_TTL_MS = 2 * 60 * 1000;
 const STEAM_FRIENDS_PRIVACY_URL = 'https://steamcommunity.com/my/edit/settings';
-/** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
 const EMPTY_FRIENDS_PLAYING = Object.freeze([]);
 
 const PRIVATE_FRIENDS_HINT =
   'Friends list is private on Steam. Set Friends List → Public, then tap to retry.';
 
-function FriendFooter({ friend }) {
+function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile }) {
+  const gameId = friend.gameId ? String(friend.gameId) : '';
+  const gameThumb = gameId ? STEAM_CDN_HEADER(gameId) : '';
+  const coverFallback = gameId ? STEAM_CDN_LIBRARY_COVER(gameId) : '';
+
   return (
-    <div className="flex min-w-0 items-center gap-1">
-      {friend.avatarUrl ? (
-        <img
-          src={friend.avatarUrl}
-          alt=""
-          className="h-4 w-4 shrink-0 rounded-full border border-[hsl(var(--border-primary)/0.5)] object-cover"
-          draggable={false}
+    <button
+      type="button"
+      title={
+        friend.gameName
+          ? `${friend.personaName} · ${friend.gameName}`
+          : friend.personaName
+      }
+      aria-label={
+        friend.gameName
+          ? `${friend.personaName} playing ${friend.gameName}`
+          : friend.personaName
+      }
+      disabled={interactionsLocked}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (interactionsLocked) return;
+        if (friend.gameId) onLaunchGame?.(friend);
+        else onOpenProfile?.(friend);
+      }}
+      className="group flex w-full min-w-0 items-center gap-2 rounded-[0.85rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] p-1.5 text-left shadow-[var(--shadow-sm)] backdrop-blur-sm transition-[transform,background-color,border-color] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--surface-elevated)/0.82)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70"
+    >
+      <div className="relative shrink-0">
+        {friend.avatarUrl ? (
+          <img
+            src={friend.avatarUrl}
+            alt=""
+            className="h-9 w-9 rounded-full border border-[hsl(var(--border-primary)/0.45)] object-cover"
+            draggable={false}
+          />
+        ) : (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--surface-secondary))] text-[11px] font-black text-[hsl(var(--text-secondary))]">
+            {(friend.personaName || '?').slice(0, 1).toUpperCase()}
+          </span>
+        )}
+        <span
+          className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[hsl(var(--surface-elevated))] bg-[hsl(var(--signal-success))]"
+          title="In game"
+          aria-hidden
         />
-      ) : (
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--surface-secondary))] text-[8px] font-black text-[hsl(var(--text-secondary))]">
-          {(friend.personaName || '?').slice(0, 1).toUpperCase()}
-        </span>
-      )}
-      <div className="min-w-0 flex-1 text-left">
-        <div className="truncate text-[8px] font-black uppercase tracking-[0.06em] text-[hsl(var(--text-primary))]">
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[length:var(--font-size-micro)] font-extrabold tracking-wide text-[hsl(var(--text-primary))]">
           {friend.personaName}
         </div>
-        {friend.gameName ? (
-          <div className="truncate text-[7px] font-bold text-[hsl(var(--text-secondary))]">
-            {friend.gameName}
-          </div>
-        ) : null}
+        <div className="mt-0.5 truncate text-[9px] font-bold text-[hsl(var(--text-secondary))]">
+          {friend.gameName ? (
+            <>
+              <span className="text-[hsl(var(--signal-success))]">Playing</span>
+              <span className="text-[hsl(var(--text-tertiary))]"> · </span>
+              {friend.gameName}
+            </>
+          ) : (
+            'Online'
+          )}
+        </div>
       </div>
-    </div>
+
+      {gameThumb ? (
+        <div className="relative h-9 w-[4.25rem] shrink-0 overflow-hidden rounded-md border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary))] shadow-[var(--shadow-sm)]">
+          <img
+            src={gameThumb}
+            alt=""
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            draggable={false}
+            loading="lazy"
+            onError={(event) => {
+              const img = event.currentTarget;
+              if (!coverFallback || img.dataset.fallback === 'cover') return;
+              img.dataset.fallback = 'cover';
+              img.src = coverFallback;
+            }}
+          />
+        </div>
+      ) : null}
+    </button>
   );
 }
 
-FriendFooter.propTypes = {
+FriendListRow.propTypes = {
   friend: PropTypes.shape({
+    steamId: PropTypes.string,
     personaName: PropTypes.string,
     avatarUrl: PropTypes.string,
+    gameId: PropTypes.string,
     gameName: PropTypes.string,
   }).isRequired,
+  interactionsLocked: PropTypes.bool,
+  onLaunchGame: PropTypes.func,
+  onOpenProfile: PropTypes.func,
 };
 
 function SteamFriendsSlot({
@@ -80,10 +136,8 @@ function SteamFriendsSlot({
     steamId,
     apiKeyConfigured,
     apiEnabled,
-    homeSteamWidgetRaw,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
-      // Never allocate || [] / normalize() inside useShallow — new refs → React #185.
       friendsPlaying: state.gameHub?.library?.friendsPlaying,
       friendsPlayingFetchedAt: state.gameHub?.library?.friendsPlayingFetchedAt || 0,
       friendsPlayingError: state.gameHub?.library?.friendsPlayingError || null,
@@ -91,17 +145,12 @@ function SteamFriendsSlot({
       steamId: state.gameHub?.profile?.steamId || '',
       apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
       apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
-      homeSteamWidgetRaw: state.ui?.homeSteamWidget,
     }))
   );
   const setGameHubState = useConsolidatedAppStore((s) => s.actions.setGameHubState);
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
   const [loading, setLoading] = useState(false);
 
-  const steamPrefs = useMemo(
-    () => normalizeHomeSteamWidget(homeSteamWidgetRaw),
-    [homeSteamWidgetRaw]
-  );
   const friendsList = Array.isArray(friendsPlaying) ? friendsPlaying : EMPTY_FRIENDS_PLAYING;
 
   const sizePreset = useMemo(
@@ -114,12 +163,9 @@ function SteamFriendsSlot({
       },
     [slot?.colSpan, slot?.rowSpan]
   );
-  const tileCfg = getHomeSteamTileSizeConfig(steamPrefs.tileSize);
-  const capacity = Math.max(Number(sizePreset.capacity) || 12, tileCfg.capacity);
+  const capacity = Math.max(Number(sizePreset.capacity) || 12, 8);
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
-  const colSpan = slot?.colSpan ?? sizePreset.colSpan ?? 2;
-  const rowSpan = slot?.rowSpan ?? sizePreset.rowSpan ?? 2;
   const isPrivateFriends =
     friendsPlayingStatusCode === 'private-friends' ||
     /private/i.test(String(friendsPlayingError || ''));
@@ -310,39 +356,31 @@ function SteamFriendsSlot({
           ) : null}
         </button>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-1">
+        <div className="flex min-h-0 flex-1 flex-col gap-1.5">
           <div className="flex shrink-0 items-center justify-between gap-1 px-0.5">
-            <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-              Steam Friends
-            </span>
+            <div className="min-w-0">
+              <div className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
+                Friends in-game
+              </div>
+              <div className="truncate text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+                {friends.length} online
+              </div>
+            </div>
             <Users size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
           </div>
-          <SteamGamesShelf prefs={steamPrefs} colSpan={colSpan} rowSpan={rowSpan}>
-            {friends.map((friend) => (
-              <SteamCoverTile
-                key={friend.steamId}
-                appId={friend.gameId}
-                name={friend.gameName}
-                showPlaytime={false}
-                showName={false}
-                title={
-                  friend.gameName
-                    ? `${friend.personaName} · ${friend.gameName}`
-                    : friend.personaName
-                }
-                ariaLabel={
-                  friend.gameName
-                    ? `${friend.personaName} playing ${friend.gameName}`
-                    : friend.personaName
-                }
-                onActivate={() => {
-                  if (friend.gameId) handleLaunchGame(friend);
-                  else handleOpenProfile(friend);
-                }}
-                footer={<FriendFooter friend={friend} />}
-              />
-            ))}
-          </SteamGamesShelf>
+          <WeeFadeScroll axis="y" fadePx={28} hideScrollbar className="min-h-0 flex-1">
+            <div className="flex flex-col gap-1.5 pb-2">
+              {friends.map((friend) => (
+                <FriendListRow
+                  key={friend.steamId}
+                  friend={friend}
+                  interactionsLocked={interactionsLocked}
+                  onLaunchGame={handleLaunchGame}
+                  onOpenProfile={handleOpenProfile}
+                />
+              ))}
+            </div>
+          </WeeFadeScroll>
         </div>
       )}
     </HomeWidgetShell>

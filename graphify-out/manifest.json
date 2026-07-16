@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784228602.4146912,
-    "ast_hash": "0c3a31f10fb48e574569cb94df4b29a6",
+    "mtime": 1784228904.0197473,
+    "ast_hash": "45065e0f21bd150af8292d614eaf4735",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -2315,8 +2315,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeSlotResizeHandle.jsx": {
-    "mtime": 1784165543.6746511,
-    "ast_hash": "f9a2c043297d04fdf2a4aa158c374e40",
+    "mtime": 1784229647.0300238,
+    "ast_hash": "c8af9660e39902d43f1d5aab794cdfe6",
     "semantic_hash": ""
   },
   "src/components/widgets/MusicReactiveBars.jsx": {
@@ -2325,8 +2325,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useHomeSlotResize.js": {
-    "mtime": 1784165528.1914015,
-    "ast_hash": "6eba918333c4d7a92f53640422366815",
+    "mtime": 1784229647.0949006,
+    "ast_hash": "5d8587f8c320bca6b994d34d3e28ac05",
     "semantic_hash": ""
   },
   "src/hooks/useMusicReactiveLevels.js": {
@@ -2425,8 +2425,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamFriendsSlot.jsx": {
-    "mtime": 1784223361.4719746,
-    "ast_hash": "6d031fafc37e130082106ff7051dda1d",
+    "mtime": 1784229716.496684,
+    "ast_hash": "ef06d852646c750c2f0b29a61496f43d",
     "semantic_hash": ""
   },
   "src/utils/overlayEscape.js": {
@@ -2440,8 +2440,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesShelf.jsx": {
-    "mtime": 1784224906.7094715,
-    "ast_hash": "efc1a255516504afb456222a4b483fce",
+    "mtime": 1784229716.9231162,
+    "ast_hash": "658c0895ec94ec758964014344ac8356",
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingColorMatch.js": {
@@ -2450,8 +2450,8 @@
     "semantic_hash": ""
   },
   "src/utils/homeSteamWidgetPrefs.js": {
-    "mtime": 1784224916.4092617,
-    "ast_hash": "e861e34a738fc96c13a1d4bb2702e9ac",
+    "mtime": 1784229663.7014363,
+    "ast_hash": "e3a4a4a2dd680db2842633b920f41909",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeFadeScroll.jsx": {

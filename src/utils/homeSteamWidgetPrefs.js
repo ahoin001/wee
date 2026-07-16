@@ -48,7 +48,7 @@ export const DEFAULT_HOME_STEAM_WIDGET = Object.freeze({
   scrollAxis: 'auto',
   gutter: 'default',
   showPlaytime: true,
-  showName: false,
+  showName: true,
 });
 
 /**
@@ -73,7 +73,8 @@ export function normalizeHomeSteamWidget(raw) {
     scrollAxis,
     gutter,
     showPlaytime: src.showPlaytime !== false,
-    showName: Boolean(src.showName),
+    // Default on for readable cover docks; explicit false still disables.
+    showName: src.showName !== false,
   };
 }
 

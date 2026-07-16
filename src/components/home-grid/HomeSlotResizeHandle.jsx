@@ -7,8 +7,81 @@ import { useHomeSlotResize } from '../../hooks/useHomeSlotResize';
 
 const MotionDiv = m.div;
 
+/** Grid span still grows from the tile’s top-left anchor; corners only flip drag axes. */
+const RESIZE_CORNERS = [
+  {
+    id: 'se',
+    invertX: false,
+    invertY: false,
+    className: 'bottom-1 right-1',
+    cursor: 'nwse-resize',
+    ariaLabel: 'Resize from bottom-right',
+    chevronClass: '',
+  },
+  {
+    id: 'sw',
+    invertX: true,
+    invertY: false,
+    className: 'bottom-1 left-1',
+    cursor: 'nesw-resize',
+    ariaLabel: 'Resize from bottom-left',
+    chevronClass: 'scale-x-[-1]',
+  },
+  {
+    id: 'ne',
+    invertX: false,
+    invertY: true,
+    className: 'top-1 right-1',
+    cursor: 'nesw-resize',
+    ariaLabel: 'Resize from top-right',
+    chevronClass: 'scale-y-[-1]',
+  },
+  {
+    id: 'nw',
+    invertX: true,
+    invertY: true,
+    className: 'top-1 left-1',
+    cursor: 'nwse-resize',
+    ariaLabel: 'Resize from top-left',
+    chevronClass: 'scale-x-[-1] scale-y-[-1]',
+  },
+];
+
+function ResizeCornerGlyph({ className }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      aria-hidden
+      className={`text-[hsl(var(--primary))] ${className || ''}`}
+    >
+      <path
+        d="M12 2v8a2 2 0 0 1-2 2H2"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 12h2a2 2 0 0 0 2-2V8"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        opacity="0.45"
+      />
+    </svg>
+  );
+}
+
+ResizeCornerGlyph.propTypes = {
+  className: PropTypes.string,
+};
+
 /**
- * Edit Home corner grabber + footprint ghost.
+ * Edit Home corner grabbers (all four corners) + footprint ghost.
+ * Multiple corners so the floating arrange bar cannot block every resize affordance.
  * Mount as a sibling overlay inside the selected slot shell (ChannelSlotDnd).
  */
 function HomeSlotResizeHandle({
@@ -28,7 +101,7 @@ function HomeSlotResizeHandle({
   const snapTransition = createWeeTransition('pillOpen', { reducedMotion });
   const pressTransition = createWeeTransition('press', { reducedMotion });
 
-  const { isResizing, draft, handleProps } = useHomeSlotResize({
+  const { isResizing, draft, beginResize } = useHomeSlotResize({
     enabled,
     anchorIndex,
     colSpan,
@@ -97,51 +170,36 @@ function HomeSlotResizeHandle({
   return (
     <>
       {ghost}
-      <button
-        type="button"
-        aria-label="Resize tile — drag to change size"
-        title="Drag to resize"
-        className={`absolute bottom-1 right-1 z-20 flex h-11 w-11 touch-none items-center justify-center rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-primary))] shadow-[var(--shadow-card)] transition-[box-shadow,border-color] hover:border-[hsl(var(--primary)/0.55)] hover:shadow-[var(--shadow-hover-glow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] ${
-          isResizing ? 'border-[hsl(var(--primary))] shadow-[var(--shadow-hover-glow)]' : ''
-        }`}
-        style={{ cursor: 'nwse-resize', touchAction: 'none' }}
-        {...handleProps}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-      >
-        <MotionDiv
-          className="pointer-events-none flex h-5 w-5 items-end justify-end"
-          whileHover={reducedMotion ? undefined : { scale: 1.08 }}
-          transition={pressTransition}
+      {RESIZE_CORNERS.map((corner) => (
+        <button
+          key={corner.id}
+          type="button"
+          aria-label={corner.ariaLabel}
+          title="Drag to resize"
+          className={`absolute z-30 flex h-10 w-10 touch-none items-center justify-center rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-primary))] shadow-[var(--shadow-card)] transition-[box-shadow,border-color] hover:border-[hsl(var(--primary)/0.55)] hover:shadow-[var(--shadow-hover-glow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] ${corner.className} ${
+            isResizing ? 'border-[hsl(var(--primary))] shadow-[var(--shadow-hover-glow)]' : ''
+          }`}
+          style={{ cursor: corner.cursor, touchAction: 'none' }}
+          onPointerDown={(event) => {
+            beginResize(event, {
+              invertX: corner.invertX,
+              invertY: corner.invertY,
+            });
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
-          {/* Corner chevron affordance */}
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            aria-hidden
-            className="text-[hsl(var(--primary))]"
+          <MotionDiv
+            className="pointer-events-none flex h-5 w-5 items-end justify-end"
+            whileHover={reducedMotion ? undefined : { scale: 1.08 }}
+            transition={pressTransition}
           >
-            <path
-              d="M12 2v8a2 2 0 0 1-2 2H2"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M8 12h2a2 2 0 0 0 2-2V8"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              opacity="0.45"
-            />
-          </svg>
-        </MotionDiv>
-      </button>
+            <ResizeCornerGlyph className={corner.chevronClass} />
+          </MotionDiv>
+        </button>
+      ))}
     </>
   );
 }
