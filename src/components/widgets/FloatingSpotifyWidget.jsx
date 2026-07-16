@@ -230,7 +230,7 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
   }, [useSystemKeys, useApiControls, runSystemTransport, spotifyManager]);
 
   const handleOpenSpotifyIntegrationSettings = useCallback(() => {
-    openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);
+    openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS, { integrationsSubTab: 'music' });
   }, []);
 
   useEffect(() => {
@@ -517,7 +517,7 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
                   <div className="floating-widget-status-banner__text">
                     {!isConnected && (
                       <span>
-                        Spotify isn&apos;t connected. Connect your account under Settings → API &amp; Widgets to
+                        Spotify isn&apos;t connected. Connect your account under Settings → Music, Steam &amp; Widgets to
                         control playback.
                       </span>
                     )}
@@ -542,7 +542,7 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
                           className="floating-widget-status-cta"
                           onClick={handleOpenSpotifyIntegrationSettings}
                         >
-                          Open API &amp; Widgets
+                          Open Music settings
                         </button>
                         {/no active device/i.test(String(spotifyError)) ? (
                           <button

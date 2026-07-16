@@ -939,7 +939,7 @@ const PresetsSettingsTab = React.memo(() => {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
-      <SettingsTabPageHeader title="Presets" subtitle="Save looks, apply themes, and share with the community" />
+      <SettingsTabPageHeader title="Looks" subtitle="Save looks, apply themes, and share with the community" />
 
       <AnimatePresence initial={false}>
         {captureNotice.text ? (

@@ -15,7 +15,7 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
-import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
+import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
 import {
   getHomeSteamTileSizeConfig,
   normalizeHomeSteamWidget,
@@ -170,7 +170,7 @@ function SteamGamesGlanceSlot({
 
   const openSteamApiSettings = useCallback(() => {
     if (interactionsLocked && !arrangeMode) return;
-    openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);
+    openSettingsToIntegrationsSubtab('steam');
   }, [interactionsLocked, arrangeMode]);
 
   const handleActivate = useCallback(
@@ -197,18 +197,19 @@ function SteamGamesGlanceSlot({
   );
 
   const emptyHint = !steamId
-    ? 'Set Steam ID in API & Widgets'
+    ? 'Set Steam ID in Music, Steam & Widgets'
     : !apiEnabled
-      ? 'Enable Steam Web API in API & Widgets'
+      ? 'Enable Steam Web API in Music, Steam & Widgets'
       : !apiKeyConfigured && !lastSyncedAt
-        ? 'Add Steam API key in API & Widgets'
+        ? 'Add Steam API key in Music, Steam & Widgets'
         : lastSyncedAt
           ? meta.emptyNoData
-          : 'Sync Steam from API & Widgets';
+          : 'Sync Steam from Music, Steam & Widgets';
 
   return (
     <HomeWidgetShell
       surface={surface}
+      brandTone="steam"
       selected={selected}
       className={layout.shellPadClass}
       onClick={handleActivate}

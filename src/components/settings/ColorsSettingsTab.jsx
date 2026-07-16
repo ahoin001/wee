@@ -21,7 +21,7 @@ const QUICK_LINKS = [
   { id: SETTINGS_TAB_ID.DOCK, label: 'Dock colors', detail: 'Ribbon surface + glow controls' },
   { id: SETTINGS_TAB_ID.TIME, label: 'Time colors', detail: 'Clock text and pill styling' },
   { id: SETTINGS_TAB_ID.WALLPAPER, label: 'Wallpaper tones', detail: 'Blur, brightness, and saturation per space' },
-  { id: SETTINGS_TAB_ID.PRESETS, label: 'Presets', detail: 'Save and apply complete visual setups' },
+  { id: SETTINGS_TAB_ID.PRESETS, label: 'Looks', detail: 'Save and apply complete visual setups' },
 ];
 
 const ColorsSettingsTab = React.memo(() => {

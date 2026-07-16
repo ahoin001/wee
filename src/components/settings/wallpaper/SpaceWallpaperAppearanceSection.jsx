@@ -43,6 +43,9 @@ function SpaceWallpaperAppearanceSection({
   onApplyWallpaperToCurrentPage,
   onClearCurrentPageWallpaper,
   canApplyPageWallpaper = false,
+  /** @type {Array<{ pageIndex: number, url: string|null }>|undefined} */
+  pageMapEntries,
+  onSelectBoardPage,
 }) {
   const mediaHubEnabled = useConsolidatedAppStore((s) => s.spaces.mediaHubEnabled === true);
   const spaceOptions = SPACE_WALLPAPER_OPTIONS.filter(
@@ -55,7 +58,7 @@ function SpaceWallpaperAppearanceSection({
     null;
 
   return (
-    <SettingsWeeSection eyebrow="Wallpaper layer">
+    <SettingsWeeSection eyebrow="Wallpaper by space & page">
       <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
         <WallpaperScenePreview
           wallpaperUrl={sceneUrl}
@@ -67,14 +70,14 @@ function SpaceWallpaperAppearanceSection({
         />
 
         <Text variant="h3" className="mb-1 playful-hero-text">
-          3. Tune controls
+          Space &amp; page look
         </Text>
         <Text variant="desc" className="mb-4">
-          Opacity applies everywhere. Blur, brightness, and saturation are per space so you can soften Home
-          independently from Game Hub / Media Hub.
+          Pick Home, Focus, Game Hub, or Media Hub. On Home you can use a different wallpaper per
+          channel page. Hubs can override the desktop wallpaper entirely.
         </Text>
         <p className="mt-0 mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
-          These settings affect the desktop wallpaper layer behind channels, Game Hub, and Media Hub.
+          Opacity is global. Blur, brightness, and saturation stay per space.
         </p>
 
         {showGlobalOpacity ? (
@@ -158,10 +161,44 @@ function SpaceWallpaperAppearanceSection({
             <WeeRevealWhen when={supportsPerPageWallpaper && selectedWallpaperScope === 'perPage'}>
               <div className="mb-4 rounded-xl border border-[hsl(var(--border-primary)/0.6)] bg-[hsl(var(--surface-secondary)/0.55)] p-3">
                 <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))]">
+                  Page map
+                </div>
+                {Array.isArray(pageMapEntries) && pageMapEntries.length > 0 ? (
+                  <div className="mb-3 flex flex-wrap gap-1.5">
+                    {pageMapEntries.map((entry) => {
+                      const filled = Boolean(entry.url);
+                      const isCurrent = entry.pageIndex === selectedBoardCurrentPage;
+                      return (
+                        <button
+                          key={entry.pageIndex}
+                          type="button"
+                          title={
+                            filled
+                              ? `Page ${entry.pageIndex + 1} · custom wallpaper`
+                              : `Page ${entry.pageIndex + 1} · empty (falls back — no crossfade vs neighbors sharing fallback)`
+                          }
+                          onClick={() => onSelectBoardPage?.(entry.pageIndex)}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] transition-colors ${
+                            isCurrent
+                              ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--text-primary))]'
+                              : filled
+                                ? 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.8)] text-[hsl(var(--text-primary))]'
+                                : 'border-dashed border-[hsl(var(--border-primary)/0.45)] bg-transparent text-[hsl(var(--text-tertiary))]'
+                          }`}
+                        >
+                          {entry.pageIndex + 1}
+                          {filled ? '' : ' · empty'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))]">
                   Page {selectedBoardCurrentPage + 1}
                 </div>
                 <div className="mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
                   Apply the selected library asset (or current desktop wallpaper) to this channel page.
+                  Empty pages share the fallback look — flips between them skip the crossfade.
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <WeeButton

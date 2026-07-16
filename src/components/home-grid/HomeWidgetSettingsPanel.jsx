@@ -379,7 +379,7 @@ function NowPlayingWidgetSettings() {
       >
         <div className="space-y-3">
           <p className="m-0 text-sm font-medium text-[hsl(var(--text-secondary))]">
-            Freezes the live album palette with your current visual look. Find it under Presets.
+            Freezes the live album palette with your current visual look. Find it under Looks.
           </p>
           {showLivePalette ? (
             <div className="flex items-center gap-2">

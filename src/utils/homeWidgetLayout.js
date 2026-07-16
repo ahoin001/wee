@@ -81,19 +81,20 @@ export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1) {
 
   const iconPx = density === 'compact' ? 22 : density === 'roomy' ? 28 : 24;
 
-  const listAvatarPx = density === 'compact' ? 28 : density === 'roomy' ? 40 : 36;
+  const listAvatarPx = density === 'compact' ? 32 : density === 'roomy' ? 44 : 40;
+  /** Friend / media list game capsules — landscape header art, sized to read as the row hero. */
   const listThumbClass =
     density === 'roomy'
-      ? 'h-11 w-[5.25rem]'
+      ? 'h-16 w-[7.5rem] rounded-lg'
       : density === 'compact'
-        ? 'h-8 w-14'
-        : 'h-9 w-[4.25rem]';
+        ? 'h-12 w-[5.5rem] rounded-md'
+        : 'h-14 w-[6.5rem] rounded-lg';
   const listRowClass =
     density === 'roomy'
-      ? 'gap-2.5 rounded-[1rem] p-2'
+      ? 'gap-3 rounded-[1.15rem] p-2.5'
       : density === 'compact'
-        ? 'gap-1.5 rounded-[0.75rem] p-1'
-        : 'gap-2 rounded-[0.85rem] p-1.5';
+        ? 'gap-2 rounded-[0.9rem] p-1.5'
+        : 'gap-2.5 rounded-[1rem] p-2';
 
   // Icon grids (Recently Used / Quick Access): prefer readable columns.
   let iconGridCols = 3;
@@ -105,7 +106,9 @@ export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1) {
   else iconGridCols = 2;
 
   const showIconLabels = density === 'roomy' || (isTall && cells >= 4);
-  const listColumns = isWide && cols >= 3 ? 2 : 1;
+  // Friend lists: dual columns on 2×2+ boards; stay single-column on short 2×1 banners.
+  const listColumns =
+    (isWide && cols >= 3) || (cols >= 2 && rows >= 2) ? 2 : 1;
 
   return {
     colSpan: cols,

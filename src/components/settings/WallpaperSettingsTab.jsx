@@ -14,7 +14,6 @@ import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsWeeSection from './SettingsWeeSection';
 import { WeeHelpLinkButton, WeeModalFieldCard, WeeSpaceRailPillButton } from '../../ui/wee';
 import WallpaperLibrarySection from './wallpaper/WallpaperLibrarySection';
-import SpaceWallpaperAppearanceSection from './wallpaper/SpaceWallpaperAppearanceSection';
 import WallpaperCyclingSection from './wallpaper/WallpaperCyclingSection';
 import WallpaperOverlaySection from './wallpaper/WallpaperOverlaySection';
 import {
@@ -797,7 +796,10 @@ const WallpaperSettingsTab = React.memo(() => {
 
   return (
     <div className="settings-wee-tab-root pb-12">
-      <SettingsTabPageHeader title="Wallpaper" subtitle="Background, page look & ribbon match" />
+      <SettingsTabPageHeader
+        title="Wallpaper"
+        subtitle="Library, cycling, overlays & ribbon match"
+      />
 
       {message.text ? (
         <div
@@ -813,40 +815,25 @@ const WallpaperSettingsTab = React.memo(() => {
         </div>
       ) : null}
 
-      <SettingsWeeSection eyebrow="Match wallpaper">
+      <SettingsWeeSection eyebrow="Space & page looks">
         <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <Text variant="h3" className="mb-1 playful-hero-text">
-                Paint ribbon from wallpaper
-              </Text>
-              <Text variant="desc" className="!m-0">
-                Live accents from the wallpaper on screen. Turning this off keeps the last painted
-                ribbon colors. Spotify Match still wins while it&apos;s on.
-              </Text>
-            </div>
-            <WToggle
-              checked={wallpaperMatchEnabled}
-              onChange={handleWallpaperMatchChange}
-              disableLabelClick
-              title="Toggle match wallpaper colors to ribbon"
-            />
-          </div>
-          <div className="mt-3">
-            <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.COLORS)}>
-              Advanced seed picker in Colors
-            </WeeHelpLinkButton>
-          </div>
+          <Text variant="h3" className="mb-1 playful-hero-text">
+            Surfaces
+          </Text>
+          <Text variant="desc" className="mb-3">
+            Per-space blur, per-page wallpapers, and ribbon color scopes live in Surfaces so this
+            tab stays focused on the library and cycling.
+          </Text>
+          <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SURFACES)}>
+            Configure space &amp; page looks in Surfaces
+          </WeeHelpLinkButton>
         </WeeModalFieldCard>
       </SettingsWeeSection>
 
       <div className="settings-wee-sticky-step-bar">
         <div className="mb-2 flex items-center justify-between gap-3">
           <Text variant="small" className="!m-0 font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-            1. Space
-          </Text>
-          <Text variant="small" className="!m-0 text-[hsl(var(--text-tertiary))]">
-            2. Wallpaper  3. Controls
+            Library target space
           </Text>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -884,42 +871,32 @@ const WallpaperSettingsTab = React.memo(() => {
         handleDelete={handleDelete}
       />
 
-      <SpaceWallpaperAppearanceSection
-        wallpaperOpacity={wallpaperOpacity}
-        handleWallpaperOpacityChange={handleWallpaperOpacityChange}
-        selectedSpaceId={selectedSpaceId}
-        setSelectedSpaceId={setSelectedSpaceId}
-        reduceMotion={reduceMotion}
-        tabTransition={tabTransition}
-        selectedSpaceLabel={selectedSpaceLabel}
-        selectedSpaceUsesGlobalWallpaper={selectedSpaceUsesGlobalWallpaper}
-        handleSelectedSpaceUseGlobalWallpaperChange={handleSelectedSpaceUseGlobalWallpaperChange}
-        selectedWallpaper={selectedWallpaper}
-        handleSelectedSpaceWallpaperOverride={handleSelectedSpaceWallpaperOverride}
-        selectedSpaceWallpaperEntry={selectedSpaceWallpaperEntry}
-        selectedSpaceWallpaperUrl={selectedSpaceWallpaperUrl}
-        effectiveActiveWallpaperUrl={effectiveActiveWallpaperUrl}
-        selectedSpaceBlur={selectedSpaceBlur}
-        handleSelectedSpaceBlurChange={handleSelectedSpaceBlurChange}
-        selectedSpaceBrightness={selectedSpaceBrightness}
-        handleSelectedSpaceBrightnessChange={handleSelectedSpaceBrightnessChange}
-        selectedSpaceSaturate={selectedSpaceSaturate}
-        handleSelectedSpaceSaturateChange={handleSelectedSpaceSaturateChange}
-        handleResetSelectedSpaceAppearance={handleResetSelectedSpaceAppearance}
-        showSpaceSelector={false}
-        showGlobalOpacity={isHomeSpace}
-        showWallpaperSourceSection={!isHomeSpace}
-        supportsPerPageWallpaper={supportsPerPageWallpaper}
-        selectedWallpaperScope={selectedWallpaperScope}
-        onWallpaperScopeChange={handleSelectedWallpaperScopeChange}
-        selectedBoardCurrentPage={selectedBoardCurrentPage}
-        selectedPageWallpaperUrl={selectedPageWallpaperUrl}
-        onApplyWallpaperToCurrentPage={() =>
-          handleApplyWallpaperToCurrentPage(selectedWallpaper?.url || effectiveActiveWallpaperUrl)
-        }
-        onClearCurrentPageWallpaper={handleClearCurrentPageWallpaper}
-        canApplyPageWallpaper={Boolean(selectedWallpaper?.url || effectiveActiveWallpaperUrl)}
-      />
+      <SettingsWeeSection eyebrow="Match wallpaper">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <Text variant="h3" className="mb-1 playful-hero-text">
+                Paint ribbon from wallpaper
+              </Text>
+              <Text variant="desc" className="!m-0">
+                Live accents from the wallpaper on screen. Turning this off keeps the last painted
+                ribbon colors. Spotify Match still wins while it&apos;s on.
+              </Text>
+            </div>
+            <WToggle
+              checked={wallpaperMatchEnabled}
+              onChange={handleWallpaperMatchChange}
+              disableLabelClick
+              title="Toggle match wallpaper colors to ribbon"
+            />
+          </div>
+          <div className="mt-3">
+            <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.COLORS)}>
+              Advanced seed picker in Colors
+            </WeeHelpLinkButton>
+          </div>
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
 
       {isHomeSpace ? (
         <>

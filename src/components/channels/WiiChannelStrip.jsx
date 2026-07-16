@@ -22,10 +22,15 @@ import {
  * Spanned slots (`slots[].colSpan` / `rowSpan`) occupy multiple cells; covered cells skip render.
  * Live Board Studio (`arrangeModeActive` + `punchModeActive`) intercepts tile taps to punch
  * or restore a wallpaper hole — punch applies to the **anchor** slot only.
+ *
+ * Infinite wrap (last→first / first→last): enter from one page-step off the target so the
+ * pan never scrubs middle boards.
  */
 const WiiChannelStrip = ({
   totalPages,
   currentPage = 0,
+  animationDirection = 'none',
+  animationWrapped = false,
   isAnimating,
   isGridFaded,
   columns,
@@ -70,6 +75,30 @@ const WiiChannelStrip = ({
   const channelsPerPage = safeColumns * safeRows;
   const totalChannelSlots = channelsPerPage * safeTotalPages;
   const totalGridColumns = safeColumns * safeTotalPages;
+  const pageStepPercent = 100 / safeTotalPages;
+  const targetStripX = -safeCurrentPage * pageStepPercent;
+  const isWrap =
+    Boolean(animationWrapped) &&
+    safeTotalPages > 1 &&
+    (animationDirection === 'left' || animationDirection === 'right');
+  const wrapForward = isWrap && animationDirection === 'right';
+
+  const stripAnimate = useMemo(() => {
+    if (!isWrap || reducedMotion) {
+      return { x: `${targetStripX}%` };
+    }
+    const enterFrom = wrapForward
+      ? targetStripX + pageStepPercent
+      : targetStripX - pageStepPercent;
+    return { x: [`${enterFrom}%`, `${targetStripX}%`] };
+  }, [isWrap, reducedMotion, targetStripX, wrapForward, pageStepPercent]);
+
+  const stripTransition = useMemo(() => {
+    if (!(isAnimating || reducedMotion || isWrap)) {
+      return { duration: 0 };
+    }
+    return pageFlipTransition;
+  }, [isAnimating, reducedMotion, isWrap, pageFlipTransition]);
 
   const occupancy = useMemo(
     () => buildOccupancyMap(slots, safeColumns, safeRows, totalChannelSlots),
@@ -83,8 +112,6 @@ const WiiChannelStrip = ({
     }),
     [totalGridColumns, safeRows]
   );
-
-  const stripX = `-${(safeCurrentPage * 100) / safeTotalPages}%`;
 
   const handleStripAnimationComplete = useCallback(() => {
     if (isAnimating && typeof onPageFlipComplete === 'function') {
@@ -157,8 +184,8 @@ const WiiChannelStrip = ({
       <m.div
         className="wii-strip-continuous"
         initial={false}
-        animate={{ x: stripX }}
-        transition={isAnimating || reducedMotion ? pageFlipTransition : { duration: 0 }}
+        animate={stripAnimate}
+        transition={stripTransition}
         onAnimationComplete={handleStripAnimationComplete}
       >
         <div
@@ -256,6 +283,8 @@ const WiiChannelStrip = ({
 WiiChannelStrip.propTypes = {
   totalPages: PropTypes.number.isRequired,
   currentPage: PropTypes.number,
+  animationDirection: PropTypes.oneOf(['none', 'left', 'right']),
+  animationWrapped: PropTypes.bool,
   isAnimating: PropTypes.bool.isRequired,
   isGridFaded: PropTypes.bool.isRequired,
   columns: PropTypes.number.isRequired,

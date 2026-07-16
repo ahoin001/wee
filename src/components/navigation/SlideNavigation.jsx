@@ -10,7 +10,7 @@ const SlideNavigation = ({ children }) => {
     prevPage
   } = useChannelOperations();
   
-  const { currentPage, totalPages } = navigation;
+  const { totalPages } = navigation;
   
   const containerRef = useRef(null);
   const pagesRef = useRef(null);
@@ -27,15 +27,13 @@ const SlideNavigation = ({ children }) => {
     
     // Check if it's a horizontal scroll (mouse wheel side buttons)
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-      if (e.deltaX > 0 && currentPage < totalPages - 1) {
-        // Scroll right - go to next page
+      if (e.deltaX > 0) {
         nextPage();
-      } else if (e.deltaX < 0 && currentPage > 0) {
-        // Scroll left - go to previous page
+      } else if (e.deltaX < 0) {
         prevPage();
       }
     }
-  }, [currentPage, totalPages, nextPage, prevPage]);
+  }, [nextPage, prevPage]);
 
   // Add/remove event listeners
   useEffect(() => {

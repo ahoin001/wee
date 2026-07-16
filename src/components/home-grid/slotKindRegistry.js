@@ -35,8 +35,8 @@ const GLANCE_TILE_SIZE_PRESETS = Object.freeze({
 });
 
 /**
- * Steam tiles: never 1×1. Min 2 columns; 2 / 3 / 4 rows tall.
- * (Default home grid is 3 rows — 2×4 clamps to 2×3 until the page has more rows.)
+ * Steam Recent / Most Played tiles — never 1×1. Min 2 columns.
+ * Includes tall 2×3 (fits default 3-row home boards) plus 2×4 / wide 3×2.
  */
 export const STEAM_TILE_SIZE_PRESETS = Object.freeze({
   M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 12 }),
@@ -44,6 +44,14 @@ export const STEAM_TILE_SIZE_PRESETS = Object.freeze({
   XL: Object.freeze({ id: 'XL', label: '2×4', colSpan: 2, rowSpan: 4, capacity: 24 }),
   /** Wide layout — horizontal shelf scroll by default (auto axis). */
   W: Object.freeze({ id: 'W', label: '3×2', colSpan: 3, rowSpan: 2, capacity: 16 }),
+});
+
+/**
+ * Steam Friends list tiles — short 2×1 banner + standard 2×2 board.
+ */
+export const STEAM_FRIENDS_SIZE_PRESETS = Object.freeze({
+  S: Object.freeze({ id: 'S', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 4 }),
+  M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 8 }),
 });
 
 export const HOME_SLOT_KINDS = {
@@ -155,10 +163,10 @@ export const HOME_SLOT_KINDS = {
     description: 'Friends & what they’re playing',
     icon: '👥',
     category: 'steam',
-    colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
-    rowSpan: STEAM_TILE_SIZE_PRESETS.M.rowSpan,
+    colSpan: STEAM_FRIENDS_SIZE_PRESETS.M.colSpan,
+    rowSpan: STEAM_FRIENDS_SIZE_PRESETS.M.rowSpan,
     defaultSizePreset: 'M',
-    sizePresets: STEAM_TILE_SIZE_PRESETS,
+    sizePresets: STEAM_FRIENDS_SIZE_PRESETS,
     render: 'SteamFriendsSlot',
     placeable: true,
   },

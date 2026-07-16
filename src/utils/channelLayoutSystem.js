@@ -36,6 +36,8 @@ export const DEFAULT_CHANNEL_NAVIGATION = Object.freeze({
   mode: 'wii',
   isAnimating: false,
   animationDirection: 'none',
+  /** True when next/prev wrapped last↔first — strip uses one-step enter, not a long scrub. */
+  animationWrapped: false,
   animationType: 'slide',
   animationDuration: CHANNEL_PAGE_FLIP_MS,
   animationEasing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
@@ -49,6 +51,40 @@ export const getTotalChannels = (columns, rows, totalPages) =>
 
 export const clampPageIndex = (currentPage, totalPages) =>
   Math.max(0, Math.min(currentPage || 0, Math.max(1, totalPages) - 1));
+
+/**
+ * Circular page index — used for infinite Home board paging (last ↔ first).
+ * @param {number} pageIndex
+ * @param {number} totalPages
+ * @returns {number}
+ */
+export function wrapPageIndex(pageIndex, totalPages) {
+  const total = Math.max(1, Math.floor(Number(totalPages)) || 1);
+  if (total <= 1) return 0;
+  const raw = Math.floor(Number(pageIndex));
+  const n = Number.isFinite(raw) ? raw : 0;
+  return ((n % total) + total) % total;
+}
+
+/**
+ * Step ±1 (or more) with wrap. Direction follows the step, including wrap-around.
+ * @param {number} currentPage
+ * @param {number} delta
+ * @param {number} totalPages
+ * @returns {{ page: number, direction: 'left' | 'right' | 'none', wrapped: boolean }}
+ */
+export function resolveSteppedChannelPage(currentPage, delta, totalPages) {
+  const total = Math.max(1, Math.floor(Number(totalPages)) || 1);
+  const from = clampPageIndex(currentPage, total);
+  const step = Math.trunc(Number(delta)) || 0;
+  if (total <= 1 || step === 0) {
+    return { page: from, direction: 'none', wrapped: false };
+  }
+  const page = wrapPageIndex(from + step, total);
+  const direction = step > 0 ? 'right' : 'left';
+  const wrapped = step > 0 ? page < from : page > from;
+  return { page, direction, wrapped };
+}
 
 const clampInt = (value, min, max, fallback) => {
   const n = Number(value);

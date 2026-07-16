@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { m, useMotionValue, useTransform } from 'framer-motion';
-import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
+import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
 import { formatDiskSize, formatLastPlayed, formatPlaytime } from './hubData';
 import GameCardContextMenu from './GameCardContextMenu';
 import WButton from '../../ui/WButton';
@@ -112,7 +112,7 @@ export default function AuraHero({
       ) : null}
       {showSteamApiKeyHint ? (
         <p className="aura-hub-hero__subline">
-          Paste your Steam Web API key under Settings → API &amp; Widgets (free at steamcommunity.com/dev/apikey).
+          Paste your Steam Web API key under Settings → Music, Steam &amp; Widgets (free at steamcommunity.com/dev/apikey).
         </p>
       ) : null}
       <div className="aura-hub-hero__headline-wrap">
@@ -141,9 +141,9 @@ export default function AuraHero({
         <button
           type="button"
           className="aura-hub-btn aura-hub-btn--ghost aura-hub-hero__settings-btn"
-          onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS)}
+          onClick={() => openSettingsToIntegrationsSubtab('steam')}
         >
-          Open API &amp; Widgets
+          Open Steam settings
         </button>
       ) : null}
     </>

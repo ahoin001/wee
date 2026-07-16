@@ -11,7 +11,7 @@ import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
-import { openSettingsToTab } from '../../utils/settingsNavigation';
+import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
 import {
   normalizeNowPlayingExperience,
   toggleSpotifyTakeover,
@@ -244,7 +244,7 @@ function NowPlayingSlot({
       }
       if (interactionsLocked) return;
       if (!hasTrack && !spotifyConnected && !(systemEnabled && systemAvailable)) {
-        openSettingsToTab('api-integrations');
+        openSettingsToIntegrationsSubtab('music');
         return;
       }
       if (!hasTrack) return;

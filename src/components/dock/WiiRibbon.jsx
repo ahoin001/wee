@@ -30,6 +30,15 @@ import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { toDockParticleProps } from '../../utils/dockParticleSettings';
 import { openSettingsToDockSubtab } from '../../utils/settingsNavigation';
 import { useRibbonChromeIdleGate } from '../../hooks/useRibbonChromeIdleGate';
+import {
+  useRibbonLookTransition,
+  RIBBON_PAGE_TRANSITION_MS,
+  RIBBON_SPACE_TRANSITION_MS,
+} from '../../hooks/useRibbonLookTransition';
+import { resolveEffectiveRibbonLook } from '../../utils/appearance/resolveEffectiveRibbonLook';
+import {
+  resolveActiveBoardCurrentPage,
+} from '../../utils/channelSpaces';
 // import more icons as needed
 
 const WiiRibbonComponent = ({
@@ -90,6 +99,98 @@ const WiiRibbonComponent = ({
     );
   const [spotifyColors, setSpotifyColors] = useState(null);
   const shouldUseDynamicRibbonColor = dynamicRibbonColorEnabled && spotifyMatchEnabled;
+
+  const {
+    activeSpaceId,
+    appearanceBySpace,
+    channels,
+    wallpaperMatchEnabled,
+  } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      activeSpaceId: state.spaces.activeSpaceId,
+      appearanceBySpace: state.appearanceBySpace,
+      channels: state.channels,
+      wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled ?? false,
+    }))
+  );
+  const boardCurrentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
+  const supportsPerPageRibbon = activeSpaceId === 'home' || activeSpaceId === 'workspaces';
+  const spaceRibbon = appearanceBySpace?.[activeSpaceId]?.ribbon || null;
+  const liveRibbonLook = useMemo(
+    () => ({
+      ribbonColor: propRibbonColor,
+      ribbonGlowColor: propRibbonGlowColor,
+      ribbonGlowStrength: propRibbonGlowStrength,
+      ribbonDockOpacity: propRibbonDockOpacity,
+      glassWiiRibbon,
+      glassOpacity: propGlassOpacity,
+      glassBlur: propGlassBlur,
+      glassBorderOpacity: propGlassBorderOpacity,
+      glassShineOpacity: propGlassShineOpacity,
+    }),
+    [
+      propRibbonColor,
+      propRibbonGlowColor,
+      propRibbonGlowStrength,
+      propRibbonDockOpacity,
+      glassWiiRibbon,
+      propGlassOpacity,
+      propGlassBlur,
+      propGlassBorderOpacity,
+      propGlassShineOpacity,
+    ]
+  );
+  const targetRibbonLook = useMemo(
+    () =>
+      resolveEffectiveRibbonLook({
+        liveRibbon: liveRibbonLook,
+        spaceRibbon,
+        currentPage: boardCurrentPage,
+        supportsPerPage: supportsPerPageRibbon,
+      }),
+    [liveRibbonLook, spaceRibbon, boardCurrentPage, supportsPerPageRibbon]
+  );
+  const lastSpaceForRibbonRef = React.useRef(activeSpaceId);
+  const ribbonTweenMs =
+    lastSpaceForRibbonRef.current !== activeSpaceId
+      ? RIBBON_SPACE_TRANSITION_MS
+      : RIBBON_PAGE_TRANSITION_MS;
+  React.useEffect(() => {
+    lastSpaceForRibbonRef.current = activeSpaceId;
+  }, [activeSpaceId]);
+
+  const paintedRibbonLook = useRibbonLookTransition({
+    targetLook: targetRibbonLook,
+    durationMs: ribbonTweenMs,
+    ambientOverride: shouldUseDynamicRibbonColor || wallpaperMatchEnabled,
+  });
+
+  const ribbonColor =
+    paintedRibbonLook.ribbonColor != null ? paintedRibbonLook.ribbonColor : propRibbonColor;
+  const ribbonGlowColor =
+    paintedRibbonLook.ribbonGlowColor != null
+      ? paintedRibbonLook.ribbonGlowColor
+      : propRibbonGlowColor;
+  const ribbonGlowStrength =
+    paintedRibbonLook.ribbonGlowStrength != null
+      ? paintedRibbonLook.ribbonGlowStrength
+      : propRibbonGlowStrength;
+  const ribbonDockOpacity =
+    paintedRibbonLook.ribbonDockOpacity != null
+      ? paintedRibbonLook.ribbonDockOpacity
+      : propRibbonDockOpacity;
+  const paintedGlassOpacity =
+    paintedRibbonLook.glassOpacity != null ? paintedRibbonLook.glassOpacity : propGlassOpacity;
+  const paintedGlassBlur =
+    paintedRibbonLook.glassBlur != null ? paintedRibbonLook.glassBlur : propGlassBlur;
+  const paintedGlassBorderOpacity =
+    paintedRibbonLook.glassBorderOpacity != null
+      ? paintedRibbonLook.glassBorderOpacity
+      : propGlassBorderOpacity;
+  const paintedGlassShineOpacity =
+    paintedRibbonLook.glassShineOpacity != null
+      ? paintedRibbonLook.glassShineOpacity
+      : propGlassShineOpacity;
   
   // Use consolidated store for modal states and UI settings
   const { setUIState } = useUIState();
@@ -361,7 +462,7 @@ const WiiRibbonComponent = ({
 
     const generateTintedImages = async () => {
       // Determine which color to use for tinting: Spotify accent if available, otherwise ribbon glow color
-      let colorToUse = propRibbonGlowColor;
+      let colorToUse = ribbonGlowColor;
       
       if (shouldUseDynamicRibbonColor && spotifyColors?.accent) {
         colorToUse = spotifyColors.accent;
@@ -407,7 +508,7 @@ const WiiRibbonComponent = ({
     };
 
     generateTintedImages();
-  }, [propRibbonGlowColor, buttonConfigs, presetsButtonConfig, shouldUseDynamicRibbonColor, spotifyColors]);
+  }, [propRibbonGlowColor, ribbonGlowColor, buttonConfigs, presetsButtonConfig, shouldUseDynamicRibbonColor, spotifyColors]);
 
   // Handle Escape key to close admin menu
   useEffect(() => {
@@ -551,15 +652,11 @@ const WiiRibbonComponent = ({
   };
 
   const ribbonGlowHex =
-    (shouldUseDynamicRibbonColor ? spotifyColors?.accent : null) || propRibbonGlowColor || CSS_WII_BLUE;
+    (shouldUseDynamicRibbonColor ? spotifyColors?.accent : null) || ribbonGlowColor || CSS_WII_BLUE;
   const glowPx = ribbonHoverAnimationEnabled && isRibbonHovered
     ? (propRibbonGlowStrengthHover ?? 28)
-    : (propRibbonGlowStrength ?? 20);
+    : (ribbonGlowStrength ?? 20);
   const ribbonGlowFilter = `drop-shadow(0 0 ${glowPx}px ${ribbonGlowHex}) drop-shadow(0 0 12px ${ribbonGlowHex})`;
-
-  const wallpaperMatchEnabled = useConsolidatedAppStore(
-    (state) => state.ui.wallpaperMatchEnabled ?? false
-  );
 
   const pillBackdropBackground = (() => {
     if (spotifyColors?.secondary && shouldUseDynamicRibbonColor) {
@@ -608,8 +705,8 @@ const WiiRibbonComponent = ({
   const ribbonFillColor =
     (shouldUseDynamicRibbonColor && spotifyColors?.primary
       ? spotifyColors.primary
-      : propRibbonColor) +
-    (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '');
+      : ribbonColor) +
+    (ribbonDockOpacity !== undefined ? hexAlpha(ribbonDockOpacity) : '');
 
   const chromeFxDurationSec = (2.4 / Math.min(2, Math.max(0.25, chromeEffectSpeed ?? 1))).toFixed(2);
   const pulseChromeActive =
@@ -631,15 +728,15 @@ const WiiRibbonComponent = ({
         <DockParticleSystem
           {...particleProps}
           ribbonGlowColor={
-            (shouldUseDynamicRibbonColor ? spotifyColors?.accent : null) || propRibbonGlowColor || CSS_WII_BLUE
+            (shouldUseDynamicRibbonColor ? spotifyColors?.accent : null) || ribbonGlowColor || CSS_WII_BLUE
           }
         />
         <RibbonChrome
           glassWiiRibbon={glassWiiRibbon}
-          glassBlur={propGlassBlur}
-          glassShineOpacity={propGlassShineOpacity}
-          glassOpacity={propGlassOpacity}
-          glassBorderOpacity={propGlassBorderOpacity}
+          glassBlur={paintedGlassBlur}
+          glassShineOpacity={paintedGlassShineOpacity}
+          glassOpacity={paintedGlassOpacity}
+          glassBorderOpacity={paintedGlassBorderOpacity}
           fillColor={ribbonFillColor}
           ribbonGlowFilter={ribbonGlowFilter}
           hoverAnimationEnabled={ribbonHoverAnimationEnabled}
@@ -1005,7 +1102,7 @@ const WiiRibbonComponent = ({
             onSave={handlePrimaryActionsSave}
             config={buttonConfigs?.[activeButtonIndex]}
             buttonIndex={activeButtonIndex}
-            ribbonGlowColor={propRibbonGlowColor}
+            ribbonGlowColor={ribbonGlowColor}
             onExitAnimationComplete={handlePrimaryActionsExitComplete}
           />
         </Suspense>
@@ -1019,7 +1116,7 @@ const WiiRibbonComponent = ({
             config={presetsButtonConfig}
             buttonIndex="presets"
             title="Customize Presets Button"
-            ribbonGlowColor={propRibbonGlowColor}
+            ribbonGlowColor={ribbonGlowColor}
             onExitAnimationComplete={handlePresetsButtonExitComplete}
           />
         </Suspense>

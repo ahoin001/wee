@@ -46,8 +46,11 @@ Home and Focus support:
 
 - Space-level wallpaper override, or
 - `wallpaperScope: 'perPage'` + `wallpaperByPage[pageIndex]`
+- `ribbonScope: 'space' | 'perPage'` + `ribbonByPage[pageIndex]` (lean look fields: color, glass)
 
-Resolve order: page URL → space override → global `wallpaper.current`. Page flips and space switches crossfade via `useSpaceWallpaperCrossfade` (page uses `CHANNEL_PAGE_FLIP_MS`, space uses shell duration).
+Configure in Settings → **Surfaces**. Wallpaper library / cycling stay under Wallpaper; Dock edits chrome and links to Surfaces for scope.
+
+Resolve order: page URL → space override → global `wallpaper.current`. Page flips and space switches crossfade via `useSpaceWallpaperCrossfade` (page uses `CHANNEL_PAGE_FLIP_MS`, space uses shell duration). Ribbon colors tween via `useRibbonLookTransition`.
 
 ## Grid layout
 
@@ -76,3 +79,6 @@ Local save defaults to boards included (`visual+homeChannels`): `homeChannels` +
 - `src/components/spaces/WeeGooeySpacePill.jsx` — rail
 - `src/components/settings/WorkspacesSettingsTab.jsx` — Home Profiles + Show Media Hub
 - `src/components/settings/ChannelsLayoutSettingsTab.jsx` — Home/Focus layout + page overrides
+- `src/components/settings/SurfacesSettingsTab.jsx` — space/page wallpaper + ribbon scope
+- `src/hooks/useSpaceWallpaperCrossfade.js` — wallpaper space/page crossfade
+- `src/hooks/useRibbonLookTransition.js` — ribbon color tween on look change

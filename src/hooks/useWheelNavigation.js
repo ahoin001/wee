@@ -5,7 +5,7 @@ import {
   normalizeShellSpaceOrder,
   resolveActiveChannelSpaceKey,
 } from '../utils/channelSpaces';
-import { CHANNEL_PAGE_FLIP_MS } from '../utils/channelLayoutSystem';
+import { CHANNEL_PAGE_FLIP_MS, resolveSteppedChannelPage } from '../utils/channelLayoutSystem';
 
 const SPACE_WHEEL_COOLDOWN_MS = 320;
 const PAGE_TILT_COOLDOWN_MS = 140;
@@ -93,15 +93,20 @@ export default function useWheelNavigation() {
         }
 
         const goingNext = event.deltaX > 0;
-        if (goingNext && currentPage >= totalPages - 1) return;
-        if (!goingNext && currentPage <= 0) return;
+        const stepped = resolveSteppedChannelPage(
+          currentPage,
+          goingNext ? 1 : -1,
+          totalPages
+        );
+        if (stepped.direction === 'none' || stepped.page === currentPage) return;
 
         lastPageNavAt.current = now;
         event.preventDefault();
         actions.setChannelNavigationForSpace?.(spaceKey, {
-          currentPage: currentPage + (goingNext ? 1 : -1),
+          currentPage: stepped.page,
           isAnimating: true,
-          animationDirection: goingNext ? 'right' : 'left',
+          animationDirection: stepped.direction,
+          animationWrapped: stepped.wrapped,
         });
         window.setTimeout(() => {
           const latest = useConsolidatedAppStore.getState();
@@ -110,6 +115,7 @@ export default function useWheelNavigation() {
           latest.actions.setChannelNavigationForSpace?.(spaceKey, {
             isAnimating: false,
             animationDirection: 'none',
+            animationWrapped: false,
           });
         }, CHANNEL_PAGE_FLIP_MS || 500);
         return;

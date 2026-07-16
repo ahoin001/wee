@@ -280,6 +280,7 @@ function selectPersistedChannelSpaceData(spaceData) {
         ...spaceData.navigation,
         isAnimating: false,
         animationDirection: 'none',
+        animationWrapped: false,
       }
     : spaceData.navigation;
   return {

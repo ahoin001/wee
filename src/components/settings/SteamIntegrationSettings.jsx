@@ -120,7 +120,7 @@ function formatSteamSyncFailure(refresh, steamId) {
 }
 
 /**
- * Steam profile + enrichment controls for API & Widgets.
+ * Steam profile + enrichment controls for Music, Steam & Widgets.
  * Store SSOT remains gameHub.profile / gameHub.library.
  */
 const SteamIntegrationSettings = React.memo(() => {

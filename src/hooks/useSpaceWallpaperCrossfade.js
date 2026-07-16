@@ -45,6 +45,7 @@ export function useSpaceWallpaperCrossfade({
   const stallTimerRef = useRef(null);
   const preloadGenRef = useRef(0);
   const pendingTargetRef = useRef(null);
+  const fadeInIntentRef = useRef(false);
   const transitionMsRef = useRef(spaceTransitionMs);
   const parallaxEnabledRef = useRef(pageParallaxEnabled);
   const pageDirectionRef = useRef(pageDirection);
@@ -66,6 +67,7 @@ export function useSpaceWallpaperCrossfade({
       clearStallTimer();
       preloadGenRef.current += 1;
       pendingTargetRef.current = null;
+      fadeInIntentRef.current = false;
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -85,6 +87,7 @@ export function useSpaceWallpaperCrossfade({
     const ov = overlayRef.current;
     if (!ov) return;
     clearStallTimer();
+    fadeInIntentRef.current = false;
     baseRef.current = ov;
     prevCommittedUrlRef.current = ov;
     setBase(ov);
@@ -96,7 +99,7 @@ export function useSpaceWallpaperCrossfade({
     const pending = pendingTargetRef.current;
     if (pending && pending !== ov) {
       pendingTargetRef.current = null;
-      // Drain coalesced target after commit (rapid preset/settings churn).
+      // Drain coalesced target after commit (rapid page flips / preset churn).
       startCrossfadeRef.current?.(ov, pending);
     }
   }, [clearStallTimer]);
@@ -118,6 +121,7 @@ export function useSpaceWallpaperCrossfade({
       baseRef.current = fromUrl;
       setOverlay(toUrl);
       setOverlayOpacity(0);
+      fadeInIntentRef.current = false;
       if (usePageParallax && parallaxEnabledRef.current) {
         const dir = pageDirectionRef.current || 0;
         // Nudge opposite strip travel so wallpaper feels tied to the page flip.
@@ -129,6 +133,7 @@ export function useSpaceWallpaperCrossfade({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = requestAnimationFrame(() => {
+          fadeInIntentRef.current = true;
           setOverlayOpacity(1);
           setParallaxXPercent(0);
           armStallRecovery(transitionMsRef.current + 320);
@@ -218,19 +223,17 @@ export function useSpaceWallpaperCrossfade({
 
     const usePageParallax = !spaceChanged && pageChanged;
 
-    // Mid-crossfade: coalesce to latest target (keep base, retarget overlay after preload).
+    // Mid-crossfade: coalesce to latest target only — do not reset opacity mid-fade
+    // (that fires a spurious transitionend and commits early). Drain after commit.
     if (overlayRef.current != null) {
       pendingTargetRef.current = toUrl;
       const gen = ++preloadGenRef.current;
       preloadImageUrl(toUrl).then(() => {
         if (gen !== preloadGenRef.current) return;
-        const latest = pendingTargetRef.current || toUrl;
-        if (!latest || latest === prevCommittedUrlRef.current) {
-          snapTo(latest);
-          return;
+        // Keep pending as the latest request; commitOverlayToBase drains it.
+        if (pendingTargetRef.current == null) {
+          pendingTargetRef.current = toUrl;
         }
-        if (latest === overlayRef.current) return;
-        beginOverlayFade(prevCommittedUrlRef.current, latest, { usePageParallax });
       });
       return;
     }
@@ -267,6 +270,9 @@ export function useSpaceWallpaperCrossfade({
     (event) => {
       if (!transitionsEnabled) return;
       if (event.propertyName !== 'opacity') return;
+      // Only commit fade-in completion — ignore opacity resets to 0 mid-retarget.
+      if (!fadeInIntentRef.current) return;
+      fadeInIntentRef.current = false;
       commitOverlayToBase();
     },
     [commitOverlayToBase, transitionsEnabled]

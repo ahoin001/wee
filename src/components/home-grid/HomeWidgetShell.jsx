@@ -17,10 +17,12 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
  * - clear: floating default — no plate; wallpaper shows through
  * - glass: light frost/tint (global `ui.homeWidgetGlass`)
  * - basic: solid WeeGlassPill card chrome
+ * - brandTone `steam` + basic: Steam navy/cyan token remap (see design-system.css)
  */
 const HomeWidgetShell = forwardRef(function HomeWidgetShell(
   {
     surface = DEFAULT_HOME_WIDGET_SURFACE,
+    brandTone = null,
     selected = false,
     className = '',
     children,
@@ -32,6 +34,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
   ref
 ) {
   const mode = normalizeHomeWidgetSurface(surface);
+  const steamBasic = brandTone === 'steam' && mode === 'basic';
   const { glassRaw, lowPowerMode } = useConsolidatedAppStore(
     useShallow((state) => ({
       glassRaw: state.ui?.homeWidgetGlass,
@@ -119,9 +122,11 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
       aria-label={ariaLabel}
       onClick={onClick}
       data-home-widget-surface="basic"
+      data-home-widget-brand={steamBasic ? 'steam' : undefined}
       className={[
         'home-widget-shell',
         'home-widget-shell--basic',
+        steamBasic ? 'home-widget-shell--steam' : '',
         'relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem]',
         selectedRing,
         className,
@@ -139,6 +144,7 @@ HomeWidgetShell.displayName = 'HomeWidgetShell';
 
 HomeWidgetShell.propTypes = {
   surface: PropTypes.oneOf(['basic', 'glass', 'clear']),
+  brandTone: PropTypes.oneOf(['steam']),
   selected: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node,

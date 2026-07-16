@@ -3,6 +3,8 @@
  * Channels stay in `channels.dataBySpace`; this is look-and-feel only.
  */
 
+import { mergeSpaceScopedRibbonFields } from './resolveEffectiveRibbonLook';
+
 /** Keys on `wallpaper` that must not be persisted per space (runtime / transition). */
 const WALLPAPER_TRANSIENT_KEYS = new Set([
   // Runtime-only transition fields.
@@ -69,7 +71,9 @@ function mergeSpaceScopedWallpaperFields(liveWallpaper, storedWallpaper) {
 export function captureSpaceAppearanceFromState(storeState) {
   const { wallpaper, ribbon, time, overlay, ui, spaces, appearanceBySpace } = storeState;
   const spaceId = spaces?.activeSpaceId || 'home';
-  const storedWp = appearanceBySpace?.[spaceId]?.wallpaper;
+  const stored = appearanceBySpace?.[spaceId] || null;
+  const storedWp = stored?.wallpaper;
+  const storedRibbon = stored?.ribbon;
   const wp = { ...wallpaper };
   WALLPAPER_TRANSIENT_KEYS.forEach((k) => {
     delete wp[k];
@@ -77,7 +81,7 @@ export function captureSpaceAppearanceFromState(storeState) {
 
   return {
     wallpaper: mergeSpaceScopedWallpaperFields(wp, storedWp),
-    ribbon: { ...ribbon },
+    ribbon: mergeSpaceScopedRibbonFields({ ...ribbon }, storedRibbon),
     time: { ...time },
     overlay: { ...overlay },
     ui: {
@@ -107,7 +111,10 @@ export function mergeLiveStateFromSpaceAppearance(currentState, incoming) {
     out.wallpaper = mergeSpaceScopedWallpaperFields(w, incoming.wallpaper);
   }
   if (incoming.ribbon) {
-    out.ribbon = { ...currentState.ribbon, ...incoming.ribbon };
+    out.ribbon = mergeSpaceScopedRibbonFields(
+      { ...currentState.ribbon, ...incoming.ribbon },
+      incoming.ribbon
+    );
   }
   if (incoming.time) {
     out.time = { ...currentState.time, ...incoming.time };
@@ -146,4 +153,4 @@ export function syncActiveSpaceAppearanceCapture(storeApi) {
   return { spaceId, appearance };
 }
 
-export { SPACE_IDS };
+export { SPACE_IDS, mergeSpaceScopedWallpaperFields };

@@ -6,6 +6,7 @@ import { openSettingsToTab } from './settingsNavigation';
 import { toggleHomeBoardArrange } from '../hooks/useHomeBoardArrange';
 import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
 import { closeTopOverlayOnEscape, isBlockingOverlayOpen } from './overlayEscape';
+import { CHANNEL_PAGE_FLIP_MS, resolveSteppedChannelPage } from './channelLayoutSystem';
 
 /** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
 const EMPTY_KEYBOARD_SHORTCUTS = Object.freeze([]);
@@ -102,14 +103,16 @@ const useKeyboardShortcuts = () => {
       const nav = getChannelDataSlice(channels, key).navigation || {};
       const currentPage = Number(nav.currentPage) || 0;
       const totalPages = Math.max(1, Number(nav.totalPages) || 1);
-      if (currentPage >= totalPages - 1) return;
       if (nav.isAnimating) return;
+      const stepped = resolveSteppedChannelPage(currentPage, 1, totalPages);
+      if (stepped.direction === 'none' || stepped.page === currentPage) return;
 
       const { setChannelNavigationForSpace } = getState().actions;
       setChannelNavigationForSpace?.(key, {
-        currentPage: currentPage + 1,
+        currentPage: stepped.page,
         isAnimating: true,
-        animationDirection: 'right',
+        animationDirection: stepped.direction,
+        animationWrapped: stepped.wrapped,
       });
       window.setTimeout(() => {
         const latest = getState();
@@ -118,8 +121,9 @@ const useKeyboardShortcuts = () => {
         latest.actions.setChannelNavigationForSpace?.(key, {
           isAnimating: false,
           animationDirection: 'none',
+          animationWrapped: false,
         });
-      }, 500);
+      }, CHANNEL_PAGE_FLIP_MS);
     };
 
     window.prevPage = () => {
@@ -130,14 +134,17 @@ const useKeyboardShortcuts = () => {
       const key = resolveActiveChannelSpaceKey(spaces?.activeSpaceId);
       const nav = getChannelDataSlice(channels, key).navigation || {};
       const currentPage = Number(nav.currentPage) || 0;
-      if (currentPage <= 0) return;
+      const totalPages = Math.max(1, Number(nav.totalPages) || 1);
       if (nav.isAnimating) return;
+      const stepped = resolveSteppedChannelPage(currentPage, -1, totalPages);
+      if (stepped.direction === 'none' || stepped.page === currentPage) return;
 
       const { setChannelNavigationForSpace } = getState().actions;
       setChannelNavigationForSpace?.(key, {
-        currentPage: currentPage - 1,
+        currentPage: stepped.page,
         isAnimating: true,
-        animationDirection: 'left',
+        animationDirection: stepped.direction,
+        animationWrapped: stepped.wrapped,
       });
       window.setTimeout(() => {
         const latest = getState();
@@ -146,8 +153,9 @@ const useKeyboardShortcuts = () => {
         latest.actions.setChannelNavigationForSpace?.(key, {
           isAnimating: false,
           animationDirection: 'none',
+          animationWrapped: false,
         });
-      }, 500);
+      }, CHANNEL_PAGE_FLIP_MS);
     };
 
     window.toggleDock = () => {

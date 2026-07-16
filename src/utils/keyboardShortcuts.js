@@ -169,8 +169,8 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'open-settings-api-integrations-tab',
-    name: 'Open API & Widgets Settings',
-    description: 'Open settings modal to API & Widgets tab',
+    name: 'Open Music, Steam & Widgets Settings',
+    description: 'Open settings modal to Music, Steam & Widgets tab',
     defaultKey: 'a',
     defaultModifier: 'ctrl+shift',
     action: 'openSettingsModal',
@@ -213,8 +213,8 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'open-settings-workspaces-tab',
-    name: 'Open Home Profiles Settings',
-    description: 'Open settings modal to Home Profiles tab',
+    name: 'Open Home setups Settings',
+    description: 'Open settings modal to Home setups tab',
     defaultKey: 'w',
     defaultModifier: 'ctrl+shift',
     action: 'openSettingsModal',

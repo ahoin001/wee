@@ -142,6 +142,7 @@ export function createDefaultChannelSpaceData() {
       mode: 'wii',
       isAnimating: false,
       animationDirection: 'none',
+      animationWrapped: false,
       animationType: 'slide',
       animationDuration: CHANNEL_PAGE_FLIP_MS,
       animationEasing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',

@@ -37,6 +37,7 @@ import {
   NavigationPillSettingsTab,
   MotionFeedbackSettingsTab,
   WorkspacesSettingsTab,
+  SurfacesSettingsTab,
 } from './index';
 
 const TabPanel = m.div;
@@ -53,6 +54,7 @@ const SETTINGS_TAB_COMPONENTS = {
   'navigation-pill': NavigationPillSettingsTab,
   themes: PresetsSettingsTab,
   sounds: SoundsSettingsTab,
+  surfaces: SurfacesSettingsTab,
   time: TimeSettingsTab,
   updates: UpdatesSettingsTab,
   wallpaper: WallpaperSettingsTab,

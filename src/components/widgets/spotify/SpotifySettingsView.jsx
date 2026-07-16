@@ -127,7 +127,7 @@ function SpotifySettingsView({
                   Hide floating widget
                 </p>
                 <p className="mt-1 text-xs" style={muted}>
-                  Closes this panel. Turn it back on from Settings → API &amp; Widgets or your keyboard shortcut.
+                  Closes this panel. Turn it back on from Settings → Music, Steam &amp; Widgets or your keyboard shortcut.
                 </p>
               </div>
               <WButton

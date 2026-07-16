@@ -42,7 +42,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
 
   return (
     <WeeModalShell
-      headerTitle="Home Profile Switcher"
+      headerTitle="Home setup switcher"
       isOpen={isOpen}
       onClose={onClose}
       showRail={false}
@@ -50,7 +50,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
     >
       <div className="space-y-5">
         <p className="text-sm text-[hsl(var(--text-secondary))]">
-          Switch Home profiles with one click — channels and visuals move together.
+          Switch Home setups with one click — boards and visuals move together.
         </p>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -97,7 +97,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
 
           {normalized.items.length === 0 && (
             <div className="rounded-xl border border-dashed border-[hsl(var(--border-primary))] p-6 text-sm text-[hsl(var(--text-secondary))]">
-              No profiles yet. Create one in Settings → Home Profiles.
+              No setups yet. Create one in Settings → Home setups.
             </div>
           )}
         </div>
@@ -113,7 +113,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
             openHomeProfilesSettings(onClose);
           }}
         >
-          Manage Home Profiles
+          Manage Home setups
         </WButton>
       </div>
     </WeeModalShell>

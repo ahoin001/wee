@@ -190,7 +190,7 @@ const ShortcutsSettingsTab = React.memo(() => {
               for settings tabs so they stay unique.
             </li>
             <li>You can open any settings tab, the workspace switcher, or the update modal from here.</li>
-            <li>Admin Panel toggle can also be remapped under API &amp; Widgets.</li>
+            <li>Admin Panel toggle can also be remapped under Music, Steam &amp; Widgets.</li>
             <li>Use the switch to disable a shortcut without clearing its binding.</li>
           </ul>
         </WeeModalFieldCard>

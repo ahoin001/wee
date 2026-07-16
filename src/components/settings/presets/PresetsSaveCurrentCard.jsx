@@ -47,7 +47,7 @@ const PresetsSaveCurrentCard = React.memo(
 
       <div className="flex flex-col gap-3 border-t border-[hsl(var(--border-primary)/0.35)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
         <Button variant="tertiary" size="sm" onClick={onOpenHomeProfiles} className="w-fit" disabled={isSaving}>
-          Open Home Profiles
+          Open Home setups
         </Button>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:ml-auto">
           <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))] sm:text-right">

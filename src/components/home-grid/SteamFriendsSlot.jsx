@@ -14,7 +14,7 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
-import { openExternalUrl, openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
+import { openExternalUrl, openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
 import { steamEnrichmentIpcArgs, STEAM_CDN_HEADER, STEAM_CDN_LIBRARY_COVER } from '../../utils/steamGamesGlance';
 
 const FRIENDS_TTL_MS = 2 * 60 * 1000;
@@ -28,6 +28,15 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
   const gameId = friend.gameId ? String(friend.gameId) : '';
   const gameThumb = gameId ? STEAM_CDN_HEADER(gameId) : '';
   const coverFallback = gameId ? STEAM_CDN_LIBRARY_COVER(gameId) : '';
+  const avatarPx = Number(layout.listAvatarPx) || 40;
+  const avatarStyle = { width: avatarPx, height: avatarPx };
+  const nameClass =
+    layout.density === 'roomy'
+      ? 'text-[length:var(--font-size-caption)]'
+      : layout.density === 'compact'
+        ? 'text-[length:var(--font-size-micro)]'
+        : 'text-[11px]';
+  const statusClass = layout.density === 'compact' ? 'text-[8px]' : 'text-[9px]';
 
   return (
     <button
@@ -49,75 +58,64 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
         if (friend.gameId) onLaunchGame?.(friend);
         else onOpenProfile?.(friend);
       }}
-      className={`group flex w-full min-w-0 items-center border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] text-left shadow-[var(--shadow-sm)] backdrop-blur-sm transition-[transform,background-color,border-color] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--surface-elevated)/0.82)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 ${layout.listRowClass}`}
+      className={`group relative flex w-full min-w-0 items-center overflow-hidden border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.72)] text-left shadow-[var(--shadow-sm)] backdrop-blur-md transition-[transform,background-color,border-color,box-shadow] hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-elevated)/0.92)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.985] disabled:pointer-events-none disabled:opacity-70 ${layout.listRowClass}`}
     >
+      <span
+        className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[hsl(var(--primary))] opacity-80"
+        aria-hidden
+      />
+
       <div className="relative shrink-0">
         {friend.avatarUrl ? (
           <img
             src={friend.avatarUrl}
             alt=""
-            className={`rounded-full border border-[hsl(var(--border-primary)/0.45)] object-cover ${
-              layout.density === 'roomy'
-                ? 'h-10 w-10'
-                : layout.density === 'compact'
-                  ? 'h-7 w-7'
-                  : 'h-9 w-9'
-            }`}
+            style={avatarStyle}
+            className="rounded-full border-2 border-[hsl(var(--state-success)/0.75)] object-cover"
             draggable={false}
           />
         ) : (
           <span
-            className={`flex items-center justify-center rounded-full bg-[hsl(var(--surface-secondary))] text-[11px] font-black text-[hsl(var(--text-secondary))] ${
-              layout.density === 'roomy'
-                ? 'h-10 w-10'
-                : layout.density === 'compact'
-                  ? 'h-7 w-7'
-                  : 'h-9 w-9'
-            }`}
+            style={avatarStyle}
+            className="flex items-center justify-center rounded-full border-2 border-[hsl(var(--state-success)/0.75)] bg-[hsl(var(--surface-secondary))] text-[11px] font-black text-[hsl(var(--text-secondary))]"
           >
             {(friend.personaName || '?').slice(0, 1).toUpperCase()}
           </span>
         )}
         <span
-          className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[hsl(var(--surface-elevated))] bg-[hsl(var(--signal-success))]"
+          className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[hsl(var(--surface-elevated))] bg-[hsl(var(--state-success))]"
           title="In game"
           aria-hidden
         />
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 pr-1">
         <div
-          className={`truncate font-extrabold tracking-wide text-[hsl(var(--text-primary))] ${
-            layout.density === 'roomy' ? 'text-[length:var(--font-size-caption)]' : 'text-[length:var(--font-size-micro)]'
-          }`}
+          className={`truncate font-extrabold tracking-wide text-[hsl(var(--text-primary))] ${nameClass}`}
         >
           {friend.personaName}
         </div>
-        <div
-          className={`mt-0.5 truncate font-bold text-[hsl(var(--text-secondary))] ${
-            layout.density === 'compact' ? 'text-[8px]' : 'text-[9px]'
-          }`}
-        >
+        <div className={`mt-0.5 truncate font-bold ${statusClass}`}>
           {friend.gameName ? (
             <>
-              <span className="text-[hsl(var(--signal-success))]">Playing</span>
+              <span className="text-[hsl(var(--state-success))]">Playing</span>
               <span className="text-[hsl(var(--text-tertiary))]"> · </span>
-              {friend.gameName}
+              <span className="text-[hsl(var(--text-secondary))]">{friend.gameName}</span>
             </>
           ) : (
-            'Online'
+            <span className="text-[hsl(var(--text-secondary))]">Online</span>
           )}
         </div>
       </div>
 
       {gameThumb ? (
         <div
-          className={`relative shrink-0 overflow-hidden rounded-md border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary))] shadow-[var(--shadow-sm)] ${layout.listThumbClass}`}
+          className={`relative shrink-0 overflow-hidden border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary))] shadow-[var(--shadow-soft)] ${layout.listThumbClass}`}
         >
           <img
             src={gameThumb}
             alt=""
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
             draggable={false}
             loading="lazy"
             onError={(event) => {
@@ -126,6 +124,10 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
               img.dataset.fallback = 'cover';
               img.src = coverFallback;
             }}
+          />
+          <span
+            className="pointer-events-none absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[hsl(var(--surface-elevated)/0.35)]"
+            aria-hidden
           />
         </div>
       ) : null}
@@ -186,7 +188,7 @@ function SteamFriendsSlot({
         id: 'M',
         colSpan: 2,
         rowSpan: 2,
-        capacity: 12,
+        capacity: 8,
       },
     [slot?.colSpan, slot?.rowSpan]
   );
@@ -195,8 +197,8 @@ function SteamFriendsSlot({
     [slot?.colSpan, slot?.rowSpan]
   );
   const capacity = Math.max(
-    Number(sizePreset.capacity) || 12,
-    layout.density === 'roomy' ? 16 : 8
+    Number(sizePreset.capacity) || 8,
+    layout.cells <= 2 ? 4 : layout.density === 'roomy' ? 16 : 8
   );
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
@@ -301,7 +303,7 @@ function SteamFriendsSlot({
 
   const openSteamApiSettings = useCallback(() => {
     if (interactionsLocked && !arrangeMode) return;
-    openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);
+    openSettingsToIntegrationsSubtab('steam');
   }, [interactionsLocked, arrangeMode]);
 
   const handleActivate = useCallback(
@@ -332,11 +334,11 @@ function SteamFriendsSlot({
   );
 
   const emptyHint = !steamId
-    ? 'Set Steam ID in API & Widgets'
+    ? 'Set Steam ID in Music, Steam & Widgets'
     : !apiEnabled
-      ? 'Enable Steam Web API in API & Widgets'
+      ? 'Enable Steam Web API in Music, Steam & Widgets'
       : !apiKeyConfigured && !friendsPlayingFetchedAt
-        ? 'Add Steam API key in API & Widgets'
+        ? 'Add Steam API key in Music, Steam & Widgets'
         : isPrivateFriends
           ? PRIVATE_FRIENDS_HINT
           : friendsPlayingError
@@ -348,6 +350,7 @@ function SteamFriendsSlot({
   return (
     <HomeWidgetShell
       surface={surface}
+      brandTone="steam"
       selected={selected}
       className={layout.shellPadClass}
       onClick={handleActivate}

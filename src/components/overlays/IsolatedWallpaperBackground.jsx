@@ -70,12 +70,10 @@ function IsolatedWallpaperBackgroundInner({
       : !useGlobalWallpaper && typeof activeSpaceAppearance?.spaceWallpaperUrl === 'string'
         ? activeSpaceAppearance.spaceWallpaperUrl
         : null;
-  const hasPerPageWallpaper =
-    activeSpaceAppearance?.wallpaperScope === 'perPage' &&
-    Boolean(
-      activeSpaceAppearance?.wallpaperByPage?.[currentPage] ||
-        activeSpaceAppearance?.wallpaperByPage?.[String(currentPage)]
-    );
+  // Per-page scope owns the layer for the whole board (even sparse wallpaperByPage) —
+  // never re-enable global cycling on an empty page key.
+  const hasPerPageScope = activeSpaceAppearance?.wallpaperScope === 'perPage';
+  const hasSpaceWallpaperOverride = Boolean(spaceWallpaperUrl) || hasPerPageScope;
 
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
@@ -134,7 +132,6 @@ function IsolatedWallpaperBackgroundInner({
   } = useWallpaperCycling();
   const setWallpaperState = useConsolidatedAppStore((state) => state.actions.setWallpaperState);
   // Per-page or space override owns the layer — skip global cycling transitions.
-  const hasSpaceWallpaperOverride = Boolean(spaceWallpaperUrl) || hasPerPageWallpaper;
   const { opacity, blur, cycleAnimation } = wallpaper;
   const effectiveSpaceBlur =
     typeof activeSpaceAppearance?.spaceBlur === 'number'

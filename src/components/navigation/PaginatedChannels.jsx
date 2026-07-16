@@ -85,6 +85,8 @@ const PaginatedChannelsInner = React.memo(() => {
     updateChannelPath,
     reorderChannels,
     goToPage,
+    nextPage,
+    prevPage,
     isChannelSlotHidden,
     setSlotHidden,
   } = useChannelOperations(undefined, { enableGlobalPageShortcuts: true });
@@ -506,7 +508,12 @@ const PaginatedChannelsInner = React.memo(() => {
   const blockedSizePresetIds = useMemo(() => {
     if (homeBoardSelectedSlotIndex == null) return [];
     const slots = Array.isArray(boardSlots) ? boardSlots : [];
-    return Object.values(HOME_SLOT_SIZE_PRESETS)
+    const kindId = selectedSlot?.kind ?? 'channel';
+    const kindPresets = getHomeSlotKind(kindId)?.sizePresets;
+    const presets = kindPresets
+      ? Object.values(kindPresets)
+      : Object.values(HOME_SLOT_SIZE_PRESETS);
+    return presets
       .filter(
         (preset) =>
           !canPlaceSpan({
@@ -520,7 +527,13 @@ const PaginatedChannelsInner = React.memo(() => {
           })
       )
       .map((preset) => preset.id);
-  }, [homeBoardSelectedSlotIndex, boardSlots, placeColumns, placeRows]);
+  }, [
+    homeBoardSelectedSlotIndex,
+    boardSlots,
+    placeColumns,
+    placeRows,
+    selectedSlot?.kind,
+  ]);
 
   const handleSetSizePreset = useCallback(
     (presetId) => {
@@ -963,13 +976,8 @@ const PaginatedChannelsInner = React.memo(() => {
         return;
       }
 
-      const currentPage = Number(navigation.currentPage) || 0;
       const totalPages = Math.max(1, Number(navigation.totalPages) || 1);
-      if (side === 'left' && currentPage <= 0) {
-        clearPageEdgeTimer();
-        return;
-      }
-      if (side === 'right' && currentPage >= totalPages - 1) {
+      if (totalPages <= 1) {
         clearPageEdgeTimer();
         return;
       }
@@ -981,18 +989,18 @@ const PaginatedChannelsInner = React.memo(() => {
         pageEdgeTimerRef.current = null;
         const heldSide = pageEdgeSideRef.current;
         pageEdgeSideRef.current = null;
-        if (heldSide === 'left') goToPage(Math.max(0, currentPage - 1));
-        else if (heldSide === 'right') goToPage(Math.min(totalPages - 1, currentPage + 1));
+        if (heldSide === 'left') prevPage();
+        else if (heldSide === 'right') nextPage();
       }, PAGE_EDGE_HOLD_MS);
     },
     [
       channelSpaceKey,
       clearPageEdgeTimer,
-      goToPage,
       isSpaceTransitioning,
-      navigation.currentPage,
       navigation.isAnimating,
       navigation.totalPages,
+      nextPage,
+      prevPage,
     ]
   );
 
@@ -1311,6 +1319,8 @@ const PaginatedChannelsInner = React.memo(() => {
         <WiiChannelStrip
           totalPages={safeTotalPages}
           currentPage={navigation.currentPage || 0}
+          animationDirection={navigation.animationDirection || 'none'}
+          animationWrapped={Boolean(navigation.animationWrapped)}
           isAnimating={navigation.isAnimating}
           isGridFaded={isGridFaded}
           columns={gridConfig.columns}

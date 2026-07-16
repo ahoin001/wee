@@ -739,7 +739,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             hoverAccent="none"
             titleClassName={TOGGLE_TITLE}
             title="Spotify widget"
-            desc="Floating mini-player. Connect Spotify under API & Widgets for account access."
+            desc="Floating mini-player. Connect Spotify under Music, Steam & Widgets for account access."
             checked={Boolean(floatingWidgets?.spotify?.visible)}
             onChange={(next) => handleToggleFloatingWidget('spotify', next)}
           />
@@ -785,9 +785,9 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             <WeeHelpLinkButton
               type="button"
               className="!mt-0 inline"
-              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS)}
+              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS, { integrationsSubTab: 'music' })}
             >
-              API &amp; Widgets
+              Music, Steam &amp; Widgets
             </WeeHelpLinkButton>
             .
           </Text>

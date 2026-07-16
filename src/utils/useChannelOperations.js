@@ -4,6 +4,7 @@ import { useChannelSpaceKey } from '../contexts/ChannelSpaceContext';
 import {
   CHANNEL_PAGE_FLIP_MS,
   clampPageIndex,
+  resolveSteppedChannelPage,
   getPageBounds,
   getWiiNormalization,
   isSlotHidden,
@@ -163,30 +164,42 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   );
 
   const goToPage = useCallback(
-    (pageIndex) => {
-      const validPage = Math.max(0, Math.min(pageIndex, navigation.totalPages - 1));
+    (pageIndex, options = {}) => {
+      const validPage = clampPageIndex(pageIndex, navigation.totalPages);
+      if (validPage === navigation.currentPage || navigation.isAnimating) return;
 
-      if (validPage !== navigation.currentPage && !navigation.isAnimating) {
-        const direction = validPage > navigation.currentPage ? 'right' : 'left';
+      const explicitDir = options.direction;
+      const direction =
+        explicitDir === 'left' || explicitDir === 'right'
+          ? explicitDir
+          : validPage > navigation.currentPage
+            ? 'right'
+            : 'left';
 
-        setChannelNavigationForSpace(spaceKey, {
-          currentPage: validPage,
-          isAnimating: true,
-          animationDirection: direction,
-          animationDuration: CHANNEL_PAGE_FLIP_MS,
-        });
-      }
+      setChannelNavigationForSpace(spaceKey, {
+        currentPage: validPage,
+        isAnimating: true,
+        animationDirection: direction,
+        animationWrapped: Boolean(options.wrapped),
+        animationDuration: CHANNEL_PAGE_FLIP_MS,
+      });
     },
     [navigation, setChannelNavigationForSpace, spaceKey]
   );
 
   const nextPage = useCallback(() => {
-    goToPage(navigation.currentPage + 1);
-  }, [navigation.currentPage, goToPage]);
+    if (navigation.isAnimating) return;
+    const stepped = resolveSteppedChannelPage(navigation.currentPage, 1, navigation.totalPages);
+    if (stepped.direction === 'none' || stepped.page === navigation.currentPage) return;
+    goToPage(stepped.page, { direction: stepped.direction, wrapped: stepped.wrapped });
+  }, [navigation.currentPage, navigation.totalPages, navigation.isAnimating, goToPage]);
 
   const prevPage = useCallback(() => {
-    goToPage(navigation.currentPage - 1);
-  }, [navigation.currentPage, goToPage]);
+    if (navigation.isAnimating) return;
+    const stepped = resolveSteppedChannelPage(navigation.currentPage, -1, navigation.totalPages);
+    if (stepped.direction === 'none' || stepped.page === navigation.currentPage) return;
+    goToPage(stepped.page, { direction: stepped.direction, wrapped: stepped.wrapped });
+  }, [navigation.currentPage, navigation.totalPages, navigation.isAnimating, goToPage]);
 
   useEffect(() => {
     if (!enableGlobalPageShortcuts) {
@@ -221,15 +234,11 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault();
-          if (navigation.currentPage > 0) {
-            prevPage();
-          }
+          prevPage();
           break;
         case 'ArrowRight':
           event.preventDefault();
-          if (navigation.currentPage < navigation.totalPages - 1) {
-            nextPage();
-          }
+          nextPage();
           break;
         case 'Home':
           event.preventDefault();
@@ -265,9 +274,9 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
       lastAuxNavMs = now;
       event.preventDefault();
 
-      if (event.button === 3 && navigation.currentPage > 0) {
+      if (event.button === 3) {
         prevPage();
-      } else if (event.button === 4 && navigation.currentPage < navigation.totalPages - 1) {
+      } else if (event.button === 4) {
         nextPage();
       }
     };
@@ -295,6 +304,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     setChannelNavigationForSpace(spaceKey, {
       isAnimating: false,
       animationDirection: 'none',
+      animationWrapped: false,
     });
   }, [setChannelNavigationForSpace, spaceKey]);
 

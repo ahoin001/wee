@@ -1,10 +1,15 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Music, Activity, Settings2, Radio } from 'lucide-react';
+import { Music, Activity, Settings2, Radio, Gamepad2 } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
-import { WeeModalFieldCard, WeeSegmentedControl, WeeSettingsCollapsibleSection } from '../../ui/wee';
+import {
+  WeeModalFieldCard,
+  WeeSegmentedControl,
+  WeeSettingsCollapsibleSection,
+  WeeDockSettingsSubtabs,
+} from '../../ui/wee';
 import { AdminPanel } from '../admin';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { applyAdminPanelPowerActions, normalizeAdminPanelConfig } from '../../utils/adminPanelCommands';
@@ -14,6 +19,27 @@ import ShortcutCaptureControl from './ShortcutCaptureControl';
 import SteamIntegrationSettings from './SteamIntegrationSettings';
 import './api-integrations-settings.css';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
+
+const INTEGRATION_SUBTABS = [
+  {
+    id: 'music',
+    label: 'Music',
+    description: 'Spotify & Now Playing',
+    icon: Music,
+  },
+  {
+    id: 'steam',
+    label: 'Steam',
+    description: 'Library & friends',
+    icon: Gamepad2,
+  },
+  {
+    id: 'widgets',
+    label: 'Widgets',
+    description: 'Floating panels',
+    icon: Settings2,
+  },
+];
 
 const spotifyBtnClass = (active, isGreen = true) =>
   active
@@ -161,16 +187,41 @@ const ApiIntegrationsSettingsTab = () => {
     return title ? `${app} — ${title}${session.artist && session.title ? ` · ${session.artist}` : ''}` : app;
   }, [systemMediaEnabled, systemMedia]);
 
+  const integrationsSubTabHint = useConsolidatedAppStore((s) => s.ui?.integrationsSubTab);
+  const [activeSubTab, setActiveSubTab] = useState(() => {
+    const hint = useConsolidatedAppStore.getState().ui?.integrationsSubTab;
+    return hint === 'steam' || hint === 'widgets' || hint === 'music' ? hint : 'music';
+  });
+
+  useEffect(() => {
+    if (integrationsSubTabHint === 'steam' || integrationsSubTabHint === 'widgets' || integrationsSubTabHint === 'music') {
+      setActiveSubTab(integrationsSubTabHint);
+      actions.setUIState({ integrationsSubTab: undefined });
+    }
+  }, [integrationsSubTabHint, actions]);
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
       <SettingsTabPageHeader
-        title="API & Widgets"
-        subtitle="External services — Spotify, Steam, system media & widget options"
+        title="Music, Steam & Widgets"
+        subtitle="Connect services — Music & Now Playing, Steam, floating widgets"
+      />
+
+      <WeeDockSettingsSubtabs
+        tabs={INTEGRATION_SUBTABS}
+        value={activeSubTab}
+        onChange={setActiveSubTab}
+        ariaLabel="Integration sections"
+        layoutId="weeIntegrationsSubtabActive"
       />
 
       <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-5" className="mb-2">
         <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-          Show or hide floating widgets, and place Quick Access on the Home board, under{' '}
+          Home tile Color Match and Now Playing listen filters live in{' '}
+          <span className="font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]">
+            Edit Home
+          </span>
+          . Place Quick Access under{' '}
           <button
             type="button"
             className="border-0 bg-transparent p-0 font-black uppercase tracking-[0.12em] text-[hsl(var(--primary))] underline decoration-[hsl(var(--primary)/0.45)] underline-offset-4"
@@ -184,13 +235,15 @@ const ApiIntegrationsSettingsTab = () => {
         </Text>
       </WeeModalFieldCard>
 
-      <SteamIntegrationSettings />
+      {activeSubTab === 'steam' ? <SteamIntegrationSettings /> : null}
 
+      {activeSubTab === 'music' ? (
+        <>
       <WeeSettingsCollapsibleSection
         icon={Music}
         title="Spotify Integration"
         description="Connect to Spotify and configure the floating widget"
-        defaultOpen={false}
+        defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
           {/* Widget Enable/Disable Control */}
@@ -397,7 +450,11 @@ const ApiIntegrationsSettingsTab = () => {
           </Text>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
+        </>
+      ) : null}
 
+      {activeSubTab === 'widgets' ? (
+        <>
       {/* System Info Widget */}
       <WeeSettingsCollapsibleSection
         icon={Activity}
@@ -572,6 +629,8 @@ const ApiIntegrationsSettingsTab = () => {
           </div>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
+        </>
+      ) : null}
 
       <AdminPanel
         isOpen={showAdminPanel}

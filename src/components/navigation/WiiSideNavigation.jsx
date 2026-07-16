@@ -41,7 +41,7 @@ function rgbToRgba(rgbString, alpha = 1) {
 const WiiSideNavigation = () => {
   const channelSpaceKey = useMemo(() => 'home', []);
   const { navigation, nextPage, prevPage } = useChannelOperations(channelSpaceKey);
-  const { currentPage, totalPages, isAnimating, mode } = navigation;
+  const { totalPages, isAnimating, mode } = navigation;
 
   const spotifyColors = useConsolidatedAppStore((state) => state.spotify.extractedColors);
   const spotifyEnabled = useConsolidatedAppStore((state) => state.ui.spotifyMatchEnabled);
@@ -147,8 +147,8 @@ const WiiSideNavigation = () => {
     return null;
   }
 
-  const canGoLeft = currentPage > 0;
-  const canGoRight = currentPage < totalPages - 1;
+  const canGoLeft = totalPages > 1;
+  const canGoRight = totalPages > 1;
 
   return (
     <>

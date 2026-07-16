@@ -48,12 +48,15 @@ export const SETTINGS_TAB_META = Object.freeze([
   },
   {
     id: 'workspaces',
-    label: 'Home Profiles',
+    label: 'Home setups',
     icon: '🧩',
     color: 'hsl(var(--settings-tab-workspaces))',
-    description: 'Create and switch Home mode setups',
+    description: 'Switch Home board layouts & scenes',
     categoryId: 'home',
-    keywords: ['profiles', 'workspaces', 'switch', 'scenes', 'setups'],
+    keywords: [
+      'profiles', 'workspaces', 'home setups', 'switch', 'scenes', 'setups',
+      'home profiles', 'board layout',
+    ],
   },
   {
     id: 'gamehub',
@@ -71,9 +74,25 @@ export const SETTINGS_TAB_META = Object.freeze([
     label: 'Wallpaper',
     icon: '🖼️',
     color: 'hsl(var(--settings-tab-wallpaper))',
-    description: 'Background & cycling',
+    description: 'Library, cycling, overlays & match',
     categoryId: 'appearance',
-    keywords: ['background', 'cycling', 'blur', 'overlay', 'particles', 'image', 'video'],
+    keywords: [
+      'background', 'cycling', 'blur', 'overlay', 'particles', 'image', 'video',
+      'wallpaper library', 'desktop wallpaper',
+    ],
+  },
+  {
+    id: 'surfaces',
+    label: 'Surfaces',
+    icon: '🪟',
+    color: 'hsl(var(--settings-tab-surfaces))',
+    description: 'Wallpaper & ribbon by space and page',
+    categoryId: 'appearance',
+    keywords: [
+      'surfaces', 'per page wallpaper', 'page wallpaper', 'space wallpaper',
+      'game hub wallpaper', 'media hub wallpaper', 'home wallpaper', 'focus wallpaper',
+      'ribbon scope', 'ribbon by page', 'per page ribbon', 'space look',
+    ],
   },
   {
     id: 'colors',
@@ -86,12 +105,15 @@ export const SETTINGS_TAB_META = Object.freeze([
   },
   {
     id: 'themes',
-    label: 'Presets',
+    label: 'Looks',
     icon: '🎨',
     color: 'hsl(var(--settings-tab-themes))',
-    description: 'Save, share & apply looks',
+    description: 'Save, share & apply visual looks',
     categoryId: 'appearance',
-    keywords: ['presets', 'themes', 'community', 'share', 'import', 'export', 'looks'],
+    keywords: [
+      'presets', 'themes', 'looks', 'community', 'share', 'import', 'export',
+      'saved looks', 'freeze colors',
+    ],
   },
   {
     id: 'time',
@@ -118,21 +140,21 @@ export const SETTINGS_TAB_META = Object.freeze([
   },
   {
     id: 'navigation-pill',
-    label: 'Navigation Pill',
+    label: 'Space rail',
     icon: '📍',
     color: 'hsl(var(--settings-tab-navigation))',
-    description: 'Space rail visibility & pinning',
+    description: 'Space switcher visibility & pinning',
     categoryId: 'dock-nav',
-    keywords: ['space rail', 'pin', 'spaces', 'pill'],
+    keywords: ['space rail', 'navigation pill', 'pin', 'spaces', 'pill'],
   },
   {
     id: 'navigation',
-    label: 'Navigation',
+    label: 'Page arrows',
     icon: '🧭',
     color: 'hsl(var(--settings-tab-navigation))',
-    description: 'Side navigation buttons',
+    description: 'Home page side navigation',
     categoryId: 'dock-nav',
-    keywords: ['side nav', 'arrows', 'page', 'peek'],
+    keywords: ['side nav', 'arrows', 'page', 'peek', 'navigation'],
     beta: true,
   },
 
@@ -162,14 +184,15 @@ export const SETTINGS_TAB_META = Object.freeze([
   // —— Integrations & Widgets ——
   {
     id: 'api-integrations',
-    label: 'API & Widgets',
+    label: 'Music, Steam & Widgets',
     icon: '🔌',
     color: 'hsl(var(--settings-tab-api))',
-    description: 'Spotify, Steam, system media & widget options',
+    description: 'Spotify, Now Playing, Steam & floating widgets',
     categoryId: 'integrations',
     keywords: [
       'spotify', 'steam', 'steamid', 'enrichment', 'now playing', 'takeover', 'immersive',
-      'system info', 'admin panel', 'floating widgets', 'integrations',
+      'system info', 'admin panel', 'floating widgets', 'integrations', 'api', 'smtc',
+      'apple music', 'system media', 'music',
     ],
   },
 

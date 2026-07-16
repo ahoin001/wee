@@ -23,7 +23,7 @@ import {
   isRibbonChromeGlassSoftMode,
   RIBBON_NEON_COLOR_MODE_OPTIONS,
 } from '../../dock/ribbon/ribbonChromeEffectMeta';
-import { openSettingsToDockSubtab } from '../../../utils/settingsNavigation';
+import { openSettingsToDockSubtab, openSettingsToTab, SETTINGS_TAB_ID } from '../../../utils/settingsNavigation';
 
 const TOGGLE_TITLE =
   '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
@@ -209,6 +209,13 @@ function RibbonDockPanel({
   return (
     <div className="flex flex-col gap-5">
       <RibbonLivePreview sticky />
+      <WeeHelpParagraph>
+        Scope ribbon colors per Home/Focus page in{' '}
+        <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SURFACES)}>
+          Surfaces
+        </WeeHelpLinkButton>
+        .
+      </WeeHelpParagraph>
 
       <WeeSettingsCollapsibleSection
         icon={SlidersHorizontal}

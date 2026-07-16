@@ -76,9 +76,9 @@ const GameHubSettingsTab = React.memo(() => {
           <WeeHelpLinkButton
             type="button"
             className="!mt-0 inline"
-            onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS)}
+            onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS, { integrationsSubTab: 'steam' })}
           >
-            API &amp; Widgets
+            Music, Steam &amp; Widgets
           </WeeHelpLinkButton>
           .
         </Text>
@@ -128,7 +128,7 @@ const GameHubSettingsTab = React.memo(() => {
           <div className="space-y-3">
             <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
               Resets the dismissal flag so the hub can ask you to connect Steam again. Set your
-              SteamID64 under API &amp; Widgets.
+              SteamID64 under Music, Steam &amp; Widgets.
             </Text>
             <WButton size="sm" variant="secondary" onClick={handleResetOnboarding}>
               Reset onboarding prompt

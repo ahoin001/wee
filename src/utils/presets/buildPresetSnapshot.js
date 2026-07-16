@@ -32,6 +32,8 @@ function appearanceForSpace(state, spaceId, liveAppearance) {
   const activeId = state.spaces?.activeSpaceId || 'home';
   if (spaceId === activeId && liveAppearance) {
     const storedWp = stored?.wallpaper || {};
+    const storedRibbon = stored?.ribbon || {};
+    const liveRibbon = liveAppearance.ribbon || {};
     return cloneSafe(
       {
         ...liveAppearance,
@@ -51,6 +53,15 @@ function appearanceForSpace(state, spaceId, liveAppearance) {
               : 'space',
           wallpaperByPage:
             liveAppearance.wallpaper?.wallpaperByPage || storedWp.wallpaperByPage || {},
+        },
+        ribbon: {
+          ...storedRibbon,
+          ...liveRibbon,
+          ribbonScope:
+            liveRibbon.ribbonScope === 'perPage' || storedRibbon.ribbonScope === 'perPage'
+              ? 'perPage'
+              : 'space',
+          ribbonByPage: liveRibbon.ribbonByPage || storedRibbon.ribbonByPage || {},
         },
       },
       null

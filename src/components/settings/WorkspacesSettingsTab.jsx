@@ -176,8 +176,8 @@ const WorkspacesSettingsTab = React.memo(() => {
   return (
     <div className="surface-stack mx-auto flex max-w-4xl flex-col space-y-8 pb-12">
       <SettingsTabPageHeader
-        title="Home Profiles"
-        subtitle="Create and switch Home mode setups manually"
+        title="Home setups"
+        subtitle="Create and switch Home board layouts & scenes"
       />
 
       <SettingsWeeSection eyebrow="Shell">
@@ -283,10 +283,10 @@ const WorkspacesSettingsTab = React.memo(() => {
       </WeeCard>
       </SettingsWeeSection>
 
-      <SettingsWeeSection eyebrow="Presets">
+      <SettingsWeeSection eyebrow="Looks">
       <WeeCard
-        title="Preset to profile"
-        desc="Apply a preset and then save that result into your active profile."
+        title="Look to setup"
+        desc="Apply a saved look, then capture that result into your active Home setup."
       >
         <div className="surface-controls">
           <div className="surface-row">

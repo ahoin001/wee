@@ -340,7 +340,7 @@ export default function GameHubSpace() {
             enrichedGames: [],
             lastSyncedAt: library.lastSyncedAt ?? Date.now(),
             syncStatus: 'local-only',
-            statusReason: 'Steam enrichment disabled in API & Widgets settings.',
+            statusReason: 'Steam enrichment disabled in Music, Steam & Widgets settings.',
             lastError: null,
           },
         });
@@ -353,7 +353,7 @@ export default function GameHubSpace() {
             enrichedGames: [],
             lastSyncedAt: library.lastSyncedAt ?? Date.now(),
             syncStatus: 'local-only',
-            statusReason: 'Add SteamID64 in API & Widgets settings to enrich your library.',
+            statusReason: 'Add SteamID64 in Music, Steam & Widgets settings to enrich your library.',
             lastError: null,
           },
         });

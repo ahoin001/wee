@@ -336,6 +336,18 @@
   --spotify-green-rgb: 29 185 84;
   --spotify-green-secondary-rgb: 30 215 96;
 
+  /* Steam brand — Home widgets (Basic look); HSL components for hsl(var(--steam-*)) */
+  --steam-navy: 213 35% 14%;
+  --steam-navy-deep: 220 28% 10%;
+  --steam-panel: 210 29% 24%;
+  --steam-elevated: 213 32% 18%;
+  --steam-blue: 199 89% 68%;
+  --steam-blue-deep: 199 70% 52%;
+  --steam-ingame: 145 65% 42%;
+  --steam-text: 210 20% 96%;
+  --steam-text-muted: 210 16% 72%;
+  --steam-text-dim: 210 12% 55%;
+
   /* Focus / compat: alias brand hue for hsl(var(--primary)) */
   --primary: var(--wii-blue);
 
@@ -355,6 +367,7 @@
   --settings-tab-time: 193 58% 55%;
   --settings-tab-updates: 180 100% 41%;
   --settings-tab-wallpaper: 174 62% 55%;
+  --settings-tab-surfaces: 198 78% 48%;
   --settings-tab-workspaces: 205 86% 58%;
 
   /* Card.jsx — accent families not covered by state/wii tokens */
@@ -866,6 +879,28 @@
   box-shadow: 0 8px 24px hsl(var(--color-pure-black) / 0.28) !important;
   backdrop-filter: blur(10px) saturate(1.15);
   -webkit-backdrop-filter: blur(10px) saturate(1.15);
+}
+
+/**
+ * Steam Home widgets — Basic look remaps pill + semantic tokens so children
+ * (hsl(var(--primary)), surfaces, text) pick up Steam navy / cyan without hex in components.
+ */
+.home-widget-shell--basic.home-widget-shell--steam {
+  --wee-pill-glass: var(--steam-navy) / 0.97;
+  --wee-pill-border: var(--steam-blue) / 0.32;
+  --wee-pill-shadow: 0 18px 44px hsl(var(--steam-navy-deep) / 0.55);
+  --primary: var(--steam-blue);
+  --primary-hover: var(--steam-blue-deep);
+  --primary-active: var(--steam-blue-deep);
+  --text-primary: var(--steam-text);
+  --text-secondary: var(--steam-text-muted);
+  --text-tertiary: var(--steam-text-dim);
+  --surface-primary: var(--steam-navy-deep);
+  --surface-secondary: var(--steam-panel);
+  --surface-elevated: var(--steam-elevated);
+  --border-primary: var(--steam-blue);
+  --state-success: var(--steam-ingame);
+  color: hsl(var(--steam-text));
 }
 
 /* State Utilities */
