@@ -19,11 +19,12 @@ export const HOME_SLOT_PICKER_CATEGORIES = Object.freeze([
   Object.freeze({ id: 'system', label: 'System' }),
 ]);
 
-/** Now Playing reads best as art + track text — 3×2 (XL) is all dead space. */
+/** Now Playing size set: 1×1, 1×2, 2×1, 2×2 — art + controls on every size. */
 const NOW_PLAYING_SIZE_PRESETS = Object.freeze({
-  S: HOME_SLOT_SIZE_PRESETS.S,
-  M: HOME_SLOT_SIZE_PRESETS.M,
-  L: HOME_SLOT_SIZE_PRESETS.L,
+  S: Object.freeze({ id: 'S', label: '1×1', colSpan: 1, rowSpan: 1, capacity: 0 }),
+  T: Object.freeze({ id: 'T', label: '1×2', colSpan: 1, rowSpan: 2, capacity: 2 }),
+  M: Object.freeze({ id: 'M', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 3 }),
+  L: Object.freeze({ id: 'L', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 6 }),
 });
 
 /** Clock / weather — keep S for compact glance. */
@@ -38,9 +39,11 @@ const GLANCE_TILE_SIZE_PRESETS = Object.freeze({
  * (Default home grid is 3 rows — 2×4 clamps to 2×3 until the page has more rows.)
  */
 export const STEAM_TILE_SIZE_PRESETS = Object.freeze({
-  M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 6 }),
-  L: Object.freeze({ id: 'L', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 9 }),
-  XL: Object.freeze({ id: 'XL', label: '2×4', colSpan: 2, rowSpan: 4, capacity: 12 }),
+  M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 12 }),
+  L: Object.freeze({ id: 'L', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 18 }),
+  XL: Object.freeze({ id: 'XL', label: '2×4', colSpan: 2, rowSpan: 4, capacity: 24 }),
+  /** Wide layout — horizontal shelf scroll by default (auto axis). */
+  W: Object.freeze({ id: 'W', label: '3×2', colSpan: 3, rowSpan: 2, capacity: 16 }),
 });
 
 export const HOME_SLOT_KINDS = {

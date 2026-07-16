@@ -21,8 +21,12 @@ const TIMELINE_COALESCE_MS = 400;
 const FIRST_SNAPSHOT_TIMEOUT_MS = 20000;
 /** Extra attempt after timeout with a fresh SessionManager. */
 const FIRST_SNAPSHOT_RETRIES = 1;
-/** Cap art payload — full Apple Music / Spotify data URLs are 150–300KB each. */
-const MAX_THUMBNAIL_CHARS = 400000;
+/** After JPEG compress, keep a hard ceiling so IPC never freezes. */
+const MAX_THUMBNAIL_CHARS = 220000;
+/** Longest edge for SMTC album art sent to the renderer. */
+const THUMB_MAX_EDGE = 320;
+/** JPEG quality for SMTC thumbnails (Apple Music raw data URLs are often 250–400KB). */
+const THUMB_JPEG_QUALITY = 78;
 
 function createSystemMediaService({ getMainWindow, execFile, platform, resourcesPath }) {
   let unsubscribe = null;
@@ -171,13 +175,53 @@ function createSystemMediaService({ getMainWindow, execFile, platform, resources
   }
 
   /**
-   * Limit IPC payload size. Full thumbnails for every session (Spotify + Apple Music)
-   * routinely exceed 400KB and can stall Electron's structured clone on every tick.
+   * Downscale + JPEG-encode SMTC album art (Apple Music often ships 250–400KB PNGs).
+   * Uses Electron `nativeImage` when available; falls back to the raw data URL if small.
+   * @param {string} dataUrl
+   * @returns {string}
+   */
+  function compressThumbnailDataUrl(dataUrl) {
+    if (!dataUrl || typeof dataUrl !== 'string') return '';
+    const raw = dataUrl.trim();
+    if (!raw.startsWith('data:')) return '';
+
+    try {
+      // Lazy require — keeps this service testable under plain Node.
+      // eslint-disable-next-line global-require
+      const { nativeImage } = require('electron');
+      if (!nativeImage?.createFromDataURL) {
+        return raw.length <= MAX_THUMBNAIL_CHARS ? raw : '';
+      }
+      const image = nativeImage.createFromDataURL(raw);
+      if (!image || image.isEmpty()) return '';
+      const { width, height } = image.getSize();
+      let working = image;
+      if (width > THUMB_MAX_EDGE || height > THUMB_MAX_EDGE) {
+        const scale = Math.min(THUMB_MAX_EDGE / width, THUMB_MAX_EDGE / height);
+        working = image.resize({
+          width: Math.max(1, Math.round(width * scale)),
+          height: Math.max(1, Math.round(height * scale)),
+          quality: 'better',
+        });
+      }
+      const jpeg = working.toJPEG(THUMB_JPEG_QUALITY);
+      if (!jpeg || !jpeg.length) return '';
+      const out = `data:image/jpeg;base64,${jpeg.toString('base64')}`;
+      return out.length <= MAX_THUMBNAIL_CHARS ? out : '';
+    } catch {
+      return raw.length <= MAX_THUMBNAIL_CHARS ? raw : '';
+    }
+  }
+
+  /**
+   * Limit IPC payload size. Compress art for the primary session so Apple Music
+   * / Spotify Desktop covers always reach the tile without freezing structured-clone.
    */
   function sanitizeSessionForIpc(session, includeThumbnail) {
     if (!session || typeof session !== 'object') return null;
-    const thumb =
+    const rawThumb =
       includeThumbnail && typeof session.thumbnail === 'string' ? session.thumbnail : '';
+    const thumbnail = rawThumb ? compressThumbnailDataUrl(rawThumb) : '';
     return {
       id: session.id,
       sourceAppUserModelId: session.sourceAppUserModelId || '',
@@ -200,12 +244,7 @@ function createSystemMediaService({ getMainWindow, execFile, platform, resources
             canSkipPrevious: Boolean(session.controls.canSkipPrevious),
           }
         : undefined,
-      thumbnail:
-        thumb && thumb.length <= MAX_THUMBNAIL_CHARS
-          ? thumb
-          : thumb
-            ? '' // too large — omit rather than freeze IPC
-            : '',
+      thumbnail,
     };
   }
 
@@ -215,7 +254,10 @@ function createSystemMediaService({ getMainWindow, execFile, platform, resources
     const playing = list.filter(
       (s) => statusOf(s) === 'playing' || statusOf(s) === 'changing'
     );
-    const thumbTargets = playing.length > 0 ? playing : list.slice(0, 1);
+    // Prefer playing; else any session that already has art; else first.
+    const withArt = list.filter((s) => typeof s?.thumbnail === 'string' && s.thumbnail);
+    const thumbTargets =
+      playing.length > 0 ? playing : withArt.length > 0 ? withArt.slice(0, 1) : list.slice(0, 1);
     const thumbIds = new Set(thumbTargets.map((s) => s?.id).filter(Boolean));
     return list
       .map((s) => sanitizeSessionForIpc(s, thumbIds.has(s?.id)))

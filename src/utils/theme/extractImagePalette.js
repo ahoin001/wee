@@ -75,7 +75,7 @@ export function extractImagePalette(imageUrl) {
           return;
         }
 
-        const maxSize = 100;
+        const maxSize = 160;
         const scale = Math.min(maxSize / img.width, maxSize / img.height) || 1;
         canvas.width = Math.max(1, Math.round(img.width * scale));
         canvas.height = Math.max(1, Math.round(img.height * scale));
@@ -86,7 +86,8 @@ export function extractImagePalette(imageUrl) {
         const data = imageData.data;
 
         const buckets = new Map();
-        const step = 5;
+        // Denser sample than wallpaper path — album art is smaller and more saturated.
+        const step = 3;
 
         for (let i = 0; i < data.length; i += step * 4) {
           const r = data[i];
@@ -94,17 +95,24 @@ export function extractImagePalette(imageUrl) {
           const b = data[i + 2];
           const a = data[i + 3];
           const sum = r + g + b;
-          if (a <= 128 || sum <= 100 || sum >= 700) continue;
+          if (a <= 128 || sum <= 80 || sum >= 720) continue;
+
+          // Prefer chromatic pixels over near-gray (accurate album-driven accents).
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const chroma = max - min;
+          if (chroma < 12 && sum > 140 && sum < 620) continue;
 
           const key = quantizeKey(r, g, b);
           const prev = buckets.get(key);
+          const weight = 1 + chroma / 64;
           if (prev) {
-            prev.count += 1;
-            prev.r += r;
-            prev.g += g;
-            prev.b += b;
+            prev.count += weight;
+            prev.r += r * weight;
+            prev.g += g * weight;
+            prev.b += b * weight;
           } else {
-            buckets.set(key, { count: 1, r, g, b });
+            buckets.set(key, { count: weight, r: r * weight, g: g * weight, b: b * weight });
           }
         }
 
@@ -122,29 +130,40 @@ export function extractImagePalette(imageUrl) {
           }))
           .sort((a, b) => b.count - a.count);
 
-        const boost = 1.3;
+        const boost = 1.22;
         const avg = ranked[0];
         const primaryR = Math.min(255, Math.round(avg.r * boost));
         const primaryG = Math.min(255, Math.round(avg.g * boost));
         const primaryB = Math.min(255, Math.round(avg.b * boost));
 
-        const secondaryR = Math.max(0, primaryR - 40);
-        const secondaryG = Math.max(0, primaryG - 40);
-        const secondaryB = Math.max(0, primaryB - 40);
+        // Secondary: next distinct bucket by hue distance, not a flat darken.
+        let secondarySrc = ranked[1] || ranked[0];
+        for (const candidate of ranked.slice(1, 6)) {
+          const dr = candidate.r - avg.r;
+          const dg = candidate.g - avg.g;
+          const db = candidate.b - avg.b;
+          if (dr * dr + dg * dg + db * db > 2800) {
+            secondarySrc = candidate;
+            break;
+          }
+        }
+        const secondaryR = Math.max(0, Math.min(255, Math.round(secondarySrc.r * 0.92)));
+        const secondaryG = Math.max(0, Math.min(255, Math.round(secondarySrc.g * 0.92)));
+        const secondaryB = Math.max(0, Math.min(255, Math.round(secondarySrc.b * 0.92)));
 
-        const accentR = Math.min(255, primaryR + 50);
-        const accentG = Math.min(255, primaryG + 50);
-        const accentB = Math.min(255, primaryB + 50);
+        const accentR = Math.min(255, Math.round(primaryR * 0.65 + secondaryR * 0.35 + 28));
+        const accentG = Math.min(255, Math.round(primaryG * 0.65 + secondaryG * 0.35 + 28));
+        const accentB = Math.min(255, Math.round(primaryB * 0.65 + secondaryB * 0.35 + 28));
 
-        const surfaceR = Math.min(255, Math.round(primaryR * 0.55 + 80));
-        const surfaceG = Math.min(255, Math.round(primaryG * 0.55 + 80));
-        const surfaceB = Math.min(255, Math.round(primaryB * 0.55 + 80));
+        const surfaceR = Math.min(255, Math.round(primaryR * 0.5 + 72));
+        const surfaceG = Math.min(255, Math.round(primaryG * 0.5 + 72));
+        const surfaceB = Math.min(255, Math.round(primaryB * 0.5 + 72));
 
         const brightness = (primaryR * 299 + primaryG * 587 + primaryB * 114) / 1000;
         const textColor =
-          brightness > 128 ? ALBUM_ART_TEXT_ON_LIGHT : ALBUM_ART_TEXT_ON_DARK;
+          brightness > 148 ? ALBUM_ART_TEXT_ON_LIGHT : ALBUM_ART_TEXT_ON_DARK;
         const textSecondaryColor =
-          brightness > 128
+          brightness > 148
             ? ALBUM_ART_TEXT_ON_LIGHT_SECONDARY
             : ALBUM_ART_TEXT_ON_DARK_SECONDARY;
 

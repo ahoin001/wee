@@ -1,12 +1,13 @@
 /**
  * Home-grid Steam glance tile — recent or most-played from enrichment cache.
- * Portrait library covers (2∶3) like Game Hub shelves; grid scrolls when needed.
+ * Portrait library covers; denser scrollable shelf with shared display prefs.
  */
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Gamepad2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
+import { SteamCoverTile, SteamGamesShelf } from './SteamGamesShelf';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
@@ -14,8 +15,10 @@ import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import {
-  STEAM_CDN_HEADER,
-  STEAM_CDN_LIBRARY_COVER,
+  getHomeSteamTileSizeConfig,
+  normalizeHomeSteamWidget,
+} from '../../utils/homeSteamWidgetPrefs';
+import {
   sortMostPlayedSteamGames,
   sortRecentSteamGames,
   steamEnrichmentIpcArgs,
@@ -29,6 +32,7 @@ const VARIANT_META = {
     launchSource: 'steamRecent',
     emptyNoData: 'No recent Steam play yet',
     sort: sortRecentSteamGames,
+    playtimeField: 'playtimeRecent',
   },
   mostPlayed: {
     title: 'Steam Most Played',
@@ -37,52 +41,8 @@ const VARIANT_META = {
     launchSource: 'steamMostPlayed',
     emptyNoData: 'No playtime data yet',
     sort: sortMostPlayedSteamGames,
+    playtimeField: 'playtimeForever',
   },
-};
-
-const GRID_COLS = 3;
-
-function SteamCoverButton({ game, onLaunch }) {
-  const appId = String(game.appId);
-  const primarySrc =
-    (typeof game.imageUrl === 'string' && game.imageUrl.trim()) || STEAM_CDN_LIBRARY_COVER(appId);
-
-  return (
-    <button
-      type="button"
-      title={game.name}
-      aria-label={`Launch ${game.name}`}
-      onClick={(event) => {
-        event.stopPropagation();
-        onLaunch(game);
-      }}
-      className="home-widget-float-tile group relative aspect-[2/3] w-full min-w-0 overflow-hidden rounded-[0.85rem] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-elevated)/0.88)] text-left shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
-    >
-      <img
-        src={primarySrc}
-        alt=""
-        className="absolute inset-0 h-full w-full object-contain"
-        draggable={false}
-        loading="lazy"
-        onError={(event) => {
-          const img = event.currentTarget;
-          const header = STEAM_CDN_HEADER(appId);
-          if (img.dataset.fallback === 'header' || img.src === header) return;
-          img.dataset.fallback = 'header';
-          img.src = header;
-        }}
-      />
-    </button>
-  );
-}
-
-SteamCoverButton.propTypes = {
-  game: PropTypes.shape({
-    appId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    name: PropTypes.string,
-    imageUrl: PropTypes.string,
-  }).isRequired,
-  onLaunch: PropTypes.func.isRequired,
 };
 
 function SteamGamesGlanceSlot({
@@ -95,7 +55,7 @@ function SteamGamesGlanceSlot({
   onArrangeSelect,
 }) {
   const meta = VARIANT_META[variant] || VARIANT_META.recent;
-  const { enrichedGames, steamId, apiKeyConfigured, apiEnabled, lastSyncedAt } =
+  const { enrichedGames, steamId, apiKeyConfigured, apiEnabled, lastSyncedAt, steamPrefs } =
     useConsolidatedAppStore(
       useShallow((state) => ({
         enrichedGames: state.gameHub?.library?.enrichedGames || [],
@@ -103,6 +63,7 @@ function SteamGamesGlanceSlot({
         apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
         apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
         lastSyncedAt: state.gameHub?.library?.lastSyncedAt || 0,
+        steamPrefs: normalizeHomeSteamWidget(state.ui?.homeSteamWidget),
       }))
     );
   const setGameHubState = useConsolidatedAppStore((s) => s.actions.setGameHubState);
@@ -115,14 +76,17 @@ function SteamGamesGlanceSlot({
         id: 'M',
         colSpan: 2,
         rowSpan: 2,
-        capacity: 6,
+        capacity: 12,
       },
     [meta.kindId, slot?.colSpan, slot?.rowSpan]
   );
 
-  const capacity = Number(sizePreset.capacity) || 6;
+  const tileCfg = getHomeSteamTileSizeConfig(steamPrefs.tileSize);
+  const capacity = Math.max(Number(sizePreset.capacity) || 12, tileCfg.capacity);
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
+  const colSpan = slot?.colSpan ?? sizePreset.colSpan ?? 2;
+  const rowSpan = slot?.rowSpan ?? sizePreset.rowSpan ?? 2;
 
   const games = useMemo(
     () => meta.sort(enrichedGames).slice(0, capacity),
@@ -228,7 +192,7 @@ function SteamGamesGlanceSlot({
     <HomeWidgetShell
       surface={surface}
       selected={selected}
-      className="p-2"
+      className="p-1.5"
       onClick={handleActivate}
       aria-label={meta.ariaLabel}
     >
@@ -252,30 +216,27 @@ function SteamGamesGlanceSlot({
           </span>
         </button>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+        <div className="flex min-h-0 flex-1 flex-col gap-1">
           <div className="flex shrink-0 items-center justify-between gap-1 px-0.5">
             <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
               {meta.title}
             </span>
             <Gamepad2 size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
           </div>
-          <div
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] [scrollbar-width:thin]"
-            onWheel={(event) => event.stopPropagation()}
-          >
-            <div
-              className="grid content-start gap-1.5"
-              style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}
-            >
-              {games.map((game) => (
-                <SteamCoverButton
-                  key={String(game.appId)}
-                  game={game}
-                  onLaunch={handleLaunch}
-                />
-              ))}
-            </div>
-          </div>
+          <SteamGamesShelf prefs={steamPrefs} colSpan={colSpan} rowSpan={rowSpan}>
+            {games.map((game) => (
+              <SteamCoverTile
+                key={String(game.appId)}
+                appId={game.appId}
+                name={game.name}
+                imageUrl={game.imageUrl}
+                playtimeMinutes={Number(game[meta.playtimeField] || game.playtimeForever || 0)}
+                showPlaytime={steamPrefs.showPlaytime}
+                showName={steamPrefs.showName}
+                onActivate={() => handleLaunch(game)}
+              />
+            ))}
+          </SteamGamesShelf>
         </div>
       )}
     </HomeWidgetShell>

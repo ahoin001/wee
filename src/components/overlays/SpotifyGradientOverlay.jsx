@@ -8,7 +8,7 @@ const SpotifyGradientOverlay = () => {
     useShallow((state) => ({
       extractedColors: state.spotify.extractedColors,
       immersiveMode: state.spotify.immersiveMode,
-      isPlaying: state.spotify.isPlaying,
+      isPlaying: Boolean(state.nowPlaying?.isPlaying ?? state.spotify.isPlaying),
     }))
   );
   const canvasRef = useRef(null);

@@ -1,6 +1,6 @@
 /**
- * Home-grid Now Playing tile — SMTC-first display for free desktop players;
- * Premium Spotify Web API for transport when available.
+ * Home-grid Now Playing tile — SMTC-first display with full-bleed art + transport
+ * on every size (1×1, 1×2, 2×1, 2×2).
  */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
@@ -9,7 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
+import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { openSettingsToTab } from '../../utils/settingsNavigation';
 import {
   normalizeNowPlayingExperience,
@@ -23,6 +23,46 @@ import {
   pickPrimarySystemSession,
   resolveNowPlaying,
 } from '../../utils/nowPlayingShape';
+
+function TransportButton({
+  label,
+  title,
+  disabled,
+  onClick,
+  sizeClass,
+  primary = false,
+  children,
+}) {
+  return (
+    <button
+      type="button"
+      className={[
+        'flex shrink-0 items-center justify-center rounded-full transition-transform',
+        'disabled:opacity-40 disabled:hover:scale-100',
+        primary
+          ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)] hover:scale-110'
+          : 'bg-[hsl(var(--surface-elevated)/0.78)] text-[hsl(var(--text-primary))] backdrop-blur-sm hover:scale-110 home-widget-float-chip',
+        sizeClass,
+      ].join(' ')}
+      title={title}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+TransportButton.propTypes = {
+  label: PropTypes.string.isRequired,
+  title: PropTypes.string,
+  disabled: PropTypes.bool,
+  onClick: PropTypes.func,
+  sizeClass: PropTypes.string,
+  primary: PropTypes.bool,
+  children: PropTypes.node,
+};
 
 function NowPlayingSlot({
   slot,
@@ -44,6 +84,7 @@ function NowPlayingSlot({
     spotifyPremium,
     spotifySlice,
     takeoverExperienceOn,
+    extractedColors,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       globalNp: state.nowPlaying || EMPTY_NOW_PLAYING,
@@ -56,16 +97,14 @@ function NowPlayingSlot({
       spotifySlice: state.spotify,
       takeoverExperienceOn:
         normalizeNowPlayingExperience(state.spotify.nowPlayingExperience) !== 'off',
+      extractedColors: state.spotify?.extractedColors || null,
     }))
   );
 
-  // Optional per-tile app filter — otherwise use the shared nowPlaying SSOT.
   const np = useMemo(() => {
     if (listenApp === 'any') return globalNp;
     const session = pickPrimarySystemSession(sessions, { listenApp });
-    if (!session) {
-      return { ...EMPTY_NOW_PLAYING };
-    }
+    if (!session) return { ...EMPTY_NOW_PLAYING };
     return resolveNowPlaying({
       preference,
       systemEnabled,
@@ -105,14 +144,19 @@ function NowPlayingSlot({
     controlsVia === 'system-keys' || (source === 'system' && !useApiControls);
 
   const sizePreset = useMemo(
-    () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),
+    () =>
+      matchHomeSlotSizePreset('nowPlaying', slot?.colSpan ?? 1, slot?.rowSpan ?? 1) ||
+      matchHomeSlotSizePreset('nowPlaying', 2, 1),
     [slot?.colSpan, slot?.rowSpan]
   );
-  const isCompact = sizePreset?.id === 'S';
-  const isTall = (sizePreset?.rowSpan ?? 1) > 1;
-  const isWide = (sizePreset?.colSpan ?? 1) > 1;
+  const sizeId = sizePreset?.id || 'M';
+  const isCompact = sizeId === 'S';
+  const isTall = sizeId === 'T';
+  const isWide = sizeId === 'M';
+  const isLarge = sizeId === 'L';
   const interactionsLocked = arrangeMode || punchMode;
   const hasTrack = Boolean(trackName);
+  const hasArt = Boolean(albumArtUrl);
 
   const openMediaWidget = useCallback(() => {
     if (window.api?.ui?.showSpotifyWidget) {
@@ -162,14 +206,11 @@ function NowPlayingSlot({
         return;
       }
       if (!hasTrack) return;
-      // Open floating media widget for Spotify API path; SMTC → play/pause.
       if (useApiControls || source === 'spotify') {
         openMediaWidget();
         return;
       }
-      if (useSystemKeys) {
-        void runTransport('playPause');
-      }
+      if (useSystemKeys) void runTransport('playPause');
     },
     [
       arrangeMode,
@@ -198,17 +239,8 @@ function NowPlayingSlot({
     [interactionsLocked, runTransport]
   );
 
-  const statusLabel = isPlaying
-    ? appName
-      ? `${appName}`
-      : 'Now Playing'
-    : hasTrack
-      ? 'Paused'
-      : '';
-
   const showTransport =
-    hasTrack && !isCompact && !interactionsLocked && (useApiControls || useSystemKeys);
-
+    hasTrack && !interactionsLocked && (useApiControls || useSystemKeys);
   const playPauseEnabled = isPlaying
     ? canPause || useApiControls
     : canPlay || useApiControls;
@@ -216,13 +248,76 @@ function NowPlayingSlot({
   const takeoverAvailable =
     (source === 'spotify' || useApiControls) && takeoverExperienceOn;
 
+  const accentStyle = useMemo(() => {
+    if (!extractedColors?.primary) return undefined;
+    return {
+      '--np-accent': extractedColors.primary,
+      '--np-accent-secondary': extractedColors.secondary || extractedColors.primary,
+    };
+  }, [extractedColors]);
+
+  const statusLabel = isPlaying
+    ? appName || 'Now Playing'
+    : hasTrack
+      ? 'Paused'
+      : '';
+
+  const btnSm = isCompact ? 'h-7 w-7' : isTall ? 'h-8 w-8' : 'h-8 w-8';
+  const btnPlay = isCompact ? 'h-8 w-8' : isLarge ? 'h-10 w-10' : 'h-9 w-9';
+  const iconSm = isCompact ? 12 : 14;
+  const iconPlay = isCompact ? 13 : isLarge ? 16 : 15;
+
+  const transportRow = showTransport ? (
+    <div
+      className={`relative z-10 flex items-center justify-center gap-1 ${
+        isCompact ? 'px-1.5 pb-1.5 pt-0.5' : isTall ? 'px-2.5 pb-3 pt-1' : 'px-3 pb-2.5 pt-1'
+      }`}
+      role="group"
+      aria-label="Playback controls"
+    >
+      <TransportButton
+        label="Previous track"
+        title="Previous"
+        disabled={!canSkipPrevious && !useApiControls}
+        onClick={handleTransportClick('previous')}
+        sizeClass={btnSm}
+      >
+        <SkipBack size={iconSm} strokeWidth={2.5} aria-hidden />
+      </TransportButton>
+      <TransportButton
+        label={isPlaying ? 'Pause' : 'Play'}
+        title={isPlaying ? 'Pause' : 'Play'}
+        disabled={!playPauseEnabled}
+        onClick={handleTransportClick('playPause')}
+        sizeClass={btnPlay}
+        primary
+      >
+        {isPlaying ? (
+          <Pause size={iconPlay} strokeWidth={2.5} aria-hidden />
+        ) : (
+          <Play size={iconPlay} strokeWidth={2.5} className="ml-0.5" aria-hidden />
+        )}
+      </TransportButton>
+      <TransportButton
+        label="Next track"
+        title="Next"
+        disabled={!canSkipNext && !useApiControls}
+        onClick={handleTransportClick('next')}
+        sizeClass={btnSm}
+      >
+        <SkipForward size={iconSm} strokeWidth={2.5} aria-hidden />
+      </TransportButton>
+    </div>
+  ) : null;
+
   return (
     <HomeWidgetShell
       surface={surface}
       selected={selected}
       aria-label="Now Playing"
     >
-      {hasTrack && albumArtUrl ? (
+      <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden" style={accentStyle}>
+      {hasTrack && hasArt ? (
         <>
           <img
             src={albumArtUrl}
@@ -232,18 +327,43 @@ function NowPlayingSlot({
           />
           <div
             className={`pointer-events-none absolute inset-0 ${
-              isTall
-                ? 'bg-gradient-to-t from-[hsl(var(--surface-primary)/0.92)] via-[hsl(var(--surface-primary)/0.35)] to-transparent'
-                : 'bg-gradient-to-t from-[hsl(var(--surface-primary)/0.88)] via-[hsl(var(--surface-primary)/0.28)] to-transparent'
+              isTall || isLarge
+                ? 'bg-gradient-to-t from-[hsl(var(--surface-primary)/0.94)] via-[hsl(var(--surface-primary)/0.28)] to-transparent'
+                : isCompact
+                  ? 'bg-gradient-to-t from-[hsl(var(--surface-primary)/0.9)] via-[hsl(var(--surface-primary)/0.2)] to-transparent'
+                  : 'bg-gradient-to-t from-[hsl(var(--surface-primary)/0.9)] via-[hsl(var(--surface-primary)/0.25)] to-transparent'
             }`}
           />
+          {extractedColors?.primary ? (
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 opacity-50"
+              style={{
+                background: `linear-gradient(to top, ${extractedColors.primary}, transparent)`,
+              }}
+            />
+          ) : null}
         </>
+      ) : hasTrack ? (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: extractedColors?.primary
+              ? `linear-gradient(145deg, ${extractedColors.primary}, ${extractedColors.secondary || extractedColors.primary})`
+              : 'hsl(var(--surface-elevated) / 0.55)',
+          }}
+        />
       ) : null}
 
       <button
         type="button"
-        className={`relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-0.5 text-left ${
-          isTall ? 'p-3.5' : isWide ? 'p-3' : 'p-2.5'
+        className={`relative z-10 flex min-h-0 flex-1 flex-col text-left ${
+          isCompact
+            ? 'justify-end gap-0 p-2'
+            : isTall
+              ? 'justify-end gap-1 p-3'
+              : isWide
+                ? 'justify-end gap-0.5 p-3'
+                : 'justify-end gap-1 p-3.5'
         } ${showTransport ? 'pb-0' : ''}`}
         onClick={handleActivate}
         disabled={interactionsLocked && !arrangeMode}
@@ -251,32 +371,35 @@ function NowPlayingSlot({
       >
         {hasTrack ? (
           <>
-            <span className="flex items-center gap-1.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-              <Music size={11} strokeWidth={2.5} className="text-[hsl(var(--primary))]" aria-hidden />
+            <span className="flex items-center gap-1 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-primary))] drop-shadow-[0_1px_2px_hsl(var(--surface-primary)/0.65)]">
+              <Music
+                size={isCompact ? 10 : 11}
+                strokeWidth={2.5}
+                className="shrink-0 text-[hsl(var(--primary))]"
+                style={extractedColors?.accent ? { color: extractedColors.accent } : undefined}
+                aria-hidden
+              />
               <span className="truncate">{statusLabel}</span>
-              {source === 'system' && !isCompact ? (
-                <span className="shrink-0 text-[hsl(var(--text-tertiary))]">· Desktop</span>
-              ) : null}
             </span>
-            {!isCompact ? (
-              <>
-                <span
-                  className={`truncate font-black text-[hsl(var(--text-primary))] home-widget-float-type ${
-                    isTall ? 'text-base leading-snug' : 'text-sm'
-                  }`}
-                >
-                  {trackName}
-                </span>
-                {artistLine ? (
-                  <span
-                    className={`truncate font-semibold text-[hsl(var(--text-secondary))] ${
-                      isTall ? 'text-xs' : 'text-[length:var(--font-size-caption)]'
-                    }`}
-                  >
-                    {artistLine}
-                  </span>
-                ) : null}
-              </>
+            <span
+              className={`truncate font-black text-[hsl(var(--text-primary))] drop-shadow-[0_1px_3px_hsl(var(--surface-primary)/0.7)] home-widget-float-type ${
+                isCompact
+                  ? 'text-[11px] leading-tight'
+                  : isLarge
+                    ? 'text-base leading-snug'
+                    : 'text-sm leading-snug'
+              }`}
+            >
+              {trackName}
+            </span>
+            {artistLine && !isCompact ? (
+              <span
+                className={`truncate font-semibold text-[hsl(var(--text-primary)/0.88)] drop-shadow-[0_1px_2px_hsl(var(--surface-primary)/0.65)] ${
+                  isLarge ? 'text-xs' : 'text-[length:var(--font-size-caption)]'
+                }`}
+              >
+                {artistLine}
+              </span>
             ) : null}
           </>
         ) : (
@@ -294,53 +417,12 @@ function NowPlayingSlot({
         )}
       </button>
 
-      {showTransport ? (
-        <div
-          className={`relative z-10 flex items-center gap-1 px-3 ${isTall ? 'pb-3.5 pt-1.5' : 'pb-2.5 pt-1'}`}
-          role="group"
-          aria-label="Playback controls"
-        >
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40 home-widget-float-chip"
-            title="Previous"
-            aria-label="Previous track"
-            disabled={!canSkipPrevious && !useApiControls}
-            onClick={handleTransportClick('previous')}
-          >
-            <SkipBack size={14} strokeWidth={2.5} aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)] transition-transform hover:scale-110 disabled:opacity-40"
-            title={isPlaying ? 'Pause' : 'Play'}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-            disabled={!playPauseEnabled}
-            onClick={handleTransportClick('playPause')}
-          >
-            {isPlaying ? (
-              <Pause size={15} strokeWidth={2.5} aria-hidden />
-            ) : (
-              <Play size={15} strokeWidth={2.5} className="ml-0.5" aria-hidden />
-            )}
-          </button>
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40 home-widget-float-chip"
-            title="Next"
-            aria-label="Next track"
-            disabled={!canSkipNext && !useApiControls}
-            onClick={handleTransportClick('next')}
-          >
-            <SkipForward size={14} strokeWidth={2.5} aria-hidden />
-          </button>
-        </div>
-      ) : null}
+      {transportRow}
 
       {hasTrack && takeoverAvailable && !isCompact && !interactionsLocked ? (
         <button
           type="button"
-          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.75)] text-[hsl(var(--text-secondary))] backdrop-blur-sm transition-transform hover:scale-110 hover:text-[hsl(var(--text-primary))] home-widget-float-chip"
+          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.78)] text-[hsl(var(--text-secondary))] backdrop-blur-sm transition-transform hover:scale-110 hover:text-[hsl(var(--text-primary))] home-widget-float-chip"
           title="Now Playing takeover"
           aria-label="Toggle Now Playing takeover"
           onClick={(event) => {
@@ -351,6 +433,7 @@ function NowPlayingSlot({
           <Maximize2 size={13} strokeWidth={2.5} aria-hidden />
         </button>
       ) : null}
+      </div>
     </HomeWidgetShell>
   );
 }

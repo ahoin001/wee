@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { pickPrimarySystemSession } from '../utils/nowPlayingShape';
 import { useSharedSpotifyPlaybackSampler } from './useSharedSpotifyPlaybackSampler';
+import { useNowPlayingColorMatch } from './useNowPlayingColorMatch';
 
 /** Renderer watchdog — main start is non-blocking; this only clears a stuck UI flag. */
 const STARTING_WATCHDOG_MS = 8000;
@@ -58,6 +59,7 @@ let smtcStartGeneration = 0;
  */
 export function useNowPlayingSources() {
   useSharedSpotifyPlaybackSampler();
+  useNowPlayingColorMatch();
 
   const { systemMediaEnabled, preference } = useConsolidatedAppStore(
     useShallow((s) => ({

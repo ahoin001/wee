@@ -1,5 +1,6 @@
 import { mergeMotionFeedback } from '../motionFeedbackDefaults.js';
 import { normalizeHomeWidgetGlass } from '../homeWidgetGlass.js';
+import { normalizeHomeSteamWidget } from '../homeSteamWidgetPrefs.js';
 import {
   createDefaultChannelSpaceData,
   DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
@@ -238,6 +239,7 @@ const selectPersistedUi = (ui = {}) => ({
   systemMediaEnabled: ui.systemMediaEnabled !== false,
   homeWidgetGlass: normalizeHomeWidgetGlass(ui.homeWidgetGlass),
   homeWeatherTempUnit: ui.homeWeatherTempUnit === 'C' ? 'C' : 'F',
+  homeSteamWidget: normalizeHomeSteamWidget(ui.homeSteamWidget),
 });
 
 /** Strip modal / loading chrome — prefs only. */

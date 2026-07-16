@@ -43,6 +43,7 @@ import {
   normalizeHomeWidgetSurface,
 } from './homeWidgetSurface';
 import { normalizeHomeWidgetGlass, DEFAULT_HOME_WIDGET_GLASS } from './homeWidgetGlass';
+import { DEFAULT_HOME_STEAM_WIDGET } from './homeSteamWidgetPrefs';
 import { recordRecentLaunchEntry } from './recentLaunches';
 import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
@@ -216,6 +217,8 @@ useConsolidatedAppStore = create(
           homeWidgetGlass: { ...DEFAULT_HOME_WIDGET_GLASS, surfacesMigrated: false },
           /** Home Weather tile display unit: 'F' | 'C'. Persisted. Default Fahrenheit. */
           homeWeatherTempUnit: 'F',
+          /** Shared Home Steam widget look (tile density, scroll, overlays). Persisted. */
+          homeSteamWidget: { ...DEFAULT_HOME_STEAM_WIDGET },
           // Modal states
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
@@ -2118,6 +2121,7 @@ useConsolidatedAppStore = create(
               lastChannelHoverTime: Date.now(),
               homeWidgetGlass: { ...DEFAULT_HOME_WIDGET_GLASS, surfacesMigrated: true },
               homeWeatherTempUnit: 'F',
+              homeSteamWidget: { ...DEFAULT_HOME_STEAM_WIDGET },
               showUpdateModal: false,
               updateDismissedVersion: '',
               isAuthModalOpen: false,

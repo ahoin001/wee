@@ -250,30 +250,33 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
     : Math.min(spotifySettings.trackInfoPanelBlur || 0, 6);
 
   const albumArtUrl = currentTrack?.album?.images?.[0]?.url;
+  const storeExtractedColors = useConsolidatedAppStore((s) => s.spotify?.extractedColors);
+
+  // Local chrome gradient only — shared `extractedColors` SSOT is owned by
+  // useNowPlayingColorMatch (ribbon + wallpaper overlay + Free SMTC art).
   useEffect(() => {
-    if (albumArtUrl && spotifySettings.dynamicColors) {
+    if (albumArtUrl && spotifySettings.dynamicColors && currentPage === 'player') {
       extractColorsFromAlbumArt(albumArtUrl).then((result) => {
         if (result) {
-          if (currentPage === 'player') {
-            setDynamicBackground(result.gradient);
-            setDynamicColors(result.colors);
-          } else {
-            setDynamicBackground(null);
-            setDynamicColors(DEFAULT_DYNAMIC_COLORS);
-          }
-          setSpotifyState({
-            extractedColors: result.colors,
-          });
+          setDynamicBackground(result.gradient);
+          setDynamicColors(result.colors);
         }
       });
-    } else {
-      setDynamicBackground(null);
-      setDynamicColors(DEFAULT_DYNAMIC_COLORS);
-      setSpotifyState({
-        extractedColors: null,
-      });
+      return;
     }
-  }, [albumArtUrl, spotifySettings.dynamicColors, currentPage, setSpotifyState]);
+    if (storeExtractedColors && spotifySettings.dynamicColors && currentPage === 'player') {
+      setDynamicColors(storeExtractedColors);
+      setDynamicBackground(null);
+      return;
+    }
+    setDynamicBackground(null);
+    setDynamicColors(DEFAULT_DYNAMIC_COLORS);
+  }, [
+    albumArtUrl,
+    spotifySettings.dynamicColors,
+    currentPage,
+    storeExtractedColors,
+  ]);
 
   useEffect(() => {
     if (isVisible && currentPage === 'browse') {
