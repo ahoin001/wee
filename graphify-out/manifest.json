@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784209354.1104226,
-    "ast_hash": "599c35c5250e66e9849e1b0cc73468dd",
+    "mtime": 1784216204.8966124,
+    "ast_hash": "1685eef1cec064a4aa44ef127e8cb300",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -615,8 +615,8 @@
     "semantic_hash": "94cd73e45d240ce6e7199f2651f265b2"
   },
   "src/components/settings/ApiIntegrationsSettingsTab.jsx": {
-    "mtime": 1784214436.9098125,
-    "ast_hash": "946fb6ed8eb56dc3c6fa887c5b6db4f1",
+    "mtime": 1784216205.048858,
+    "ast_hash": "27417f5f5f88ea6a62f399f5aee17751",
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
@@ -1610,8 +1610,8 @@
     "semantic_hash": "541dd4bec18629467fdcb48e0506fb0f"
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784214449.6153138,
-    "ast_hash": "7e93335de51a6002b5ff14b8f5a0632c",
+    "mtime": 1784216328.9469316,
+    "ast_hash": "40d1d54925d0979578c1514b2eb524c2",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -2335,8 +2335,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingSources.js": {
-    "mtime": 1784214282.031786,
-    "ast_hash": "b7953509e7c675b5e8ba0563d14fe5e2",
+    "mtime": 1784216189.4510453,
+    "ast_hash": "9604f9d80301eac7faba17af5240e0e2",
     "semantic_hash": ""
   },
   "src/hooks/useSharedSpotifyPlaybackSampler.js": {
@@ -2410,8 +2410,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesGlanceSlot.jsx": {
-    "mtime": 1784213958.8842897,
-    "ast_hash": "2742c07e0f0b3b2030615a7e48cf10db",
+    "mtime": 1784216258.463484,
+    "ast_hash": "3cdd8049b756da8abb23e9b1640c9554",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamMostPlayedSlot.jsx": {
@@ -2420,13 +2420,13 @@
     "semantic_hash": ""
   },
   "src/utils/steamGamesGlance.js": {
-    "mtime": 1784208702.6582718,
-    "ast_hash": "f187effec62688c7a4782ac4759bfa0e",
+    "mtime": 1784216228.6449528,
+    "ast_hash": "aeda585caba8d20804afc1741b3f4d19",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamFriendsSlot.jsx": {
-    "mtime": 1784213959.4648595,
-    "ast_hash": "8001fdb95b8b5af8199ddc9b4a97c590",
+    "mtime": 1784216287.6749606,
+    "ast_hash": "2a803716991cf040d9ceecd6cf1f8cba",
     "semantic_hash": ""
   },
   "src/utils/overlayEscape.js": {

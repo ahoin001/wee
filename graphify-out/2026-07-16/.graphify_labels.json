@@ -185,10 +185,19 @@
   "183": "AuraHubModalFrame.jsx",
   "184": "mediaHubStremio.js",
   "185": "wait-on",
+  "186": "p-queue",
+  "187": "@radix-ui/react-context-menu",
+  "188": "STEAM_CDN_CAPSULE",
   "189": "1. THE THREE DIALS (Core Configuration)",
   "190": "cors",
   "191": "better-sqlite3",
+  "192": "concurrently",
+  "193": "cors",
   "194": "spotify-web-api-js",
   "195": "@tanstack/react-virtual",
-  "199": "fast-deep-equal"
+  "196": "gifuct-js",
+  "197": "lucide-react",
+  "198": "prop-types",
+  "199": "fast-deep-equal",
+  "200": "tailwind-variants"
 }

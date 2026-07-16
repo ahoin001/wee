@@ -2,8 +2,16 @@
  * Shared helpers for Steam home-grid glance tiles (recent / most played).
  */
 
-export const STEAM_CDN_CAPSULE = (appId) =>
+/** Steam library portrait (2∶3) — same asset Game Hub shelves use. */
+export const STEAM_CDN_LIBRARY_COVER = (appId) =>
   `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`;
+
+/** Landscape header fallback when library portrait is missing. */
+export const STEAM_CDN_HEADER = (appId) =>
+  `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
+
+/** @deprecated Use STEAM_CDN_LIBRARY_COVER — kept for call-site compatibility. */
+export const STEAM_CDN_CAPSULE = STEAM_CDN_LIBRARY_COVER;
 
 /**
  * @param {unknown[]} games

@@ -1,6 +1,6 @@
 /**
  * Home-grid Steam glance tile — recent or most-played from enrichment cache.
- * Fills the slot with a responsive capsule grid (no 1×1 compact path).
+ * Portrait library covers (2∶3) like Game Hub shelves; grid scrolls when needed.
  */
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
@@ -14,7 +14,8 @@ import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import {
-  STEAM_CDN_CAPSULE,
+  STEAM_CDN_HEADER,
+  STEAM_CDN_LIBRARY_COVER,
   sortMostPlayedSteamGames,
   sortRecentSteamGames,
   steamEnrichmentIpcArgs,
@@ -41,8 +42,11 @@ const VARIANT_META = {
 
 const GRID_COLS = 3;
 
-function SteamCapsuleButton({ game, onLaunch }) {
+function SteamCoverButton({ game, onLaunch }) {
   const appId = String(game.appId);
+  const primarySrc =
+    (typeof game.imageUrl === 'string' && game.imageUrl.trim()) || STEAM_CDN_LIBRARY_COVER(appId);
+
   return (
     <button
       type="button"
@@ -52,23 +56,31 @@ function SteamCapsuleButton({ game, onLaunch }) {
         event.stopPropagation();
         onLaunch(game);
       }}
-      className="home-widget-float-tile relative min-h-0 min-w-0 overflow-hidden rounded-xl border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
+      className="home-widget-float-tile group relative aspect-[2/3] w-full min-w-0 overflow-hidden rounded-[0.85rem] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-elevated)/0.88)] text-left shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
     >
       <img
-        src={STEAM_CDN_CAPSULE(appId)}
+        src={primarySrc}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-contain"
         draggable={false}
         loading="lazy"
+        onError={(event) => {
+          const img = event.currentTarget;
+          const header = STEAM_CDN_HEADER(appId);
+          if (img.dataset.fallback === 'header' || img.src === header) return;
+          img.dataset.fallback = 'header';
+          img.src = header;
+        }}
       />
     </button>
   );
 }
 
-SteamCapsuleButton.propTypes = {
+SteamCoverButton.propTypes = {
   game: PropTypes.shape({
     appId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     name: PropTypes.string,
+    imageUrl: PropTypes.string,
   }).isRequired,
   onLaunch: PropTypes.func.isRequired,
 };
@@ -109,7 +121,6 @@ function SteamGamesGlanceSlot({
   );
 
   const capacity = Number(sizePreset.capacity) || 6;
-  const gridRows = Math.max(1, Math.ceil(capacity / GRID_COLS));
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
 
@@ -249,19 +260,21 @@ function SteamGamesGlanceSlot({
             <Gamepad2 size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
           </div>
           <div
-            className="grid min-h-0 flex-1 gap-1.5"
-            style={{
-              gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
-              gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
-            }}
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] [scrollbar-width:thin]"
+            onWheel={(event) => event.stopPropagation()}
           >
-            {games.map((game) => (
-              <SteamCapsuleButton
-                key={String(game.appId)}
-                game={game}
-                onLaunch={handleLaunch}
-              />
-            ))}
+            <div
+              className="grid content-start gap-1.5"
+              style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}
+            >
+              {games.map((game) => (
+                <SteamCoverButton
+                  key={String(game.appId)}
+                  game={game}
+                  onLaunch={handleLaunch}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}

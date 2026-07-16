@@ -265,10 +265,10 @@ function createGameSourceService({ fs, path, vdf, os, scanCacheFile = null }) {
           status: 'error',
           statusCode: isPrivate ? 'private-friends' : 'api-error',
           statusReason: isPrivate
-            ? 'Friend list appears private. Set friends list to public on Steam.'
-            : 'Steam friend list request failed.',
+            ? 'Your Steam friends list is private. Open Steam → Profile → Edit Profile → Privacy Settings, set Friends List to Public, then tap this widget to retry.'
+            : 'Steam friend list request failed. Check your API key in Settings → API & Widgets.',
           error: isPrivate
-            ? 'Friend list appears private.'
+            ? 'Friends list is private on Steam.'
             : 'Steam friend list request failed.',
         };
       }

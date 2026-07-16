@@ -812,6 +812,7 @@ useConsolidatedAppStore = create(
             friendsPlaying: [],
             friendsPlayingFetchedAt: null,
             friendsPlayingError: null,
+            friendsPlayingStatusCode: null,
             shelves: {
               recentlyPlayed: [],
               mostPlayed: [],
@@ -2366,6 +2367,7 @@ useConsolidatedAppStore = create(
                 friendsPlaying: [],
                 friendsPlayingFetchedAt: null,
                 friendsPlayingError: null,
+                friendsPlayingStatusCode: null,
                 shelves: {
                   recentlyPlayed: [],
                   mostPlayed: [],

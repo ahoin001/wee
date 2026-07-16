@@ -4,6 +4,9 @@ import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { pickPrimarySystemSession } from '../utils/nowPlayingShape';
 import { useSharedSpotifyPlaybackSampler } from './useSharedSpotifyPlaybackSampler';
 
+/** Renderer watchdog — main start is non-blocking; this only clears a stuck UI flag. */
+const STARTING_WATCHDOG_MS = 8000;
+
 /**
  * Map an SMTC session DTO into the store's systemMedia.session shape.
  * @param {object} session
@@ -43,6 +46,8 @@ function toStoredSession(session) {
 let smtcRetainCount = 0;
 /** @type {ReturnType<typeof setTimeout> | null} */
 let smtcReleaseTimer = null;
+/** Monotonic generation so a cancelled effect cannot leave `starting: true`. */
+let smtcStartGeneration = 0;
 
 /**
  * Owns system-media (SMTC) subscription + shared Spotify sampler.
@@ -74,7 +79,6 @@ export function useNowPlayingSources() {
     if (Object.prototype.hasOwnProperty.call(meta, 'error')) {
       lastMetaRef.current.error = meta.error || null;
     }
-    // Never exclude Spotify from SMTC — Free users rely on desktop SMTC for display.
     const session = pickPrimarySystemSession(storedList, {});
     setSystemMediaState({
       available: lastMetaRef.current.available,
@@ -85,11 +89,8 @@ export function useNowPlayingSources() {
     });
   };
 
-  // Keep SMTC running whenever the user wants system/auto display — including when
-  // preference is Spotify (so Free desktop Spotify still works as a fallback).
   const wantsSystem = systemMediaEnabled;
 
-  // Lifecycle only — start/stop the bridge when system media is wanted.
   useEffect(() => {
     const api = window.api?.systemMedia;
     if (!api) {
@@ -109,6 +110,7 @@ export function useNowPlayingSources() {
         smtcReleaseTimer = null;
       }
       smtcRetainCount = 0;
+      smtcStartGeneration += 1;
       api.stop?.().catch(() => {});
       lastSessionsRef.current = [];
       lastMetaRef.current = { available: false, error: null };
@@ -122,15 +124,23 @@ export function useNowPlayingSources() {
       return undefined;
     }
 
-    let unsub = null;
     let cancelled = false;
+    let unsub = null;
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    let watchdog = null;
+    const myGeneration = ++smtcStartGeneration;
 
     const applyPayload = (payload) => {
-      if (cancelled) return;
+      if (cancelled || myGeneration !== smtcStartGeneration) return;
       publishPrimary(payload?.sessions, {
         available: payload?.available,
         error: payload?.error || null,
       });
+    };
+
+    const clearStartingIfCurrent = (extra = {}) => {
+      if (cancelled || myGeneration !== smtcStartGeneration) return;
+      setSystemMediaState({ starting: false, ...extra });
     };
 
     unsub = api.onUpdate?.(applyPayload);
@@ -143,13 +153,32 @@ export function useNowPlayingSources() {
 
     setSystemMediaState({ starting: true, error: null });
 
+    watchdog = setTimeout(() => {
+      clearStartingIfCurrent();
+    }, STARTING_WATCHDOG_MS);
+
     (async () => {
       try {
         const status = await api.start();
-        if (cancelled) return;
-        applyPayload(status);
+        if (watchdog) {
+          clearTimeout(watchdog);
+          watchdog = null;
+        }
+        // Always clear starting for this generation — even if cancelled — so a
+        // Strict Mode remount cannot leave the UI stuck on "Starting…".
+        if (myGeneration === smtcStartGeneration) {
+          if (cancelled) {
+            setSystemMediaState({ starting: false });
+            return;
+          }
+          applyPayload(status);
+        }
       } catch (err) {
-        if (cancelled) return;
+        if (watchdog) {
+          clearTimeout(watchdog);
+          watchdog = null;
+        }
+        if (myGeneration !== smtcStartGeneration) return;
         lastMetaRef.current = {
           available: false,
           error: err?.message || String(err),
@@ -166,6 +195,14 @@ export function useNowPlayingSources() {
 
     return () => {
       cancelled = true;
+      if (watchdog) {
+        clearTimeout(watchdog);
+        watchdog = null;
+      }
+      // If no newer generation took over, drop the stuck flag immediately.
+      if (myGeneration === smtcStartGeneration) {
+        setSystemMediaState({ starting: false });
+      }
       if (typeof unsub === 'function') unsub();
       smtcRetainCount = Math.max(0, smtcRetainCount - 1);
       if (smtcRetainCount === 0) {
@@ -180,7 +217,6 @@ export function useNowPlayingSources() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publishPrimary uses stable setState + refs
   }, [wantsSystem, setSystemMediaState]);
 
-  // Preference changes only affect reconcile (via setUIState), not SMTC membership.
   useEffect(() => {
     if (!wantsSystem) return;
     if (!lastSessionsRef.current.length && !lastMetaRef.current.available) return;

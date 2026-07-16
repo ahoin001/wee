@@ -29,10 +29,17 @@
       "main/**/*",
       "shared/**/*"
     ],
+    "asarUnpack": [
+      "**/node_modules/windows-media-sessions/bin/**"
+    ],
     "extraResources": [
       {
         "from": "public/sounds",
         "to": "sounds"
+      },
+      {
+        "from": "node_modules/windows-media-sessions/bin/win-x64/windows-media-sessions-backend.exe",
+        "to": "windows-media-sessions-backend.exe"
       }
     ],
     "extraFiles": [

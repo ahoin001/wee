@@ -125,8 +125,8 @@ const ApiIntegrationsSettingsTab = () => {
 
   const systemMediaStatusLabel = useMemo(() => {
     if (!systemMediaEnabled) return 'Off';
-    if (systemMedia?.starting) return 'Starting…';
     if (systemMedia?.error) return systemMedia.error;
+    if (systemMedia?.starting) return 'Starting…';
     if (systemMedia?.available) {
       const sessions = Array.isArray(systemMedia.sessions) ? systemMedia.sessions : [];
       const session = systemMedia.session;
@@ -142,7 +142,7 @@ const ApiIntegrationsSettingsTab = () => {
       }
       return 'Ready — play in Spotify, Apple Music, or a browser';
     }
-    return 'Starting…';
+    return 'Unavailable';
   }, [systemMediaEnabled, systemMedia]);
 
   const systemMediaDetectedLine = useMemo(() => {

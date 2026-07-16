@@ -229,6 +229,7 @@ const systemMediaService = createSystemMediaService({
   getMainWindow,
   execFile,
   platform: process.platform,
+  resourcesPath: process.resourcesPath,
 });
 
 const soundLibraryService = createSoundLibraryService({

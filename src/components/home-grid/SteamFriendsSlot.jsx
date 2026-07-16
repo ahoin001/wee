@@ -3,7 +3,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Users } from 'lucide-react';
+import { Lock, Users } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
@@ -12,10 +12,18 @@ import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { openExternalUrl, openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
-import { STEAM_CDN_CAPSULE, steamEnrichmentIpcArgs } from '../../utils/steamGamesGlance';
+import {
+  STEAM_CDN_HEADER,
+  STEAM_CDN_LIBRARY_COVER,
+  steamEnrichmentIpcArgs,
+} from '../../utils/steamGamesGlance';
 
 const GRID_COLS = 3;
 const FRIENDS_TTL_MS = 2 * 60 * 1000;
+const STEAM_FRIENDS_PRIVACY_URL = 'https://steamcommunity.com/my/edit/settings';
+
+const PRIVATE_FRIENDS_HINT =
+  'Friends list is private on Steam. Set Friends List → Public, then tap to retry.';
 
 function FriendPlayingCard({ friend, onLaunchGame, onOpenProfile }) {
   const hasGame = Boolean(friend.gameId);
@@ -37,42 +45,50 @@ function FriendPlayingCard({ friend, onLaunchGame, onOpenProfile }) {
         if (hasGame) onLaunchGame(friend);
         else onOpenProfile(friend);
       }}
-      className="home-widget-float-tile relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.9)] shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
+      className="home-widget-float-tile relative aspect-[2/3] w-full min-w-0 overflow-hidden rounded-[0.85rem] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-elevated)/0.9)] text-left shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
     >
       {hasGame ? (
         <img
-          src={STEAM_CDN_CAPSULE(friend.gameId)}
+          src={STEAM_CDN_LIBRARY_COVER(friend.gameId)}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-90"
+          className="absolute inset-0 h-full w-full object-contain opacity-95"
           draggable={false}
           loading="lazy"
+          onError={(event) => {
+            const img = event.currentTarget;
+            const header = STEAM_CDN_HEADER(friend.gameId);
+            if (img.dataset.fallback === 'header' || img.src === header) return;
+            img.dataset.fallback = 'header';
+            img.src = header;
+          }}
         />
       ) : (
         <div className="absolute inset-0 bg-[hsl(var(--surface-secondary))]" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--surface-primary)/0.92)] via-[hsl(var(--surface-primary)/0.35)] to-transparent" />
-      <div className="relative z-[1] mt-auto flex min-w-0 items-center gap-1.5 p-1.5">
-        {friend.avatarUrl ? (
-          <img
-            src={friend.avatarUrl}
-            alt=""
-            className="h-6 w-6 shrink-0 rounded-full border border-[hsl(var(--border-primary)/0.5)] object-cover"
-            draggable={false}
-          />
-        ) : (
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--surface-secondary))] text-[10px] font-black text-[hsl(var(--text-secondary))]">
-            {(friend.personaName || '?').slice(0, 1).toUpperCase()}
-          </span>
-        )}
-        <div className="min-w-0 flex-1 text-left">
-          <div className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]">
-            {friend.personaName}
-          </div>
-          {friend.gameName ? (
-            <div className="truncate text-[8px] font-bold text-[hsl(var(--text-secondary))]">
-              {friend.gameName}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[hsl(var(--surface-primary)/0.94)] via-[hsl(var(--surface-primary)/0.4)] to-transparent pt-8">
+        <div className="flex min-w-0 items-center gap-1.5 p-1.5">
+          {friend.avatarUrl ? (
+            <img
+              src={friend.avatarUrl}
+              alt=""
+              className="h-6 w-6 shrink-0 rounded-full border border-[hsl(var(--border-primary)/0.5)] object-cover"
+              draggable={false}
+            />
+          ) : (
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--surface-secondary))] text-[10px] font-black text-[hsl(var(--text-secondary))]">
+              {(friend.personaName || '?').slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div className="min-w-0 flex-1 text-left">
+            <div className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]">
+              {friend.personaName}
             </div>
-          ) : null}
+            {friend.gameName ? (
+              <div className="truncate text-[8px] font-bold text-[hsl(var(--text-secondary))]">
+                {friend.gameName}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </button>
@@ -103,6 +119,7 @@ function SteamFriendsSlot({
     friendsPlaying,
     friendsPlayingFetchedAt,
     friendsPlayingError,
+    friendsPlayingStatusCode,
     steamId,
     apiKeyConfigured,
     apiEnabled,
@@ -111,6 +128,7 @@ function SteamFriendsSlot({
       friendsPlaying: state.gameHub?.library?.friendsPlaying || [],
       friendsPlayingFetchedAt: state.gameHub?.library?.friendsPlayingFetchedAt || 0,
       friendsPlayingError: state.gameHub?.library?.friendsPlayingError || null,
+      friendsPlayingStatusCode: state.gameHub?.library?.friendsPlayingStatusCode || null,
       steamId: state.gameHub?.profile?.steamId || '',
       apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
       apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
@@ -131,9 +149,11 @@ function SteamFriendsSlot({
     [slot?.colSpan, slot?.rowSpan]
   );
   const capacity = Number(sizePreset.capacity) || 6;
-  const gridRows = Math.max(1, Math.ceil(capacity / GRID_COLS));
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
+  const isPrivateFriends =
+    friendsPlayingStatusCode === 'private-friends' ||
+    /private/i.test(String(friendsPlayingError || ''));
 
   const friends = useMemo(
     () => (Array.isArray(friendsPlaying) ? friendsPlaying : []).slice(0, capacity),
@@ -155,20 +175,22 @@ function SteamFriendsSlot({
         const result = await window.api.steam.getFriendsPlaying(args);
         if (cancelled) return;
         const list = Array.isArray(result?.friends) ? result.friends : [];
+        const ok = result?.statusCode === 'ok' || result?.status === 'ok';
         setGameHubState({
           library: {
             friendsPlaying: list,
             friendsPlayingFetchedAt: Date.now(),
-            friendsPlayingError:
-              result?.statusCode === 'ok' || result?.status === 'ok'
-                ? null
-                : result?.statusReason || result?.error || null,
+            friendsPlayingStatusCode: result?.statusCode || (ok ? 'ok' : 'api-error'),
+            friendsPlayingError: ok
+              ? null
+              : result?.statusReason || result?.error || 'Failed to load friends',
           },
         });
       } catch (error) {
         if (cancelled) return;
         setGameHubState({
           library: {
+            friendsPlayingStatusCode: 'network-error',
             friendsPlayingError: error?.message || 'Failed to load friends',
           },
         });
@@ -189,6 +211,10 @@ function SteamFriendsSlot({
       },
     });
   }, [setGameHubState]);
+
+  const openSteamPrivacySettings = useCallback(() => {
+    openExternalUrl(STEAM_FRIENDS_PRIVACY_URL);
+  }, []);
 
   const handleLaunchGame = useCallback(
     async (friend) => {
@@ -232,13 +258,19 @@ function SteamFriendsSlot({
         return;
       }
       if (interactionsLocked) return;
+      if (isPrivateFriends) {
+        openSteamPrivacySettings();
+        return;
+      }
       if (friends.length === 0) openSteamApiSettings();
     },
     [
       arrangeMode,
       punchMode,
       interactionsLocked,
+      isPrivateFriends,
       friends.length,
+      openSteamPrivacySettings,
       openSteamApiSettings,
       onArrangeSelect,
       channelId,
@@ -251,11 +283,13 @@ function SteamFriendsSlot({
       ? 'Enable Steam Web API in API & Widgets'
       : !apiKeyConfigured && !friendsPlayingFetchedAt
         ? 'Add Steam API key in API & Widgets'
-        : friendsPlayingError
-          ? friendsPlayingError
-          : loading
-            ? 'Loading friends…'
-            : 'No friends in-game right now';
+        : isPrivateFriends
+          ? PRIVATE_FRIENDS_HINT
+          : friendsPlayingError
+            ? friendsPlayingError
+            : loading
+              ? 'Loading friends…'
+              : 'No friends in-game right now';
 
   return (
     <HomeWidgetShell
@@ -268,11 +302,15 @@ function SteamFriendsSlot({
       {friends.length === 0 ? (
         <button
           type="button"
-          className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-center transition-transform hover:scale-[1.02] active:scale-95"
+          className="flex h-full w-full flex-col items-center justify-center gap-2 px-2 text-center transition-transform hover:scale-[1.02] active:scale-95"
           onClick={(event) => {
             event.stopPropagation();
             if (arrangeMode && !punchMode) {
               onArrangeSelect?.(channelId);
+              return;
+            }
+            if (isPrivateFriends) {
+              openSteamPrivacySettings();
               return;
             }
             if (steamId && apiEnabled && apiKeyConfigured) {
@@ -283,10 +321,19 @@ function SteamFriendsSlot({
           }}
           disabled={interactionsLocked && !arrangeMode}
         >
-          <Users size={28} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
-          <span className="max-w-[14rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+          {isPrivateFriends ? (
+            <Lock size={28} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
+          ) : (
+            <Users size={28} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
+          )}
+          <span className="max-w-[16rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
             {emptyHint}
           </span>
+          {isPrivateFriends ? (
+            <span className="max-w-[16rem] text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+              Tap to open Steam privacy settings
+            </span>
+          ) : null}
         </button>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-1.5">
@@ -297,20 +344,22 @@ function SteamFriendsSlot({
             <Users size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
           </div>
           <div
-            className="grid min-h-0 flex-1 gap-1.5"
-            style={{
-              gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
-              gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
-            }}
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] [scrollbar-width:thin]"
+            onWheel={(event) => event.stopPropagation()}
           >
-            {friends.map((friend) => (
-              <FriendPlayingCard
-                key={friend.steamId}
-                friend={friend}
-                onLaunchGame={handleLaunchGame}
-                onOpenProfile={handleOpenProfile}
-              />
-            ))}
+            <div
+              className="grid content-start gap-1.5"
+              style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}
+            >
+              {friends.map((friend) => (
+                <FriendPlayingCard
+                  key={friend.steamId}
+                  friend={friend}
+                  onLaunchGame={handleLaunchGame}
+                  onOpenProfile={handleOpenProfile}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}

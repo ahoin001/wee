@@ -3,26 +3,28 @@
  * Uses windows-media-sessions (stdio .NET bridge) — no native addons.
  * Soft-fails on non-Windows or missing package.
  *
- * Lifecycle rule (prevents toggle deadlock):
- * - `stop()` never awaits `startPromise` (that caused start↔stop circular waits).
- * - `start()` may await an in-flight `stopPromise` only *before* creating its own work.
- * - A monotonic `runId` invalidates in-flight starts when stop wins; start bails at checkpoints.
- * - After stop, a new `start()` waits for the dying start to finish, then opens a fresh bridge
- *   (never joins a cancelled startPromise as if it were a successful subscribe).
- *
- * First-snapshot wait uses a long timeout + one recreate retry — the bundled
- * .NET backend (~40MB) can take >5s on cold start / AV scan, and the package's
- * BackendProcess leaves `stopping=true` after stop so the same manager cannot
- * respawn (must createSessionManager again).
+ * Lifecycle rules:
+ * - `stop()` never awaits `startPromise` (avoids start↔stop deadlock).
+ * - `start()` may await an in-flight `stopPromise` only *before* creating work.
+ * - A monotonic `runId` invalidates in-flight work when stop wins.
+ * - IPC `start` returns as soon as the bridge is subscribed — first snapshot is
+ *   pumped in the background (never block the renderer on .NET cold start).
+ * - Session DTOs sent over IPC strip/limit thumbnails so huge album art cannot
+ *   stall Electron structured-clone.
  */
 
+const fs = require('fs');
+const path = require('path');
+
 const TIMELINE_COALESCE_MS = 400;
-/** Default package wait is 5s; cold .NET spawn often needs longer. */
+/** Cold .NET spawn / AV scan can take a while; this only gates the background pump. */
 const FIRST_SNAPSHOT_TIMEOUT_MS = 20000;
 /** Extra attempt after timeout with a fresh SessionManager. */
 const FIRST_SNAPSHOT_RETRIES = 1;
+/** Cap art payload — full Apple Music / Spotify data URLs are 150–300KB each. */
+const MAX_THUMBNAIL_CHARS = 400000;
 
-function createSystemMediaService({ getMainWindow, execFile, platform }) {
+function createSystemMediaService({ getMainWindow, execFile, platform, resourcesPath }) {
   let unsubscribe = null;
   let started = false;
   /** Package loaded and usable on this machine (independent of subscription). */
@@ -39,6 +41,8 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
   let stopPromise = null;
   /** @type {Promise<object> | null} */
   let startPromise = null;
+  /** @type {((err: Error) => void) | null} */
+  let onManagerError = null;
   /**
    * Bumped on every stop (and each new start attempt). In-flight start work
    * compares against its captured id and bails instead of resurrecting a
@@ -50,6 +54,53 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
     return (platform || process.platform) === 'win32';
   }
 
+  /**
+   * Packaged Electron cannot spawn .exe from inside asar. Prefer extraResources
+   * / asar.unpacked copies, then the normal node_modules path (dev).
+   */
+  function resolveBackendExe() {
+    const res =
+      resourcesPath ||
+      process.resourcesPath ||
+      (typeof process.env.PORTABLE_EXECUTABLE_DIR === 'string'
+        ? process.env.PORTABLE_EXECUTABLE_DIR
+        : '');
+    const candidates = [];
+    if (res) {
+      candidates.push(path.join(res, 'windows-media-sessions-backend.exe'));
+      candidates.push(
+        path.join(
+          res,
+          'app.asar.unpacked',
+          'node_modules',
+          'windows-media-sessions',
+          'bin',
+          'win-x64',
+          'windows-media-sessions-backend.exe'
+        )
+      );
+    }
+    try {
+      const pkgRoot = path.dirname(require.resolve('windows-media-sessions/package.json'));
+      candidates.push(
+        path.join(pkgRoot, 'bin', 'win-x64', 'windows-media-sessions-backend.exe')
+      );
+    } catch {
+      /* package missing */
+    }
+    if (process.env.WINDOWS_MEDIA_SESSIONS_BACKEND) {
+      candidates.unshift(path.resolve(process.env.WINDOWS_MEDIA_SESSIONS_BACKEND));
+    }
+    for (const candidate of candidates) {
+      try {
+        if (candidate && fs.existsSync(candidate)) return candidate;
+      } catch {
+        /* ignore */
+      }
+    }
+    return undefined;
+  }
+
   function loadPackage() {
     if (mediaSessionsPkg) return mediaSessionsPkg;
     if (!isWindows()) {
@@ -58,7 +109,6 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       return null;
     }
     try {
-      // Lazy require so non-Windows / missing package never crash main boot.
       mediaSessionsPkg = require('windows-media-sessions');
       available = true;
       lastError = null;
@@ -75,7 +125,20 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
     if (sessionManager) return sessionManager;
     const pkg = loadPackage();
     if (!pkg?.createSessionManager) return null;
-    sessionManager = pkg.createSessionManager();
+    const backendPath = resolveBackendExe();
+    sessionManager = backendPath
+      ? pkg.createSessionManager({ backendPath })
+      : pkg.createSessionManager();
+    onManagerError = (err) => {
+      lastError = err?.message || String(err);
+      // Keep available if the package loaded; surface the error to the renderer.
+      broadcast(lastSessions);
+    };
+    try {
+      sessionManager.on('error', onManagerError);
+    } catch {
+      /* ignore */
+    }
     return sessionManager;
   }
 
@@ -89,13 +152,74 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       unsubscribe = null;
     }
     if (sessionManager) {
+      if (onManagerError) {
+        try {
+          sessionManager.off?.('error', onManagerError);
+        } catch {
+          /* ignore */
+        }
+        onManagerError = null;
+      }
       try {
         await sessionManager.stop();
       } catch {
         /* ignore */
       }
+      // BackendProcess.stopping stays true forever after stop — never reuse.
       sessionManager = null;
     }
+  }
+
+  /**
+   * Limit IPC payload size. Full thumbnails for every session (Spotify + Apple Music)
+   * routinely exceed 400KB and can stall Electron's structured clone on every tick.
+   */
+  function sanitizeSessionForIpc(session, includeThumbnail) {
+    if (!session || typeof session !== 'object') return null;
+    const thumb =
+      includeThumbnail && typeof session.thumbnail === 'string' ? session.thumbnail : '';
+    return {
+      id: session.id,
+      sourceAppUserModelId: session.sourceAppUserModelId || '',
+      sourceAppDisplayName: session.sourceAppDisplayName || '',
+      title: session.title || '',
+      artist: session.artist || '',
+      albumTitle: session.albumTitle || '',
+      playbackStatus: session.playbackStatus,
+      timeline: session.timeline
+        ? {
+            positionMs: session.timeline.positionMs,
+            durationMs: session.timeline.durationMs,
+          }
+        : undefined,
+      controls: session.controls
+        ? {
+            canPlay: Boolean(session.controls.canPlay),
+            canPause: Boolean(session.controls.canPause),
+            canSkipNext: Boolean(session.controls.canSkipNext),
+            canSkipPrevious: Boolean(session.controls.canSkipPrevious),
+          }
+        : undefined,
+      thumbnail:
+        thumb && thumb.length <= MAX_THUMBNAIL_CHARS
+          ? thumb
+          : thumb
+            ? '' // too large — omit rather than freeze IPC
+            : '',
+    };
+  }
+
+  function sanitizeSessionsForIpc(sessions) {
+    const list = Array.isArray(sessions) ? sessions : [];
+    const statusOf = (s) => String(s?.playbackStatus || '').toLowerCase();
+    const playing = list.filter(
+      (s) => statusOf(s) === 'playing' || statusOf(s) === 'changing'
+    );
+    const thumbTargets = playing.length > 0 ? playing : list.slice(0, 1);
+    const thumbIds = new Set(thumbTargets.map((s) => s?.id).filter(Boolean));
+    return list
+      .map((s) => sanitizeSessionForIpc(s, thumbIds.has(s?.id)))
+      .filter(Boolean);
   }
 
   function sessionFingerprint(sessions) {
@@ -126,13 +250,11 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
   }
 
   function onSessions(sessions) {
-    lastSessions = Array.isArray(sessions) ? sessions : [];
-    // A live snapshot means the bridge is healthy — clear sticky start timeouts.
+    lastSessions = sanitizeSessionsForIpc(sessions);
     lastError = null;
     available = true;
     const fp = sessionFingerprint(lastSessions);
     const now = Date.now();
-    // Coalesce rapid timeline ticks so renderer store isn't hammered.
     if (fp === lastFingerprint) return;
     const onlyTimeline =
       lastFingerprint &&
@@ -145,7 +267,6 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
 
   function getStatus() {
     if (!started && isWindows() && !mediaSessionsPkg && !lastError) {
-      // Probe without starting the subscription — tells settings UI if the bridge loads.
       loadPackage();
     }
     return {
@@ -154,6 +275,7 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       started,
       sessions: lastSessions,
       platform: platform || process.platform,
+      backendPath: resolveBackendExe() || null,
     };
   }
 
@@ -162,30 +284,24 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
   }
 
   /**
-   * Wait for the first backend snapshot, recreating the manager on timeout.
+   * Background: wait for first snapshot (with one recreate retry).
+   * Does not gate the IPC start response.
    * @param {number} myRun
    */
-  async function awaitFirstSessions(myRun) {
+  async function pumpFirstSnapshot(myRun) {
     let lastErr = null;
 
     for (let attempt = 0; attempt <= FIRST_SNAPSHOT_RETRIES; attempt++) {
-      if (!isCurrentRun(myRun)) {
-        const cancelErr = new Error('System media start cancelled');
-        cancelErr.code = 'cancelled';
-        throw cancelErr;
-      }
+      if (!isCurrentRun(myRun)) return;
       if (attempt > 0) {
         await disposeManager();
-        if (!isCurrentRun(myRun)) {
-          const cancelErr = new Error('System media start cancelled');
-          cancelErr.code = 'cancelled';
-          throw cancelErr;
-        }
+        if (!isCurrentRun(myRun)) return;
       }
 
       const manager = getOrCreateManager();
       if (!manager) {
-        throw new Error(lastError || 'windows-media-sessions unavailable');
+        lastErr = new Error(lastError || 'windows-media-sessions unavailable');
+        break;
       }
 
       if (typeof unsubscribe !== 'function') {
@@ -194,29 +310,29 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
 
       try {
         await manager.waitForReady(FIRST_SNAPSHOT_TIMEOUT_MS);
-        if (!isCurrentRun(myRun)) {
-          const cancelErr = new Error('System media start cancelled');
-          cancelErr.code = 'cancelled';
-          throw cancelErr;
-        }
+        if (!isCurrentRun(myRun)) return;
         const sessions = await manager.getAllSessions();
-        if (!isCurrentRun(myRun)) {
-          const cancelErr = new Error('System media start cancelled');
-          cancelErr.code = 'cancelled';
-          throw cancelErr;
-        }
-        return Array.isArray(sessions) ? sessions : [];
+        if (!isCurrentRun(myRun)) return;
+        started = true;
+        available = true;
+        lastError = null;
+        onSessions(sessions);
+        return;
       } catch (err) {
-        if (err?.code === 'cancelled' || !isCurrentRun(myRun)) {
-          const cancelErr = new Error('System media start cancelled');
-          cancelErr.code = 'cancelled';
-          throw cancelErr;
-        }
+        if (!isCurrentRun(myRun)) return;
         lastErr = err;
       }
     }
 
-    throw lastErr || new Error('Timed out waiting for first backend snapshot');
+    if (!isCurrentRun(myRun)) return;
+    started = false;
+    lastError = lastErr?.message || 'Timed out waiting for first backend snapshot';
+    available = Boolean(mediaSessionsPkg);
+    await disposeManager();
+    lastSessions = [];
+    lastFingerprint = '';
+    lastPushAt = 0;
+    broadcast([]);
   }
 
   async function awaitSettled(promise) {
@@ -230,20 +346,19 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
 
   /**
    * Start SMTC subscription.
+   * Returns quickly once the manager is created and the change listener is attached.
+   * First snapshot is fetched in the background so the renderer never sits on "Starting…".
    */
   async function start() {
-    // Finish teardown before opening a new bridge (safe: stop does not await us).
     await awaitSettled(stopPromise);
 
     if (started && sessionManager) return getStatus();
 
-    // Let a cancelled/dying start finish — do not treat it as a successful join.
     await awaitSettled(startPromise);
     await awaitSettled(stopPromise);
 
     if (started && sessionManager) return getStatus();
 
-    // Another caller may have started between awaits.
     if (startPromise) {
       return startPromise;
     }
@@ -262,34 +377,51 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
         return getStatus();
       }
 
-      try {
-        const sessions = await awaitFirstSessions(myRun);
-        if (!isCurrentRun(myRun)) {
-          await disposeManager();
-          return getStatus();
-        }
-        started = true;
-        lastError = null;
-        available = true;
-        onSessions(sessions);
-      } catch (err) {
-        const cancelled = err?.code === 'cancelled' || !isCurrentRun(myRun);
+      const backendPath = resolveBackendExe();
+      if (!backendPath) {
         started = false;
-        if (cancelled) {
-          await disposeManager();
+        available = Boolean(mediaSessionsPkg);
+        lastError =
+          'SMTC backend executable not found. Reinstall the app or set WINDOWS_MEDIA_SESSIONS_BACKEND.';
+        broadcast([]);
+        return getStatus();
+      }
+
+      try {
+        const manager = getOrCreateManager();
+        if (!manager) {
+          started = false;
+          broadcast([]);
           return getStatus();
         }
+
+        if (typeof unsubscribe !== 'function') {
+          unsubscribe = manager.onSessionsChanged(onSessions);
+        }
+
+        // Mark subscribed immediately — UI leaves "Starting…" as soon as IPC returns.
+        started = true;
+        available = true;
+        lastError = null;
+        broadcast(lastSessions);
+
+        void pumpFirstSnapshot(myRun);
+
+        return getStatus();
+      } catch (err) {
+        if (!isCurrentRun(myRun)) {
+          return getStatus();
+        }
+        started = false;
         lastError = err?.message || String(err);
-        // Package may still be loadable even if the first snapshot failed.
         available = Boolean(mediaSessionsPkg);
         await disposeManager();
         lastSessions = [];
         lastFingerprint = '';
         lastPushAt = 0;
         broadcast([]);
+        return getStatus();
       }
-
-      return getStatus();
     })();
 
     startPromise = pending;
@@ -319,7 +451,6 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
       lastSessions = [];
       lastFingerprint = '';
       lastPushAt = 0;
-      // Keep `available` if the package loaded — settings can still say the PC supports SMTC.
       lastError = null;
       broadcast([]);
     })();
@@ -376,6 +507,7 @@ Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
     getStatus,
     sendMediaKey,
     isWindows,
+    resolveBackendExe,
   };
 }
 
