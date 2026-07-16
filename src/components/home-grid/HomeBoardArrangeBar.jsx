@@ -11,6 +11,7 @@ import {
   WeeSegmentedControl,
 } from '../../ui/wee';
 import { isChannelSlotEmpty, isNonChannelSlot } from '../../utils/homeGridSlots';
+import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import { getHomeSlotKind, listPlaceableHomeSlotKinds, matchHomeSlotSizePreset } from './slotKindRegistry';
 
 const MotionDiv = m.div;
@@ -31,6 +32,7 @@ function HomeBoardArrangeBar({
   onAddWidget,
   onRemoveWidget,
   onSetSizePreset,
+  onSetSurface,
   blockedPresetIds = [],
   pickerOpen = false,
   onPickerOpenChange,
@@ -73,6 +75,9 @@ function HomeBoardArrangeBar({
         : null,
     [selectedKindMeta, selectedSlot?.kind, selectedSlot?.colSpan, selectedSlot?.rowSpan]
   );
+  const activeSurface = selectedIsWidget
+    ? normalizeHomeWidgetSurface(selectedSlot?.surface)
+    : null;
 
   const handleToggleQuickPicker = useCallback(() => {
     setPickerOpen((prev) => !prev);
@@ -162,6 +167,19 @@ function HomeBoardArrangeBar({
                       };
                     })}
                   />
+                  {selectedIsWidget ? (
+                    <WeeSegmentedControl
+                      size="sm"
+                      ariaLabel="Widget surface"
+                      layoutId="homeArrangeWidgetSurface"
+                      value={activeSurface || 'glass'}
+                      onChange={(surface) => onSetSurface?.(surface)}
+                      options={[
+                        { value: 'glass', label: 'Glass', title: 'Frosted glass chrome' },
+                        { value: 'clear', label: 'Clear', title: 'Transparent — wallpaper shows through' },
+                      ]}
+                    />
+                  ) : null}
                   {selectedIsWidget ? (
                     <WeeButton variant="danger" size="sm" onClick={onRemoveWidget}>
                       <span className="flex items-center gap-1.5">
@@ -267,6 +285,7 @@ HomeBoardArrangeBar.propTypes = {
   onAddWidget: PropTypes.func,
   onRemoveWidget: PropTypes.func,
   onSetSizePreset: PropTypes.func,
+  onSetSurface: PropTypes.func,
   blockedPresetIds: PropTypes.arrayOf(PropTypes.string),
   pickerOpen: PropTypes.bool,
   onPickerOpenChange: PropTypes.func,

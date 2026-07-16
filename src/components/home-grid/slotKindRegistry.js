@@ -18,6 +18,13 @@ const NOW_PLAYING_SIZE_PRESETS = Object.freeze({
   L: HOME_SLOT_SIZE_PRESETS.L,
 });
 
+/** Glance tiles (clock / weather / steam) — S compact + M/L; no XL. */
+const GLANCE_TILE_SIZE_PRESETS = Object.freeze({
+  S: HOME_SLOT_SIZE_PRESETS.S,
+  M: HOME_SLOT_SIZE_PRESETS.M,
+  L: HOME_SLOT_SIZE_PRESETS.L,
+});
+
 export const HOME_SLOT_KINDS = {
   channel: {
     id: 'channel',
@@ -64,6 +71,42 @@ export const HOME_SLOT_KINDS = {
     defaultSizePreset: 'M',
     sizePresets: HOME_SLOT_SIZE_PRESETS,
     render: 'RecentlyUsedSlot',
+    placeable: true,
+  },
+  clock: {
+    id: 'clock',
+    label: 'Clock',
+    description: 'Local time and date at a glance',
+    icon: '🕐',
+    colSpan: HOME_SLOT_SIZE_PRESETS.S.colSpan,
+    rowSpan: HOME_SLOT_SIZE_PRESETS.S.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: GLANCE_TILE_SIZE_PRESETS,
+    render: 'ClockSlot',
+    placeable: true,
+  },
+  weather: {
+    id: 'weather',
+    label: 'Weather',
+    description: 'Local conditions via Open-Meteo',
+    icon: '⛅',
+    colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
+    rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: GLANCE_TILE_SIZE_PRESETS,
+    render: 'WeatherSlot',
+    placeable: true,
+  },
+  steamRecent: {
+    id: 'steamRecent',
+    label: 'Steam Recent',
+    description: 'Recently played Steam games',
+    icon: '🎮',
+    colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
+    rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: GLANCE_TILE_SIZE_PRESETS,
+    render: 'SteamRecentSlot',
     placeable: true,
   },
 };

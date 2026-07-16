@@ -10,12 +10,18 @@ import { getHomeSlotKind } from './slotKindRegistry';
 import AdminQuickAccessSlot from './AdminQuickAccessSlot';
 import NowPlayingSlot from './NowPlayingSlot';
 import RecentlyUsedSlot from './RecentlyUsedSlot';
+import ClockSlot from './ClockSlot';
+import WeatherSlot from './WeatherSlot';
+import SteamRecentSlot from './SteamRecentSlot';
 
 /** Non-channel widget renderers, keyed by registry `render` ids. */
 const WIDGET_SLOT_COMPONENTS = {
   AdminQuickAccessSlot,
   NowPlayingSlot,
   RecentlyUsedSlot,
+  ClockSlot,
+  WeatherSlot,
+  SteamRecentSlot,
 };
 
 /**

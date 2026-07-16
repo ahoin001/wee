@@ -2,7 +2,8 @@ import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { History } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { WeeGlassPill } from '../../ui/wee';
+import HomeWidgetShell from './HomeWidgetShell';
+import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
@@ -121,17 +122,14 @@ function RecentlyUsedSlot({
   );
 
   const isEmpty = visible.length === 0;
+  const surface = normalizeHomeWidgetSurface(slot?.surface);
 
   return (
-    <WeeGlassPill
-      as="div"
-      className={`relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem] p-2 ${
-        selected
-          ? 'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--surface-primary)/0)]'
-          : ''
-      }`}
+    <HomeWidgetShell
+      surface={surface}
+      selected={selected}
+      className="p-2"
       onClick={handleTileActivate}
-      role="group"
       aria-label="Recently Used"
     >
       {isEmpty ? (
@@ -193,7 +191,7 @@ function RecentlyUsedSlot({
           </div>
         </div>
       )}
-    </WeeGlassPill>
+    </HomeWidgetShell>
   );
 }
 

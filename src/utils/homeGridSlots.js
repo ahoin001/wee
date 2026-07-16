@@ -1,4 +1,15 @@
 import { channelIdAtIndex } from './channelReorder';
+import {
+  HOME_WIDGET_SURFACES,
+  DEFAULT_HOME_WIDGET_SURFACE,
+  normalizeHomeWidgetSurface,
+} from './homeWidgetSurface';
+
+export {
+  HOME_WIDGET_SURFACES,
+  DEFAULT_HOME_WIDGET_SURFACE,
+  normalizeHomeWidgetSurface,
+};
 
 export const SLOT_KIND_CHANNEL = 'channel';
 /** @deprecated Prefer SLOT_KIND_ADMIN_QUICK_ACCESS — kept for migrate of early stubs. */
@@ -30,7 +41,7 @@ export function createEmptyChannelSlot() {
  * Generic widget slot for any registered non-channel kind
  * (see `slotKindRegistry.js` for labels/render ids/size presets).
  * @param {string} kindId
- * @param {{ colSpan?: number, rowSpan?: number }} [span]
+ * @param {{ colSpan?: number, rowSpan?: number, surface?: string }} [span]
  * @returns {import('./homeGridSlots').HomeGridSlot}
  */
 export function createHomeWidgetSlot(kindId, span = {}) {
@@ -39,6 +50,7 @@ export function createHomeWidgetSlot(kindId, span = {}) {
     hidden: false,
     colSpan: span.colSpan ?? 1,
     rowSpan: span.rowSpan ?? 1,
+    surface: normalizeHomeWidgetSurface(span.surface),
     channel: null,
     widget: { widgetId: kindId },
   };
@@ -63,8 +75,18 @@ export function normalizeHomeGridSlot(slot) {
       ...createAdminQuickAccessSlot({
         colSpan: slot.colSpan ?? 1,
         rowSpan: slot.rowSpan ?? 1,
+        surface: slot.surface,
       }),
       hidden: Boolean(slot.hidden),
+    };
+  }
+  if (isNonChannelSlot(slot)) {
+    return {
+      ...slot,
+      surface: normalizeHomeWidgetSurface(slot.surface),
+      hidden: Boolean(slot.hidden),
+      colSpan: Math.max(1, Number(slot.colSpan) || 1),
+      rowSpan: Math.max(1, Number(slot.rowSpan) || 1),
     };
   }
   return slot;
@@ -448,6 +470,27 @@ export function setHomeSlotSpanInSpaceData(spaceData, channelIndex, colSpan, row
     ...slots[index],
     colSpan: Math.max(1, colSpan | 0),
     rowSpan: Math.max(1, rowSpan | 0),
+  };
+  const legacy = projectSlotsToLegacyMaps(slots);
+  return { ...input, slots, ...legacy };
+}
+
+/**
+ * Update widget surface (glass | clear) on a non-channel slot.
+ * @param {Record<string, unknown>} spaceData
+ * @param {number} channelIndex
+ * @param {string} surface
+ */
+export function setHomeSlotSurfaceInSpaceData(spaceData, channelIndex, surface) {
+  const input = spaceData && typeof spaceData === 'object' ? spaceData : {};
+  const slots = Array.isArray(input.slots) ? [...input.slots] : [];
+  const index = channelIndex | 0;
+  if (index < 0 || index >= slots.length || !slots[index]) return input;
+  if (!isNonChannelSlot(slots[index])) return input;
+
+  slots[index] = {
+    ...slots[index],
+    surface: normalizeHomeWidgetSurface(surface),
   };
   const legacy = projectSlotsToLegacyMaps(slots);
   return { ...input, slots, ...legacy };

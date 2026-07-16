@@ -7,7 +7,9 @@ import {
   createWeeTransition,
   useWeeMotion,
 } from '../../design/weeMotion';
-import { WeeGlassPill, WeeGooeyTileButton } from '../../ui/wee';
+import { WeeGooeyTileButton } from '../../ui/wee';
+import HomeWidgetShell from './HomeWidgetShell';
+import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import {
   applyAdminPanelPowerActions,
   executeAdminCommand,
@@ -199,20 +201,15 @@ function AdminQuickAccessSlot({
   );
 
   const emptyInvite = adminConfig.powerActions.length === 0;
+  const surface = normalizeHomeWidgetSurface(slot?.surface);
 
   return (
     <>
-      <WeeGlassPill
-        as="div"
-        className={`relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem] ${
-          isCompact || isSingleRow ? 'p-2' : 'p-2.5'
-        } ${
-          selected
-            ? 'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--surface-primary)/0)]'
-            : ''
-        }`}
+      <HomeWidgetShell
+        surface={surface}
+        selected={selected}
+        className={isCompact || isSingleRow ? 'p-2' : 'p-2.5'}
         onClick={handleTileActivate}
-        role="group"
         aria-label="Admin Quick Access"
       >
         {actionError ? (
@@ -448,7 +445,7 @@ function AdminQuickAccessSlot({
             </MotionDiv>
           ) : null}
         </AnimatePresence>
-      </WeeGlassPill>
+      </HomeWidgetShell>
 
       <AdminPanel
         isOpen={configureOpen}

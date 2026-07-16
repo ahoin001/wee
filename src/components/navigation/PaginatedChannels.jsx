@@ -110,6 +110,9 @@ const PaginatedChannelsInner = React.memo(() => {
   const setHomeSlotSpanForSpace = useConsolidatedAppStore(
     (s) => s.actions.setHomeSlotSpanForSpace
   );
+  const setHomeSlotSurfaceForSpace = useConsolidatedAppStore(
+    (s) => s.actions.setHomeSlotSurfaceForSpace
+  );
   const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
   const reducedMotion = useReducedMotion();
   const {
@@ -493,6 +496,14 @@ const PaginatedChannelsInner = React.memo(() => {
       setHomeSlotSpanForSpace,
       channelSpaceKey,
     ]
+  );
+
+  const handleSetSurface = useCallback(
+    (surface) => {
+      if (homeBoardSelectedSlotIndex == null) return;
+      setHomeSlotSurfaceForSpace(channelSpaceKey, homeBoardSelectedSlotIndex, surface);
+    },
+    [homeBoardSelectedSlotIndex, setHomeSlotSurfaceForSpace, channelSpaceKey]
   );
 
   /** Free-form span commit from the corner resize grabber. */
@@ -1357,6 +1368,7 @@ const PaginatedChannelsInner = React.memo(() => {
             onAddWidget={handleAddWidget}
             onRemoveWidget={handleRemoveWidget}
             onSetSizePreset={handleSetSizePreset}
+            onSetSurface={handleSetSurface}
             blockedPresetIds={blockedSizePresetIds}
             pickerOpen={arrangePickerOpen}
             onPickerOpenChange={setArrangePickerOpen}

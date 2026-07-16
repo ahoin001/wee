@@ -6,7 +6,8 @@ import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { Maximize2, Music, Pause, Play, SkipBack, SkipForward } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { WeeGlassPill } from '../../ui/wee';
+import HomeWidgetShell from './HomeWidgetShell';
+import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
 import { openSettingsToTab } from '../../utils/settingsNavigation';
@@ -165,16 +166,12 @@ function NowPlayingSlot({
     hasTrack && !isCompact && !interactionsLocked && (source === 'spotify' || source === 'system');
 
   const playPauseEnabled = isPlaying ? canPause || source === 'spotify' : canPlay || source === 'spotify';
+  const surface = normalizeHomeWidgetSurface(slot?.surface);
 
   return (
-    <WeeGlassPill
-      as="div"
-      className={`relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem] ${
-        selected
-          ? 'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--surface-primary)/0)]'
-          : ''
-      }`}
-      role="group"
+    <HomeWidgetShell
+      surface={surface}
+      selected={selected}
       aria-label="Now Playing"
     >
       {hasTrack && albumArtUrl ? (
@@ -306,7 +303,7 @@ function NowPlayingSlot({
           <Maximize2 size={13} strokeWidth={2.5} aria-hidden />
         </button>
       ) : null}
-    </WeeGlassPill>
+    </HomeWidgetShell>
   );
 }
 

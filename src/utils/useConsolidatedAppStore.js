@@ -31,10 +31,12 @@ import {
   placeHomeWidgetInSpaceData,
   removeHomeWidgetFromSpaceData,
   setHomeSlotSpanInSpaceData,
+  setHomeSlotSurfaceInSpaceData,
   syncSpaceDataFromLegacyMaps,
 } from './homeGridSlots';
 import { canPlaceSpan, applySlotSpan } from './homeGridOccupancy';
 import { getHomeSlotSizePresetById } from './homeSlotSizePresets';
+import { normalizeHomeWidgetSurface } from './homeWidgetSurface';
 import { recordRecentLaunchEntry } from './recentLaunches';
 import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
@@ -556,6 +558,20 @@ useConsolidatedAppStore = create(
           available: false,
           error: null,
           session: null,
+        },
+
+        /**
+         * Home Weather tile cache (Open-Meteo). Transient — not in settings snapshot.
+         * Shared across WeatherSlot instances via TTL + useActivityInterval.
+         */
+        homeWeather: {
+          status: 'idle',
+          current: null,
+          daily: null,
+          coords: null,
+          locationSource: null,
+          fetchedAt: 0,
+          error: null,
         },
 
         // Spotify state
@@ -1211,6 +1227,19 @@ useConsolidatedAppStore = create(
             return { channels: patchHomeChannelSpace(state, key, apply) };
           }),
 
+          setHomeSlotSurfaceForSpace: (spaceKey, channelIndex, surface) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const index = channelIndex | 0;
+            if (index < 0) return state;
+            const nextSurface = normalizeHomeWidgetSurface(surface);
+            const apply = (channelsData) =>
+              setHomeSlotSurfaceInSpaceData(channelsData, index, nextSurface);
+            if (key === 'workspaces') {
+              return { channels: patchSecondaryChannelSpace(state, apply) };
+            }
+            return { channels: patchHomeChannelSpace(state, key, apply) };
+          }),
+
           setActiveSecondaryChannelProfileId: (profileId) => set((state) => {
             const profiles = state.channels.secondaryChannelProfiles || {};
             if (!profiles[profileId]) return state;
@@ -1379,6 +1408,11 @@ useConsolidatedAppStore = create(
                 .catch(() => {});
             });
           },
+
+          setHomeWeatherState: (updates) =>
+            set((state) => ({
+              homeWeather: { ...(state.homeWeather || {}), ...updates },
+            })),
 
           // Spotify manager
           spotifyManager,
