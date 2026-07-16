@@ -42,7 +42,7 @@ const PresetsSaveCurrentCard = React.memo(
       </div>
 
       <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-        Visual-only presets are shareable. Home channel presets are local-only.
+        Visual-only presets are shareable. Board presets (Home + Focus, including punched holes) stay on this PC.
       </Text>
 
       <div className="flex flex-col gap-3 border-t border-[hsl(var(--border-primary)/0.35)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
@@ -51,12 +51,12 @@ const PresetsSaveCurrentCard = React.memo(
         </Button>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:ml-auto">
           <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))] sm:text-right">
-            Include Home channels and positions (local only)
+            Include Home + Focus boards (local only)
           </Text>
           <WToggle
             checked={includeHomeChannels}
             onChange={onIncludeHomeChannelsChange}
-            label="Include Home channels"
+            label="Include channel boards"
             disableLabelClick
             disabled={isSaving}
           />

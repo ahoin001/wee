@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
-import { Clapperboard, Gamepad2, Home, PenLine, Pin, PinOff, Wand2 } from 'lucide-react';
+import { Clapperboard, Focus, Gamepad2, Home, PenLine, Pin, PinOff, Wand2 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   DEFAULT_SHELL_SPACE_ORDER,
@@ -44,9 +44,17 @@ const MotionDiv = m.div;
 
 const SPACE_META = {
   home: { label: 'Home', Icon: Home },
+  workspaces: { label: 'Focus', Icon: Focus },
   mediahub: { label: 'Media', Icon: Clapperboard },
   gamehub: { label: 'Games', Icon: Gamepad2 },
 };
+
+function truncateRailLabel(name, max = 10) {
+  const trimmed = typeof name === 'string' ? name.trim() : '';
+  if (!trimmed) return 'Focus';
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, Math.max(1, max - 1))}…`;
+}
 
 /**
  * Expanded rail footprint — must match WeeGooeyIconButton sizes + flex gap/padding
@@ -189,18 +197,29 @@ export default function WeeGooeySpacePill() {
     railVisible,
     isTransitioning,
     order,
+    mediaHubEnabled,
+    activeSecondaryProfileName,
     setSpacesState,
   } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      activeSpaceId: state.spaces.activeSpaceId,
-      railEnabled: state.spaces.railEnabled ?? true,
-      autoHideRail: state.spaces.autoHideRail,
-      railPinned: state.spaces.railPinned,
-      railVisible: state.spaces.railVisible,
-      isTransitioning: state.spaces.isTransitioning,
-      order: state.spaces.order,
-      setSpacesState: state.actions.setSpacesState,
-    }))
+    useShallow((state) => {
+      const activeProfileId = state.channels?.activeSecondaryChannelProfileId;
+      const activeProfile = activeProfileId
+        ? state.channels?.secondaryChannelProfiles?.[activeProfileId]
+        : null;
+      return {
+        activeSpaceId: state.spaces.activeSpaceId,
+        railEnabled: state.spaces.railEnabled ?? true,
+        autoHideRail: state.spaces.autoHideRail,
+        railPinned: state.spaces.railPinned,
+        railVisible: state.spaces.railVisible,
+        isTransitioning: state.spaces.isTransitioning,
+        order: state.spaces.order,
+        mediaHubEnabled: state.spaces.mediaHubEnabled === true,
+        activeSecondaryProfileName:
+          typeof activeProfile?.name === 'string' ? activeProfile.name : '',
+        setSpacesState: state.actions.setSpacesState,
+      };
+    })
   );
 
   const gameHubChunkPrefetched = useRef(false);
@@ -283,18 +302,26 @@ export default function WeeGooeySpacePill() {
   const spaceOrder = useMemo(
     () =>
       normalizeShellSpaceOrder(
-        Array.isArray(order) && order.length > 0 ? order : DEFAULT_SHELL_SPACE_ORDER
+        Array.isArray(order) && order.length > 0 ? order : DEFAULT_SHELL_SPACE_ORDER,
+        { mediaHubEnabled }
       ),
-    [order]
+    [order, mediaHubEnabled]
   );
 
   const orderedSpaces = useMemo(
     () =>
       spaceOrder.map((id) => {
         const base = SPACE_META[id] || { label: id, Icon: Home };
+        if (id === 'workspaces') {
+          return {
+            id,
+            label: truncateRailLabel(activeSecondaryProfileName),
+            Icon: base.Icon,
+          };
+        }
         return { id, label: base.label, Icon: base.Icon };
       }),
-    [spaceOrder]
+    [spaceOrder, activeSecondaryProfileName]
   );
 
   const activeSpaceIndex = useMemo(
@@ -373,10 +400,12 @@ export default function WeeGooeySpacePill() {
         return;
       }
       const next = arrayMove(spaceOrder, oldIndex, newIndex);
-      setSpacesState({ order: normalizeShellSpaceOrder(next) });
+      setSpacesState({
+        order: normalizeShellSpaceOrder(next, { mediaHubEnabled }),
+      });
       scheduleHideIfEligible();
     },
-    [scheduleHideIfEligible, setSpacesState, spaceOrder]
+    [mediaHubEnabled, scheduleHideIfEligible, setSpacesState, spaceOrder]
   );
 
   useEffect(() => {

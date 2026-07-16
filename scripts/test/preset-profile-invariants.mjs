@@ -77,6 +77,7 @@ test('toVisualOnlyPreset strips home channels and marks shareable', () => {
     data: {
       wallpaper: { url: 'https://cdn.example.com/w2.jpg' },
       homeChannels: { configuredChannels: { 1: { appId: 'x' } } },
+      focusChannels: { configuredChannels: { 2: { appId: 'y' } } },
     },
   });
 
@@ -85,6 +86,36 @@ test('toVisualOnlyPreset strips home channels and marks shareable', () => {
   assert.equal(visualPreset.includesHomeChannels, false);
   assert.equal(visualPreset.shareable, true);
   assert.ok(!('homeChannels' in visualPreset.data));
+  assert.ok(!('focusChannels' in visualPreset.data));
+});
+
+test('normalizePresetRecord retains focus board and punched slots', () => {
+  const punchedHome = {
+    slots: [
+      { kind: 'channel', channel: null, hidden: true, colSpan: 1, rowSpan: 1 },
+      { kind: 'channel', channel: { appId: 'steam' }, hidden: false, colSpan: 1, rowSpan: 1 },
+    ],
+    configuredChannels: { 1: { appId: 'steam' } },
+    slotMeta: { 0: { hidden: true } },
+  };
+  const focusBoard = {
+    slots: [{ kind: 'channel', channel: null, hidden: true, colSpan: 1, rowSpan: 1 }],
+    slotMeta: { 0: { hidden: true } },
+  };
+  const normalized = normalizePresetRecord({
+    name: 'Punched mood',
+    captureScope: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+    data: {
+      ui: { wallpaperMatchEnabled: true },
+      homeChannels: punchedHome,
+      focusChannels: focusBoard,
+    },
+  });
+
+  assert.equal(normalized.captureScope, PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS);
+  assert.equal(normalized.data.homeChannels.slots[0].hidden, true);
+  assert.equal(normalized.data.focusChannels.slots[0].hidden, true);
+  assert.equal(normalized.data.ui.wallpaperMatchEnabled, true);
 });
 
 test('sanitizePresetCollection backfills missing ids', () => {

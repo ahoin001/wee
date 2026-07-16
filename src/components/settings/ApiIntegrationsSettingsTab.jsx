@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Music, Activity, Settings2, Radio, Palette } from 'lucide-react';
+import { Music, Activity, Settings2, Radio } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
@@ -29,7 +29,6 @@ const ApiIntegrationsSettingsTab = () => {
     systemMedia,
     nowPlayingSourcePreference,
     systemMediaEnabled,
-    spotifyMatchEnabled,
   } =
     useConsolidatedAppStore(
       useShallow((state) => ({
@@ -38,7 +37,6 @@ const ApiIntegrationsSettingsTab = () => {
         systemMedia: state.systemMedia,
         nowPlayingSourcePreference: state.ui.nowPlayingSourcePreference || 'auto',
         systemMediaEnabled: state.ui.systemMediaEnabled !== false,
-        spotifyMatchEnabled: Boolean(state.ui.spotifyMatchEnabled),
       }))
     );
   const actions = useConsolidatedAppStore(useShallow((state) => state.actions));
@@ -129,40 +127,6 @@ const ApiIntegrationsSettingsTab = () => {
       actions.setUIState({ nowPlayingSourcePreference: value });
     },
     [actions]
-  );
-
-  const handleColorMatchRibbon = useCallback(
-    (checked) => {
-      const enabled = Boolean(checked);
-      actions.setUIState({ spotifyMatchEnabled: enabled });
-      if (enabled) {
-        // Ribbon must opt into dynamic chrome for match accents to apply.
-        actions.setRibbonState({ dynamicRibbonColorEnabled: true });
-      }
-    },
-    [actions]
-  );
-
-  const handleColorMatchWallpaper = useCallback(
-    (checked) => {
-      const enabled = Boolean(checked);
-      actions.setSpotifyState({
-        immersiveMode: {
-          ...spotify.immersiveMode,
-          liveGradientWallpaper: enabled,
-          // Overlay on the user's wallpaper (not replace) — classic "color match" feel.
-          overlayMode: enabled ? true : Boolean(spotify.immersiveMode?.overlayMode),
-        },
-      });
-    },
-    [actions, spotify.immersiveMode]
-  );
-
-  const handleWidgetDynamicColors = useCallback(
-    (checked) => {
-      handleUpdateSpotifySettings({ dynamicColors: Boolean(checked) });
-    },
-    [handleUpdateSpotifySettings]
   );
 
   const systemMediaStatusLabel = useMemo(() => {
@@ -356,22 +320,9 @@ const ApiIntegrationsSettingsTab = () => {
                 />
               </div>
 
-              <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-                <div className="flex items-center">
-                  <span className="mr-2 text-sm">🎨</span>
-                  <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
-                    Dynamic colors
-                  </Text>
-                </div>
-                <WToggle
-                  checked={floatingWidgets.spotify.settings.dynamicColors}
-                  onChange={handleWidgetDynamicColors}
-                  containerClassName="wii-toggle-spotify-accent"
-                />
-              </div>
             </div>
             <Text variant="caption" className="mt-3 text-[11px] text-[hsl(var(--text-tertiary))]">
-              Configure how the Spotify widget behaves and displays
+              Color Match (album accents for this widget) lives in Edit Home → Now Playing.
             </Text>
           </div>
 
@@ -441,92 +392,9 @@ const ApiIntegrationsSettingsTab = () => {
           <Text variant="caption" className="mt-3 text-xs text-[hsl(var(--text-tertiary))]">
             Auto prefers desktop media (SMTC) for everyone. Spotify Web API is used for Premium
             transport controls when Spotify is the playing app. Free users stay on desktop display
-            + media keys. Edit Home → Now Playing can filter to a single app. Color Match settings
-            live in the section below.
+            + media keys. Edit Home → Now Playing for app filter and Color Match (ribbon, wallpaper
+            wash, media accents).
           </Text>
-        </WeeModalFieldCard>
-      </WeeSettingsCollapsibleSection>
-
-      <WeeSettingsCollapsibleSection
-        icon={Palette}
-        title="Now Playing Color Match"
-        description="Pull colors from album art — ribbon, wallpaper wash, and media widget"
-        defaultOpen={false}
-      >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
-          <Text variant="caption" className="!mb-4 block text-xs text-[hsl(var(--text-tertiary))]">
-            Works with Spotify Desktop, Apple Music, and other SMTC players — not just Spotify Premium.
-            Colors are sampled from the current track&apos;s artwork.
-          </Text>
-
-          <div className="space-y-3">
-            <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-              <div className="min-w-0 pr-3">
-                <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
-                  Match ribbon &amp; chrome
-                </Text>
-                <Text variant="caption" className="!mt-0.5 block text-[11px] text-[hsl(var(--text-tertiary))]">
-                  Tint the dock ribbon and adaptive chrome from the playing track
-                </Text>
-              </div>
-              <WToggle
-                checked={spotifyMatchEnabled}
-                onChange={handleColorMatchRibbon}
-                containerClassName="wii-toggle-spotify-accent"
-              />
-            </div>
-
-            <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-              <div className="min-w-0 pr-3">
-                <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
-                  Wallpaper color wash
-                </Text>
-                <Text variant="caption" className="!mt-0.5 block text-[11px] text-[hsl(var(--text-tertiary))]">
-                  Soft album-driven gradient over your wallpaper while music plays
-                </Text>
-              </div>
-              <WToggle
-                checked={Boolean(spotify.immersiveMode?.liveGradientWallpaper)}
-                onChange={handleColorMatchWallpaper}
-                containerClassName="wii-toggle-spotify-accent"
-              />
-            </div>
-
-            <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-              <div className="min-w-0 pr-3">
-                <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
-                  Media widget dynamic colors
-                </Text>
-                <Text variant="caption" className="!mt-0.5 block text-[11px] text-[hsl(var(--text-tertiary))]">
-                  Floating player and Home Now Playing tiles pick up album accents
-                </Text>
-              </div>
-              <WToggle
-                checked={Boolean(floatingWidgets.spotify.settings.dynamicColors)}
-                onChange={handleWidgetDynamicColors}
-                containerClassName="wii-toggle-spotify-accent"
-              />
-            </div>
-          </div>
-
-          {(spotifyMatchEnabled ||
-            spotify.immersiveMode?.liveGradientWallpaper ||
-            floatingWidgets.spotify.settings.dynamicColors) &&
-          spotify.extractedColors?.primary ? (
-            <div className="mt-4 flex items-center gap-2 rounded-lg bg-[hsl(var(--surface-tertiary))] p-3">
-              <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
-                Live palette
-              </span>
-              {['primary', 'secondary', 'accent'].map((key) => (
-                <span
-                  key={key}
-                  className="h-6 w-6 rounded-full border border-[hsl(var(--border-primary)/0.35)] shadow-[var(--shadow-sm)]"
-                  style={{ background: spotify.extractedColors[key] }}
-                  title={key}
-                />
-              ))}
-            </div>
-          ) : null}
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
 

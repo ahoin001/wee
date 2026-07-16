@@ -3,12 +3,14 @@
  */
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { WeeFadeScroll } from '../../ui/wee';
 import {
   STEAM_CDN_HEADER,
   STEAM_CDN_LIBRARY_COVER,
 } from '../../utils/steamGamesGlance';
 import {
   formatSteamPlaytimeShort,
+  getHomeSteamGutterConfig,
   getHomeSteamTileSizeConfig,
   resolveSteamShelfScrollAxis,
 } from '../../utils/homeSteamWidgetPrefs';
@@ -105,12 +107,9 @@ SteamCoverTile.propTypes = {
  */
 export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children }) {
   const tileCfg = getHomeSteamTileSizeConfig(prefs?.tileSize);
+  const gutterCfg = getHomeSteamGutterConfig(prefs?.gutter);
   const scrollAxis = resolveSteamShelfScrollAxis(prefs, { colSpan, rowSpan });
   const isHorizontal = scrollAxis === 'horizontal';
-
-  const scrollerClass = isHorizontal
-    ? 'min-h-0 flex-1 overflow-x-auto overflow-y-hidden [scrollbar-gutter:stable] [scrollbar-width:thin]'
-    : 'min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] [scrollbar-width:thin]';
 
   const gridStyle = useMemo(() => {
     if (isHorizontal) {
@@ -126,8 +125,11 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children }) {
   }, [isHorizontal, tileCfg.columns, tileCfg.horizontalRows, tileCfg.tileMaxPx]);
 
   return (
-    <div
-      className={scrollerClass}
+    <WeeFadeScroll
+      axis={isHorizontal ? 'x' : 'y'}
+      fadePx={40}
+      hideScrollbar
+      className="min-h-0 flex-1"
       onWheel={(event) => {
         event.stopPropagation();
         if (!isHorizontal) return;
@@ -140,14 +142,14 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children }) {
     >
       {/* Slight end padding keeps a peek of the next row/column past the clip edge */}
       <div
-        className={`grid content-start ${tileCfg.gapClass} ${
-          isHorizontal ? 'h-full w-max min-w-full pr-3' : 'pb-3'
+        className={`grid content-start ${gutterCfg.gapClass} ${
+          isHorizontal ? 'h-full w-max min-w-full pr-4' : 'pb-4'
         }`}
         style={gridStyle}
       >
         {children}
       </div>
-    </div>
+    </WeeFadeScroll>
   );
 }
 

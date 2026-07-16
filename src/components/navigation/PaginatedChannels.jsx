@@ -52,7 +52,8 @@ import {
 import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
 import { useHomeIdleExperience } from '../../hooks/useHomeIdleExperience';
 import { weeMarkChannelPage } from '../../utils/weePerformanceMarks';
-import { applyChannelSlotReorder, snapshotChannelSlotMaps } from '../../utils/channelReorder';
+import { projectSlotsToLegacyMaps } from '../../utils/homeGridSlots';
+import { normalizeDropTarget, reorderSlots } from '../../utils/boardMutation';
 import './PaginatedChannels.css';
 
 const MotionDiv = m.div;
@@ -158,7 +159,7 @@ const PaginatedChannelsInner = React.memo(() => {
 
   const [activeDragIndex, setActiveDragIndex] = useState(null);
   const [hoverDragIndex, setHoverDragIndex] = useState(null);
-  const [previewMaps, setPreviewMaps] = useState(null);
+  const [previewBoard, setPreviewBoard] = useState(null);
   const [dragOverlayPayload, setDragOverlayPayload] = useState(null);
   const [channelMediaNotice, setChannelMediaNotice] = useState('');
   const mediaNoticeTimerRef = useRef(null);
@@ -174,6 +175,29 @@ const PaginatedChannelsInner = React.memo(() => {
   const hoverIndexRef = useRef(null);
   const pageEdgeTimerRef = useRef(null);
   const pageEdgeSideRef = useRef(null);
+
+  const boardLayout = useMemo(
+    () => ({
+      columns: gridConfig.columns,
+      rows: gridConfig.rows,
+      totalPages: gridConfig.totalPages || navigation.totalPages || 1,
+    }),
+    [gridConfig.columns, gridConfig.rows, gridConfig.totalPages, navigation.totalPages]
+  );
+
+  /**
+   * Occupancy/placement probes prefer page-effective columns/rows when the page
+   * override matches strip slot density (safe for absolute index math). Smaller
+   * per-page overrides stay settings-only in v1 — strip geometry is space-level.
+   */
+  const placeColumns =
+    gridConfig.pageChannelsPerPage === gridConfig.channelsPerPage
+      ? gridConfig.pageColumns ?? gridConfig.columns
+      : gridConfig.columns;
+  const placeRows =
+    gridConfig.pageChannelsPerPage === gridConfig.channelsPerPage
+      ? gridConfig.pageRows ?? gridConfig.rows
+      : gridConfig.rows;
 
   const clearVfxTimers = useCallback(() => {
     vfxTimersRef.current.forEach(clearTimeout);
@@ -200,7 +224,7 @@ const PaginatedChannelsInner = React.memo(() => {
     dragSnapshotRef.current = null;
     dragOriginRef.current = null;
     hoverIndexRef.current = null;
-    setPreviewMaps(null);
+    setPreviewBoard(null);
     setHoverDragIndex(null);
     setDragOverlayPayload(null);
     clearPageEdgeTimer();
@@ -209,33 +233,51 @@ const PaginatedChannelsInner = React.memo(() => {
   const projectLiveReorder = useCallback(
     (fromIndex, toIndex) => {
       const snap = dragSnapshotRef.current;
-      if (!snap) return;
-      const n = gridConfig.totalChannels | 0;
+      if (!snap?.slots) return;
       if (fromIndex === toIndex) {
-        setPreviewMaps(snap);
+        setPreviewBoard(snap);
         return;
       }
-      setPreviewMaps(
-        applyChannelSlotReorder({
-          fromIndex,
-          toIndex,
-          totalChannels: n,
-          configuredChannels: snap.configuredChannels,
-          channelConfigs: snap.channelConfigs,
-        })
-      );
+      const { slots, toIndex: landed } = reorderSlots({
+        slots: snap.slots,
+        layout: snap.layout,
+        fromIndex,
+        toIndex,
+      });
+      const legacy = projectSlotsToLegacyMaps(slots);
+      setPreviewBoard({
+        slots,
+        layout: snap.layout,
+        landedIndex: landed,
+        ...legacy,
+      });
     },
-    [gridConfig.totalChannels]
+    []
   );
 
   const resolveConfigAt = useCallback(
     (channelId) => {
-      if (previewMaps?.configuredChannels) {
-        return previewMaps.configuredChannels[channelId] || null;
+      if (previewBoard?.configuredChannels) {
+        return previewBoard.configuredChannels[channelId] || null;
       }
       return getChannelConfig(channelId);
     },
-    [previewMaps, getChannelConfig]
+    [previewBoard, getChannelConfig]
+  );
+
+  const resolveSlots = useCallback(() => {
+    if (Array.isArray(previewBoard?.slots)) return previewBoard.slots;
+    return Array.isArray(channelData?.slots) ? channelData.slots : [];
+  }, [previewBoard, channelData?.slots]);
+
+  const resolveSlotHidden = useCallback(
+    (index) => {
+      const slots = resolveSlots();
+      if (slots[index]?.hidden) return true;
+      if (previewBoard?.slotMeta) return isSlotHidden(previewBoard.slotMeta, index);
+      return isSlotHidden(slotMeta, index);
+    },
+    [resolveSlots, previewBoard, slotMeta]
   );
 
   const resolveIsEmpty = useCallback(
@@ -262,6 +304,9 @@ const PaginatedChannelsInner = React.memo(() => {
 
   const lastPointerThrottleRef = useRef(0);
   const isHomeSpace = channelSpaceKey === 'home';
+  const isFocusSpace = channelSpaceKey === 'workspaces';
+  /** Home + Focus share Live Board Studio arrange/punch chrome. */
+  const isChannelBoardSpace = isHomeSpace || isFocusSpace;
   const isHomeActive = isHomeSpace && activeSpaceId === 'home';
 
   // Shared idle state machine: one clock for grid auto-fade, micro-delights, and attract.
@@ -270,9 +315,9 @@ const PaginatedChannelsInner = React.memo(() => {
   const idleExperience = useHomeIdleExperience({ enabled: isHomeActive });
   const isGridFaded = isHomeActive && idleExperience.isFaded;
 
-  // Live Board Studio only applies to the live Home board.
-  const arrangeModeActive = isHomeSpace && homeBoardArrangeMode;
-  const punchModeActive = isHomeSpace && homeBoardPunchMode;
+  // Live Board Studio applies to Home and Focus channel boards.
+  const arrangeModeActive = isChannelBoardSpace && homeBoardArrangeMode;
+  const punchModeActive = isChannelBoardSpace && homeBoardPunchMode;
 
   /** Widget picker in the arrange tray — owned here so tile clicks can open it. */
   const [arrangePickerOpen, setArrangePickerOpen] = useState(false);
@@ -306,15 +351,15 @@ const PaginatedChannelsInner = React.memo(() => {
           anchorIndex: i,
           colSpan: preset.colSpan,
           rowSpan: preset.rowSpan,
-          columns: gridConfig.columns,
-          rows: gridConfig.rows,
+          columns: placeColumns,
+          rows: placeRows,
         })
       ) {
         return i;
       }
     }
     return null;
-  }, [boardSlots, gridConfig.columns, gridConfig.rows, isChannelSlotHidden]);
+  }, [boardSlots, placeColumns, placeRows, isChannelSlotHidden]);
 
   const selectedSlot =
     homeBoardSelectedSlotIndex != null && Array.isArray(boardSlots)
@@ -353,8 +398,8 @@ const PaginatedChannelsInner = React.memo(() => {
           anchorIndex: homeBoardSelectedSlotIndex,
           colSpan: preset.colSpan,
           rowSpan: preset.rowSpan,
-          columns: gridConfig.columns,
-          rows: gridConfig.rows,
+          columns: placeColumns,
+          rows: placeRows,
         })
       ) {
         return homeBoardSelectedSlotIndex;
@@ -367,8 +412,8 @@ const PaginatedChannelsInner = React.memo(() => {
     homeBoardSelectedSlotIndex,
     selectedSlot,
     boardSlots,
-    gridConfig.columns,
-    gridConfig.rows,
+    placeColumns,
+    placeRows,
     isChannelSlotHidden,
     findFirstFreeSlotIndex,
   ]);
@@ -388,8 +433,8 @@ const PaginatedChannelsInner = React.memo(() => {
             anchorIndex,
             colSpan: preset.colSpan,
             rowSpan: preset.rowSpan,
-            columns: gridConfig.columns,
-            rows: gridConfig.rows,
+            columns: placeColumns,
+            rows: placeRows,
             selfIndex,
           })
         );
@@ -437,8 +482,8 @@ const PaginatedChannelsInner = React.memo(() => {
       addTargetIndex,
       replaceTargetIndex,
       boardSlots,
-      gridConfig.columns,
-      gridConfig.rows,
+      placeColumns,
+      placeRows,
       placeHomeWidgetSlotForSpace,
       channelSpaceKey,
       setHomeBoardSelectedSlotIndex,
@@ -469,13 +514,13 @@ const PaginatedChannelsInner = React.memo(() => {
             anchorIndex: homeBoardSelectedSlotIndex,
             colSpan: preset.colSpan,
             rowSpan: preset.rowSpan,
-            columns: gridConfig.columns,
-            rows: gridConfig.rows,
+            columns: placeColumns,
+            rows: placeRows,
             selfIndex: homeBoardSelectedSlotIndex,
           })
       )
       .map((preset) => preset.id);
-  }, [homeBoardSelectedSlotIndex, boardSlots, gridConfig.columns, gridConfig.rows]);
+  }, [homeBoardSelectedSlotIndex, boardSlots, placeColumns, placeRows]);
 
   const handleSetSizePreset = useCallback(
     (presetId) => {
@@ -682,10 +727,10 @@ const PaginatedChannelsInner = React.memo(() => {
   }, [setUIState]);
 
   useEffect(() => {
-    if (!isHomeSpace && homeBoardArrangeMode) {
+    if (!isChannelBoardSpace && homeBoardArrangeMode) {
       exitHomeBoardArrange();
     }
-  }, [isHomeSpace, homeBoardArrangeMode, exitHomeBoardArrange]);
+  }, [isChannelBoardSpace, homeBoardArrangeMode, exitHomeBoardArrange]);
 
   const bumpGridActivity = idleExperience.bumpActivity;
 
@@ -785,25 +830,34 @@ const PaginatedChannelsInner = React.memo(() => {
       setCelebrateIndex(null);
       setReorderWave(null);
 
-      if (idx === null || isSlotHidden(slotMeta, idx)) {
+      if (idx === null || resolveSlotHidden(idx)) {
         clearDragPreview();
         setActiveDragIndex(null);
         return;
       }
 
-      const snap = snapshotChannelSlotMaps(configuredChannels, channelConfigs);
+      const slotsSnap = Array.isArray(channelData?.slots)
+        ? channelData.slots.map((s) => (s ? { ...s } : s))
+        : [];
+      const legacy = projectSlotsToLegacyMaps(slotsSnap);
+      const snap = { slots: slotsSnap, layout: boardLayout, ...legacy };
       dragSnapshotRef.current = snap;
       dragOriginRef.current = idx;
       hoverIndexRef.current = idx;
       setHoverDragIndex(idx);
-      setPreviewMaps(snap);
+      setPreviewBoard(snap);
 
       const originId = `channel-${idx}`;
-      const originConfig = snap.configuredChannels[originId] || null;
+      const originSlot = slotsSnap[idx];
+      const originConfig = legacy.configuredChannels[originId] || null;
       setDragOverlayPayload({
         id: originId,
         config: originConfig,
-        empty: !originConfig || (!originConfig.media && !originConfig.path),
+        slot: originSlot,
+        empty:
+          !originSlot ||
+          (originSlot.kind === 'channel' &&
+            (!originConfig || (!originConfig.media && !originConfig.path))),
       });
 
       if (mf.channelReorderParticles) {
@@ -817,14 +871,14 @@ const PaginatedChannelsInner = React.memo(() => {
       }
     },
     [
-      channelConfigs,
+      boardLayout,
+      channelData?.slots,
       channelSpaceKey,
       clearDragPreview,
       clearPageEdgeTimer,
       clearVfxTimers,
-      configuredChannels,
       mf.channelReorderParticles,
-      slotMeta,
+      resolveSlotHidden,
     ]
   );
 
@@ -836,12 +890,21 @@ const PaginatedChannelsInner = React.memo(() => {
 
       const to = event.over ? parseChannelDnDId(event.over.id) : null;
       if (to === null || to === hoverIndexRef.current) return;
-      if (isSlotHidden(slotMeta, to)) return;
+      if (resolveSlotHidden(to)) return;
+
+      const legalTo =
+        normalizeDropTarget({
+          slots: dragSnapshotRef.current?.slots || resolveSlots(),
+          layout: boardLayout,
+          hoverIndex: to,
+          movingIndex: origin,
+        }) ?? to;
+      if (resolveSlotHidden(legalTo)) return;
 
       const prevHover = hoverIndexRef.current;
-      hoverIndexRef.current = to;
-      setHoverDragIndex(to);
-      projectLiveReorder(origin, to);
+      hoverIndexRef.current = legalTo;
+      setHoverDragIndex(legalTo);
+      projectLiveReorder(origin, legalTo);
 
       if (mf.channelReorderSlotMotion && prevHover !== null && prevHover !== to) {
         reorderWaveIdRef.current += 1;
@@ -857,6 +920,7 @@ const PaginatedChannelsInner = React.memo(() => {
       }
     },
     [
+      boardLayout,
       channelConfigureModalOpen,
       goToPage,
       gridConfig.channelsPerPage,
@@ -865,7 +929,8 @@ const PaginatedChannelsInner = React.memo(() => {
       navigation.currentPage,
       navigation.isAnimating,
       projectLiveReorder,
-      slotMeta,
+      resolveSlotHidden,
+      resolveSlots,
     ]
   );
 
@@ -942,17 +1007,27 @@ const PaginatedChannelsInner = React.memo(() => {
       setLiftVfx(null);
       clearPageEdgeTimer();
 
+      const legalTo =
+        from !== null && to !== null
+          ? normalizeDropTarget({
+              slots: Array.isArray(channelData?.slots) ? channelData.slots : [],
+              layout: boardLayout,
+              hoverIndex: to,
+              movingIndex: from,
+            })
+          : null;
+
       const canCommit =
         from !== null &&
-        to !== null &&
-        from !== to &&
-        !isSlotHidden(slotMeta, from) &&
-        !isSlotHidden(slotMeta, to) &&
+        legalTo !== null &&
+        from !== legalTo &&
+        !resolveSlotHidden(from) &&
+        !resolveSlotHidden(legalTo) &&
         !isSpaceTransitioning &&
         !channelConfigureModalOpen;
 
       if (canCommit) {
-        reorderChannels(from, to);
+        reorderChannels(from, legalTo);
       }
 
       clearDragPreview();
@@ -962,7 +1037,7 @@ const PaginatedChannelsInner = React.memo(() => {
 
       if (mf.channelReorderParticles) {
         requestAnimationFrame(() => {
-          const c = measureChannelSlotCenter(channelSpaceKey, to);
+          const c = measureChannelSlotCenter(channelSpaceKey, legalTo);
           if (c) {
             burstKeyRef.current += 1;
             setDropVfx({ cx: c.cx, cy: c.cy, key: burstKeyRef.current });
@@ -972,15 +1047,17 @@ const PaginatedChannelsInner = React.memo(() => {
       }
 
       if (mf.channelReorderSlotMotion) {
-        setCelebrateIndex(to);
+        setCelebrateIndex(legalTo);
         reorderWaveIdRef.current += 1;
-        setReorderWave({ from, to, id: reorderWaveIdRef.current, live: false });
+        setReorderWave({ from, to: legalTo, id: reorderWaveIdRef.current, live: false });
         scheduleVfx(() => setCelebrateIndex(null), 720);
         scheduleVfx(() => setReorderWave(null), 980);
       }
     },
     [
+      boardLayout,
       channelConfigureModalOpen,
+      channelData?.slots,
       channelSpaceKey,
       clearDragPreview,
       clearPageEdgeTimer,
@@ -989,7 +1066,7 @@ const PaginatedChannelsInner = React.memo(() => {
       mf.channelReorderParticles,
       mf.channelReorderSlotMotion,
       reorderChannels,
-      slotMeta,
+      resolveSlotHidden,
       scheduleVfx,
     ]
   );
@@ -1040,7 +1117,10 @@ const PaginatedChannelsInner = React.memo(() => {
           ? !overrideConfig || (!overrideConfig.media && !overrideConfig.path)
           : resolveIsEmpty(channelId);
 
-      const slotFromBoard = getSlotAt(channelData?.slots, channelId);
+      const liveSlots = Array.isArray(previewBoard?.slots)
+        ? previewBoard.slots
+        : channelData?.slots;
+      const slotFromBoard = getSlotAt(liveSlots, channelId);
       const slot =
         overrideConfig !== undefined
           ? {
@@ -1119,6 +1199,7 @@ const PaginatedChannelsInner = React.memo(() => {
       resolveConfigAt,
       resolveIsEmpty,
       channelData?.slots,
+      previewBoard?.slots,
       handleChannelMediaChange,
       handleChannelAppPathChange,
       handleChannelSave,
@@ -1134,22 +1215,22 @@ const PaginatedChannelsInner = React.memo(() => {
 
   const renderChannelAtIndex = useCallback(
     (channelIndex) => {
-      const slotAt = Array.isArray(channelData?.slots)
-        ? channelData.slots[channelIndex]
-        : null;
-      const isWidgetSlot = Boolean(slotAt && slotAt.kind && slotAt.kind !== 'channel');
+      const liveSlots = resolveSlots();
+      const liveSlot = liveSlots[channelIndex] ?? null;
+      const slotAt = liveSlot;
+      const isWidgetSlot = Boolean(liveSlot && liveSlot.kind && liveSlot.kind !== 'channel');
       const selected =
         arrangeModeActive &&
         homeBoardSelectedSlotIndex != null &&
         homeBoardSelectedSlotIndex === channelIndex;
-      const kindMeta = getHomeSlotKind(slotAt?.kind ?? 'channel');
+      const kindMeta = getHomeSlotKind(liveSlot?.kind ?? 'channel');
       const canCornerResize =
         selected &&
         !punchModeActive &&
-        !isChannelSlotHidden(channelIndex) &&
+        !resolveSlotHidden(channelIndex) &&
         Boolean(kindMeta?.sizePresets) &&
-        (isWidgetSlot || !isChannelSlotEmpty(slotAt));
-      const { colSpan, rowSpan } = getSlotSpan(slotAt);
+        (isWidgetSlot || !isChannelSlotEmpty(liveSlot));
+      const { colSpan, rowSpan } = getSlotSpan(liveSlot);
       const kindMaxSpan = kindMeta?.sizePresets
         ? Object.values(kindMeta.sizePresets).reduce(
             (acc, preset) => ({
@@ -1169,9 +1250,10 @@ const PaginatedChannelsInner = React.memo(() => {
           navigation.isAnimating ||
           isSpaceTransitioning ||
           channelConfigureModalOpen ||
-          isChannelSlotHidden(channelIndex) ||
-          isWidgetSlot ||
-          punchModeActive
+          resolveSlotHidden(channelIndex) ||
+          punchModeActive ||
+          // Widgets reorder in arrange mode; outside arrange, keep them anchored.
+          (isWidgetSlot && !arrangeModeActive)
         }
         resizeActive={resizeActiveIndex === channelIndex}
         celebrateDrop={celebrateIndex === channelIndex}
@@ -1185,7 +1267,7 @@ const PaginatedChannelsInner = React.memo(() => {
             anchorIndex={channelIndex}
             colSpan={colSpan}
             rowSpan={rowSpan}
-            slots={Array.isArray(channelData?.slots) ? channelData.slots : []}
+            slots={liveSlots}
             columns={gridConfig.columns}
             rows={gridConfig.rows}
             maxColSpan={kindMaxSpan?.colSpan}
@@ -1201,7 +1283,8 @@ const PaginatedChannelsInner = React.memo(() => {
     },
     [
       channelSpaceKey,
-      channelData?.slots,
+      resolveSlots,
+      resolveSlotHidden,
       navigation.isAnimating,
       isSpaceTransitioning,
       channelConfigureModalOpen,
@@ -1210,7 +1293,6 @@ const PaginatedChannelsInner = React.memo(() => {
       reorderWave,
       activeDragIndex,
       hoverDragIndex,
-      isChannelSlotHidden,
       punchModeActive,
       arrangeModeActive,
       homeBoardSelectedSlotIndex,
@@ -1286,7 +1368,7 @@ const PaginatedChannelsInner = React.memo(() => {
       className="channels-content"
       style={wiiStripCssVars}
       data-channel-space={channelSpaceKey}
-      onContextMenuCapture={isHomeSpace ? handleBoardContextMenuCapture : undefined}
+      onContextMenuCapture={isChannelBoardSpace ? handleBoardContextMenuCapture : undefined}
     >
       {renderContent}
     </MotionDiv>
@@ -1311,7 +1393,7 @@ const PaginatedChannelsInner = React.memo(() => {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        {isHomeSpace ? (
+        {isChannelBoardSpace ? (
           <ContextMenu.Root modal={false}>
             <ContextMenu.Trigger asChild>{channelsContent}</ContextMenu.Trigger>
             <ContextMenu.Portal>
@@ -1404,7 +1486,7 @@ const PaginatedChannelsInner = React.memo(() => {
       {/* Fixed chrome portals to <body>: the space-world track is transformed
           (`will-change: transform`), which would otherwise make it the containing
           block for position:fixed and clip/bury this UI behind the dock. */}
-      {isHomeSpace
+      {isChannelBoardSpace
         ? createPortal(
         <>
           <HomeBoardArrangeBar
@@ -1426,7 +1508,7 @@ const PaginatedChannelsInner = React.memo(() => {
             onReopenGuide={handleReopenGuide}
           />
           <AnimatePresence>
-            {widgetCoachVisible ? (
+            {isHomeSpace && widgetCoachVisible ? (
               <MotionDiv
                 key="home-widget-coach"
                 className="pointer-events-none fixed inset-x-0 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-[var(--z-home-arrange-bar)] flex justify-center px-4"

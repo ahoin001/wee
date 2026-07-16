@@ -9,13 +9,17 @@ const EDGE_EPS = 2;
  * instead of hard-clipping. Classic “infinite shelf” treatment (Apple Music,
  * Linear, etc.): mask only the clipped edge(s), and clear fades when flush.
  *
+ * Scrollbars are hidden by default — fade edges are the scroll affordance.
+ *
  * @param {'y' | 'x'} [axis='y']
  * @param {number} [fadePx] — feather depth in CSS pixels
+ * @param {boolean} [hideScrollbar=true]
  */
 const WeeFadeScroll = forwardRef(function WeeFadeScroll(
   {
     axis = 'y',
     fadePx = DEFAULT_FADE_PX,
+    hideScrollbar = true,
     className = '',
     style,
     children,
@@ -61,8 +65,7 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
     });
   }, [measure]);
 
-  // Remove `children` from deps — new element refs every parent render would
-  // re-bind observers unnecessarily. Measure on mount/axis change only; RO covers size.
+  // Measure on mount/axis change; ResizeObserver covers content/size churn.
   useEffect(() => {
     const el = localRef.current;
     if (!el) return undefined;
@@ -77,6 +80,11 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [measure, scheduleMeasure]);
+
+  // Re-measure after children paint (images loading into Steam shelves, etc.).
+  useEffect(() => {
+    scheduleMeasure();
+  }, [children, scheduleMeasure]);
 
   const handleScroll = useCallback(
     (event) => {
@@ -105,7 +113,7 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
       className={[
         'wee-fade-scroll min-h-0 min-w-0',
         overflowClass,
-        '[scrollbar-gutter:stable] [scrollbar-width:thin]',
+        hideScrollbar ? 'scrollbar-hidden' : '[scrollbar-gutter:stable] [scrollbar-width:thin]',
         className,
       ]
         .filter(Boolean)
@@ -134,6 +142,7 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
 WeeFadeScroll.propTypes = {
   axis: PropTypes.oneOf(['y', 'x']),
   fadePx: PropTypes.number,
+  hideScrollbar: PropTypes.bool,
   className: PropTypes.string,
   style: PropTypes.object,
   children: PropTypes.node,

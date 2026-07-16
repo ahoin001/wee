@@ -1,52 +1,78 @@
 # Shell spaces and channel grids (Wee)
 
-This document describes how **vertical shell spaces**, **channel grids**, and **saved environments** relate to each other.
+How **vertical shell spaces**, **channel grids**, **Media Hub**, and **saved looks** relate.
 
-## Three rail destinations
+## Default rail destinations
 
-The left **space rail** has three fixed destinations (canonical order, top → bottom):
+Canonical order (top → bottom), when Media Hub is **off**:
 
-1. **`workspaces`** — Second channel grid slot (swappable **channel layouts**).
-2. **`home`** — Primary channel grid (always present, default for everyone).
+1. **`home`** — Primary channel grid (casual / default mood strip).
+2. **`workspaces`** — Focus: second Home-like channel grid (work / alternate mood). Rail label uses the active secondary profile name, or **Focus**.
 3. **`gamehub`** — Game Hub (no channel grid; separate UI and state).
 
-**Home is the middle panel** in the vertical “space world” track. The second grid sits above Home; Game Hub sits below.
+When **`spaces.mediaHubEnabled`** is true, **`mediahub`** is inserted after Focus and before Game Hub:
+
+`home → workspaces → mediahub → gamehub`
+
+New installs start with Media Hub **off**. If a persisted `spaces.order` still includes `mediahub`, load migrates `mediaHubEnabled: true` once so existing users keep it. Toggle lives in Settings → Home Profiles → **Show Media Hub**. When disabled, `MediaHubSpace` is not mounted.
+
+Normalize via `normalizeShellSpaceOrder(order, { mediaHubEnabled })` in [`channelSpaces.js`](../src/utils/channelSpaces.js).
 
 ## Two live channel surfaces
-
-Only **two** channel grids exist in the shell:
 
 | Rail id        | Store / behavior |
 |----------------|------------------|
 | `home`         | `channels.dataBySpace.home` |
-| `workspaces`   | `channels.secondaryChannelProfiles[activeSecondaryChannelProfileId].channelSpace` |
+| `workspaces`   | `channels.secondaryChannelProfiles[activeId].channelSpace` (mirrored to `dataBySpace.workspaces`) |
 
-`channels.dataBySpace.workspaces` is a **mirror** of the active secondary profile’s `channelSpace` so persistence merges stay backward compatible.
+`resolveActiveChannelSpaceKey(activeSpaceId)` returns `'workspaces'` when Focus is active, otherwise `'home'` (including when Media Hub / Game Hub is active — channel nav is hidden there).
 
-## Secondary channel profiles
+Both boards use `PaginatedChannels` + the same board mutation engine (`boardMutation.js`: fixed punch holes, slots-first reorder, `relayoutBoard`).
 
-Users can save up to **3** named **channel layouts** for the second space (`MAX_SAVED_WORKSPACES` in `workspaceConstants.js`). Only **one** layout is active at a time (`channels.activeSecondaryChannelProfileId`). Switching the active layout changes which grid data the `workspaces` shell space reads and writes.
+## Naming (avoid confusion)
 
-- **UI:** Settings → Workspaces → **Second space channel layouts**.
-- **Rail label:** The `workspaces` rail button shows the **active layout name** (truncated) or “Second”.
+| Term | Meaning |
+|------|---------|
+| **Focus** / rail `workspaces` | Second live channel strip |
+| **Home Profiles** (settings tab historically “Workspaces”) | Saved full-environment snapshots (`workspaces.items`) |
+| **Secondary channel profiles** | Named layouts for the Focus strip (up to 3) |
+| **Presets** | Shareable look (+ optional Home/Focus boards) |
 
-## Saved “workspaces” (full environments)
+## Look: wallpaper per space / per page
 
-Separate from the above: **Settings → Workspaces → Workspace manager** saves **full app snapshots** (wallpaper, theme, ribbon, entire `channels` object, sounds, etc.) as `workspaces.items` with `activeWorkspaceId`. That feature is unchanged; it is **not** the same as secondary channel profiles, though both use the same `MAX_SAVED_WORKSPACES` cap for simplicity.
+Per-space appearance lives in `appearanceBySpace.{home\|workspaces\|mediahub\|gamehub}`.
+
+Home and Focus support:
+
+- Space-level wallpaper override, or
+- `wallpaperScope: 'perPage'` + `wallpaperByPage[pageIndex]`
+
+Resolve order: page URL → space override → global `wallpaper.current`. Page flips and space switches crossfade via `useSpaceWallpaperCrossfade` (page uses `CHANNEL_PAGE_FLIP_MS`, space uses shell duration).
+
+## Grid layout
+
+- Space-level `layout` `{ columns, rows, totalPages, peekPercent }` per board.
+- Optional `layoutByPage[pageIndex]` overrides columns/rows (“This page only” in Channels & layout). Strip CSS geometry stays space-level; denser page overrides are stored for settings/occupancy when they match strip density.
+
+## Board mutation
+
+See `src/utils/boardMutation.js`: punched holes are fixed geometry during drag; widgets and channels are first-class movable occupants; layout shrink/grow remaps content instead of silently truncating.
+
+## Presets
+
+Local save defaults to boards included (`visual+homeChannels`): `homeChannels` + `focusChannels` (including `slots[].hidden`), `appearanceBySpace` for home/Focus, and `ui.wallpaperMatchEnabled`. Community share stays visual-only.
 
 ## Space transitions and channel drag
 
-- `spaces.isTransitioning` is set **true** when `activeSpaceId` changes and cleared after the space-world slide duration (`App.jsx` + `spaceWorldDurationMs`).
-- Channel tile drag/reorder is disabled while `spaces.isTransitioning` or while page navigation is animating (`navigation.isAnimating`).
-
-## Game Hub
-
-Game Hub does not use `PaginatedChannels` or secondary profiles. Its state lives under `gameHub` and should not be affected by channel layout switching.
+- `spaces.isTransitioning` is set when `activeSpaceId` changes and cleared after the space-world slide (`App.jsx` + `spaceShellMotion`).
+- Channel drag is disabled while transitioning or while `navigation.isAnimating`.
 
 ## Key files
 
-- `src/utils/channelSpaces.js` — `DEFAULT_SHELL_SPACE_ORDER`, `normalizeShellSpaceOrder`, `getSecondaryChannelSpaceData`, migration helpers.
-- `src/utils/useConsolidatedAppStore.js` — `secondaryChannelProfiles`, `activeSecondaryChannelProfileId`, `patchSecondaryChannelSpace`, `spaces.isTransitioning`, new profile actions.
-- `src/App.jsx` — rail order, space-world transform, transition flag effect.
-- `src/components/spaces/SpaceRail.jsx` — rail order and secondary layout label.
-- `src/components/settings/SecondaryChannelProfilesCard.jsx` — manage secondary layouts.
+- `src/utils/channelSpaces.js` — shell order, Media Hub flag helpers, channel space data
+- `src/utils/boardMutation.js` — reorder / punch / relayout SSOT
+- `src/utils/useConsolidatedAppStore.js` — spaces + channel actions
+- `src/App.jsx` — space-world track; conditional Media Hub mount
+- `src/components/spaces/WeeGooeySpacePill.jsx` — rail
+- `src/components/settings/WorkspacesSettingsTab.jsx` — Home Profiles + Show Media Hub
+- `src/components/settings/ChannelsLayoutSettingsTab.jsx` — Home/Focus layout + page overrides

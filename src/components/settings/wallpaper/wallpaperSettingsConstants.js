@@ -38,6 +38,7 @@ export const OVERLAY_EFFECT_OPTIONS = [
 
 export const SPACE_WALLPAPER_OPTIONS = [
   { id: 'home', label: 'Home' },
+  { id: 'workspaces', label: 'Focus' },
   { id: 'gamehub', label: 'Game Hub' },
   { id: 'mediahub', label: 'Media Hub' },
 ];

@@ -377,8 +377,19 @@ export function syncSpaceDataFromLegacyMaps(spaceData) {
       existingSlotMeta[id]
     );
     const prev = prevSlots[i];
-    // Preserve non-channel kinds (widgets) when remapping from legacy channel maps.
-    if (prev && prev.kind && prev.kind !== SLOT_KIND_CHANNEL) {
+    const legacyHasChannelPayload =
+      fromLegacy?.kind === SLOT_KIND_CHANNEL &&
+      fromLegacy.channel &&
+      (fromLegacy.channel.media || fromLegacy.channel.path);
+
+    // Channel payloads from legacy maps win. Widgets are only preserved when the
+    // index has no channel payload (widgets never write configuredChannels).
+    if (
+      !legacyHasChannelPayload &&
+      prev &&
+      prev.kind &&
+      prev.kind !== SLOT_KIND_CHANNEL
+    ) {
       const meta = existingSlotMeta[id];
       slots.push(
         normalizeHomeGridSlot({

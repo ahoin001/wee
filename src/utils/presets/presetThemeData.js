@@ -28,6 +28,7 @@ export function toVisualOnlyPreset(preset) {
   const presetWithId = ensurePresetId(preset);
   const data = stripLegacyPresetKeys(presetWithId.data && typeof presetWithId.data === 'object' ? { ...presetWithId.data } : {});
   delete data.homeChannels;
+  delete data.focusChannels;
   return {
     ...presetWithId,
     captureScope: PRESET_SCOPE_VISUAL,
@@ -48,10 +49,15 @@ export function normalizePresetRecord(preset) {
     if (!homeChannels && data.channels?.dataBySpace?.home) {
       homeChannels = cloneSafe(data.channels.dataBySpace.home, null);
     }
-    if (!homeChannels) {
+    let focusChannels = data.focusChannels ?? null;
+    if (!focusChannels && data.channels?.dataBySpace?.workspaces) {
+      focusChannels = cloneSafe(data.channels.dataBySpace.workspaces, null);
+    }
+    if (!homeChannels && !focusChannels) {
       return toVisualOnlyPreset({ ...presetWithId, data });
     }
     delete data.homeChannels;
+    delete data.focusChannels;
     return {
       ...presetWithId,
       captureScope: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
@@ -59,7 +65,8 @@ export function normalizePresetRecord(preset) {
       shareable: false,
       data: {
         ...data,
-        homeChannels,
+        ...(homeChannels ? { homeChannels } : {}),
+        ...(focusChannels ? { focusChannels } : {}),
       },
     };
   }

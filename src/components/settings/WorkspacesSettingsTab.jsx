@@ -16,17 +16,21 @@ import { MAX_SAVED_WORKSPACES } from '../../utils/workspaces/workspaceConstants'
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import SecondaryChannelProfilesCard from './SecondaryChannelProfilesCard';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
+import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsWeeSection from './SettingsWeeSection';
 import './surfaceStyles.css';
 
 const WorkspacesSettingsTab = React.memo(() => {
-  const { workspaces, presets, setWorkspacesState } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      workspaces: state.workspaces,
-      presets: state.presets,
-      setWorkspacesState: state.actions.setWorkspacesState,
-    }))
-  );
+  const { workspaces, presets, mediaHubEnabled, setWorkspacesState, setSpacesState } =
+    useConsolidatedAppStore(
+      useShallow((state) => ({
+        workspaces: state.workspaces,
+        presets: state.presets,
+        mediaHubEnabled: state.spaces.mediaHubEnabled === true,
+        setWorkspacesState: state.actions.setWorkspacesState,
+        setSpacesState: state.actions.setSpacesState,
+      }))
+    );
 
   const normalized = useMemo(() => normalizeWorkspacesState(workspaces), [workspaces]);
   const availablePresets = useMemo(
@@ -175,6 +179,15 @@ const WorkspacesSettingsTab = React.memo(() => {
         title="Home Profiles"
         subtitle="Create and switch Home mode setups manually"
       />
+
+      <SettingsWeeSection eyebrow="Shell">
+        <SettingsToggleFieldCard
+          title="Show Media Hub"
+          desc="Add Media Hub to the left space rail between Focus and Game Hub. Turn off to keep the shell leaner."
+          checked={mediaHubEnabled}
+          onChange={(checked) => setSpacesState({ mediaHubEnabled: checked })}
+        />
+      </SettingsWeeSection>
 
       <SecondaryChannelProfilesCard />
 

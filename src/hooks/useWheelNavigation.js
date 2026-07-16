@@ -37,8 +37,8 @@ function elementCanScrollVertically(el, deltaY) {
   return false;
 }
 
-function getNextSpaceId(order, currentId, delta) {
-  const normalized = normalizeShellSpaceOrder(order);
+function getNextSpaceId(order, currentId, delta, mediaHubEnabled) {
+  const normalized = normalizeShellSpaceOrder(order, { mediaHubEnabled });
   if (!normalized.length) return currentId;
   const currentIndex = Math.max(0, normalized.indexOf(currentId));
   const nextIndex = (currentIndex + delta + normalized.length) % normalized.length;
@@ -70,10 +70,10 @@ export default function useWheelNavigation() {
       const absY = Math.abs(event.deltaY);
       const activeSpaceId = spaces?.activeSpaceId || 'home';
 
-      // Horizontal tilt / side-scroll → home pages
+      // Horizontal tilt / side-scroll → Home / Focus channel pages
       if (
         wheelHomePageTilt &&
-        activeSpaceId === 'home' &&
+        (activeSpaceId === 'home' || activeSpaceId === 'workspaces') &&
         absX >= HORIZONTAL_THRESHOLD &&
         absX > absY
       ) {
@@ -131,7 +131,12 @@ export default function useWheelNavigation() {
       }
 
       const delta = event.deltaY > 0 ? 1 : -1;
-      const nextId = getNextSpaceId(spaces?.order, activeSpaceId, delta);
+      const nextId = getNextSpaceId(
+        spaces?.order,
+        activeSpaceId,
+        delta,
+        spaces?.mediaHubEnabled === true
+      );
       if (nextId === activeSpaceId) return;
 
       lastSpaceNavAt.current = now;

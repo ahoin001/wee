@@ -258,10 +258,15 @@ const selectPersistedFloatingWidgets = (floatingWidgets = {}) => {
   return next;
 };
 
-/** Strip rail animation flags; keep active space + order. */
+/** Strip rail animation flags; keep active space, order, and mediaHubEnabled. */
 const selectPersistedSpaces = (spaces = {}) => {
   if (!isPlainObject(spaces)) return {};
-  return omitKeys(spaces, ['isTransitioning', 'railVisible']);
+  const next = omitKeys(spaces, ['isTransitioning', 'railVisible']);
+  if (typeof next.mediaHubEnabled !== 'boolean') {
+    next.mediaHubEnabled =
+      Array.isArray(next.order) && next.order.includes('mediahub');
+  }
+  return next;
 };
 
 /**

@@ -3,6 +3,8 @@
  * Defaults match classic Wii 4×3×3; user layout lives on channel space `layout`.
  */
 
+import { channelIdAtIndex as channelIdAtIndexFromReorder } from './channelReorder';
+
 export const WII_LAYOUT_PRESET = Object.freeze({
   columns: 4,
   rows: 3,
@@ -91,6 +93,9 @@ export function normalizeLayoutConfig(raw = {}) {
  * Resolve full layout + derived metrics from channel space data.
  * Prefer `layout` object; fall back to legacy gridColumns/gridRows/totalChannels/nav.totalPages.
  *
+ * Space-level layout is the continuous-strip geometry SSOT (slot indexing, CSS strip).
+ * Per-page column/row overrides live in `layoutByPage` — see resolveLayoutForPage.
+ *
  * @param {object} [channelData]
  * @returns {{
  *   columns: number,
@@ -133,6 +138,160 @@ export function resolveLayout(channelData = {}) {
   };
 }
 
+/**
+ * Normalize `layoutByPage` map. Keys are page indices; values may override columns/rows only.
+ * totalPages / peekPercent always come from space-level layout.
+ *
+ * @param {unknown} raw
+ * @param {{ columns: number, rows: number, totalPages: number }} spaceLayout
+ * @returns {Record<string, { columns: number, rows: number }>}
+ */
+export function normalizeLayoutByPage(raw, spaceLayout) {
+  const strip = spaceLayout && typeof spaceLayout === 'object' ? spaceLayout : WII_LAYOUT_PRESET;
+  const totalPages = Math.max(1, strip.totalPages | 0);
+  const incoming = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const out = {};
+  for (const [key, value] of Object.entries(incoming)) {
+    const pageIndex = Number(key);
+    if (!Number.isInteger(pageIndex) || pageIndex < 0 || pageIndex >= totalPages) continue;
+    if (!value || typeof value !== 'object') continue;
+    const columns = clampInt(
+      value.columns,
+      CHANNEL_LAYOUT_LIMITS.columns.min,
+      CHANNEL_LAYOUT_LIMITS.columns.max,
+      strip.columns ?? WII_LAYOUT_PRESET.columns
+    );
+    const rows = clampInt(
+      value.rows,
+      CHANNEL_LAYOUT_LIMITS.rows.min,
+      CHANNEL_LAYOUT_LIMITS.rows.max,
+      strip.rows ?? WII_LAYOUT_PRESET.rows
+    );
+    // Drop no-ops that match the strip exactly.
+    if (columns === strip.columns && rows === strip.rows) continue;
+    out[String(pageIndex)] = { columns, rows };
+  }
+  return out;
+}
+
+/**
+ * Effective columns/rows for a page (layoutByPage override → space layout fallback).
+ *
+ * v1 strip note: the continuous Wii strip CSS and absolute slot indexing always use
+ * space-level `resolveLayout` (max/strip geometry). `layoutByPage` drives settings
+ * preview, "this page only" edits, and page-scoped occupancy/placement probes via
+ * `pageColumns`/`pageRows` on resolveGridConfig — it does not reshape per-page strip
+ * widths (different column counts per page would break the continuous strip).
+ *
+ * @param {object} [channelData]
+ * @param {number} [pageIndex]
+ */
+export function resolveLayoutForPage(channelData = {}, pageIndex = 0) {
+  const strip = resolveLayout(channelData);
+  const page = clampPageIndex(pageIndex, strip.totalPages);
+  const byPage = normalizeLayoutByPage(channelData?.layoutByPage, strip);
+  const override = byPage[String(page)];
+  const columns = override?.columns ?? strip.columns;
+  const rows = override?.rows ?? strip.rows;
+  const channelsPerPage = getChannelsPerPage(columns, rows);
+  return {
+    columns,
+    rows,
+    totalPages: strip.totalPages,
+    peekPercent: strip.peekPercent,
+    channelsPerPage,
+    // Slot indexing / strip length stay on space geometry.
+    stripChannelsPerPage: strip.channelsPerPage,
+    totalChannels: strip.totalChannels,
+    pageAdvancePercent: strip.pageAdvancePercent,
+    pageIndex: page,
+    hasPageOverride: Boolean(override),
+  };
+}
+
+/**
+ * Effective layout for the page that owns an absolute slot index (strip-indexed).
+ * @param {object} [channelData]
+ * @param {number} absoluteIndex
+ */
+export function resolveLayoutForSlotIndex(channelData = {}, absoluteIndex = 0) {
+  const strip = resolveLayout(channelData);
+  const per = Math.max(1, strip.channelsPerPage);
+  const pageIndex = Math.floor(Math.max(0, absoluteIndex | 0) / per);
+  return resolveLayoutForPage(channelData, pageIndex);
+}
+
+/**
+ * Apply a columns/rows override for one page. Expands strip geometry when the page
+ * needs more columns/rows than the space layout; snapshots other pages at the prior
+ * strip size so they keep their previous effective grid.
+ *
+ * @param {object} channelData
+ * @param {number} pageIndex
+ * @param {{ columns?: number, rows?: number }} partial
+ * @returns {{ dataPatch: object, stripExpand: { columns: number, rows: number } | null }}
+ */
+export function buildPageLayoutOverridePatch(channelData, pageIndex, partial = {}) {
+  const strip = resolveLayout(channelData);
+  const page = clampPageIndex(pageIndex, strip.totalPages);
+  const existing = normalizeLayoutByPage(channelData?.layoutByPage, strip);
+  const prevPage = existing[String(page)] || { columns: strip.columns, rows: strip.rows };
+  const nextPage = {
+    columns: clampInt(
+      partial.columns ?? prevPage.columns,
+      CHANNEL_LAYOUT_LIMITS.columns.min,
+      CHANNEL_LAYOUT_LIMITS.columns.max,
+      prevPage.columns
+    ),
+    rows: clampInt(
+      partial.rows ?? prevPage.rows,
+      CHANNEL_LAYOUT_LIMITS.rows.min,
+      CHANNEL_LAYOUT_LIMITS.rows.max,
+      prevPage.rows
+    ),
+  };
+
+  const needsExpand =
+    nextPage.columns > strip.columns || nextPage.rows > strip.rows;
+
+  /** @type {Record<string, { columns: number, rows: number }>} */
+  const layoutByPage = { ...existing };
+
+  if (needsExpand) {
+    // Freeze other pages at the old strip size before growing the board.
+    for (let p = 0; p < strip.totalPages; p += 1) {
+      const key = String(p);
+      if (p === page) continue;
+      if (!layoutByPage[key]) {
+        layoutByPage[key] = { columns: strip.columns, rows: strip.rows };
+      }
+    }
+  }
+
+  if (nextPage.columns === strip.columns && nextPage.rows === strip.rows && !needsExpand) {
+    delete layoutByPage[String(page)];
+  } else {
+    layoutByPage[String(page)] = nextPage;
+  }
+
+  const stripExpand = needsExpand
+    ? {
+        columns: Math.max(strip.columns, nextPage.columns),
+        rows: Math.max(strip.rows, nextPage.rows),
+      }
+    : null;
+
+  return {
+    dataPatch: {
+      layoutByPage: normalizeLayoutByPage(layoutByPage, {
+        ...strip,
+        ...(stripExpand || {}),
+      }),
+    },
+    stripExpand,
+  };
+}
+
 export const resolveNavigation = (rawNavigation = {}) => ({
   ...DEFAULT_CHANNEL_NAVIGATION,
   ...rawNavigation,
@@ -140,9 +299,13 @@ export const resolveNavigation = (rawNavigation = {}) => ({
 
 /**
  * Grid config for strip / reorder / ops — reads store layout (unlocked).
+ * Strip fields (`columns`/`rows`/…) are space-level. `pageColumns`/`pageRows` are the
+ * effective geometry for `navigation.currentPage` (layoutByPage → space fallback).
  */
-export const resolveGridConfig = (channelData, _navigation) => {
+export const resolveGridConfig = (channelData, navigation) => {
   const layout = resolveLayout(channelData);
+  const pageIndex = navigation?.currentPage ?? 0;
+  const pageLayout = resolveLayoutForPage(channelData, pageIndex);
   return {
     columns: layout.columns,
     rows: layout.rows,
@@ -150,6 +313,10 @@ export const resolveGridConfig = (channelData, _navigation) => {
     channelsPerPage: layout.channelsPerPage,
     totalPages: layout.totalPages,
     peekPercent: layout.peekPercent,
+    pageColumns: pageLayout.columns,
+    pageRows: pageLayout.rows,
+    pageChannelsPerPage: pageLayout.channelsPerPage,
+    pageHasLayoutOverride: pageLayout.hasPageOverride,
   };
 };
 
@@ -207,8 +374,9 @@ export const getPageBounds = (pageIndex, channelsPerPage, totalChannels) => {
   return { startIndex, endIndex };
 };
 
+/** Canonical id helper — defined in channelReorder.js */
 export function channelIdAtIndex(index) {
-  return `channel-${index}`;
+  return channelIdAtIndexFromReorder(index);
 }
 
 /**
@@ -245,6 +413,7 @@ export function migrateChannelSlotMaps(
 
 /**
  * Apply a new layout to space data maps (truncate/pad keys).
+ * Global geometry changes clear `layoutByPage` (board was fully remapped).
  */
 export function applyLayoutChangeToSpaceData(channelData, nextLayoutPartial) {
   const prev = resolveLayout(channelData);
@@ -260,11 +429,16 @@ export function applyLayoutChangeToSpaceData(channelData, nextLayoutPartial) {
     nextTotal
   );
   const nav = channelData.navigation || {};
+  const geometryChanged =
+    nextLayout.columns !== prev.columns ||
+    nextLayout.rows !== prev.rows ||
+    nextLayout.totalPages !== prev.totalPages;
   return {
     layout: nextLayout,
     gridColumns: nextLayout.columns,
     gridRows: nextLayout.rows,
     totalChannels: nextTotal,
+    ...(geometryChanged ? { layoutByPage: {} } : {}),
     ...migrated,
     navigation: {
       ...nav,

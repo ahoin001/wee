@@ -11,13 +11,18 @@ import {
 } from '../design/runtimeColorStrings.js';
 import { DEFAULT_AMBIENT_COLOR } from './theme/extractImagePalette.js';
 import {
-  applyLayoutChangeToSpaceData,
   channelIdAtIndex,
   resolveGridConfig,
   resolveLayout,
   resolveNavigation,
 } from './channelLayoutSystem';
-import { applyChannelSlotReorder } from './channelReorder';
+import {
+  applyPageLayoutOverrideToSpaceData,
+  applyRelayoutToSpaceData,
+  applySlotsToSpaceData,
+  reorderSlots,
+  setSlotHidden,
+} from './boardMutation';
 import { DEFAULT_MOTION_FEEDBACK, mergeMotionFeedback } from './motionFeedbackDefaults';
 import {
   createDefaultChannelSpaceData,
@@ -28,6 +33,7 @@ import {
   normalizeShellSpaceOrder,
 } from './channelSpaces';
 import {
+  migrateSpaceDataToSlots,
   placeHomeWidgetInSpaceData,
   removeHomeWidgetFromSpaceData,
   setHomeSlotSpanInSpaceData,
@@ -580,6 +586,11 @@ useConsolidatedAppStore = create(
           session: null,
           /** @type {Array<object>} Full SMTC snapshot for per-tile app filters */
           sessions: [],
+          /**
+           * Transient SMTC art diagnostics for Edit Home Now Playing debug panel.
+           * Not persisted.
+           */
+          artDebug: null,
         },
 
         /**
@@ -758,10 +769,12 @@ useConsolidatedAppStore = create(
         // Top-level shell spaces
         spaces: {
           activeSpaceId: 'home',
-          /** Last non-hub panel (Home) — used to restore on launch (never cold-start on hubs). */
+          /** Last non-hub panel (Home / Focus) — used to restore on launch (never cold-start on hubs). */
           lastChannelSpaceId: 'home',
-          /** Vertical rail: Home → Media Hub → Game Hub. */
-          order: ['home', 'mediahub', 'gamehub'],
+          /** Vertical rail: Home → Focus → Game Hub (+ Media Hub when enabled). */
+          order: ['home', 'workspaces', 'gamehub'],
+          /** Opt-in Media Hub panel on the shell rail / space-world track. */
+          mediaHubEnabled: false,
           /** True while the space-world slide is animating — channel drag should be disabled. */
           isTransitioning: false,
           railEnabled: true,
@@ -1034,54 +1047,30 @@ useConsolidatedAppStore = create(
           }),
 
           /**
-           * Move slot `fromIndex` → `toIndex` (insert semantics). Updates
-           * `configuredChannels` and `channelConfigs` in one atomic write, then syncs slots.
+           * Move slot `fromIndex` → `toIndex` (fixed-hole insert). Mutates `slots[]` SSOT.
            */
           reorderChannelSlotsForSpace: (spaceKey, fromIndex, toIndex) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
-            const channelsData =
+            const raw =
               key === 'workspaces'
                 ? getSecondaryChannelSpaceData(state.channels)
                 : state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
-            const navigation = resolveNavigation(channelsData.navigation);
-            const grid = resolveGridConfig(channelsData, navigation);
-            const n = grid.totalChannels;
-            if (fromIndex === toIndex || n <= 0) {
-              return state;
-            }
-            if (fromIndex < 0 || toIndex < 0 || fromIndex >= n || toIndex >= n) {
-              return state;
-            }
-            const { configuredChannels, channelConfigs } = applyChannelSlotReorder({
+            const channelsData = migrateSpaceDataToSlots(raw);
+            const layout = resolveLayout(channelsData);
+            const { slots: nextSlots, ok } = reorderSlots({
+              slots: channelsData.slots,
+              layout,
               fromIndex,
               toIndex,
-              totalChannels: n,
-              configuredChannels: channelsData.configuredChannels || {},
-              channelConfigs: channelsData.channelConfigs || {},
             });
-            // Also permute slotMeta with the same indices
-            const metaIn = channelsData.slotMeta || {};
-            const metaArr = [];
-            for (let i = 0; i < n; i++) {
-              metaArr.push(metaIn[channelIdAtIndex(i)]);
+            if (!ok && fromIndex !== toIndex) {
+              return state;
             }
-            const [movedMeta] = metaArr.splice(fromIndex, 1);
-            metaArr.splice(toIndex, 0, movedMeta);
-            const slotMeta = {};
-            for (let i = 0; i < n; i++) {
-              const m = metaArr[i];
-              if (m != null) slotMeta[channelIdAtIndex(i)] = m;
-            }
-            const apply = (prev) => ({
-              ...prev,
-              configuredChannels,
-              channelConfigs,
-              slotMeta,
-            });
+            const next = applySlotsToSpaceData(channelsData, nextSlots, layout);
             if (key === 'workspaces') {
-              return { channels: patchSecondaryChannelSpace(state, apply) };
+              return { channels: patchSecondaryChannelSpace(state, () => next) };
             }
-            return { channels: patchHomeChannelSpace(state, key, apply) };
+            return { channels: patchHomeChannelSpace(state, key, () => next) };
           }),
 
           setChannelNavigationForSpace: (spaceKey, updates) => set((state) => {
@@ -1110,19 +1099,48 @@ useConsolidatedAppStore = create(
           }),
 
           /**
-           * Apply geometry change with slot-map migration (truncate/pad keys).
+           * Apply geometry change with content-preserving remapping (boardMutation.relayoutBoard).
+           * Pass `{ pageOnly: true, pageIndex }` to write `layoutByPage[page]` for columns/rows
+           * instead of the space-level strip layout (totalPages/peekPercent always space-level).
            * @param {string} spaceKey
            * @param {{ columns?: number, rows?: number, totalPages?: number, peekPercent?: number }} layoutPartial
+           * @param {{ pageOnly?: boolean, pageIndex?: number }} [options]
            */
-          setChannelLayoutForSpace: (spaceKey, layoutPartial) => set((state) => {
+          setChannelLayoutForSpace: (spaceKey, layoutPartial, options = {}) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
-            const channelsData =
+            const raw =
               key === 'workspaces'
                 ? getSecondaryChannelSpaceData(state.channels)
                 : state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
-            const next = syncSpaceDataFromLegacyMaps(
-              applyLayoutChangeToSpaceData(channelsData, layoutPartial || {})
-            );
+            const channelsData = migrateSpaceDataToSlots(raw);
+            const partial = layoutPartial || {};
+            const pageOnly = Boolean(options.pageOnly);
+            const pageIndex = options.pageIndex;
+
+            let next;
+            if (pageOnly && pageIndex != null && (partial.columns != null || partial.rows != null)) {
+              next = applyPageLayoutOverrideToSpaceData(channelsData, pageIndex, {
+                columns: partial.columns,
+                rows: partial.rows,
+              });
+              // Space-level-only fields still go through relayout when present.
+              if (partial.totalPages != null || partial.peekPercent != null) {
+                const { _relayoutOverflow, ...relayouted } = applyRelayoutToSpaceData(next, {
+                  ...(partial.totalPages != null ? { totalPages: partial.totalPages } : {}),
+                  ...(partial.peekPercent != null ? { peekPercent: partial.peekPercent } : {}),
+                });
+                void _relayoutOverflow;
+                next = relayouted;
+              }
+            } else {
+              const { _relayoutOverflow, ...relayouted } = applyRelayoutToSpaceData(
+                channelsData,
+                partial
+              );
+              void _relayoutOverflow;
+              next = relayouted;
+            }
+
             if (key === 'workspaces') {
               return {
                 channels: patchSecondaryChannelSpace(state, () => next),
@@ -1140,36 +1158,33 @@ useConsolidatedAppStore = create(
           }),
 
           /**
-           * Punch-hole / show slot at absolute index. Slot meta stays fixed (does not reorder with tiles).
+           * Punch-hole / show slot at absolute index. Holes are fixed geometry during reorder.
            */
           setChannelSlotHiddenForSpace: (spaceKey, channelIndex, hidden) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
             const index = channelIndex | 0;
             if (index < 0) return state;
-            const id = channelIdAtIndex(index);
-            const patchMeta = (channelsData) => {
-              const prevMeta =
-                channelsData.slotMeta && typeof channelsData.slotMeta === 'object'
-                  ? { ...channelsData.slotMeta }
-                  : {};
-              const prevSlot =
-                prevMeta[id] && typeof prevMeta[id] === 'object' ? { ...prevMeta[id] } : {};
-              if (hidden) {
-                prevMeta[id] = { ...prevSlot, hidden: true };
-              } else {
-                delete prevSlot.hidden;
-                if (Object.keys(prevSlot).length === 0) delete prevMeta[id];
-                else prevMeta[id] = prevSlot;
-              }
-              return { ...channelsData, slotMeta: prevMeta };
-            };
+            const raw =
+              key === 'workspaces'
+                ? getSecondaryChannelSpaceData(state.channels)
+                : state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
+            const channelsData = migrateSpaceDataToSlots(raw);
+            const layout = resolveLayout(channelsData);
+            const { slots: nextSlots, ok } = setSlotHidden({
+              slots: channelsData.slots,
+              index,
+              hidden: Boolean(hidden),
+              layout,
+            });
+            if (!ok) return state;
+            const next = applySlotsToSpaceData(channelsData, nextSlots, layout);
             if (key === 'workspaces') {
               return {
-                channels: patchSecondaryChannelSpace(state, patchMeta),
+                channels: patchSecondaryChannelSpace(state, () => next),
               };
             }
             return {
-              channels: patchHomeChannelSpace(state, key, patchMeta),
+              channels: patchHomeChannelSpace(state, key, () => next),
             };
           }),
 
@@ -1563,11 +1578,25 @@ useConsolidatedAppStore = create(
               // Atomic space switch gate: avoid one-frame false-ready hub entrances.
               nextSpaces.isTransitioning = true;
             }
+            // Keep rail order in sync when Media Hub is toggled or order is edited.
+            if (updates.mediaHubEnabled !== undefined || updates.order !== undefined) {
+              const mediaHubEnabled = nextSpaces.mediaHubEnabled === true;
+              nextSpaces.mediaHubEnabled = mediaHubEnabled;
+              nextSpaces.order = normalizeShellSpaceOrder(nextSpaces.order, { mediaHubEnabled });
+              // Leaving Media Hub while it is removed from the rail.
+              if (!nextSpaces.order.includes(nextSpaces.activeSpaceId)) {
+                nextSpaces.activeSpaceId =
+                  nextSpaces.lastChannelSpaceId === 'workspaces' ? 'workspaces' : 'home';
+                if (updates.isTransitioning === undefined) {
+                  nextSpaces.isTransitioning = true;
+                }
+              }
+            }
             // Sync last Wii board when shell space changes — not when only `lastChannelSpaceId` is updated
             // (e.g. Channels & layout tab previewing the other board while staying on Home).
             if (
               updates.activeSpaceId !== undefined &&
-              nextSpaces.activeSpaceId === 'home'
+              (nextSpaces.activeSpaceId === 'home' || nextSpaces.activeSpaceId === 'workspaces')
             ) {
               nextSpaces.lastChannelSpaceId = nextSpaces.activeSpaceId;
             }
@@ -1575,9 +1604,9 @@ useConsolidatedAppStore = create(
             const prevId = state.spaces.activeSpaceId;
             const nextId = nextSpaces.activeSpaceId;
 
-            if (updates.activeSpaceId !== undefined && updates.activeSpaceId !== prevId) {
+            if (nextId !== prevId) {
               const liveCapture = captureSpaceAppearanceFromState(state);
-              let appearanceBySpace = {
+              const appearanceBySpace = {
                 ...state.appearanceBySpace,
                 [prevId]: liveCapture,
               };
@@ -1815,12 +1844,20 @@ useConsolidatedAppStore = create(
               }
               if (slices.workspaces) next.workspaces = { ...state.workspaces, ...slices.workspaces };
               if (slices.spaces) {
-                next.spaces = {
+                const mergedSpaces = {
                   ...state.spaces,
                   ...slices.spaces,
-                  order: normalizeShellSpaceOrder(
-                    slices.spaces.order ?? state.spaces.order
-                  ),
+                };
+                // Migrate once: legacy orders that still include mediahub imply enabled.
+                const mediaHubEnabled =
+                  typeof mergedSpaces.mediaHubEnabled === 'boolean'
+                    ? mergedSpaces.mediaHubEnabled
+                    : Array.isArray(mergedSpaces.order) &&
+                      mergedSpaces.order.includes('mediahub');
+                next.spaces = {
+                  ...mergedSpaces,
+                  mediaHubEnabled,
+                  order: normalizeShellSpaceOrder(mergedSpaces.order, { mediaHubEnabled }),
                 };
               }
               if (slices.gameHub) {
@@ -2328,7 +2365,8 @@ useConsolidatedAppStore = create(
             spaces: {
               activeSpaceId: 'home',
               lastChannelSpaceId: 'home',
-              order: ['home', 'mediahub', 'gamehub'],
+              order: ['home', 'workspaces', 'gamehub'],
+              mediaHubEnabled: false,
               isTransitioning: false,
               railEnabled: true,
               autoHideRail: true,

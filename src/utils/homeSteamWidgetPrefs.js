@@ -9,7 +9,6 @@ export const HOME_STEAM_TILE_SIZES = Object.freeze({
     label: 'Dense',
     columns: 5,
     tileMaxPx: 56,
-    gapClass: 'gap-1',
     capacity: 30,
     horizontalRows: 2,
   }),
@@ -18,7 +17,6 @@ export const HOME_STEAM_TILE_SIZES = Object.freeze({
     label: 'Medium',
     columns: 4,
     tileMaxPx: 68,
-    gapClass: 'gap-1',
     capacity: 24,
     horizontalRows: 2,
   }),
@@ -27,7 +25,6 @@ export const HOME_STEAM_TILE_SIZES = Object.freeze({
     label: 'Large',
     columns: 3,
     tileMaxPx: 84,
-    gapClass: 'gap-1.5',
     capacity: 18,
     horizontalRows: 1,
   }),
@@ -39,9 +36,17 @@ export const HOME_STEAM_SCROLL_AXES = Object.freeze({
   horizontal: 'horizontal',
 });
 
+/** Spacing between cover tiles in the Steam shelf grid. */
+export const HOME_STEAM_GUTTERS = Object.freeze({
+  tight: Object.freeze({ id: 'tight', label: 'Tight', gapClass: 'gap-0.5' }),
+  default: Object.freeze({ id: 'default', label: 'Default', gapClass: 'gap-1' }),
+  roomy: Object.freeze({ id: 'roomy', label: 'Roomy', gapClass: 'gap-2' }),
+});
+
 export const DEFAULT_HOME_STEAM_WIDGET = Object.freeze({
   tileSize: 'M',
   scrollAxis: 'auto',
+  gutter: 'default',
   showPlaytime: true,
   showName: false,
 });
@@ -51,6 +56,7 @@ export const DEFAULT_HOME_STEAM_WIDGET = Object.freeze({
  * @returns {{
  *   tileSize: 'S' | 'M' | 'L',
  *   scrollAxis: 'auto' | 'vertical' | 'horizontal',
+ *   gutter: 'tight' | 'default' | 'roomy',
  *   showPlaytime: boolean,
  *   showName: boolean,
  * }}
@@ -61,9 +67,11 @@ export function normalizeHomeSteamWidget(raw) {
   const scrollAxis = HOME_STEAM_SCROLL_AXES[src.scrollAxis]
     ? src.scrollAxis
     : DEFAULT_HOME_STEAM_WIDGET.scrollAxis;
+  const gutter = HOME_STEAM_GUTTERS[src.gutter] ? src.gutter : DEFAULT_HOME_STEAM_WIDGET.gutter;
   return {
     tileSize,
     scrollAxis,
+    gutter,
     showPlaytime: src.showPlaytime !== false,
     showName: Boolean(src.showName),
   };
@@ -74,6 +82,13 @@ export function normalizeHomeSteamWidget(raw) {
  */
 export function getHomeSteamTileSizeConfig(tileSizeId) {
   return HOME_STEAM_TILE_SIZES[tileSizeId] || HOME_STEAM_TILE_SIZES.M;
+}
+
+/**
+ * @param {'tight'|'default'|'roomy'} gutterId
+ */
+export function getHomeSteamGutterConfig(gutterId) {
+  return HOME_STEAM_GUTTERS[gutterId] || HOME_STEAM_GUTTERS.default;
 }
 
 /**

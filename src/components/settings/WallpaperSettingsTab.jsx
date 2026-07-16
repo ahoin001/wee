@@ -3,11 +3,16 @@ import { useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { useWeeMotion } from '../../design/weeMotion';
 import Text from '../../ui/Text';
+import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { captureSpaceAppearanceFromState } from '../../utils/appearance/spaceAppearance';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
+import { getSecondaryChannelSpaceData } from '../../utils/channelSpaces';
+import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
+import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import { WeeSpaceRailPillButton } from '../../ui/wee';
+import SettingsWeeSection from './SettingsWeeSection';
+import { WeeHelpLinkButton, WeeModalFieldCard, WeeSpaceRailPillButton } from '../../ui/wee';
 import WallpaperLibrarySection from './wallpaper/WallpaperLibrarySection';
 import SpaceWallpaperAppearanceSection from './wallpaper/SpaceWallpaperAppearanceSection';
 import WallpaperCyclingSection from './wallpaper/WallpaperCyclingSection';
@@ -22,21 +27,28 @@ const selectFile = window.api?.selectWallpaperFile;
 
 function useWallpaperSettingsController() {
   // Use consolidated store directly
-  const { wallpaper, overlay, appearanceBySpace, activeSpaceId } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      wallpaper: state.wallpaper,
-      overlay: state.overlay,
-      appearanceBySpace: state.appearanceBySpace,
-      activeSpaceId: state.spaces.activeSpaceId,
-    }))
-  );
-  const { setWallpaperState, setOverlayState, setAppearanceBySpaceState } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      setWallpaperState: state.actions.setWallpaperState,
-      setOverlayState: state.actions.setOverlayState,
-      setAppearanceBySpaceState: state.actions.setAppearanceBySpaceState,
-    }))
-  );
+  const { wallpaper, overlay, appearanceBySpace, activeSpaceId, channels, wallpaperMatchEnabled, ribbon } =
+    useConsolidatedAppStore(
+      useShallow((state) => ({
+        wallpaper: state.wallpaper,
+        overlay: state.overlay,
+        appearanceBySpace: state.appearanceBySpace,
+        activeSpaceId: state.spaces.activeSpaceId,
+        channels: state.channels,
+        wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled ?? false,
+        ribbon: state.ribbon,
+      }))
+    );
+  const { setWallpaperState, setOverlayState, setAppearanceBySpaceState, setUIState, setRibbonState } =
+    useConsolidatedAppStore(
+      useShallow((state) => ({
+        setWallpaperState: state.actions.setWallpaperState,
+        setOverlayState: state.actions.setOverlayState,
+        setAppearanceBySpaceState: state.actions.setAppearanceBySpaceState,
+        setUIState: state.actions.setUIState,
+        setRibbonState: state.actions.setRibbonState,
+      }))
+    );
   
   // Local state for wallpaper management
   const [wallpapers, setWallpapers] = useState([]);
@@ -77,13 +89,32 @@ function useWallpaperSettingsController() {
   const selectedSpaceWallpaperEntry = selectedSpaceWallpaperUrl
     ? wallpapers.find((w) => w?.url === selectedSpaceWallpaperUrl) || null
     : null;
-  /** Home is the global desktop wallpaper; do not read stale `appearanceBySpace.home` overrides for active URL. */
-  const effectiveActiveWallpaperUrl =
-    selectedSpaceId === 'home'
+  const selectedWallpaperScope =
+    selectedSpaceAppearance.wallpaperScope === 'perPage' ? 'perPage' : 'space';
+  const supportsPerPageWallpaper =
+    selectedSpaceId === 'home' || selectedSpaceId === 'workspaces';
+  const selectedBoardCurrentPage =
+    selectedSpaceId === 'workspaces'
+      ? getSecondaryChannelSpaceData(channels)?.navigation?.currentPage ?? 0
+      : channels?.dataBySpace?.home?.navigation?.currentPage ?? 0;
+  const selectedPageWallpaperUrl = (() => {
+    const byPage = selectedSpaceAppearance.wallpaperByPage;
+    if (!byPage || typeof byPage !== 'object') return null;
+    const url = byPage[selectedBoardCurrentPage] ?? byPage[String(selectedBoardCurrentPage)];
+    return typeof url === 'string' && url.length > 0 ? url : null;
+  })();
+  /** Resolve preview URL: per-page → space override → global (Home never uses space override). */
+  const effectiveActiveWallpaperUrl = (() => {
+    if (selectedWallpaperScope === 'perPage' && selectedPageWallpaperUrl) {
+      return selectedPageWallpaperUrl;
+    }
+    if (selectedSpaceId === 'home') {
+      return wallpaperEntryUrlKey(wallpaper.current) || null;
+    }
+    return selectedSpaceUsesGlobalWallpaper
       ? wallpaperEntryUrlKey(wallpaper.current) || null
-      : selectedSpaceUsesGlobalWallpaper
-        ? wallpaperEntryUrlKey(wallpaper.current) || null
-        : selectedSpaceWallpaperUrl;
+      : selectedSpaceWallpaperUrl;
+  })();
   const selectedSpaceLabel =
     SPACE_WALLPAPER_OPTIONS.find((space) => space.id === selectedSpaceId)?.label || 'Space';
   const selectedSpaceBrightness =
@@ -173,6 +204,8 @@ function useWallpaperSettingsController() {
     updateSpaceWallpaperAppearance(selectedSpaceId, {
       useGlobalWallpaper: true,
       spaceWallpaperUrl: null,
+      wallpaperScope: 'space',
+      wallpaperByPage: {},
       spaceBlur: 0,
       spaceBrightness: resetBrightness,
       spaceSaturate: resetSaturate,
@@ -191,6 +224,69 @@ function useWallpaperSettingsController() {
       blur: 0,
     });
   }, [selectedSpaceId, setWallpaperState, updateSpaceWallpaperAppearance]);
+
+  const handleWallpaperMatchChange = useCallback(
+    async (enabled) => {
+      // Turning match off leaves last painted ribbon colors; only clears ambient extract cache.
+      setUIState({
+        wallpaperMatchEnabled: enabled,
+        ...(enabled
+          ? {
+              ambientColor: {
+                source: 'wallpaper',
+                seedHex: null,
+                palette: null,
+                cachedForUrl: null,
+                seeds: [],
+              },
+            }
+          : {}),
+      });
+      if (enabled && !(ribbon?.dynamicRibbonColorEnabled)) {
+        setRibbonState({ dynamicRibbonColorEnabled: true });
+      }
+      await saveUnifiedSettingsSnapshot({
+        ui: { wallpaperMatchEnabled: enabled },
+        ...(enabled && !(ribbon?.dynamicRibbonColorEnabled)
+          ? { ribbon: { dynamicRibbonColorEnabled: true } }
+          : {}),
+      });
+    },
+    [ribbon?.dynamicRibbonColorEnabled, setRibbonState, setUIState]
+  );
+
+  const handleSelectedWallpaperScopeChange = useCallback(
+    (nextScope) => {
+      const scope = nextScope === 'perPage' ? 'perPage' : 'space';
+      updateSpaceWallpaperAppearance(selectedSpaceId, { wallpaperScope: scope });
+    },
+    [selectedSpaceId, updateSpaceWallpaperAppearance]
+  );
+
+  const handleApplyWallpaperToCurrentPage = useCallback(
+    (url) => {
+      const page = selectedBoardCurrentPage;
+      const prev = selectedSpaceAppearance.wallpaperByPage;
+      const nextByPage = {
+        ...(prev && typeof prev === 'object' ? prev : {}),
+        [page]: url || null,
+      };
+      updateSpaceWallpaperAppearance(selectedSpaceId, {
+        wallpaperScope: 'perPage',
+        wallpaperByPage: nextByPage,
+      });
+    },
+    [
+      selectedBoardCurrentPage,
+      selectedSpaceAppearance.wallpaperByPage,
+      selectedSpaceId,
+      updateSpaceWallpaperAppearance,
+    ]
+  );
+
+  const handleClearCurrentPageWallpaper = useCallback(() => {
+    handleApplyWallpaperToCurrentPage(null);
+  }, [handleApplyWallpaperToCurrentPage]);
 
   // Handlers for overlay effects that update consolidated store
   const handleOverlayEnabledChange = useCallback((value) => {
@@ -562,6 +658,15 @@ function useWallpaperSettingsController() {
     selectedSpaceSaturate,
     handleSelectedSpaceSaturateChange,
     handleResetSelectedSpaceAppearance,
+    wallpaperMatchEnabled,
+    handleWallpaperMatchChange,
+    supportsPerPageWallpaper,
+    selectedWallpaperScope,
+    handleSelectedWallpaperScopeChange,
+    selectedBoardCurrentPage,
+    selectedPageWallpaperUrl,
+    handleApplyWallpaperToCurrentPage,
+    handleClearCurrentPageWallpaper,
     cycling,
     handleCyclingChange,
     cycleInterval,
@@ -599,6 +704,10 @@ const WallpaperSettingsTab = React.memo(() => {
   const controller = useWallpaperSettingsController();
   const reduceMotion = useReducedMotion();
   const { tabTransition } = useWeeMotion();
+  const mediaHubEnabled = useConsolidatedAppStore((s) => s.spaces.mediaHubEnabled === true);
+  const spaceWallpaperOptions = SPACE_WALLPAPER_OPTIONS.filter(
+    (space) => mediaHubEnabled || space.id !== 'mediahub'
+  );
   const {
     loading,
     hasLoadedOnce,
@@ -634,6 +743,15 @@ const WallpaperSettingsTab = React.memo(() => {
     selectedSpaceSaturate,
     handleSelectedSpaceSaturateChange,
     handleResetSelectedSpaceAppearance,
+    wallpaperMatchEnabled,
+    handleWallpaperMatchChange,
+    supportsPerPageWallpaper,
+    selectedWallpaperScope,
+    handleSelectedWallpaperScopeChange,
+    selectedBoardCurrentPage,
+    selectedPageWallpaperUrl,
+    handleApplyWallpaperToCurrentPage,
+    handleClearCurrentPageWallpaper,
     cycling,
     handleCyclingChange,
     cycleInterval,
@@ -679,7 +797,7 @@ const WallpaperSettingsTab = React.memo(() => {
 
   return (
     <div className="settings-wee-tab-root pb-12">
-      <SettingsTabPageHeader title="Wallpaper" subtitle="Background & cycling" />
+      <SettingsTabPageHeader title="Wallpaper" subtitle="Background, page look & ribbon match" />
 
       {message.text ? (
         <div
@@ -695,6 +813,33 @@ const WallpaperSettingsTab = React.memo(() => {
         </div>
       ) : null}
 
+      <SettingsWeeSection eyebrow="Match wallpaper">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <Text variant="h3" className="mb-1 playful-hero-text">
+                Paint ribbon from wallpaper
+              </Text>
+              <Text variant="desc" className="!m-0">
+                Live accents from the wallpaper on screen. Turning this off keeps the last painted
+                ribbon colors. Spotify Match still wins while it&apos;s on.
+              </Text>
+            </div>
+            <WToggle
+              checked={wallpaperMatchEnabled}
+              onChange={handleWallpaperMatchChange}
+              disableLabelClick
+              title="Toggle match wallpaper colors to ribbon"
+            />
+          </div>
+          <div className="mt-3">
+            <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.COLORS)}>
+              Advanced seed picker in Colors
+            </WeeHelpLinkButton>
+          </div>
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
+
       <div className="settings-wee-sticky-step-bar">
         <div className="mb-2 flex items-center justify-between gap-3">
           <Text variant="small" className="!m-0 font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
@@ -705,7 +850,7 @@ const WallpaperSettingsTab = React.memo(() => {
           </Text>
         </div>
         <div className="flex flex-wrap gap-2">
-          {SPACE_WALLPAPER_OPTIONS.map((space) => (
+          {spaceWallpaperOptions.map((space) => (
             <WeeSpaceRailPillButton
               key={space.id}
               type="button"
@@ -764,6 +909,16 @@ const WallpaperSettingsTab = React.memo(() => {
         showSpaceSelector={false}
         showGlobalOpacity={isHomeSpace}
         showWallpaperSourceSection={!isHomeSpace}
+        supportsPerPageWallpaper={supportsPerPageWallpaper}
+        selectedWallpaperScope={selectedWallpaperScope}
+        onWallpaperScopeChange={handleSelectedWallpaperScopeChange}
+        selectedBoardCurrentPage={selectedBoardCurrentPage}
+        selectedPageWallpaperUrl={selectedPageWallpaperUrl}
+        onApplyWallpaperToCurrentPage={() =>
+          handleApplyWallpaperToCurrentPage(selectedWallpaper?.url || effectiveActiveWallpaperUrl)
+        }
+        onClearCurrentPageWallpaper={handleClearCurrentPageWallpaper}
+        canApplyPageWallpaper={Boolean(selectedWallpaper?.url || effectiveActiveWallpaperUrl)}
       />
 
       {isHomeSpace ? (

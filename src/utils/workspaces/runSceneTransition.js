@@ -2,6 +2,7 @@ import useConsolidatedAppStore from '../useConsolidatedAppStore';
 import { SPACE_SHELL_TRANSITION_MS_DEFAULT } from '../../design/spaceShellMotion';
 import { wallpaperEntryUrlKey } from '../wallpaperShape';
 import { resolveDisplayWallpaperUrl } from '../theme/resolveEffectiveAccent';
+import { resolveActiveBoardCurrentPage } from '../channelSpaces';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -22,6 +23,10 @@ export function waitForWallpaperVisualCommit(options = {}) {
       wallpaperCurrent: state.wallpaper?.current,
       appearanceBySpace: state.appearanceBySpace,
       wallpaperEntryUrlKey,
+      currentPage: resolveActiveBoardCurrentPage({
+        activeSpaceId: state.spaces?.activeSpaceId,
+        channels: state.channels,
+      }),
     });
   };
 

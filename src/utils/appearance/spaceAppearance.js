@@ -24,23 +24,59 @@ const WALLPAPER_TRANSIENT_KEYS = new Set([
   'slideRandomDirection',
   'slideDuration',
   'slideEasing',
+  // Settled URL for ambient — never space-scoped.
+  'visualCommittedUrl',
 ]);
+
+/** Space-row wallpaper fields that live on `appearanceBySpace[id].wallpaper` (not global `wallpaper.current`). */
+const SPACE_SCOPED_WALLPAPER_KEYS = [
+  'useGlobalWallpaper',
+  'spaceWallpaperUrl',
+  'wallpaperScope',
+  'wallpaperByPage',
+  'spaceBlur',
+  'spaceBrightness',
+  'spaceSaturate',
+];
 
 const SPACE_IDS = ['home', 'workspaces', 'mediahub', 'gamehub'];
 
+/**
+ * Merge space-scoped wallpaper identity onto a live wallpaper capture so space
+ * switches / presets do not wipe `spaceWallpaperUrl`, per-page maps, etc.
+ */
+function mergeSpaceScopedWallpaperFields(liveWallpaper, storedWallpaper) {
+  const wp = { ...liveWallpaper };
+  const stored = storedWallpaper && typeof storedWallpaper === 'object' ? storedWallpaper : {};
+  for (const key of SPACE_SCOPED_WALLPAPER_KEYS) {
+    if (stored[key] !== undefined) {
+      wp[key] = stored[key];
+    }
+  }
+  if (typeof wp.useGlobalWallpaper !== 'boolean') {
+    wp.useGlobalWallpaper = true;
+  }
+  if (wp.wallpaperScope !== 'perPage') {
+    wp.wallpaperScope = 'space';
+  }
+  if (!wp.wallpaperByPage || typeof wp.wallpaperByPage !== 'object') {
+    wp.wallpaperByPage = {};
+  }
+  return wp;
+}
+
 /** @returns {{ wallpaper: object, ribbon: object, time: object, overlay: object, ui: object }} */
 export function captureSpaceAppearanceFromState(storeState) {
-  const { wallpaper, ribbon, time, overlay, ui } = storeState;
+  const { wallpaper, ribbon, time, overlay, ui, spaces, appearanceBySpace } = storeState;
+  const spaceId = spaces?.activeSpaceId || 'home';
+  const storedWp = appearanceBySpace?.[spaceId]?.wallpaper;
   const wp = { ...wallpaper };
   WALLPAPER_TRANSIENT_KEYS.forEach((k) => {
     delete wp[k];
   });
-  if (typeof wp.useGlobalWallpaper !== 'boolean') {
-    wp.useGlobalWallpaper = true;
-  }
 
   return {
-    wallpaper: wp,
+    wallpaper: mergeSpaceScopedWallpaperFields(wp, storedWp),
     ribbon: { ...ribbon },
     time: { ...time },
     overlay: { ...overlay },
@@ -49,6 +85,7 @@ export function captureSpaceAppearanceFromState(storeState) {
       useCustomCursor: ui.useCustomCursor,
       classicMode: ui.classicMode,
       spotifyMatchEnabled: ui.spotifyMatchEnabled ?? false,
+      wallpaperMatchEnabled: ui.wallpaperMatchEnabled ?? false,
     },
   };
 }
@@ -67,10 +104,7 @@ export function mergeLiveStateFromSpaceAppearance(currentState, incoming) {
         w[k] = currentState.wallpaper[k];
       }
     });
-    if (typeof w.useGlobalWallpaper !== 'boolean') {
-      w.useGlobalWallpaper = true;
-    }
-    out.wallpaper = w;
+    out.wallpaper = mergeSpaceScopedWallpaperFields(w, incoming.wallpaper);
   }
   if (incoming.ribbon) {
     out.ribbon = { ...currentState.ribbon, ...incoming.ribbon };

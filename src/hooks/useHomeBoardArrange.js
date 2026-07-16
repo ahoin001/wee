@@ -43,13 +43,15 @@ export function useHomeBoardArrange() {
   /**
    * Enter Live Board Studio on Home.
    * Always jumps to the Home space and closes Settings so the arrange bar is visible.
+   * Pass `punchMode: true` to deep-link straight into wallpaper-hole editing.
    */
   const enterArrange = useCallback(
-    ({ closeSettings = false } = {}) => {
+    ({ closeSettings = false, punchMode: startPunch = false } = {}) => {
       setSpacesState({ activeSpaceId: 'home' });
       setUIState({
         homeBoardArrangeMode: true,
-        homeBoardPunchMode: false,
+        homeBoardPunchMode: Boolean(startPunch),
+        homeBoardSelectedSlotIndex: null,
         ...(closeSettings ? { showSettingsModal: false } : {}),
       });
     },

@@ -108,15 +108,15 @@ export async function applyPresetData(preset) {
 
   if (settingsToApply.ribbon) {
     const wallpaperMatchEnabled = useConsolidatedAppStore.getState().ui?.wallpaperMatchEnabled;
+    const presetWantsWallpaperMatch = settingsToApply.ui?.wallpaperMatchEnabled === true;
     const hasExplicitRibbonColor =
       Boolean(settingsToApply.ribbon.ribbonColor) || Boolean(settingsToApply.ribbon.ribbonGlowColor);
-    // Explicit Look ribbon colors win: turn off wallpaper match so ambient cannot
-    // re-extract and overwrite the preset on the next wallpaper commit / restart.
-    if (wallpaperMatchEnabled && hasExplicitRibbonColor) {
+    // Explicit Look ribbon colors win unless the preset intentionally keeps match on.
+    if (wallpaperMatchEnabled && hasExplicitRibbonColor && !presetWantsWallpaperMatch) {
       setUIState({ wallpaperMatchEnabled: false });
       setRibbonState(settingsToApply.ribbon);
-    } else if (wallpaperMatchEnabled) {
-      // Match stays on and the preset has no ribbon colors — leave ambient ownership.
+    } else if ((wallpaperMatchEnabled || presetWantsWallpaperMatch) && !hasExplicitRibbonColor) {
+      // Match stays on / will be on — leave ambient ownership of ribbon hexes.
       const ribbonRest = { ...settingsToApply.ribbon };
       delete ribbonRest.ribbonColor;
       delete ribbonRest.ribbonGlowColor;
@@ -156,29 +156,41 @@ export async function applyPresetData(preset) {
   }
 
   if (settingsToApply.appearanceBySpace && typeof setAppearanceBySpaceState === 'function') {
-    const homeOnly =
-      settingsToApply.appearanceBySpace.home !== undefined
-        ? { home: settingsToApply.appearanceBySpace.home }
-        : settingsToApply.appearanceBySpace;
-    setAppearanceBySpaceState(homeOnly);
+    const abs = settingsToApply.appearanceBySpace;
+    const appearancePatch = {};
+    if (abs.home !== undefined) appearancePatch.home = abs.home;
+    if (abs.workspaces !== undefined) appearancePatch.workspaces = abs.workspaces;
+    if (abs.mediahub !== undefined) appearancePatch.mediahub = abs.mediahub;
+    if (abs.gamehub !== undefined) appearancePatch.gamehub = abs.gamehub;
+    setAppearanceBySpaceState(
+      Object.keys(appearancePatch).length > 0 ? appearancePatch : abs
+    );
   }
 
   if (isPresetScopeWithHomeChannels(captureScope)) {
     const { setChannelDataForSpace, setChannelState } = useConsolidatedAppStore.getState().actions;
     if (settingsToApply.homeChannels) {
       setChannelDataForSpace('home', settingsToApply.homeChannels);
-    } else if (settingsToApply.channels) {
+    }
+    if (settingsToApply.focusChannels) {
+      setChannelDataForSpace('workspaces', settingsToApply.focusChannels);
+    }
+    if (!settingsToApply.homeChannels && !settingsToApply.focusChannels && settingsToApply.channels) {
       setChannelState(settingsToApply.channels);
     }
   }
-  const channelsPatchForPersist =
-    isPresetScopeWithHomeChannels(captureScope) && settingsToApply.homeChannels
-      ? {
-          dataBySpace: {
-            home: settingsToApply.homeChannels,
-          },
-        }
-      : settingsToApply.channels;
+  const channelsPatchForPersist = (() => {
+    if (!isPresetScopeWithHomeChannels(captureScope)) return settingsToApply.channels;
+    if (!settingsToApply.homeChannels && !settingsToApply.focusChannels) {
+      return settingsToApply.channels;
+    }
+    return {
+      dataBySpace: {
+        ...(settingsToApply.homeChannels ? { home: settingsToApply.homeChannels } : {}),
+        ...(settingsToApply.focusChannels ? { workspaces: settingsToApply.focusChannels } : {}),
+      },
+    };
+  })();
 
   const normalizedSounds = captureScope === PRESET_SCOPE_VISUAL
     ? null
@@ -218,12 +230,8 @@ export async function applyPresetData(preset) {
     ? {
         ...(settingsToApply.appearanceBySpace || {}),
         [synced.spaceId]: synced.appearance,
-        // Presets historically only ship `home`; keep that key in sync when active is home.
-        ...(synced.spaceId === 'home' ? { home: synced.appearance } : {}),
       }
-    : settingsToApply.appearanceBySpace
-      ? { home: settingsToApply.appearanceBySpace.home ?? null }
-      : null;
+    : settingsToApply.appearanceBySpace || null;
 
   try {
     const matchOffForRibbon =

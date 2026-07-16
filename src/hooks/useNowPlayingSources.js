@@ -82,13 +82,17 @@ export function useNowPlayingSources() {
       lastMetaRef.current.error = meta.error || null;
     }
     const session = pickPrimarySystemSession(storedList, {});
-    setSystemMediaState({
+    const patch = {
       available: lastMetaRef.current.available,
       error: lastMetaRef.current.error,
       starting: false,
       sessions: storedList,
       session: session || null,
-    });
+    };
+    if (Object.prototype.hasOwnProperty.call(meta, 'artDebug')) {
+      patch.artDebug = meta.artDebug || null;
+    }
+    setSystemMediaState(patch);
   };
 
   const wantsSystem = systemMediaEnabled;
@@ -102,6 +106,7 @@ export function useNowPlayingSources() {
         error: 'System media API unavailable',
         session: null,
         sessions: [],
+        artDebug: null,
       });
       return undefined;
     }
@@ -122,6 +127,7 @@ export function useNowPlayingSources() {
         starting: false,
         error: null,
         available: false,
+        artDebug: null,
       });
       return undefined;
     }
@@ -137,6 +143,7 @@ export function useNowPlayingSources() {
       publishPrimary(payload?.sessions, {
         available: payload?.available,
         error: payload?.error || null,
+        artDebug: payload?.artDebug ?? null,
       });
     };
 
@@ -191,6 +198,7 @@ export function useNowPlayingSources() {
           error: err?.message || String(err),
           session: null,
           sessions: [],
+          artDebug: null,
         });
       }
     })();

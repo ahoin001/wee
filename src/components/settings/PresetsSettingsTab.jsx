@@ -20,6 +20,11 @@ import { applyPresetData } from '../../utils/presets/applyPresetData';
 import { normalizePresetRecord, sanitizePresetCollection, toVisualOnlyPreset } from '../../utils/presets/presetThemeData';
 import { exportPresetToFile, parsePresetFile, WEE_PRESET_FILE_EXTENSION } from '../../utils/presets/presetFileTransfer';
 import { createDefaultSpotifyMatchPreset, SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
+import {
+  defaultFrozenSpotifyLookName,
+  MAX_CUSTOM_PRESETS,
+  saveFrozenSpotifyLookPreset,
+} from '../../utils/presets/saveFrozenSpotifyLookPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
 import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
 import { buildWorkspaceDataFromStore } from '../../utils/workspaces/buildWorkspaceSnapshot';
@@ -52,7 +57,6 @@ import {
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import WInput from '../../ui/WInput';
 
-const MAX_CUSTOM_PRESETS = 5;
 const normalizePresetName = (value) => value.trim().toLowerCase();
 
 const PRESET_UPDATE_SCOPE_OPTIONS = [
@@ -64,8 +68,8 @@ const PRESET_UPDATE_SCOPE_OPTIONS = [
   },
   {
     value: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
-    title: 'Look + Home channels',
-    subtitle: 'Also overwrite this preset’s Home channel layout. Stays on this PC.',
+    title: 'Look + channel boards',
+    subtitle: 'Also overwrite Home + Focus boards (punched holes included). Stays on this PC.',
     Icon: Home,
   },
 ];
@@ -109,7 +113,8 @@ const PresetsSettingsTab = React.memo(() => {
     custom_image_name: null,
     selectedPreset: null,
   });
-  const [includeHomeChannels, setIncludeHomeChannels] = useState(false);
+  /** Local saves default to boards + look; community share stays visual-only. */
+  const [includeHomeChannels, setIncludeHomeChannels] = useState(true);
   const [updateScopeDialog, setUpdateScopeDialog] = useState(null);
   const [updateScopeModalOpen, setUpdateScopeModalOpen] = useState(false);
   const [updateScopeModalMounted, setUpdateScopeModalMounted] = useState(false);
@@ -515,6 +520,7 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   const handleSaveSpotifyLookAsPreset = async () => {
+    const extracted = useConsolidatedAppStore.getState().spotify?.extractedColors;
     if (customPresetCount >= MAX_CUSTOM_PRESETS) {
       setCaptureNotice({
         type: 'warning',
@@ -523,17 +529,16 @@ const PresetsSettingsTab = React.memo(() => {
       setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
       return;
     }
-    const extracted = useConsolidatedAppStore.getState().spotify?.extractedColors;
-    if (!extracted) {
+    if (!extracted?.primary) {
       setCaptureNotice({
         type: 'warning',
-        text: 'No album colors yet. Start playback or enable Spotify Match until colors appear.',
+        text: 'No album colors yet. Start playback or enable Color Match until colors appear.',
       });
       setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
       return;
     }
 
-    setSpotifyNameInput(`Spotify look ${new Date().toLocaleString()}`);
+    setSpotifyNameInput(defaultFrozenSpotifyLookName());
     setSpotifyNameModalOpen(true);
   };
 
@@ -541,27 +546,13 @@ const PresetsSettingsTab = React.memo(() => {
     const name = spotifyNameInput.trim();
     if (!name) return;
 
-    const presetData = buildPresetDataFromStore({
-      captureScope: PRESET_SCOPE_VISUAL,
-      includeSpotifyPalette: true,
-    });
+    const result = await saveFrozenSpotifyLookPreset({ name });
+    if (!result.ok) {
+      setCaptureNotice({ type: 'warning', text: result.error });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
+      return;
+    }
 
-    const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
-    const newPreset = {
-      id: createPresetId(),
-      name,
-      data: presetData,
-      captureScope: PRESET_SCOPE_VISUAL,
-      includesHomeChannels: false,
-      shareable: true,
-      timestamp: new Date().toISOString(),
-      thumbnailDataUrl: thumbnailDataUrl || null,
-      frozenSpotifyLook: true,
-    };
-
-    const updatedPresets = [...presets, newPreset];
-    setPresets(updatedPresets);
-    await savePresetsToBackend(updatedPresets);
     setSpotifyNameModalOpen(false);
     setCaptureNotice({ type: 'success', text: `Saved preset "${name}" with frozen colors.` });
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2500);
@@ -1008,7 +999,14 @@ const PresetsSettingsTab = React.memo(() => {
             spotifyMatchEnabled={spotifyMatchEnabled}
             onSpotifyMatchToggle={handleSpotifyMatchToggle}
             onSaveLookAsPreset={handleSaveSpotifyLookAsPreset}
-            onOpenSpotifySettings={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'api-integrations' })}
+            onOpenColorMatchSettings={() => {
+              setUIState({
+                showSettingsModal: false,
+                homeBoardArrangeMode: true,
+                homeBoardPunchMode: false,
+              });
+              useConsolidatedAppStore.getState().actions.setSpacesState({ activeSpaceId: 'home' });
+            }}
           />
         </WeeSettingsCollapsibleSection>
       </WeeRevealWhen>
@@ -1280,7 +1278,7 @@ const PresetsSettingsTab = React.memo(() => {
         onClose={() => {
           setSpotifyNameModalOpen(false);
         }}
-        headerTitle="Freeze Spotify look"
+        headerTitle="Freeze matched colors"
         showRail={false}
         maxWidth="min(480px, 94vw)"
         footerContent={() => (

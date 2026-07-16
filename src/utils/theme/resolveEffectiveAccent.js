@@ -54,14 +54,39 @@ export function resolveEffectiveAccent(input = {}) {
 
 /**
  * Resolve display wallpaper URL the same way as IsolatedWallpaperBackground.
+ * Order: per-page URL → space override → global `wallpaper.current`.
+ *
+ * @param {{
+ *   activeSpaceId?: string,
+ *   wallpaperCurrent?: unknown,
+ *   appearanceBySpace?: object,
+ *   wallpaperEntryUrlKey: (entry: unknown) => string | null,
+ *   currentPage?: number,
+ * }} args
  */
 export function resolveDisplayWallpaperUrl({
   activeSpaceId,
   wallpaperCurrent,
   appearanceBySpace,
   wallpaperEntryUrlKey,
+  currentPage = 0,
 }) {
   const activeSpaceAppearance = appearanceBySpace?.[activeSpaceId]?.wallpaper || null;
+  const globalWallpaperUrl = wallpaperCurrent
+    ? wallpaperEntryUrlKey(wallpaperCurrent) || null
+    : null;
+
+  const scope = activeSpaceAppearance?.wallpaperScope === 'perPage' ? 'perPage' : 'space';
+  if (scope === 'perPage') {
+    const byPage = activeSpaceAppearance?.wallpaperByPage;
+    if (byPage && typeof byPage === 'object') {
+      const pageUrl = byPage[currentPage] ?? byPage[String(currentPage)];
+      if (typeof pageUrl === 'string' && pageUrl.length > 0) {
+        return pageUrl;
+      }
+    }
+  }
+
   const useGlobalWallpaper = activeSpaceAppearance?.useGlobalWallpaper !== false;
   const isHomeShellSpace = activeSpaceId === 'home';
   const spaceWallpaperUrl =
@@ -70,8 +95,5 @@ export function resolveDisplayWallpaperUrl({
       : !useGlobalWallpaper && typeof activeSpaceAppearance?.spaceWallpaperUrl === 'string'
         ? activeSpaceAppearance.spaceWallpaperUrl
         : null;
-  const globalWallpaperUrl = wallpaperCurrent
-    ? wallpaperEntryUrlKey(wallpaperCurrent) || null
-    : null;
   return spaceWallpaperUrl || globalWallpaperUrl || null;
 }

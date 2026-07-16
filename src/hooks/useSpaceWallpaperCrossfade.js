@@ -1,14 +1,19 @@
 import { useCallback, useLayoutEffect, useEffect, useRef, useState } from 'react';
 import { SPACE_SHELL_TRANSITION_MS_DEFAULT } from '../design/spaceShellMotion';
+import { CHANNEL_PAGE_FLIP_MS } from '../utils/channelLayoutSystem';
 import { preloadImageUrl } from '../utils/mediaWarmCache';
 
+/** Subtle X parallax nudge (percent of viewport) opposite page-flip direction. */
+const PAGE_PARALLAX_NUDGE_PERCENT = 1.6;
+
 /**
- * Cross-fades wallpaper URL for space switches and same-space URL changes
+ * Cross-fades wallpaper URL for space switches, page flips, and same-space URL changes
  * (preset apply, settings pick). Same pattern as useHeroMediaCrossfade:
  * base + overlay opacity, then promote on transitionend.
  *
  * When transitions are off (reduced motion) or cycling owns the transition, snaps.
- * `transitionMs` should match App’s space-world / dock duration for a unified feel.
+ * Space changes use `spaceTransitionMs` (shell); page / same-space URL changes use
+ * `pageTransitionMs` (CHANNEL_PAGE_FLIP_MS) — one wallpaper layer, two duration sources.
  *
  * `committedUrl` updates only after the visual settles — consumers (ambient) should
  * key off that instead of the store display URL mid-fade.
@@ -16,25 +21,38 @@ import { preloadImageUrl } from '../utils/mediaWarmCache';
 export function useSpaceWallpaperCrossfade({
   displayUrl,
   activeSpaceId,
+  pageIndex = 0,
+  pageDirection = 0,
   cyclingTransitioning,
   transitionsEnabled,
-  transitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
+  spaceTransitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
+  pageTransitionMs = CHANNEL_PAGE_FLIP_MS,
+  pageParallaxEnabled = false,
 }) {
   const [base, setBase] = useState(displayUrl ?? null);
   const [overlay, setOverlay] = useState(null);
   const [overlayOpacity, setOverlayOpacity] = useState(0);
   const [committedUrl, setCommittedUrl] = useState(displayUrl ?? null);
+  const [activeTransitionMs, setActiveTransitionMs] = useState(spaceTransitionMs);
+  const [parallaxXPercent, setParallaxXPercent] = useState(0);
   const baseRef = useRef(displayUrl ?? null);
   const overlayRef = useRef(null);
   const prevCommittedUrlRef = useRef(displayUrl ?? null);
   const lastSpaceRef = useRef(activeSpaceId);
+  const lastPageRef = useRef(pageIndex);
   const prevCyclingRef = useRef(Boolean(cyclingTransitioning));
   const rafRef = useRef(null);
   const stallTimerRef = useRef(null);
   const preloadGenRef = useRef(0);
   const pendingTargetRef = useRef(null);
+  const transitionMsRef = useRef(spaceTransitionMs);
+  const parallaxEnabledRef = useRef(pageParallaxEnabled);
+  const pageDirectionRef = useRef(pageDirection);
 
   overlayRef.current = overlay;
+  transitionMsRef.current = activeTransitionMs;
+  parallaxEnabledRef.current = pageParallaxEnabled;
+  pageDirectionRef.current = pageDirection;
 
   const clearStallTimer = useCallback(() => {
     if (stallTimerRef.current) {
@@ -55,6 +73,7 @@ export function useSpaceWallpaperCrossfade({
       setBase(url);
       setOverlay(null);
       setOverlayOpacity(0);
+      setParallaxXPercent(0);
       baseRef.current = url;
       prevCommittedUrlRef.current = url;
       setCommittedUrl(url);
@@ -72,6 +91,7 @@ export function useSpaceWallpaperCrossfade({
     setCommittedUrl(ov);
     setOverlay(null);
     setOverlayOpacity(0);
+    setParallaxXPercent(0);
 
     const pending = pendingTargetRef.current;
     if (pending && pending !== ov) {
@@ -93,24 +113,33 @@ export function useSpaceWallpaperCrossfade({
   );
 
   const beginOverlayFade = useCallback(
-    (fromUrl, toUrl) => {
+    (fromUrl, toUrl, { usePageParallax = false } = {}) => {
       setBase(fromUrl);
       baseRef.current = fromUrl;
       setOverlay(toUrl);
       setOverlayOpacity(0);
+      if (usePageParallax && parallaxEnabledRef.current) {
+        const dir = pageDirectionRef.current || 0;
+        // Nudge opposite strip travel so wallpaper feels tied to the page flip.
+        const nudge = dir < 0 ? PAGE_PARALLAX_NUDGE_PERCENT : dir > 0 ? -PAGE_PARALLAX_NUDGE_PERCENT : 0;
+        setParallaxXPercent(nudge);
+      } else {
+        setParallaxXPercent(0);
+      }
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = requestAnimationFrame(() => {
           setOverlayOpacity(1);
-          armStallRecovery(transitionMs + 320);
+          setParallaxXPercent(0);
+          armStallRecovery(transitionMsRef.current + 320);
         });
       });
     },
-    [armStallRecovery, transitionMs]
+    [armStallRecovery]
   );
 
   const startCrossfade = useCallback(
-    (fromUrl, toUrl) => {
+    (fromUrl, toUrl, opts = {}) => {
       if (!fromUrl || !toUrl || fromUrl === toUrl) {
         snapTo(toUrl ?? fromUrl ?? null);
         return;
@@ -129,7 +158,7 @@ export function useSpaceWallpaperCrossfade({
           snapTo(latest);
           return;
         }
-        beginOverlayFade(stillFrom, latest);
+        beginOverlayFade(stillFrom, latest, opts);
       });
     },
     [beginOverlayFade, snapTo]
@@ -142,6 +171,7 @@ export function useSpaceWallpaperCrossfade({
     if (!transitionsEnabled) {
       snapTo(displayUrl ?? null);
       lastSpaceRef.current = activeSpaceId;
+      lastPageRef.current = pageIndex;
       prevCyclingRef.current = Boolean(cyclingTransitioning);
       return;
     }
@@ -155,17 +185,27 @@ export function useSpaceWallpaperCrossfade({
     if (wasCycling && !nowCycling) {
       snapTo(toUrl);
       lastSpaceRef.current = activeSpaceId;
+      lastPageRef.current = pageIndex;
       return;
     }
     if (nowCycling) {
       lastSpaceRef.current = activeSpaceId;
+      lastPageRef.current = pageIndex;
       return;
     }
 
     const spaceChanged = lastSpaceRef.current !== activeSpaceId;
+    const pageChanged = lastPageRef.current !== pageIndex;
     if (spaceChanged) {
       lastSpaceRef.current = activeSpaceId;
     }
+    if (pageChanged) {
+      lastPageRef.current = pageIndex;
+    }
+
+    const nextMs = spaceChanged ? spaceTransitionMs : pageTransitionMs;
+    setActiveTransitionMs(nextMs);
+    transitionMsRef.current = nextMs;
 
     const fromUrl = prevCommittedUrlRef.current;
 
@@ -175,6 +215,8 @@ export function useSpaceWallpaperCrossfade({
     if (toUrl === overlayRef.current) {
       return;
     }
+
+    const usePageParallax = !spaceChanged && pageChanged;
 
     // Mid-crossfade: coalesce to latest target (keep base, retarget overlay after preload).
     if (overlayRef.current != null) {
@@ -188,7 +230,7 @@ export function useSpaceWallpaperCrossfade({
           return;
         }
         if (latest === overlayRef.current) return;
-        beginOverlayFade(prevCommittedUrlRef.current, latest);
+        beginOverlayFade(prevCommittedUrlRef.current, latest, { usePageParallax });
       });
       return;
     }
@@ -198,12 +240,15 @@ export function useSpaceWallpaperCrossfade({
       return;
     }
 
-    startCrossfade(fromUrl, toUrl);
+    startCrossfade(fromUrl, toUrl, { usePageParallax });
   }, [
     displayUrl,
     activeSpaceId,
+    pageIndex,
     transitionsEnabled,
     cyclingTransitioning,
+    spaceTransitionMs,
+    pageTransitionMs,
     snapTo,
     startCrossfade,
     beginOverlayFade,
@@ -233,8 +278,10 @@ export function useSpaceWallpaperCrossfade({
     overlayOpacity,
     onOverlayTransitionEnd,
     spaceCrossfadeActive: Boolean(overlay),
-    spaceCrossfadeMs: transitionMs,
+    spaceCrossfadeMs: activeTransitionMs,
     /** Settled wallpaper URL after snap/crossfade/cycle — for ambient + scene waiters. */
     committedUrl,
+    /** Subtle page-flip X nudge (percent); 0 when idle / reduced motion. */
+    parallaxXPercent,
   };
 }

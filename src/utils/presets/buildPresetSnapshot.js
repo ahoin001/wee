@@ -1,5 +1,9 @@
 import useConsolidatedAppStore from '../useConsolidatedAppStore';
 import { captureSpaceAppearanceFromState } from '../appearance/spaceAppearance';
+import {
+  getSecondaryChannelSpaceData,
+  normalizeChannelSpaceData,
+} from '../channelSpaces';
 import { PRESET_SCOPE_VISUAL, PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS } from './presetScopes';
 
 function cloneSafe(value, fallback = null) {
@@ -8,6 +12,51 @@ function cloneSafe(value, fallback = null) {
   } catch {
     return fallback;
   }
+}
+
+/**
+ * Deep-clone a channel board so punched (`hidden`) slots survive preset save.
+ * Normalizes via slots SSOT first so legacy maps still project holes correctly.
+ */
+function cloneChannelBoardForPreset(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  return cloneSafe(normalizeChannelSpaceData(raw), null);
+}
+
+/**
+ * Appearance snapshot for a shell space: live capture when active, else stored row.
+ * Always merges space-scoped wallpaper keys (per-page maps, overrides).
+ */
+function appearanceForSpace(state, spaceId, liveAppearance) {
+  const stored = state.appearanceBySpace?.[spaceId] ?? null;
+  const activeId = state.spaces?.activeSpaceId || 'home';
+  if (spaceId === activeId && liveAppearance) {
+    const storedWp = stored?.wallpaper || {};
+    return cloneSafe(
+      {
+        ...liveAppearance,
+        wallpaper: {
+          ...(storedWp || {}),
+          ...(liveAppearance.wallpaper || {}),
+          useGlobalWallpaper:
+            liveAppearance.wallpaper?.useGlobalWallpaper ??
+            storedWp.useGlobalWallpaper ??
+            true,
+          spaceWallpaperUrl:
+            liveAppearance.wallpaper?.spaceWallpaperUrl ?? storedWp.spaceWallpaperUrl ?? null,
+          wallpaperScope:
+            liveAppearance.wallpaper?.wallpaperScope === 'perPage' ||
+            storedWp.wallpaperScope === 'perPage'
+              ? 'perPage'
+              : 'space',
+          wallpaperByPage:
+            liveAppearance.wallpaper?.wallpaperByPage || storedWp.wallpaperByPage || {},
+        },
+      },
+      null
+    );
+  }
+  return cloneSafe(stored, null);
 }
 
 /**
@@ -21,9 +70,10 @@ export function buildPresetDataFromStore({
   includeSpotifyPalette = false,
 } = {}) {
   const state = useConsolidatedAppStore.getState();
-  const { wallpaper, ribbon, time, overlay, ui, channels, spotify, dock } = state;
-  // Fresh capture — never bake a stale appearanceBySpace.home from the last space switch.
-  const liveHomeAppearance = captureSpaceAppearanceFromState(state);
+  const { wallpaper, ribbon, time, overlay, ui, channels, spotify, dock, spaces } = state;
+  // Fresh capture — never bake a stale appearanceBySpace row from the last space switch.
+  const liveAppearance = captureSpaceAppearanceFromState(state);
+  const mediaHubEnabled = spaces?.mediaHubEnabled === true;
 
   const presetData = {
     wallpaper: {
@@ -79,15 +129,21 @@ export function buildPresetDataFromStore({
       useCustomCursor: ui.useCustomCursor,
       classicMode: ui.classicMode,
       spotifyMatchEnabled: includeSpotifyPalette ? false : (ui.spotifyMatchEnabled ?? false),
+      wallpaperMatchEnabled: ui.wallpaperMatchEnabled ?? false,
     },
     dock: cloneSafe(dock, {}),
     appearanceBySpace: {
-      home: cloneSafe(liveHomeAppearance, null),
+      home: appearanceForSpace(state, 'home', liveAppearance),
+      workspaces: appearanceForSpace(state, 'workspaces', liveAppearance),
+      ...(mediaHubEnabled
+        ? { mediahub: appearanceForSpace(state, 'mediahub', liveAppearance) }
+        : {}),
     },
   };
 
   if (captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS) {
-    presetData.homeChannels = cloneSafe(channels?.dataBySpace?.home, null);
+    presetData.homeChannels = cloneChannelBoardForPreset(channels?.dataBySpace?.home);
+    presetData.focusChannels = cloneChannelBoardForPreset(getSecondaryChannelSpaceData(channels));
   }
 
   if (includeSpotifyPalette && spotify?.extractedColors) {

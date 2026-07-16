@@ -1,6 +1,7 @@
 import {
   clampPageIndex,
   DEFAULT_CHANNEL_NAVIGATION,
+  normalizeLayoutByPage,
   normalizeLayoutConfig,
   resolveLayout,
   WII_LAYOUT_PRESET,
@@ -19,33 +20,69 @@ import { migrateSpaceDataToSlots } from './homeGridSlots';
 
 export const CHANNEL_SPACE_KEYS = ['home', 'workspaces'];
 
-/** Vertical shell rail order: Home → Media Hub → Game Hub. */
-export const DEFAULT_SHELL_SPACE_ORDER = ['home', 'mediahub', 'gamehub'];
+/** Vertical shell rail order: Home → Focus (workspaces) → Game Hub. Media Hub is opt-in. */
+export const DEFAULT_SHELL_SPACE_ORDER = ['home', 'workspaces', 'gamehub'];
 
-/** Migrate legacy orders and any invalid order to the canonical rail. */
-export function normalizeShellSpaceOrder(order) {
-  const canonical = [...DEFAULT_SHELL_SPACE_ORDER];
+/**
+ * Resolve whether Media Hub belongs in the shell rail.
+ * When `mediaHubEnabled` is omitted, legacy orders that still include `mediahub` count as enabled.
+ *
+ * @param {string[]|unknown} order
+ * @param {{ mediaHubEnabled?: boolean }} [opts]
+ */
+export function resolveMediaHubEnabled(order, { mediaHubEnabled } = {}) {
+  if (typeof mediaHubEnabled === 'boolean') return mediaHubEnabled;
+  return Array.isArray(order) && order.includes('mediahub');
+}
+
+/**
+ * Normalize rail order to the canonical set for the current Media Hub flag.
+ * Base: home → workspaces → gamehub. When enabled, mediahub sits after workspaces.
+ *
+ * @param {string[]|unknown} order
+ * @param {{ mediaHubEnabled?: boolean }} [opts]
+ */
+export function normalizeShellSpaceOrder(order, { mediaHubEnabled } = {}) {
+  const enabled = resolveMediaHubEnabled(order, { mediaHubEnabled });
+  const canonical = enabled
+    ? ['home', 'workspaces', 'mediahub', 'gamehub']
+    : ['home', 'workspaces', 'gamehub'];
   const want = new Set(canonical);
-  if (!Array.isArray(order)) return canonical;
 
-  // Legacy order with secondary shell space.
-  if (order.includes('workspaces')) {
-    const withoutSecondary = order.filter((id) => id !== 'workspaces');
-    return normalizeShellSpaceOrder(withoutSecondary);
+  if (!Array.isArray(order)) return [...canonical];
+
+  const filtered = [];
+  const seen = new Set();
+  for (const id of order) {
+    if (!want.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    filtered.push(id);
   }
 
-  // Legacy persisted order before Media Hub existed.
-  if (order.length === 2 && order.includes('home') && order.includes('gamehub')) {
-    return ['home', 'mediahub', 'gamehub'];
+  for (const id of canonical) {
+    if (seen.has(id)) continue;
+    if (id === 'mediahub') {
+      const afterWs = filtered.indexOf('workspaces');
+      if (afterWs >= 0) filtered.splice(afterWs + 1, 0, id);
+      else {
+        const beforeGh = filtered.indexOf('gamehub');
+        if (beforeGh >= 0) filtered.splice(beforeGh, 0, id);
+        else filtered.push(id);
+      }
+    } else if (id === 'workspaces') {
+      const afterHome = filtered.indexOf('home');
+      if (afterHome >= 0) filtered.splice(afterHome + 1, 0, id);
+      else filtered.push(id);
+    } else if (id === 'home') {
+      filtered.unshift(id);
+    } else {
+      filtered.push(id);
+    }
+    seen.add(id);
   }
 
-  if (order.length !== canonical.length) return canonical;
-  const got = new Set(order);
-  if (want.size !== got.size) return canonical;
-  for (const id of want) {
-    if (!got.has(id)) return canonical;
-  }
-  return [...order];
+  if (filtered.length !== canonical.length) return [...canonical];
+  return filtered;
 }
 
 /** Default profile id for the second space’s channel grid (after migration). */
@@ -57,11 +94,28 @@ export function normalizeChannelSpaceKey(spaceId) {
 }
 
 /**
- * Page/sidebar chrome should follow the visible channel space when on Home or Work.
- * When Game Hub is active, channel nav is hidden — use `home` for any fallback reads.
+ * Page/sidebar chrome should follow the visible channel space when on Home or Focus.
+ * When Game Hub / Media Hub is active, channel nav is hidden — use `home` for fallback reads.
+ * @returns {'home' | 'workspaces'}
  */
 export function resolveActiveChannelSpaceKey(activeSpaceId) {
-  return 'home';
+  return activeSpaceId === 'workspaces' ? 'workspaces' : 'home';
+}
+
+/**
+ * Current channel-board page index for wallpaper / nav coupling on Home or Focus.
+ * Hub spaces fall back to Home’s page (wallpaper still resolves via appearance).
+ * @param {{ activeSpaceId?: string, channels?: object }} args
+ * @returns {number}
+ */
+export function resolveActiveBoardCurrentPage({ activeSpaceId, channels } = {}) {
+  const key = resolveActiveChannelSpaceKey(activeSpaceId);
+  if (key === 'workspaces') {
+    const page = getSecondaryChannelSpaceData(channels)?.navigation?.currentPage;
+    return Number.isFinite(page) ? page : 0;
+  }
+  const page = channels?.dataBySpace?.home?.navigation?.currentPage;
+  return Number.isFinite(page) ? page : 0;
 }
 
 export function createDefaultChannelSpaceData() {
@@ -74,6 +128,7 @@ export function createDefaultChannelSpaceData() {
   const totalChannels = layout.columns * layout.rows * layout.totalPages;
   return {
     layout,
+    layoutByPage: {},
     gridColumns: layout.columns,
     gridRows: layout.rows,
     totalChannels,
@@ -115,6 +170,7 @@ export function normalizeChannelSpaceData(raw) {
       totalPages: layout.totalPages,
       peekPercent: layout.peekPercent,
     },
+    layoutByPage: normalizeLayoutByPage(incoming.layoutByPage, layout),
     gridColumns: layout.columns,
     gridRows: layout.rows,
     totalChannels: layout.totalChannels,

@@ -5,6 +5,7 @@ import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
 import SettingsWeeSection from '../SettingsWeeSection';
 import { WeeButton, WeeModalFieldCard, WeeRevealWhen, WeeSpaceRailPillButton } from '../../../ui/wee';
+import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import { SPACE_WALLPAPER_OPTIONS } from './wallpaperSettingsConstants';
 import WallpaperScenePreview from './WallpaperScenePreview';
 
@@ -34,7 +35,19 @@ function SpaceWallpaperAppearanceSection({
   showGlobalOpacity = true,
   /** Home uses the global active wallpaper only; hide per-space image override controls. */
   showWallpaperSourceSection = true,
+  supportsPerPageWallpaper = false,
+  selectedWallpaperScope = 'space',
+  onWallpaperScopeChange,
+  selectedBoardCurrentPage = 0,
+  selectedPageWallpaperUrl = null,
+  onApplyWallpaperToCurrentPage,
+  onClearCurrentPageWallpaper,
+  canApplyPageWallpaper = false,
 }) {
+  const mediaHubEnabled = useConsolidatedAppStore((s) => s.spaces.mediaHubEnabled === true);
+  const spaceOptions = SPACE_WALLPAPER_OPTIONS.filter(
+    (space) => mediaHubEnabled || space.id !== 'mediahub'
+  );
   const sceneUrl =
     (typeof selectedWallpaper?.url === 'string' && selectedWallpaper.url) ||
     (typeof effectiveActiveWallpaperUrl === 'string' && effectiveActiveWallpaperUrl) ||
@@ -95,7 +108,7 @@ function SpaceWallpaperAppearanceSection({
         <h4 className="settings-wee-subhead">Per-space appearance</h4>
         {showSpaceSelector ? (
           <div className="mb-4 flex flex-wrap gap-2">
-            {SPACE_WALLPAPER_OPTIONS.map((space) => (
+            {spaceOptions.map((space) => (
               <WeeSpaceRailPillButton
                 key={space.id}
                 type="button"
@@ -120,6 +133,62 @@ function SpaceWallpaperAppearanceSection({
             <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
               Configuring {selectedSpaceLabel}
             </p>
+
+            {supportsPerPageWallpaper ? (
+              <div className="settings-wee-field-row mb-3">
+                <span className="settings-wee-field-row__label">Wallpaper scope</span>
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
+                  <WToggle
+                    checked={selectedWallpaperScope === 'perPage'}
+                    onChange={(checked) =>
+                      onWallpaperScopeChange?.(checked ? 'perPage' : 'space')
+                    }
+                    disableLabelClick
+                    title="Use a different wallpaper per channel page"
+                  />
+                  <Text variant="small" className="!m-0 text-[hsl(var(--text-secondary))]">
+                    {selectedWallpaperScope === 'perPage'
+                      ? 'Per page — flip pages to change the backdrop'
+                      : 'One wallpaper for this whole space'}
+                  </Text>
+                </div>
+              </div>
+            ) : null}
+
+            <WeeRevealWhen when={supportsPerPageWallpaper && selectedWallpaperScope === 'perPage'}>
+              <div className="mb-4 rounded-xl border border-[hsl(var(--border-primary)/0.6)] bg-[hsl(var(--surface-secondary)/0.55)] p-3">
+                <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))]">
+                  Page {selectedBoardCurrentPage + 1}
+                </div>
+                <div className="mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
+                  Apply the selected library asset (or current desktop wallpaper) to this channel page.
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <WeeButton
+                    type="button"
+                    variant="secondary"
+                    className="!px-3 !py-2"
+                    disabled={!canApplyPageWallpaper}
+                    onClick={() => onApplyWallpaperToCurrentPage?.()}
+                  >
+                    Apply to this page
+                  </WeeButton>
+                  <WeeButton
+                    type="button"
+                    variant="secondary"
+                    className="!px-3 !py-2"
+                    onClick={() => onClearCurrentPageWallpaper?.()}
+                  >
+                    Clear page wallpaper
+                  </WeeButton>
+                </div>
+                <p className="settings-wee-help !mb-0 mt-3">
+                  {selectedPageWallpaperUrl
+                    ? 'This page has a custom wallpaper. Clearing falls back to the space / desktop wallpaper.'
+                    : 'No page wallpaper yet — falls back to space / desktop wallpaper.'}
+                </p>
+              </div>
+            </WeeRevealWhen>
 
             {showWallpaperSourceSection ? (
               <>
@@ -179,8 +248,9 @@ function SpaceWallpaperAppearanceSection({
               </>
             ) : (
               <p className="mb-4 text-[13px] leading-relaxed text-[hsl(var(--text-secondary))]">
-                Home always uses the active desktop wallpaper from the library above. Choose a tile and use &quot;Set for
-                Home&quot; — Game Hub and Media Hub can use their own overrides in this section when selected.
+                Home always uses the active desktop wallpaper from the library above (unless you enable per-page
+                wallpapers). Choose a tile and use &quot;Set for Home&quot; — Game Hub and Media Hub can use their own
+                overrides in this section when selected.
               </p>
             )}
 

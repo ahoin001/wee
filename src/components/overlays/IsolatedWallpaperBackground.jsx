@@ -3,12 +3,20 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useWallpaperCycling from '../../utils/useWallpaperCycling';
 import { useSpaceWallpaperCrossfade } from '../../hooks/useSpaceWallpaperCrossfade';
-import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from '../../utils/channelSpaces';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import {
+  DEFAULT_SHELL_SPACE_ORDER,
+  getSecondaryChannelSpaceData,
+  normalizeShellSpaceOrder,
+  resolveActiveBoardCurrentPage,
+} from '../../utils/channelSpaces';
 import {
   SPACE_SHELL_EASE_CSS,
   SPACE_SHELL_TRANSITION_MS_DEFAULT,
 } from '../../design/spaceShellMotion';
+import { CHANNEL_PAGE_FLIP_MS } from '../../utils/channelLayoutSystem';
 import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
+import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAccent';
 
 /**
  * Space-switch depth cue via background-position (cover stays full viewport).
@@ -22,17 +30,39 @@ function spaceParallaxBackgroundYPercent(spaceIndex) {
 function IsolatedWallpaperBackgroundInner({
   shellTransitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
 }) {
-  const { wallpaper, activeSpaceId, spaceOrder, appearanceBySpace } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      wallpaper: state.wallpaper,
-      activeSpaceId: state.spaces.activeSpaceId,
-      spaceOrder: state.spaces.order,
-      appearanceBySpace: state.appearanceBySpace,
-    }))
-  );
+  const { wallpaper, activeSpaceId, spaceOrder, mediaHubEnabled, appearanceBySpace, channels } =
+    useConsolidatedAppStore(
+      useShallow((state) => ({
+        wallpaper: state.wallpaper,
+        activeSpaceId: state.spaces.activeSpaceId,
+        spaceOrder: state.spaces.order,
+        mediaHubEnabled: state.spaces.mediaHubEnabled === true,
+        appearanceBySpace: state.appearanceBySpace,
+        channels: state.channels,
+      }))
+    );
+  const motionFeedback = useMotionFeedback();
+  const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
+  const boardNav =
+    activeSpaceId === 'workspaces'
+      ? getSecondaryChannelSpaceData(channels)?.navigation
+      : channels?.dataBySpace?.home?.navigation;
+  const pageDirection =
+    boardNav?.animationDirection === 'left'
+      ? -1
+      : boardNav?.animationDirection === 'right'
+        ? 1
+        : 0;
+
   const activeSpaceAppearance = appearanceBySpace?.[activeSpaceId]?.wallpaper || null;
+  const displayWallpaperUrl = resolveDisplayWallpaperUrl({
+    activeSpaceId,
+    wallpaperCurrent: wallpaper.current,
+    appearanceBySpace,
+    wallpaperEntryUrlKey,
+    currentPage,
+  });
   const useGlobalWallpaper = activeSpaceAppearance?.useGlobalWallpaper !== false;
-  /** Home always uses the global active wallpaper (`wallpaper.current`); ignore stale per-space override rows. */
   const isHomeShellSpace = activeSpaceId === 'home';
   const spaceWallpaperUrl =
     isHomeShellSpace
@@ -40,8 +70,12 @@ function IsolatedWallpaperBackgroundInner({
       : !useGlobalWallpaper && typeof activeSpaceAppearance?.spaceWallpaperUrl === 'string'
         ? activeSpaceAppearance.spaceWallpaperUrl
         : null;
-  const globalWallpaperUrl = wallpaper.current ? wallpaperEntryUrlKey(wallpaper.current) || null : null;
-  const displayWallpaperUrl = spaceWallpaperUrl || globalWallpaperUrl;
+  const hasPerPageWallpaper =
+    activeSpaceAppearance?.wallpaperScope === 'perPage' &&
+    Boolean(
+      activeSpaceAppearance?.wallpaperByPage?.[currentPage] ||
+        activeSpaceAppearance?.wallpaperByPage?.[String(currentPage)]
+    );
 
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
@@ -99,7 +133,8 @@ function IsolatedWallpaperBackgroundInner({
     slideDirection: cyclingSlideDirection,
   } = useWallpaperCycling();
   const setWallpaperState = useConsolidatedAppStore((state) => state.actions.setWallpaperState);
-  const hasSpaceWallpaperOverride = Boolean(spaceWallpaperUrl);
+  // Per-page or space override owns the layer — skip global cycling transitions.
+  const hasSpaceWallpaperOverride = Boolean(spaceWallpaperUrl) || hasPerPageWallpaper;
   const { opacity, blur, cycleAnimation } = wallpaper;
   const effectiveSpaceBlur =
     typeof activeSpaceAppearance?.spaceBlur === 'number'
@@ -120,12 +155,19 @@ function IsolatedWallpaperBackgroundInner({
   const effectiveCyclingSlideDirection = canCycleCurrentSpace ? cyclingSlideDirection : 'right';
   const effectiveCycleAnimation = canCycleCurrentSpace ? cycleAnimation : 'fade';
 
+  const pageParallaxEnabled =
+    !reducedMotion && Boolean(motionFeedback?.channelReorderSlotMotion);
+
   const spaceFade = useSpaceWallpaperCrossfade({
     displayUrl: displayWallpaperUrl,
     activeSpaceId,
+    pageIndex: currentPage,
+    pageDirection,
     cyclingTransitioning: effectiveCyclingTransitioning,
     transitionsEnabled: !reducedMotion,
-    transitionMs: shellTransitionMs,
+    spaceTransitionMs: shellTransitionMs,
+    pageTransitionMs: CHANNEL_PAGE_FLIP_MS,
+    pageParallaxEnabled,
   });
 
   // Publish settled URL for ambient + scene transition waiters (not the mid-fade store URL).
@@ -334,13 +376,15 @@ function IsolatedWallpaperBackgroundInner({
   const resolvedSpaceOrder = useMemo(
     () =>
       normalizeShellSpaceOrder(
-        Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SHELL_SPACE_ORDER
+        Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SHELL_SPACE_ORDER,
+        { mediaHubEnabled }
       ),
-    [spaceOrder]
+    [spaceOrder, mediaHubEnabled]
   );
   const rawIndex = resolvedSpaceOrder.indexOf(activeSpaceId);
   const spaceIndex = rawIndex >= 0 ? rawIndex : 0;
   const parallaxBgY = spaceParallaxBackgroundYPercent(spaceIndex);
+  const pageParallaxX = spaceFade.parallaxXPercent || 0;
 
   const currentLayerStyle = getCurrentWallpaperStyle();
   const nextLayerStyle = getNextWallpaperStyle();
@@ -356,13 +400,13 @@ function IsolatedWallpaperBackgroundInner({
   const idleLayerStyle = useMemo(
     () => ({
       opacity,
-      transform: 'none',
+      transform: pageParallaxX ? `translateX(${pageParallaxX}%)` : 'none',
       filter: toneBlurPx(effectiveSpaceBlur),
     }),
-    [toneBlurPx, opacity, effectiveSpaceBlur]
+    [toneBlurPx, opacity, effectiveSpaceBlur, pageParallaxX]
   );
 
-  const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
+  const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}, transform ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
 
   // Idle layers use committed baseUrl (not store display URL) so same-space URL
   // changes never flash the destination for a frame before the crossfade starts.
@@ -417,6 +461,7 @@ function IsolatedWallpaperBackgroundInner({
                 backgroundPosition: `center ${parallaxBgY}%`,
                 backgroundRepeat: 'no-repeat',
                 opacity: opacity * spaceFade.overlayOpacity,
+                transform: pageParallaxX ? `translateX(${pageParallaxX}%)` : 'none',
                 filter: toneBlurPx(effectiveSpaceBlur),
                 transition: spaceOverlayTransition,
               }}

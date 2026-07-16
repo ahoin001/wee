@@ -9,9 +9,14 @@ import {
   isSlotHidden,
   resolveGridConfig,
   resolveLayout,
+  resolveLayoutForPage,
   resolveNavigation,
 } from './channelLayoutSystem';
-import { getChannelDataSlice, normalizeChannelSpaceKey } from './channelSpaces';
+import {
+  getChannelDataSlice,
+  normalizeChannelSpaceKey,
+  resolveActiveChannelSpaceKey,
+} from './channelSpaces';
 
 /**
  * Channel grid operations scoped to one shell space (`home` | `workspaces`).
@@ -64,6 +69,11 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
       enableSlideAnimation: true,
     }),
     [rawNavigation, layout.totalPages]
+  );
+
+  const pageLayout = useMemo(
+    () => resolveLayoutForPage(channelData, navigation.currentPage),
+    [channelData, navigation.currentPage]
   );
 
   const gridConfig = useMemo(() => {
@@ -186,8 +196,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     const shellMatchesActiveChannelSpace = () => {
       const activeSpaceId = useConsolidatedAppStore.getState().spaces.activeSpaceId;
       if (activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub') return false;
-      if (activeSpaceId === 'home' && spaceKey === 'home') return true;
-      return false;
+      return resolveActiveChannelSpaceKey(activeSpaceId) === spaceKey;
     };
 
     let lastAuxNavMs = 0;
@@ -290,8 +299,8 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   }, [setChannelNavigationForSpace, spaceKey]);
 
   const setLayout = useCallback(
-    (layoutPartial) => {
-      setChannelLayoutForSpace(spaceKey, layoutPartial);
+    (layoutPartial, options) => {
+      setChannelLayoutForSpace(spaceKey, layoutPartial, options);
     },
     [setChannelLayoutForSpace, spaceKey]
   );
@@ -399,6 +408,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     channelOperations,
     gridConfig,
     layout,
+    pageLayout,
     navigation,
     configuredChannels,
     channelConfigs,

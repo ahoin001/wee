@@ -7,6 +7,7 @@ import {
   extractImagePalette,
 } from '../utils/theme/extractImagePalette';
 import { resolveDisplayWallpaperUrl } from '../utils/theme/resolveEffectiveAccent';
+import { resolveActiveBoardCurrentPage } from '../utils/channelSpaces';
 import { syncActiveSpaceAppearanceCapture } from '../utils/appearance/spaceAppearance';
 
 const EXTRACT_DEBOUNCE_MS = 400;
@@ -22,6 +23,7 @@ export function useWallpaperAmbientColor() {
     activeSpaceId,
     wallpaperCurrent,
     appearanceBySpace,
+    channels,
     visualCommittedUrl,
     cachedForUrl,
     setUIState,
@@ -32,6 +34,7 @@ export function useWallpaperAmbientColor() {
       activeSpaceId: state.spaces.activeSpaceId,
       wallpaperCurrent: state.wallpaper?.current,
       appearanceBySpace: state.appearanceBySpace,
+      channels: state.channels,
       visualCommittedUrl: state.wallpaper?.visualCommittedUrl ?? null,
       cachedForUrl: state.ui.ambientColor?.cachedForUrl ?? null,
       setUIState: state.actions.setUIState,
@@ -40,12 +43,14 @@ export function useWallpaperAmbientColor() {
   );
 
   const sessionPower = useConsolidatedAppStore((s) => s.ui.sessionPower ?? 'normal');
+  const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
 
   const displayUrl = resolveDisplayWallpaperUrl({
     activeSpaceId,
     wallpaperCurrent,
     appearanceBySpace,
     wallpaperEntryUrlKey,
+    currentPage,
   });
 
   // Prefer settled visual URL; fall back to display only before the wallpaper layer mounts.

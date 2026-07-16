@@ -141,6 +141,7 @@ function App() {
     dock,
     activeSpaceId,
     spaceOrder,
+    mediaHubEnabled,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       appReady: state.app.appReady,
@@ -186,6 +187,7 @@ function App() {
       dock: state.dock,
       activeSpaceId: state.spaces.activeSpaceId,
       spaceOrder: state.spaces.order,
+      mediaHubEnabled: state.spaces.mediaHubEnabled === true,
     }))
   );
 
@@ -280,9 +282,10 @@ function App() {
   const resolvedSpaceOrder = useMemo(
     () =>
       normalizeShellSpaceOrder(
-        Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SHELL_SPACE_ORDER
+        Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SHELL_SPACE_ORDER,
+        { mediaHubEnabled }
       ),
-    [spaceOrder]
+    [spaceOrder, mediaHubEnabled]
   );
   const activeSpaceIndex = useMemo(() => {
     const i = resolvedSpaceOrder.indexOf(activeSpaceId);
@@ -590,10 +593,13 @@ function App() {
       return <LazyGameHubSpace />;
     }
     if (spaceId === 'mediahub') {
-      return <LazyMediaHubSpace />;
+      return mediaHubEnabled ? <LazyMediaHubSpace /> : null;
+    }
+    if (spaceId === 'workspaces') {
+      return <LazyPaginatedChannels channelSpaceKey="workspaces" />;
     }
     return <LazyPaginatedChannels channelSpaceKey="home" />;
-  }, []);
+  }, [mediaHubEnabled]);
 
   // Debug wallpaper cycling isolation
   useEffect(() => {

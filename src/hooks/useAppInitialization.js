@@ -133,9 +133,17 @@ export const useAppInitialization = () => {
             slices.workspaces = resolvedSettings.workspaces;
           }
           if (resolvedSettings.spaces) {
+            const mediaHubEnabled =
+              typeof resolvedSettings.spaces.mediaHubEnabled === 'boolean'
+                ? resolvedSettings.spaces.mediaHubEnabled
+                : Array.isArray(resolvedSettings.spaces.order) &&
+                  resolvedSettings.spaces.order.includes('mediahub');
             slices.spaces = {
               ...resolvedSettings.spaces,
-              order: normalizeShellSpaceOrder(resolvedSettings.spaces.order),
+              mediaHubEnabled,
+              order: normalizeShellSpaceOrder(resolvedSettings.spaces.order, {
+                mediaHubEnabled,
+              }),
               isTransitioning: resolvedSettings.spaces.isTransitioning ?? false,
             };
           }
