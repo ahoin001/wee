@@ -13,6 +13,8 @@ import {
 import { isChannelSlotEmpty, isNonChannelSlot } from '../../utils/homeGridSlots';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import { getHomeSlotKind, listPlaceableHomeSlotKinds, matchHomeSlotSizePreset } from './slotKindRegistry';
+import HomeWidgetGlassControls from './HomeWidgetGlassControls';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 const MotionDiv = m.div;
 
@@ -54,6 +56,10 @@ function HomeBoardArrangeBar({
       setMoreOpen(false);
     }
   }, [arrangeMode]);
+
+  useEffect(() => {
+    useConsolidatedAppStore.getState().actions.ensureHomeWidgetSurfaceMigration?.();
+  }, []);
 
   const placeableKinds = useMemo(() => listPlaceableHomeSlotKinds(), []);
 
@@ -172,11 +178,24 @@ function HomeBoardArrangeBar({
                       size="sm"
                       ariaLabel="Widget surface"
                       layoutId="homeArrangeWidgetSurface"
-                      value={activeSurface || 'glass'}
+                      value={activeSurface || 'basic'}
                       onChange={(surface) => onSetSurface?.(surface)}
                       options={[
-                        { value: 'glass', label: 'Glass', title: 'Frosted glass chrome' },
-                        { value: 'clear', label: 'Clear', title: 'Transparent — wallpaper shows through' },
+                        {
+                          value: 'basic',
+                          label: 'Basic',
+                          title: 'Solid frosted pill chrome',
+                        },
+                        {
+                          value: 'glass',
+                          label: 'Glass',
+                          title: 'Liquid glass — wallpaper shows through (shared look)',
+                        },
+                        {
+                          value: 'clear',
+                          label: 'Clear',
+                          title: 'No fill — wallpaper shows through',
+                        },
                       ]}
                     />
                   ) : null}
@@ -227,6 +246,13 @@ function HomeBoardArrangeBar({
                   />
                 ))}
               </div>
+            </WeeContentCollapse>
+
+            <WeeContentCollapse
+              open={selectedIsWidget && activeSurface === 'glass'}
+              keepMounted={false}
+            >
+              <HomeWidgetGlassControls />
             </WeeContentCollapse>
 
             <WeeContentCollapse open={moreOpen} keepMounted={false}>

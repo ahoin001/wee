@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784168119.4688694,
-    "ast_hash": "a4d24c4997671154c91871c6f12170f2",
+    "mtime": 1784168955.0733478,
+    "ast_hash": "ed19b5ca7978ef67c56a1f195ea71b32",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanel.jsx": {
-    "mtime": 1783872816.86016,
-    "ast_hash": "bd452f669e74ce3954daa8b872987893",
-    "semantic_hash": "bd452f669e74ce3954daa8b872987893"
+    "mtime": 1784170886.7886744,
+    "ast_hash": "6e5a69535e90caae2ae0ab2f7da0ea18",
+    "semantic_hash": ""
   },
   "src/components/admin/AdminPanelWidget.jsx": {
     "mtime": 1783873069.1089256,
@@ -630,9 +630,9 @@
     "semantic_hash": ""
   },
   "src/components/settings/GameHubSettingsTab.jsx": {
-    "mtime": 1776740507.7390997,
-    "ast_hash": "4d446c15c8f51b33eb5ed31fbd0fdcb4",
-    "semantic_hash": "4d446c15c8f51b33eb5ed31fbd0fdcb4"
+    "mtime": 1784170875.8095677,
+    "ast_hash": "c792de0d32f25affdb583f6a398af830",
+    "semantic_hash": ""
   },
   "src/components/settings/GeneralSettingsTab.jsx": {
     "mtime": 1784141652.9513187,
@@ -680,8 +680,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/SettingsModal.jsx": {
-    "mtime": 1784139451.8856373,
-    "ast_hash": "68532f9d577e3fb812db72dc2ceffcae",
+    "mtime": 1784170900.2429738,
+    "ast_hash": "889c9144f160f282f2ad37b9faf136d0",
     "semantic_hash": ""
   },
   "src/components/settings/SettingsMultiToggleChips.jsx": {
@@ -1525,8 +1525,8 @@
     "semantic_hash": "2f9d59760e07f194ba3ec6911bd02abe"
   },
   "src/utils/settingsNavigation.js": {
-    "mtime": 1784139451.883068,
-    "ast_hash": "1e9e49187c707a03290fca9b3abef333",
+    "mtime": 1784170880.789235,
+    "ast_hash": "54781dedce9af36c8e929d08a16718ef",
     "semantic_hash": ""
   },
   "src/utils/spotifyService.js": {
@@ -1575,8 +1575,8 @@
     "semantic_hash": ""
   },
   "src/utils/store/settingsPersistenceContract.js": {
-    "mtime": 1784155950.5433016,
-    "ast_hash": "0e7c11efd3f5e3dae116b95d471f6ac9",
+    "mtime": 1784171143.2320426,
+    "ast_hash": "da423fc62e89c1fc9485f09b1a15a9d5",
     "semantic_hash": ""
   },
   "src/utils/store/storeContracts.ts": {
@@ -1610,8 +1610,8 @@
     "semantic_hash": "541dd4bec18629467fdcb48e0506fb0f"
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784168786.3834455,
-    "ast_hash": "7d55821f8fcaeb0cd89fa88f686c2f9b",
+    "mtime": 1784171178.9761803,
+    "ast_hash": "61d41e1b90f54616390ae1990b3c6e15",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -2095,8 +2095,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
-    "mtime": 1784168658.9673054,
-    "ast_hash": "0a9acefd8278ebc8dee6ca5b1fd78e02",
+    "mtime": 1784171179.9106128,
+    "ast_hash": "726859b3468a39c316462cffaa0a8380",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardSwitcher.jsx": {
@@ -2335,8 +2335,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingSources.js": {
-    "mtime": 1784167994.8088713,
-    "ast_hash": "f949551ce6d844c866511cea78ac37ad",
+    "mtime": 1784170851.5302572,
+    "ast_hash": "059e097551d97e6cbbabc6c57b7046d0",
     "semantic_hash": ""
   },
   "src/hooks/useSharedSpotifyPlaybackSampler.js": {
@@ -2360,8 +2360,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetShell.jsx": {
-    "mtime": 1784168575.7423487,
-    "ast_hash": "34bcd1b83fb55556dbc480524404c7fa",
+    "mtime": 1784171188.7019575,
+    "ast_hash": "67ce2dcb9832502b89d616b1722642c0",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamRecentSlot.jsx": {
@@ -2385,8 +2385,23 @@
     "semantic_hash": ""
   },
   "src/utils/homeWidgetSurface.js": {
-    "mtime": 1784168573.2328165,
-    "ast_hash": "dc641a06a8f446bfe23a977fc7129657",
+    "mtime": 1784171099.9890316,
+    "ast_hash": "3cfa83ac94e342a42e67c636db58be40",
+    "semantic_hash": ""
+  },
+  "src/utils/steamId64.js": {
+    "mtime": 1784170880.8318841,
+    "ast_hash": "6d68a72bbf26543422cdb0d1576eaed2",
+    "semantic_hash": ""
+  },
+  "src/components/home-grid/HomeWidgetGlassControls.jsx": {
+    "mtime": 1784171159.4138842,
+    "ast_hash": "097eb35ae7b083604abde4d99b8cc02f",
+    "semantic_hash": ""
+  },
+  "src/utils/homeWidgetGlass.js": {
+    "mtime": 1784171071.7959774,
+    "ast_hash": "a9d281422dc62ea9373302720c4e7acc",
     "semantic_hash": ""
   }
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Button from '../../ui/WButton';
 import WInput from '../../ui/WInput';
 import Text from '../../ui/Text';
-import { WeeCard, WeeModalShell } from '../../ui/wee';
+import { WeeCard, WeeModalShell, WeeSegmentedControl } from '../../ui/wee';
 import { ActionCommand, QuickAccessItem } from '../app-library';
 import {
   ADMIN_ACTION_CATEGORIES,
@@ -317,24 +317,19 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <div className="flex flex-wrap gap-1.5">
-              {['All', ...ADMIN_ACTION_CATEGORIES].map((category) => {
-                const active = selectedCategory === category;
-                return (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() => setSelectedCategory(category)}
-                    className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition-colors ${
-                      active
-                        ? 'border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary))]'
-                        : 'border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.5)] text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))]'
-                    }`}
-                  >
-                    {category}
-                  </button>
-                );
-              })}
+            <div className="mb-3">
+              <WeeSegmentedControl
+                size="sm"
+                wrap
+                ariaLabel="Action category"
+                layoutId="adminActionCategory"
+                value={selectedCategory}
+                onChange={setSelectedCategory}
+                options={['All', ...ADMIN_ACTION_CATEGORIES].map((category) => ({
+                  value: category,
+                  label: category,
+                }))}
+              />
             </div>
           </div>
 

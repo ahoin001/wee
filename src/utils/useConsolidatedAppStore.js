@@ -36,7 +36,11 @@ import {
 } from './homeGridSlots';
 import { canPlaceSpan, applySlotSpan } from './homeGridOccupancy';
 import { getHomeSlotSizePresetById } from './homeSlotSizePresets';
-import { normalizeHomeWidgetSurface } from './homeWidgetSurface';
+import {
+  migrateChannelsLegacyGlassSurfaces,
+  normalizeHomeWidgetSurface,
+} from './homeWidgetSurface';
+import { normalizeHomeWidgetGlass } from './homeWidgetGlass';
 import { recordRecentLaunchEntry } from './recentLaunches';
 import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
@@ -203,6 +207,18 @@ useConsolidatedAppStore = create(
           ambientColor: { ...DEFAULT_AMBIENT_COLOR },
           channelOpacity: 1,
           lastChannelHoverTime: Date.now(),
+          /**
+           * Shared liquid-glass look for Home widgets with surface: 'glass'.
+           * All glass tiles read this so they stay visually harmonious.
+           */
+          homeWidgetGlass: {
+            blur: 14,
+            tint: 0.16,
+            saturation: 155,
+            refraction: 0.42,
+            shine: 0.55,
+            surfacesMigrated: false,
+          },
           // Modal states
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
@@ -1414,6 +1430,19 @@ useConsolidatedAppStore = create(
               homeWeather: { ...(state.homeWeather || {}), ...updates },
             })),
 
+          ensureHomeWidgetSurfaceMigration: () =>
+            set((state) => {
+              const glassCfg = normalizeHomeWidgetGlass(state.ui?.homeWidgetGlass);
+              if (glassCfg.surfacesMigrated) return state;
+              return {
+                channels: migrateChannelsLegacyGlassSurfaces(state.channels),
+                ui: {
+                  ...state.ui,
+                  homeWidgetGlass: { ...glassCfg, surfacesMigrated: true },
+                },
+              };
+            }),
+
           // Spotify manager
           spotifyManager,
           
@@ -1862,6 +1891,21 @@ useConsolidatedAppStore = create(
                 if (merged.ui) next.ui = merged.ui;
               }
 
+              // Normalize shared liquid-glass prefs; once migrate legacy slot surfaces glass→basic.
+              const glassCfg = normalizeHomeWidgetGlass(next.ui?.homeWidgetGlass);
+              if (!glassCfg.surfacesMigrated) {
+                next.channels = migrateChannelsLegacyGlassSurfaces(next.channels);
+                next.ui = {
+                  ...next.ui,
+                  homeWidgetGlass: { ...glassCfg, surfacesMigrated: true },
+                };
+              } else {
+                next.ui = {
+                  ...next.ui,
+                  homeWidgetGlass: glassCfg,
+                };
+              }
+
               return next;
             }),
 
@@ -2046,6 +2090,14 @@ useConsolidatedAppStore = create(
               ambientColor: { ...DEFAULT_AMBIENT_COLOR },
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),
+              homeWidgetGlass: {
+                blur: 14,
+                tint: 0.16,
+                saturation: 155,
+                refraction: 0.42,
+                shine: 0.55,
+                surfacesMigrated: true,
+              },
               showUpdateModal: false,
               updateDismissedVersion: '',
               isAuthModalOpen: false,

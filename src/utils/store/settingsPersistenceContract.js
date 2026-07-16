@@ -1,4 +1,5 @@
 import { mergeMotionFeedback } from '../motionFeedbackDefaults.js';
+import { normalizeHomeWidgetGlass } from '../homeWidgetGlass.js';
 import {
   createDefaultChannelSpaceData,
   DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
@@ -235,6 +236,7 @@ const selectPersistedUi = (ui = {}) => ({
       ? ui.nowPlayingSourcePreference
       : 'auto',
   systemMediaEnabled: ui.systemMediaEnabled !== false,
+  homeWidgetGlass: normalizeHomeWidgetGlass(ui.homeWidgetGlass),
 });
 
 /** Strip modal / loading chrome — prefs only. */

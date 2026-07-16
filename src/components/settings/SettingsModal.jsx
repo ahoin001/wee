@@ -5,6 +5,7 @@ import { AnimatePresence, m } from 'framer-motion';
 import { Search, X, History } from 'lucide-react';
 import { WeeModalShell, WeeModalRail, WeeSectionEyebrow } from '../../ui/wee';
 import WeeButton from '../../ui/wee/WeeButton';
+import WButton from '../../ui/WButton';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
@@ -261,20 +262,20 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
                 <div className="flex flex-wrap gap-1.5 px-1">
                   {recentTabIds.map((id) => {
                     const tab = getSettingsTabMeta(id);
+                    const isActive = activeTab === id;
                     return (
-                      <button
+                      <WButton
                         key={id}
                         type="button"
+                        size="sm"
+                        variant={isActive ? 'primary' : 'secondary'}
                         onClick={() => handleTabChange(id)}
-                        className={`flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide transition-colors ${
-                          activeTab === id
-                            ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--text-primary))]'
-                            : 'border-[hsl(var(--border-primary)/0.4)] text-[hsl(var(--wee-text-rail-muted))] hover:bg-[hsl(var(--state-hover)/0.65)]'
-                        }`}
                       >
-                        <span aria-hidden>{tab.icon}</span>
-                        {tab.label}
-                      </button>
+                        <span className="flex items-center gap-1.5">
+                          <span aria-hidden>{tab.icon}</span>
+                          {tab.label}
+                        </span>
+                      </WButton>
                     );
                   })}
                 </div>

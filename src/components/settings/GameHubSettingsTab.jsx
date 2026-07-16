@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import { Cloud, GraduationCap, ImageIcon, User } from 'lucide-react';
@@ -7,6 +7,9 @@ import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
 import WInput from '../../ui/WInput';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { openExternalUrl } from '../../utils/settingsNavigation';
+import { validateSteamId64Input } from '../../utils/steamId64';
+import { refreshSteamEnrichmentNow } from '../../utils/gameHub/gameHubEnrichmentRefresh';
 import {
   WeeModalFieldCard,
   WeeSectionEyebrow,
@@ -78,41 +81,93 @@ const GameHubSettingsTab = React.memo(() => {
       ui: state.gameHub?.ui || {},
     }))
   );
-  const { setGameHubState } = useConsolidatedAppStore(useShallow((state) => state.actions));
+  const setGameHubState = useConsolidatedAppStore((state) => state.actions.setGameHubState);
 
   const [steamIdInput, setSteamIdInput] = useState(profile.steamId || '');
   const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const successTimerRef = useRef(null);
 
   useEffect(() => {
     setSteamIdInput(profile.steamId || '');
   }, [profile.steamId]);
+
+  useEffect(
+    () => () => {
+      if (successTimerRef.current) window.clearTimeout(successTimerRef.current);
+    },
+    []
+  );
 
   const syncLabel = useMemo(() => {
     if (!library?.lastSyncedAt) return 'No sync yet';
     return new Date(library.lastSyncedAt).toLocaleString();
   }, [library?.lastSyncedAt]);
 
-  const handleSaveSteamId = useCallback(() => {
-    const normalized = steamIdInput.trim();
-    if (!normalized) {
-      setSaveError('SteamID64 is required or use Clear to remove it.');
-      return;
-    }
-    if (!/^\d{17}$/.test(normalized)) {
-      setSaveError('SteamID64 must be exactly 17 digits.');
-      return;
-    }
+  const flashSuccess = useCallback((message) => {
     setSaveError('');
-    setGameHubState({
-      profile: {
-        steamId: normalized,
-        onboardingDismissed: false,
-      },
-    });
-  }, [setGameHubState, steamIdInput]);
+    setSaveSuccess(message);
+    if (successTimerRef.current) window.clearTimeout(successTimerRef.current);
+    successTimerRef.current = window.setTimeout(() => {
+      setSaveSuccess('');
+      successTimerRef.current = null;
+    }, 4000);
+  }, []);
+
+  const handleSaveSteamId = useCallback(async () => {
+    const result = validateSteamId64Input(steamIdInput);
+    if (!result.ok) {
+      setSaveSuccess('');
+      setSaveError(result.error);
+      return;
+    }
+
+    const { steamId } = result;
+    setSteamIdInput(steamId);
+    setIsSaving(true);
+    setSaveError('');
+
+    try {
+      setGameHubState({
+        profile: {
+          steamId,
+          onboardingDismissed: false,
+        },
+        library: {
+          syncStatus: 'pending',
+          statusReason: 'SteamID64 saved. Syncing library…',
+          lastError: null,
+        },
+      });
+
+      // Confirm the store actually accepted the write (guards against silent no-ops).
+      const stored = useConsolidatedAppStore.getState().gameHub?.profile?.steamId;
+      if (stored !== steamId) {
+        setSaveError('Couldn’t save SteamID64 to app settings. Try again.');
+        return;
+      }
+
+      const refresh = await refreshSteamEnrichmentNow();
+      if (refresh?.ok) {
+        flashSuccess(`Saved SteamID64 ${steamId}. Library sync complete.`);
+      } else if (refresh?.reason === 'unavailable') {
+        flashSuccess(
+          `Saved SteamID64 ${steamId}. Enable Steam Web API (below) to sync your library.`
+        );
+      } else {
+        flashSuccess(
+          `Saved SteamID64 ${steamId}. Library sync failed — check Enrichment status below.`
+        );
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }, [setGameHubState, steamIdInput, flashSuccess]);
 
   const handleClearSteamId = useCallback(() => {
     setSaveError('');
+    setSaveSuccess('');
     setSteamIdInput('');
     setGameHubState({
       profile: {
@@ -127,7 +182,8 @@ const GameHubSettingsTab = React.memo(() => {
         lastError: null,
       },
     });
-  }, [setGameHubState]);
+    flashSuccess('SteamID64 cleared.');
+  }, [setGameHubState, flashSuccess]);
 
   const handleUseSteamWebApiChange = useCallback(
     (checked) => {
@@ -155,6 +211,12 @@ const GameHubSettingsTab = React.memo(() => {
     });
   }, [setGameHubState]);
 
+  const handleOpenSteamIdHelp = useCallback(() => {
+    openExternalUrl(STEAM_ID_HELP_URL);
+  }, []);
+
+  const helperIsError = Boolean(saveError);
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
       <SettingsTabPageHeader title="Game Hub" subtitle="SteamID64 and enrichment controls" />
@@ -177,32 +239,60 @@ const GameHubSettingsTab = React.memo(() => {
               <Text variant="caption" className="!m-0 mt-1 text-[hsl(var(--text-tertiary))]">
                 Quick tip: sign in on Steam, open your profile page, and copy the ID from the profile URL.
               </Text>
+              {profile.steamId ? (
+                <Text variant="caption" className="!m-0 mt-2 font-bold text-[hsl(var(--text-secondary))]">
+                  Currently saved: {profile.steamId}
+                </Text>
+              ) : (
+                <Text variant="caption" className="!m-0 mt-2 text-[hsl(var(--text-tertiary))]">
+                  No SteamID64 saved yet.
+                </Text>
+              )}
             </div>
             <WInput
               variant="wee"
               type="text"
               value={steamIdInput}
-              onChange={(event) => setSteamIdInput(event.target.value)}
+              onChange={(event) => {
+                setSteamIdInput(event.target.value);
+                if (saveError) setSaveError('');
+                if (saveSuccess) setSaveSuccess('');
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  void handleSaveSteamId();
+                }
+              }}
               placeholder="17-digit SteamID64"
-              error={Boolean(saveError)}
-              helperText={saveError || undefined}
-              aria-invalid={Boolean(saveError)}
+              error={helperIsError}
+              helperText={helperIsError ? saveError : undefined}
+              aria-invalid={helperIsError}
             />
+            {saveSuccess ? (
+              <p
+                className="!m-0 text-sm font-bold text-[hsl(var(--state-success))]"
+                role="status"
+                aria-live="polite"
+              >
+                {saveSuccess}
+              </p>
+            ) : null}
             <div className="flex flex-wrap items-center gap-2">
-              <WButton size="sm" variant="primary" onClick={handleSaveSteamId}>
-                Save SteamID64
+              <WButton
+                size="sm"
+                variant="primary"
+                onClick={() => void handleSaveSteamId()}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving…' : 'Save SteamID64'}
               </WButton>
-              <WButton size="sm" variant="secondary" onClick={handleClearSteamId}>
+              <WButton size="sm" variant="secondary" onClick={handleClearSteamId} disabled={isSaving}>
                 Clear
               </WButton>
-              <a
-                href={STEAM_ID_HELP_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center rounded-full border border-[hsl(var(--border-primary)/0.5)] bg-[hsl(var(--surface-elevated))] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.1em] text-[hsl(var(--primary))] underline decoration-[hsl(var(--primary)/0.4)] underline-offset-[3px] transition-colors hover:text-[hsl(var(--primary-hover))]"
-              >
+              <WButton size="sm" variant="tertiary" onClick={handleOpenSteamIdHelp}>
                 Where to find SteamID64
-              </a>
+              </WButton>
             </div>
           </div>
         </WeeModalFieldCard>

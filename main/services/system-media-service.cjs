@@ -104,13 +104,24 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
   }
 
   /**
-   * Start SMTC subscription. Awaits any in-flight stop, then awaits the first
-   * session snapshot so the IPC caller gets real sessions (not an empty race).
+   * Start SMTC subscription. Always await an in-flight stop *before* joining or
+   * creating a start — otherwise a Strict Mode remount can share a start that a
+   * concurrent stop then tears down, leaving the bridge dead with no listener.
    */
   async function start() {
+    if (stopPromise) {
+      try {
+        await stopPromise;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (started) return getStatus();
     if (startPromise) return startPromise;
 
     startPromise = (async () => {
+      // Re-check after any interleaved stop that finished while we were queued.
       if (stopPromise) {
         try {
           await stopPromise;
@@ -118,7 +129,6 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
           /* ignore */
         }
       }
-
       if (started) return getStatus();
 
       started = true;
@@ -132,6 +142,8 @@ function createSystemMediaService({ getMainWindow, execFile, platform }) {
         unsubscribe = api.onSessionsChanged(onSessions);
         try {
           const sessions = await api.getAllSessions();
+          // If stop won the race mid-fetch, don't resurrect a torn-down bridge.
+          if (!started) return getStatus();
           onSessions(sessions);
         } catch (err) {
           lastError = err?.message || String(err);

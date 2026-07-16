@@ -36,6 +36,14 @@ function toStoredSession(session) {
 }
 
 /**
+ * Process-wide retain count so React Strict Mode remounts do not stop() the
+ * SMTC bridge between the double-invoke cleanup and the second mount.
+ */
+let smtcRetainCount = 0;
+/** @type {ReturnType<typeof setTimeout> | null} */
+let smtcReleaseTimer = null;
+
+/**
  * Owns system-media (SMTC) subscription + shared Spotify sampler.
  * Mount once from App — event-driven SMTC, no renderer poll of system sessions.
  *
@@ -101,6 +109,12 @@ export function useNowPlayingSources() {
     }
 
     if (!wantsSystem) {
+      // Drop retain and stop for real — user turned system media off.
+      if (smtcReleaseTimer) {
+        clearTimeout(smtcReleaseTimer);
+        smtcReleaseTimer = null;
+      }
+      smtcRetainCount = 0;
       api.stop?.().catch(() => {});
       lastSessionsRef.current = [];
       lastMetaRef.current = { available: lastMetaRef.current.available, error: null };
@@ -121,6 +135,13 @@ export function useNowPlayingSources() {
 
     unsub = api.onUpdate?.(applyPayload);
 
+    // Cancel a pending Strict Mode release from the previous effect instance.
+    if (smtcReleaseTimer) {
+      clearTimeout(smtcReleaseTimer);
+      smtcReleaseTimer = null;
+    }
+    smtcRetainCount += 1;
+
     (async () => {
       try {
         const status = await api.start();
@@ -139,8 +160,16 @@ export function useNowPlayingSources() {
     return () => {
       cancelled = true;
       if (typeof unsub === 'function') unsub();
-      // Always stop on unmount / leaving wantsSystem — main serializes vs overlapping start.
-      api.stop?.().catch(() => {});
+      smtcRetainCount = Math.max(0, smtcRetainCount - 1);
+      // Defer stop so Strict Mode remount (acquire again) can cancel it.
+      if (smtcRetainCount === 0) {
+        smtcReleaseTimer = setTimeout(() => {
+          smtcReleaseTimer = null;
+          if (smtcRetainCount === 0) {
+            api.stop?.().catch(() => {});
+          }
+        }, 75);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publishPrimary uses stable setState + refs
   }, [wantsSystem, setSystemMediaState]);

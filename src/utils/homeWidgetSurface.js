@@ -1,16 +1,102 @@
 /**
- * Per-widget board surface: glass chrome vs wallpaper-clear.
+ * Per-widget board surface mode.
  * Persisted on `slots[].surface` (Home grid SSOT).
+ *
+ * - `basic` — solid WeeGlassPill chrome (legacy “glass”)
+ * - `glass` — shared liquid glass (wallpaper-forward; global `ui.homeWidgetGlass`)
+ * - `clear` — no fill; wallpaper shows through
  */
 
-export const HOME_WIDGET_SURFACES = Object.freeze(['glass', 'clear']);
+export const HOME_WIDGET_SURFACES = Object.freeze(['basic', 'glass', 'clear']);
 
-export const DEFAULT_HOME_WIDGET_SURFACE = 'glass';
+export const DEFAULT_HOME_WIDGET_SURFACE = 'basic';
 
 /**
  * @param {unknown} value
- * @returns {'glass' | 'clear'}
+ * @returns {'basic' | 'glass' | 'clear'}
  */
 export function normalizeHomeWidgetSurface(value) {
-  return value === 'clear' ? 'clear' : DEFAULT_HOME_WIDGET_SURFACE;
+  if (value === 'clear') return 'clear';
+  if (value === 'glass') return 'glass';
+  if (value === 'basic') return 'basic';
+  return DEFAULT_HOME_WIDGET_SURFACE;
+}
+
+function isNonChannelSlotLike(slot) {
+  return Boolean(slot && slot.kind && slot.kind !== 'channel');
+}
+
+/**
+ * Pre-liquid releases stored WeeGlassPill chrome as `surface: 'glass'`.
+ * Map those to `basic` once so the Glass label can mean liquid glass.
+ * @param {unknown[]} slots
+ * @returns {unknown[]}
+ */
+export function migrateLegacyGlassSurfacesToBasic(slots) {
+  if (!Array.isArray(slots)) return slots;
+  let changed = false;
+  const next = slots.map((slot) => {
+    if (!slot || typeof slot !== 'object') return slot;
+    if (!isNonChannelSlotLike(slot)) return slot;
+    if (slot.surface === 'glass' || slot.surface == null) {
+      changed = true;
+      return { ...slot, surface: 'basic' };
+    }
+    return slot;
+  });
+  return changed ? next : slots;
+}
+
+/**
+ * @param {Record<string, unknown> | null | undefined} spaceData
+ */
+export function migrateSpaceDataLegacyGlassSurfaces(spaceData) {
+  if (!spaceData || typeof spaceData !== 'object') return spaceData;
+  const slots = migrateLegacyGlassSurfacesToBasic(spaceData.slots);
+  if (slots === spaceData.slots) return spaceData;
+  return { ...spaceData, slots };
+}
+
+/**
+ * Walk `channels.dataBySpace` (+ secondary profiles) and rewrite legacy glass → basic.
+ * @param {Record<string, unknown> | null | undefined} channels
+ */
+export function migrateChannelsLegacyGlassSurfaces(channels) {
+  if (!channels || typeof channels !== 'object') return channels;
+  const dataBySpace = channels.dataBySpace;
+  if (!dataBySpace || typeof dataBySpace !== 'object') return channels;
+
+  let changed = false;
+  const nextBySpace = {};
+  for (const [key, space] of Object.entries(dataBySpace)) {
+    const next = migrateSpaceDataLegacyGlassSurfaces(space);
+    nextBySpace[key] = next;
+    if (next !== space) changed = true;
+  }
+
+  let nextProfiles = channels.secondaryChannelProfiles;
+  if (nextProfiles && typeof nextProfiles === 'object') {
+    const profiles = {};
+    for (const [id, entry] of Object.entries(nextProfiles)) {
+      if (!entry || typeof entry !== 'object') {
+        profiles[id] = entry;
+        continue;
+      }
+      const nextSpace = migrateSpaceDataLegacyGlassSurfaces(entry.channelSpace);
+      if (nextSpace !== entry.channelSpace) {
+        changed = true;
+        profiles[id] = { ...entry, channelSpace: nextSpace };
+      } else {
+        profiles[id] = entry;
+      }
+    }
+    nextProfiles = profiles;
+  }
+
+  if (!changed) return channels;
+  return {
+    ...channels,
+    dataBySpace: nextBySpace,
+    secondaryChannelProfiles: nextProfiles,
+  };
 }

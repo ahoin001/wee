@@ -52,10 +52,20 @@ export function openSettingsToDockSubtab(dockSubTab) {
  * Open Spotify in the default browser / OS handler (helps when no active playback device).
  */
 export function openSpotifyWebApp() {
-  const url = 'https://open.spotify.com';
+  openExternalUrl('https://open.spotify.com');
+}
+
+/**
+ * Open a URL in the OS default browser (Electron `openExternal`, else `window.open`).
+ * @param {string} url
+ */
+export function openExternalUrl(url) {
+  if (!url) return;
   if (typeof window !== 'undefined' && window.api?.openExternal) {
     window.api.openExternal(url);
-  } else if (typeof window !== 'undefined') {
+    return;
+  }
+  if (typeof window !== 'undefined') {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 }
