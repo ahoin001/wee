@@ -26,16 +26,25 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error to console and any error reporting service
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     this.setState({
-      error: error,
-      errorInfo: errorInfo
+      error,
+      errorInfo,
     });
 
-    // In a production app, you would send this to an error reporting service
-    // Example: Sentry.captureException(error, { extra: errorInfo });
+    try {
+      const payload = {
+        errorId: this.state.errorId,
+        message: error?.message || String(error),
+        stack: error?.stack || null,
+        componentStack: errorInfo?.componentStack || null,
+        timestamp: new Date().toISOString(),
+      };
+      localStorage.setItem('wee:lastErrorBoundary', JSON.stringify(payload));
+    } catch {
+      // ignore quota / private mode
+    }
   }
 
   handleRetry = () => {
@@ -48,7 +57,6 @@ class ErrorBoundary extends React.Component {
   };
 
   handleReportError = () => {
-    // In a real app, this would open a bug report form or send to error tracking
     const errorReport = {
       errorId: this.state.errorId,
       error: this.state.error?.toString(),
@@ -60,9 +68,12 @@ class ErrorBoundary extends React.Component {
     };
     
     console.log('Error Report:', errorReport);
-    
-    // For now, just show an alert
-    alert(`Error reported with ID: ${this.state.errorId}\n\nPlease include this ID when reporting the issue.`);
+
+    const message = this.state.error?.message || this.state.error?.toString() || 'Unknown error';
+    const short = message.length > 280 ? `${message.slice(0, 277)}…` : message;
+    alert(
+      `Error reported with ID: ${this.state.errorId}\n\n${short}\n\nPlease include this ID when reporting the issue.`
+    );
   };
 
   render() {

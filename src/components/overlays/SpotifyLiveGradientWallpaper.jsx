@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { registerSpotifyGradientSave } from '../../utils/presets/spotifyLookRegistry';
-import { CANVAS_FILL_WHITE_80 } from '../../design/runtimeColorStrings.js';
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 import { logError, logWarn } from '../../utils/logger';
 
@@ -15,7 +14,7 @@ const SpotifyLiveGradientWallpaper = () => {
     }))
   );
   const lastWallpaperUrl = useRef(null);
-  const { shouldAnimate, isLowPowerMode } = useAnimationActivity({
+  const { shouldAnimate } = useAnimationActivity({
     activeFps: 20,
     lowPowerFps: 10,
   });
@@ -46,142 +45,132 @@ const SpotifyLiveGradientWallpaper = () => {
     if (!immersiveMode.liveGradientWallpaper || !extractedColors || !shouldAnimate) {
       return null;
     }
-
-    const { primary, secondary, accent } = extractedColors;
-    const primaryRgb = extractRgbValues(primary);
-    const secondaryRgb = extractRgbValues(secondary);
-    const accentRgb = extractRgbValues(accent);
-
-    // Get simplified gradient settings from immersive mode
-    const {
-      intensity = 0.7,
-      animationLevel = 2,
-      style = 'radial',
-      overlayMode = false
-    } = immersiveMode;
-
-    // Simplified animation timing (reduce frequency for smoother performance)
-    const animationSpeed = animationLevel * 0.3; // Convert level to speed multiplier
-    const time = isPlaying ? Date.now() * 0.0005 * animationSpeed : 0; // Slower base speed
-
-    // Create canvas to generate gradient overlay
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Set canvas size to match screen resolution
-    canvas.width = window.screen.width;
-    canvas.height = window.screen.height;
-    
-    // Apply color enhancement based on intensity setting
-    const vibrancy = 0.8 + (intensity * 0.4); // Scale vibrancy with intensity
-    const enhancedPrimaryRgb = {
-      r: Math.min(255, Math.round(primaryRgb.r * vibrancy)),
-      g: Math.min(255, Math.round(primaryRgb.g * vibrancy)),
-      b: Math.min(255, Math.round(primaryRgb.b * vibrancy))
-    };
-    const enhancedSecondaryRgb = {
-      r: Math.min(255, Math.round(secondaryRgb.r * vibrancy)),
-      g: Math.min(255, Math.round(secondaryRgb.g * vibrancy)),
-      b: Math.min(255, Math.round(secondaryRgb.b * vibrancy))
-    };
-    const enhancedAccentRgb = {
-      r: Math.min(255, Math.round(accentRgb.r * vibrancy)),
-      g: Math.min(255, Math.round(accentRgb.g * vibrancy)),
-      b: Math.min(255, Math.round(accentRgb.b * vibrancy))
-    };
-
-    // Generate optimized gradient based on simplified settings
-    // Base setup
-    if (overlayMode) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    } else {
-      // Simple dark background for contrast
-      ctx.fillStyle = `rgb(${Math.round(enhancedPrimaryRgb.r * 0.3)}, ${Math.round(enhancedPrimaryRgb.g * 0.3)}, ${Math.round(enhancedPrimaryRgb.b * 0.3)})`;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Overlay wash is painted by SpotifyGradientOverlay — skip huge PNG generation.
+    if (immersiveMode.overlayMode) {
+      return null;
     }
-    
-    // Create gradient based on style
-    let gradient;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    if (style === 'radial') {
-      // Animated radial gradient
-      const offsetX = animationLevel > 0 ? Math.sin(time) * 100 : 0;
-      const offsetY = animationLevel > 0 ? Math.cos(time * 0.7) * 80 : 0;
-      const radius = Math.max(canvas.width, canvas.height) * 0.8;
-      
-      gradient = ctx.createRadialGradient(
-        centerX + offsetX, centerY + offsetY, 0,
-        centerX + offsetX, centerY + offsetY, radius
-      );
-    } else if (style === 'linear') {
-      // Animated linear gradient
-      const angle = animationLevel > 0 ? time * 20 : 45;
-      const rad = (angle * Math.PI) / 180;
-      const x1 = centerX + Math.cos(rad) * canvas.width * 0.5;
-      const y1 = centerY + Math.sin(rad) * canvas.height * 0.5;
-      const x2 = centerX - Math.cos(rad) * canvas.width * 0.5;
-      const y2 = centerY - Math.sin(rad) * canvas.height * 0.5;
-      
-      gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-    } else if (style === 'waves') {
-      // Create wave-like gradient with animated positioning
-      const waveOffset = animationLevel > 0 ? Math.sin(time * 2) * 200 : 0;
-      gradient = ctx.createLinearGradient(0, centerY + waveOffset, canvas.width, centerY - waveOffset);
-    }
-    
-    // Apply gradient colors with intensity
-    const alpha = intensity;
-    gradient.addColorStop(0, `rgba(${enhancedPrimaryRgb.r}, ${enhancedPrimaryRgb.g}, ${enhancedPrimaryRgb.b}, ${alpha})`);
-    gradient.addColorStop(0.5, `rgba(${enhancedSecondaryRgb.r}, ${enhancedSecondaryRgb.g}, ${enhancedSecondaryRgb.b}, ${alpha * 0.8})`);
-    gradient.addColorStop(1, `rgba(${enhancedAccentRgb.r}, ${enhancedAccentRgb.g}, ${enhancedAccentRgb.b}, ${alpha * 0.6})`);
-    
-    // Apply gradient
-    ctx.globalCompositeOperation = overlayMode ? 'screen' : 'source-over';
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Add subtle animation effects based on level
-    if (animationLevel >= 2 && isPlaying) {
-      // Add pulse effect
-      const pulseAlpha = Math.max(0.1, 0.2 + Math.sin(time * 6) * 0.15);
-      ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = `rgba(${enhancedAccentRgb.r}, ${enhancedAccentRgb.g}, ${enhancedAccentRgb.b}, ${pulseAlpha})`;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    
-    if (animationLevel >= 3 && !isLowPowerMode) {
-      // Add floating particles (reduced number for performance)
-      ctx.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 20; i++) {
-        const particleTime = time + i * 0.2;
-        const x = centerX + Math.sin(particleTime * 0.5 + i) * canvas.width * 0.3;
-        const y = centerY + Math.cos(particleTime * 0.3 + i) * canvas.height * 0.3;
-        const size = Math.max(1, 3 + Math.sin(particleTime + i) * 2);
-        const alpha = Math.max(0.2, 0.4 + Math.sin(particleTime * 2 + i) * 0.3);
-        
-        const particleColor = i % 3 === 0 ? enhancedPrimaryRgb : i % 3 === 1 ? enhancedSecondaryRgb : enhancedAccentRgb;
-        
-        if (x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height) {
-          ctx.beginPath();
-          ctx.arc(x, y, size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${particleColor.r}, ${particleColor.g}, ${particleColor.b}, ${alpha})`;
-          ctx.fill();
-        }
+
+    try {
+      const { primary, secondary, accent } = extractedColors;
+      const primaryRgb = extractRgbValues(primary);
+      const secondaryRgb = extractRgbValues(secondary);
+      const accentRgb = extractRgbValues(accent);
+
+      const {
+        intensity = 0.7,
+        animationLevel = 2,
+        style = 'radial',
+        overlayMode = false,
+      } = immersiveMode;
+
+      const animationSpeed = animationLevel * 0.3;
+      const time = isPlaying ? Date.now() * 0.0005 * animationSpeed : 0;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      // Cap size — full-screen toDataURL caused OOM / ErrorBoundary crashes.
+      const maxEdge = 1280;
+      const sw = window.screen?.width || 1280;
+      const sh = window.screen?.height || 720;
+      const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+      canvas.width = Math.max(320, Math.round(sw * scale));
+      canvas.height = Math.max(180, Math.round(sh * scale));
+
+      const vibrancy = 0.8 + intensity * 0.4;
+      const enhancedPrimaryRgb = {
+        r: Math.min(255, Math.round(primaryRgb.r * vibrancy)),
+        g: Math.min(255, Math.round(primaryRgb.g * vibrancy)),
+        b: Math.min(255, Math.round(primaryRgb.b * vibrancy)),
+      };
+      const enhancedSecondaryRgb = {
+        r: Math.min(255, Math.round(secondaryRgb.r * vibrancy)),
+        g: Math.min(255, Math.round(secondaryRgb.g * vibrancy)),
+        b: Math.min(255, Math.round(secondaryRgb.b * vibrancy)),
+      };
+      const enhancedAccentRgb = {
+        r: Math.min(255, Math.round(accentRgb.r * vibrancy)),
+        g: Math.min(255, Math.round(accentRgb.g * vibrancy)),
+        b: Math.min(255, Math.round(accentRgb.b * vibrancy)),
+      };
+
+      if (overlayMode) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = `rgb(${Math.round(enhancedPrimaryRgb.r * 0.3)}, ${Math.round(enhancedPrimaryRgb.g * 0.3)}, ${Math.round(enhancedPrimaryRgb.b * 0.3)})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
+
+      let gradient;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      if (style === 'linear') {
+        const angle = animationLevel > 0 ? time * 20 : 45;
+        const rad = (angle * Math.PI) / 180;
+        const x1 = centerX + Math.cos(rad) * canvas.width * 0.5;
+        const y1 = centerY + Math.sin(rad) * canvas.height * 0.5;
+        const x2 = centerX - Math.cos(rad) * canvas.width * 0.5;
+        const y2 = centerY - Math.sin(rad) * canvas.height * 0.5;
+        gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+      } else if (style === 'waves') {
+        const waveOffset = animationLevel > 0 ? Math.sin(time * 2) * 200 : 0;
+        gradient = ctx.createLinearGradient(0, centerY + waveOffset, canvas.width, centerY - waveOffset);
+      } else {
+        const offsetX = animationLevel > 0 ? Math.sin(time) * 100 : 0;
+        const offsetY = animationLevel > 0 ? Math.cos(time * 0.7) * 80 : 0;
+        const radius = Math.max(canvas.width, canvas.height) * 0.8;
+        gradient = ctx.createRadialGradient(
+          centerX + offsetX,
+          centerY + offsetY,
+          0,
+          centerX + offsetX,
+          centerY + offsetY,
+          radius
+        );
+      }
+
+      const alpha = intensity;
+      gradient.addColorStop(
+        0,
+        `rgba(${enhancedPrimaryRgb.r}, ${enhancedPrimaryRgb.g}, ${enhancedPrimaryRgb.b}, ${alpha})`
+      );
+      gradient.addColorStop(
+        0.5,
+        `rgba(${enhancedSecondaryRgb.r}, ${enhancedSecondaryRgb.g}, ${enhancedSecondaryRgb.b}, ${alpha * 0.8})`
+      );
+      gradient.addColorStop(
+        1,
+        `rgba(${enhancedAccentRgb.r}, ${enhancedAccentRgb.g}, ${enhancedAccentRgb.b}, ${alpha * 0.6})`
+      );
+
+      ctx.globalCompositeOperation = overlayMode ? 'screen' : 'source-over';
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (animationLevel >= 2 && isPlaying) {
+        const pulseAlpha = Math.max(0.1, 0.2 + Math.sin(time * 6) * 0.15);
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = `rgba(${enhancedAccentRgb.r}, ${enhancedAccentRgb.g}, ${enhancedAccentRgb.b}, ${pulseAlpha})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      return canvas.toDataURL('image/jpeg', 0.82);
+    } catch (err) {
+      logError('LiveGradientWallpaper', 'Failed to build gradient canvas', err);
+      return null;
     }
-    
-    // Simplified debug text
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = CANVAS_FILL_WHITE_80;
-    ctx.font = '20px Arial';
-    // ctx.fillText(`Live Gradient - ${style} | Level: ${animationLevel} | Intensity: ${Math.round(intensity * 100)}%`, 50, 100);
-    
-    // Convert to data URL
-    const dataUrl = canvas.toDataURL('image/png');
-    return dataUrl;
-  }, [immersiveMode.liveGradientWallpaper, extractedColors, immersiveMode.intensity, immersiveMode.animationLevel, immersiveMode.style, immersiveMode.overlayMode, isPlaying, shouldAnimate, isLowPowerMode]);
+  }, [
+    immersiveMode.liveGradientWallpaper,
+    immersiveMode.overlayMode,
+    extractedColors,
+    immersiveMode.intensity,
+    immersiveMode.animationLevel,
+    immersiveMode.style,
+    isPlaying,
+    shouldAnimate,
+  ]);
 
   // Track current gradient file for cleanup
   const currentGradientFile = useRef(null);

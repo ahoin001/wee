@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784218683.914241,
-    "ast_hash": "de9d8be67d89c3f663e0e7bdd3448224",
+    "mtime": 1784221138.5951872,
+    "ast_hash": "d752e4aeb9ca904bc74842c33f328fcb",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -290,9 +290,9 @@
     "semantic_hash": "bca0db3020fcc2641ef45128c57ac0b6"
   },
   "src/components/core/ErrorBoundary.jsx": {
-    "mtime": 1783872140.0469687,
-    "ast_hash": "02cf91fffbfe9d431c112fd245b91d37",
-    "semantic_hash": "02cf91fffbfe9d431c112fd245b91d37"
+    "mtime": 1784221527.889494,
+    "ast_hash": "0fc65a2d6015eb5c8734b6853c49f66a",
+    "semantic_hash": ""
   },
   "src/components/core/LaunchErrorToast.jsx": {
     "mtime": 1776092576.8373816,
@@ -585,8 +585,8 @@
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyGradientOverlay.jsx": {
-    "mtime": 1784218379.9017186,
-    "ast_hash": "9a88c4b764bcf2f8f25e314318de6807",
+    "mtime": 1784221527.4619324,
+    "ast_hash": "65ce7d5090d9cfc3f236ec4dc137c991",
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyImmersiveOverlay.jsx": {
@@ -595,8 +595,8 @@
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyLiveGradientWallpaper.jsx": {
-    "mtime": 1784218382.0760431,
-    "ast_hash": "39a2bb71fc69c0d6d4b3cfaf820bb971",
+    "mtime": 1784221537.3383303,
+    "ast_hash": "f37b1a37906ab5e718a1ccd28c83ce4d",
     "semantic_hash": ""
   },
   "src/components/overlays/WallpaperOverlay.jsx": {
