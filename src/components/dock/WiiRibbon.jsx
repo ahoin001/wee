@@ -35,10 +35,13 @@ import {
   RIBBON_PAGE_TRANSITION_MS,
   RIBBON_SPACE_TRANSITION_MS,
 } from '../../hooks/useRibbonLookTransition';
-import { resolveEffectiveRibbonLook } from '../../utils/appearance/resolveEffectiveRibbonLook';
+import { resolveRibbonPaintTarget } from '../../utils/appearance/resolveEffectiveRibbonLook';
 import {
   resolveActiveBoardCurrentPage,
 } from '../../utils/channelSpaces';
+import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
+import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAccent';
+import { peekWallpaperAmbientPalette } from '../../utils/theme/wallpaperAmbientPaletteCache';
 // import more icons as needed
 
 const WiiRibbonComponent = ({
@@ -107,17 +110,33 @@ const WiiRibbonComponent = ({
     appearanceBySpace,
     channels,
     wallpaperMatchEnabled,
+    wallpaperCurrent,
+    ambientCachedForUrl,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       activeSpaceId: state.spaces.activeSpaceId,
       appearanceBySpace: state.appearanceBySpace,
       channels: state.channels,
       wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
+      wallpaperCurrent: state.wallpaper?.current,
+      // Re-render when ambient cache/active URL updates so paint target can peek LRU.
+      ambientCachedForUrl: state.ui.ambientColor?.cachedForUrl ?? null,
     }))
   );
   const boardCurrentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
   const supportsPerPageRibbon = activeSpaceId === 'home' || activeSpaceId === 'workspaces';
   const spaceRibbon = appearanceBySpace?.[activeSpaceId]?.ribbon || null;
+  const pageWallpaperUrl = useMemo(
+    () =>
+      resolveDisplayWallpaperUrl({
+        activeSpaceId,
+        wallpaperCurrent,
+        appearanceBySpace,
+        wallpaperEntryUrlKey,
+        currentPage: boardCurrentPage,
+      }),
+    [activeSpaceId, wallpaperCurrent, appearanceBySpace, boardCurrentPage]
+  );
   const liveRibbonLook = useMemo(
     () => ({
       ribbonColor: propRibbonColor,
@@ -142,16 +161,28 @@ const WiiRibbonComponent = ({
       propGlassShineOpacity,
     ]
   );
-  const targetRibbonLook = useMemo(
-    () =>
-      resolveEffectiveRibbonLook({
-        liveRibbon: liveRibbonLook,
-        spaceRibbon,
-        currentPage: boardCurrentPage,
-        supportsPerPage: supportsPerPageRibbon,
-      }),
-    [liveRibbonLook, spaceRibbon, boardCurrentPage, supportsPerPageRibbon]
-  );
+  const targetRibbonLook = useMemo(() => {
+    // Touch LRU so paint stays in sync after ambient extract fills the cache.
+    if (wallpaperMatchEnabled && pageWallpaperUrl) {
+      peekWallpaperAmbientPalette(pageWallpaperUrl);
+    }
+    return resolveRibbonPaintTarget({
+      liveRibbon: liveRibbonLook,
+      spaceRibbon,
+      currentPage: boardCurrentPage,
+      supportsPerPage: supportsPerPageRibbon,
+      wallpaperMatchEnabled,
+      wallpaperUrl: pageWallpaperUrl,
+    });
+  }, [
+    liveRibbonLook,
+    spaceRibbon,
+    boardCurrentPage,
+    supportsPerPageRibbon,
+    wallpaperMatchEnabled,
+    pageWallpaperUrl,
+    ambientCachedForUrl,
+  ]);
   const lastSpaceForRibbonRef = React.useRef(activeSpaceId);
   const spaceTweenMs =
     typeof shellTransitionMs === 'number' && shellTransitionMs > 0
@@ -168,7 +199,8 @@ const WiiRibbonComponent = ({
   const paintedRibbonLook = useRibbonLookTransition({
     targetLook: targetRibbonLook,
     durationMs: ribbonTweenMs,
-    ambientOverride: shouldUseDynamicRibbonColor || wallpaperMatchEnabled,
+    // Spotify owns live colors — wallpaper match uses the tween path instead.
+    ambientOverride: shouldUseDynamicRibbonColor,
   });
 
   const ribbonColor =

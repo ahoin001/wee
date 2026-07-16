@@ -157,17 +157,6 @@ export const DEFAULT_SHORTCUTS = [
     icon: '🧭'
   },
   {
-    id: 'open-settings-gamehub-tab',
-    name: 'Open Game Hub Settings',
-    description: 'Open settings modal to Game Hub tab',
-    defaultKey: 'h',
-    defaultModifier: 'ctrl+shift',
-    action: 'openSettingsModal',
-    actionParams: { tab: 'gamehub' },
-    category: 'Settings',
-    icon: '🎮'
-  },
-  {
     id: 'open-settings-api-integrations-tab',
     name: 'Open Music, Steam & Widgets Settings',
     description: 'Open settings modal to Music, Steam & Widgets tab',
@@ -199,28 +188,6 @@ export const DEFAULT_SHORTCUTS = [
     actionParams: { tab: 'monitor' },
     category: 'Settings',
     icon: '🖥️'
-  },
-  {
-    id: 'open-settings-navigation-tab',
-    name: 'Open Navigation Settings',
-    description: 'Open settings modal to navigation tab',
-    defaultKey: 'v',
-    defaultModifier: 'ctrl+shift',
-    action: 'openSettingsModal',
-    actionParams: { tab: 'navigation' },
-    category: 'Settings',
-    icon: '↔️'
-  },
-  {
-    id: 'open-settings-workspaces-tab',
-    name: 'Open Shell Settings',
-    description: 'Open settings modal to Shell tab (Media Hub / space rail)',
-    defaultKey: 'w',
-    defaultModifier: 'ctrl+shift',
-    action: 'openSettingsModal',
-    actionParams: { tab: 'workspaces' },
-    category: 'Settings',
-    icon: '🏠'
   },
   {
     id: 'toggle-home-arrange',

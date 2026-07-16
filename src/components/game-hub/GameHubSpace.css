@@ -389,69 +389,26 @@
   color: hsl(var(--color-pure-white) / 0.55);
 }
 
-/* Top-right: backdrop + Steam-only filter (see .space-rail on the left for vertical pill). */
+/* Top-right: Pill Morph controls (circle → toggle card). */
 .aura-hub-stage-toolbar {
   position: absolute;
   top: clamp(1rem, 2.5vw, 1.5rem);
   right: clamp(1rem, 2.5vw, 1.5rem);
   z-index: 20;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
-  gap: 0.5rem 0.85rem;
   max-width: min(100%, calc(100vw - 2rem));
+  pointer-events: none;
 }
 
-.aura-hub-steam-only {
-  display: flex;
-  align-items: center;
-  border-radius: 999px;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-elevated) / 0.88);
-  padding: 0.35rem 0.65rem 0.35rem 0.5rem;
+.aura-hub-controls-pill {
+  pointer-events: auto;
 }
 
-.aura-hub-steam-only__toggle label {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: hsl(var(--text-primary));
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.aura-hub-dock-morph-toggle {
-  display: flex;
-  align-items: center;
-  border-radius: 999px;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-elevated) / 0.88);
-  padding: 0.35rem 0.65rem 0.35rem 0.5rem;
-}
-
-.aura-hub-dock-morph-toggle__toggle label {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: hsl(var(--text-primary));
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.aura-hub-mode-toggle {
-  position: static;
-  border-radius: 999px;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-elevated) / 0.88);
-  color: hsl(var(--text-primary));
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 0.45rem 0.75rem;
+.aura-hub-controls-pill__surface {
+  /* Footprint is driven by Framer variants; keep chrome tokenized. */
+  will-change: width, height, border-radius;
 }
 
 .aura-hub-hero {
@@ -1511,8 +1468,7 @@
   }
 }
 
-.aura-hub-space--effects .aura-hub-mode-toggle,
-.aura-hub-space--effects .aura-hub-steam-only,
+.aura-hub-space--effects .aura-hub-controls-pill__surface,
 .aura-hub-space--effects .aura-hub-stack__item {
   transition:
     transform 200ms var(--hub-collection-fly-ease, cubic-bezier(0.16, 1, 0.3, 1)),
@@ -1580,23 +1536,6 @@
 
 .aura-hub-space--effects.aura-hub-space--launching .aura-hub-stage {
   animation: auraLaunchBlast 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.aura-hub-space--floating .aura-hub-mode-toggle {
-  background: hsl(var(--color-pure-black) / 0.42);
-  border-color: hsl(var(--color-pure-white) / 0.2);
-  color: hsl(var(--color-pure-white));
-  backdrop-filter: blur(10px);
-}
-
-.aura-hub-space--floating .aura-hub-steam-only {
-  background: hsl(var(--color-pure-black) / 0.42);
-  border-color: hsl(var(--color-pure-white) / 0.2);
-  backdrop-filter: blur(10px);
-}
-
-.aura-hub-space--floating .aura-hub-steam-only__toggle label {
-  color: hsl(var(--color-pure-white));
 }
 
 .aura-hub-space--floating .aura-hub-status {
@@ -1714,8 +1653,7 @@
     transition: opacity 40ms linear !important;
   }
 
-  .aura-hub-space--effects .aura-hub-mode-toggle,
-  .aura-hub-space--effects .aura-hub-steam-only,
+  .aura-hub-space--effects .aura-hub-controls-pill__surface,
   .aura-hub-space--effects .aura-game-card,
   .aura-hub-space--effects .aura-hub-stack__item,
   .aura-hub-space--effects .aura-hub-rail__launch {

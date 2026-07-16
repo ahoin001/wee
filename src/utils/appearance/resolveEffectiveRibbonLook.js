@@ -3,6 +3,11 @@
  * Button layouts stay on the live global `ribbon` slice.
  */
 
+import {
+  ambientPaletteToRibbonColors,
+  peekWallpaperAmbientPalette,
+} from '../theme/wallpaperAmbientPaletteCache.js';
+
 export const RIBBON_LOOK_KEYS = Object.freeze([
   'ribbonColor',
   'ribbonGlowColor',
@@ -111,6 +116,82 @@ export function resolveEffectiveRibbonLook({
   if (pageLook) {
     return { ...baseLook, ...pickRibbonLook(pageLook) };
   }
+  return baseLook;
+}
+
+/**
+ * @param {{
+ *   spaceRibbon?: object|null,
+ *   liveRibbon?: object,
+ *   currentPage?: number,
+ *   supportsPerPage?: boolean,
+ * }} args
+ * @returns {boolean}
+ */
+export function hasExplicitPageRibbonLook({
+  spaceRibbon = null,
+  liveRibbon = {},
+  currentPage = 0,
+  supportsPerPage = true,
+} = {}) {
+  if (!supportsPerPage) return false;
+  const live = liveRibbon && typeof liveRibbon === 'object' ? liveRibbon : {};
+  const space = spaceRibbon && typeof spaceRibbon === 'object' ? spaceRibbon : {};
+  const scope = normalizeRibbonScope(space.ribbonScope ?? live.ribbonScope);
+  if (scope !== 'perPage') return false;
+  const byPage = normalizeRibbonByPage(space.ribbonByPage ?? live.ribbonByPage);
+  const pageKey = String(Math.max(0, Math.floor(Number(currentPage) || 0)));
+  return Boolean(byPage[pageKey] || byPage[Number(pageKey)]);
+}
+
+/**
+ * Paint target for WiiRibbon tween: explicit page look > wallpaper-match cache > space/live.
+ * Spotify is handled separately in the ribbon paint path (ambientOverride).
+ *
+ * @param {{
+ *   liveRibbon?: object,
+ *   spaceRibbon?: object|null,
+ *   currentPage?: number,
+ *   supportsPerPage?: boolean,
+ *   wallpaperMatchEnabled?: boolean,
+ *   wallpaperUrl?: string|null,
+ * }} args
+ * @returns {object}
+ */
+export function resolveRibbonPaintTarget({
+  liveRibbon = {},
+  spaceRibbon = null,
+  currentPage = 0,
+  supportsPerPage = true,
+  wallpaperMatchEnabled = false,
+  wallpaperUrl = null,
+} = {}) {
+  const baseLook = resolveEffectiveRibbonLook({
+    liveRibbon,
+    spaceRibbon,
+    currentPage,
+    supportsPerPage,
+  });
+
+  if (
+    hasExplicitPageRibbonLook({
+      spaceRibbon,
+      liveRibbon,
+      currentPage,
+      supportsPerPage,
+    })
+  ) {
+    return baseLook;
+  }
+
+  if (wallpaperMatchEnabled && wallpaperUrl) {
+    const cached = peekWallpaperAmbientPalette(wallpaperUrl);
+    const fromCache = ambientPaletteToRibbonColors(cached?.palette);
+    if (fromCache) {
+      return { ...baseLook, ...fromCache };
+    }
+  }
+
   return baseLook;
 }
 

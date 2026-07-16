@@ -31,6 +31,7 @@ import {
   normalizeChannelSpaceData,
   normalizeChannelSpaceKey,
   normalizeShellSpaceOrder,
+  resolveMediaHubEnabled,
 } from './channelSpaces';
 import {
   migrateSpaceDataToSlots,
@@ -1524,9 +1525,15 @@ useConsolidatedAppStore = create(
           },
 
           // Navigation actions
-          setNavigationState: (updates) => set((state) => ({
-            navigation: { ...state.navigation, ...updates }
-          })),
+          setNavigationState: (updates) =>
+            set((state) => ({
+              navigation: {
+                ...state.navigation,
+                ...updates,
+                // Page peeks are Wee-only — ignore classic writes from old prefs/UI.
+                sideNavStyle: 'wee',
+              },
+            })),
 
           // Performance actions
           setPerformanceState: (updates) => set((state) => ({
@@ -1580,7 +1587,9 @@ useConsolidatedAppStore = create(
             }
             // Keep rail order in sync when Media Hub is toggled or order is edited.
             if (updates.mediaHubEnabled !== undefined || updates.order !== undefined) {
-              const mediaHubEnabled = nextSpaces.mediaHubEnabled === true;
+              const mediaHubEnabled = resolveMediaHubEnabled(nextSpaces.order, {
+                mediaHubEnabled: nextSpaces.mediaHubEnabled,
+              });
               nextSpaces.mediaHubEnabled = mediaHubEnabled;
               nextSpaces.order = normalizeShellSpaceOrder(nextSpaces.order, { mediaHubEnabled });
               // Leaving Media Hub while it is removed from the rail.
@@ -1848,16 +1857,21 @@ useConsolidatedAppStore = create(
                   ...state.spaces,
                   ...slices.spaces,
                 };
-                // Migrate once: legacy orders that still include mediahub imply enabled.
-                const mediaHubEnabled =
-                  typeof mergedSpaces.mediaHubEnabled === 'boolean'
-                    ? mergedSpaces.mediaHubEnabled
-                    : Array.isArray(mergedSpaces.order) &&
-                      mergedSpaces.order.includes('mediahub');
+                // Soft-archive Media Hub: always off the rail; still normalize order.
+                const mediaHubEnabled = resolveMediaHubEnabled(mergedSpaces.order, {
+                  mediaHubEnabled: mergedSpaces.mediaHubEnabled,
+                });
+                const order = normalizeShellSpaceOrder(mergedSpaces.order, { mediaHubEnabled });
+                const activeSpaceId = order.includes(mergedSpaces.activeSpaceId)
+                  ? mergedSpaces.activeSpaceId
+                  : mergedSpaces.lastChannelSpaceId === 'workspaces'
+                    ? 'workspaces'
+                    : 'home';
                 next.spaces = {
                   ...mergedSpaces,
                   mediaHubEnabled,
-                  order: normalizeShellSpaceOrder(mergedSpaces.order, { mediaHubEnabled }),
+                  order,
+                  activeSpaceId,
                 };
               }
               if (slices.gameHub) {

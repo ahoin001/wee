@@ -15,6 +15,7 @@ import { refreshSoundLibrary } from './soundLibraryCache';
 import { clearCachedSteamClientLibrary } from './gameHub/gameHubClientLibraryCache';
 import { refreshSteamEnrichmentNow } from './gameHub/gameHubEnrichmentRefresh';
 import { clearAlbumArtPaletteCache } from './extractColorsFromAlbumArt';
+import { clearWallpaperAmbientPaletteCache } from './theme/wallpaperAmbientPaletteCache';
 import { clearTintedIconCache } from './iconTinting';
 import { clearMp4PosterCache } from '../components/channels/hooks/useChannelMediaPreview';
 
@@ -90,12 +91,13 @@ registerCacheDomain({
 registerCacheDomain({
   id: 'ambient-palette',
   label: 'Wallpaper ambient palette',
-  description: 'Accent colors sampled from your wallpaper.',
-  scope: 'persisted',
+  description: 'Accent colors sampled from your wallpaper (session LRU + active palette).',
+  scope: 'session',
   clear: () => {
+    clearWallpaperAmbientPaletteCache();
     const { ui, actions } = getStore();
     const ambient = ui?.ambientColor;
-    if (!ambient?.cachedForUrl) return;
+    if (!ambient) return;
     // Dropping cachedForUrl makes useWallpaperAmbientColor re-extract on next pass.
     actions.setUIState({ ambientColor: { ...ambient, cachedForUrl: null } });
   },

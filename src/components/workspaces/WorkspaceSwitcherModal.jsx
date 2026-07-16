@@ -35,7 +35,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
   const openHomeProfilesSettings = (handleClose) => {
     setUIState({
       showSettingsModal: true,
-      settingsActiveTab: 'workspaces',
+      settingsActiveTab: 'channels',
     });
     handleClose();
   };

@@ -20,17 +20,24 @@ import { migrateSpaceDataToSlots } from './homeGridSlots';
 
 export const CHANNEL_SPACE_KEYS = ['home', 'workspaces'];
 
-/** Vertical shell rail order: Home → Focus (workspaces) → Game Hub. Media Hub is opt-in. */
+/** Vertical shell rail order: Home → Focus (workspaces) → Game Hub. */
 export const DEFAULT_SHELL_SPACE_ORDER = ['home', 'workspaces', 'gamehub'];
 
 /**
+ * Soft-archive: Media Hub stays in the codebase (space id, appearance, hub UI) but is
+ * off the rail, command palette, and Shell settings until re-enabled.
+ */
+export const MEDIA_HUB_ARCHIVED = true;
+
+/**
  * Resolve whether Media Hub belongs in the shell rail.
- * When `mediaHubEnabled` is omitted, legacy orders that still include `mediahub` count as enabled.
+ * When archived, always false. Otherwise honor the explicit flag, then legacy order.
  *
  * @param {string[]|unknown} order
  * @param {{ mediaHubEnabled?: boolean }} [opts]
  */
 export function resolveMediaHubEnabled(order, { mediaHubEnabled } = {}) {
+  if (MEDIA_HUB_ARCHIVED) return false;
   if (typeof mediaHubEnabled === 'boolean') return mediaHubEnabled;
   return Array.isArray(order) && order.includes('mediahub');
 }

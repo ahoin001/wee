@@ -612,11 +612,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             <Info className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--primary))]" aria-hidden />
             <div className="min-w-0">
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
-                Side nav &amp; reorder feel live under{' '}
-                <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.NAVIGATION)}>
-                  Navigation
-                </WeeHelpLinkButton>{' '}
-                and{' '}
+                Reorder feel lives under{' '}
                 <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}>
                   Motion
                 </WeeHelpLinkButton>

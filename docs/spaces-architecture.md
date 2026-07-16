@@ -48,9 +48,11 @@ Home and Focus support:
 - `wallpaperScope: 'perPage'` + `wallpaperByPage[pageIndex]`
 - `ribbonScope: 'space' | 'perPage'` + `ribbonByPage[pageIndex]` (lean look fields: color, glass)
 
-Configure in Settings → **Surfaces**. Wallpaper library / cycling stay under Wallpaper; Dock edits chrome and links to Surfaces for scope.
+Configure in Settings → **Wallpaper** (space/page look + ribbon scope). Dock edits chrome and links back to Wallpaper for scope.
 
 Resolve order: page URL → space override → global `wallpaper.current`. Page flips and space switches crossfade via `useSpaceWallpaperCrossfade` (page uses `CHANNEL_PAGE_FLIP_MS`, space uses shell duration). Ribbon colors tween via `useRibbonLookTransition`.
+
+**Wallpaper match + page flips:** ambient palettes are cached per wallpaper URL (session LRU in `wallpaperAmbientPaletteCache.js`). On flip, a cache hit applies immediately so the ribbon can morph with the wallpaper instead of waiting for a late extract. Paint priority: Spotify match → explicit `ribbonByPage` look → match-from-URL-cache → space/manual. Neighbors are prefetched after settle.
 
 ## Grid layout
 
@@ -79,6 +81,8 @@ Local save defaults to boards included (`visual+homeChannels`): `homeChannels` +
 - `src/components/spaces/WeeGooeySpacePill.jsx` — rail
 - `src/components/settings/WorkspacesSettingsTab.jsx` — Home Profiles + Show Media Hub
 - `src/components/settings/ChannelsLayoutSettingsTab.jsx` — Home/Focus layout + page overrides
-- `src/components/settings/SurfacesSettingsTab.jsx` — space/page wallpaper + ribbon scope
+- `src/components/settings/WallpaperSettingsTab.jsx` — library + space/page wallpaper + ribbon scope
 - `src/hooks/useSpaceWallpaperCrossfade.js` — wallpaper space/page crossfade
 - `src/hooks/useRibbonLookTransition.js` — ribbon color tween on look change
+- `src/hooks/useWallpaperAmbientColor.js` — wallpaper match → ambient + ribbon (URL LRU)
+- `src/utils/theme/wallpaperAmbientPaletteCache.js` — session palette cache for page-flip sync

@@ -15,6 +15,7 @@ import {
 import { normalizeNowPlayingExperience, toggleSpotifyTakeover } from './spotifyTakeover';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { clearAllCacheDomains, listCacheDomains, refreshCacheDomain } from './cacheRegistry';
+import { MEDIA_HUB_ARCHIVED } from './channelSpaces';
 // Side effect: ensures cache domains are registered before the palette builds refresh commands.
 import './cacheDomains';
 
@@ -30,7 +31,10 @@ export const COMMAND_GROUPS = Object.freeze([
 
 const SPACE_DESTINATIONS = [
   { id: 'home', label: 'Home', icon: '🏠', keywords: ['board', 'channels'] },
-  { id: 'mediahub', label: 'Media Hub', icon: '🎬', keywords: ['movies', 'video'] },
+  { id: 'workspaces', label: 'Focus', icon: '🎯', keywords: ['focus', 'second board'] },
+  ...(MEDIA_HUB_ARCHIVED
+    ? []
+    : [{ id: 'mediahub', label: 'Media Hub', icon: '🎬', keywords: ['movies', 'video'] }]),
   { id: 'gamehub', label: 'Game Hub', icon: '🎮', keywords: ['games', 'steam'] },
 ];
 

@@ -273,17 +273,8 @@ export default function WeeGooeySpacePill() {
     navigation.totalPages > 1 &&
     navigation.currentPage > 0;
 
-  const sideNavStyle = useConsolidatedAppStore((state) => state.navigation?.sideNavStyle);
-  const isClassicSideNav = sideNavStyle === 'classic';
-
   /** Sit below the peeking prev-page control; Wee compact nub is fully on-screen (less x tuck). */
-  const railNudgeWithLeftNav = useMemo(
-    () =>
-      isClassicSideNav
-        ? { y: 98, x: -36, scale: 0.9 }
-        : { y: 78, x: -12, scale: 0.92 },
-    [isClassicSideNav]
-  );
+  const railNudgeWithLeftNav = useMemo(() => ({ y: 78, x: -12, scale: 0.92 }), []);
 
   const railNudgeTransition = useMemo(
     () => createWeeTransition('railNudge', { reducedMotion }),

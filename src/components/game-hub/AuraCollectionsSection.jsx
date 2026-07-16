@@ -388,7 +388,7 @@ export default function AuraCollectionsSection({
       if (target.closest('.aura-hub-expansion')) return;
       if (target.closest('#game-hub-library') || target.closest('.aura-hub-section--library')) return;
       if (target.closest('.aura-hub-scroll-anchors')) return;
-      if (target.closest('.aura-hub-mode-toggle')) return;
+      if (target.closest('.aura-hub-controls-pill')) return;
       if (uiLockedRef.current) return;
       uiLockedRef.current = true;
       Promise.resolve(animateClose()).finally(() => {

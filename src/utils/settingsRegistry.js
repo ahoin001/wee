@@ -46,49 +46,17 @@ export const SETTINGS_TAB_META = Object.freeze([
       'ken burns', 'idle', 'auto fade', 'focus recede', 'hover', 'tiles', 'layout',
     ],
   },
-  {
-    id: 'workspaces',
-    label: 'Shell',
-    icon: '🧩',
-    color: 'hsl(var(--settings-tab-workspaces))',
-    description: 'Space rail — Media Hub & shell options',
-    categoryId: 'home',
-    keywords: [
-      'shell', 'media hub', 'space rail', 'focus', 'home', 'rail',
-      'profiles', 'workspaces', 'home setups',
-    ],
-  },
-  {
-    id: 'gamehub',
-    label: 'Game Hub',
-    icon: '🎮',
-    color: 'hsl(var(--settings-tab-layout))',
-    description: 'Hub visuals, onboarding & library experience',
-    categoryId: 'home',
-    keywords: ['epic', 'games', 'library', 'collections', 'aura', 'hub', 'backdrop'],
-  },
-
   // —— Appearance ——
   {
     id: 'wallpaper',
     label: 'Wallpaper',
     icon: '🖼️',
     color: 'hsl(var(--settings-tab-wallpaper))',
-    description: 'Library, cycling, overlays & match',
+    description: 'Library, space & page looks, cycling & match',
     categoryId: 'appearance',
     keywords: [
       'background', 'cycling', 'blur', 'overlay', 'particles', 'image', 'video',
       'wallpaper library', 'desktop wallpaper',
-    ],
-  },
-  {
-    id: 'surfaces',
-    label: 'Surfaces',
-    icon: '🪟',
-    color: 'hsl(var(--settings-tab-surfaces))',
-    description: 'Wallpaper & ribbon by space and page',
-    categoryId: 'appearance',
-    keywords: [
       'surfaces', 'per page wallpaper', 'page wallpaper', 'space wallpaper',
       'game hub wallpaper', 'media hub wallpaper', 'home wallpaper', 'focus wallpaper',
       'ribbon scope', 'ribbon by page', 'per page ribbon', 'space look',
@@ -146,16 +114,6 @@ export const SETTINGS_TAB_META = Object.freeze([
     description: 'Space switcher visibility & pinning',
     categoryId: 'dock-nav',
     keywords: ['space rail', 'navigation pill', 'pin', 'spaces', 'pill'],
-  },
-  {
-    id: 'navigation',
-    label: 'Page arrows',
-    icon: '🧭',
-    color: 'hsl(var(--settings-tab-navigation))',
-    description: 'Home page side navigation',
-    categoryId: 'dock-nav',
-    keywords: ['side nav', 'arrows', 'page', 'peek', 'navigation'],
-    beta: true,
   },
 
   // —— Motion & Atmosphere ——
@@ -242,6 +200,12 @@ export function normalizeSettingsTabId(tabId) {
   if (!tabId) return tabId;
   if (tabId === 'layout') return 'channels';
   if (tabId === 'presets') return 'themes';
+  if (tabId === 'surfaces') return 'wallpaper';
+  /** Shell / Media Hub tab archived with Media Hub — land on Channels & layout. */
+  if (tabId === 'workspaces') return 'channels';
+  if (tabId === 'navigation') return 'channels';
+  /** Game Hub visuals live on the in-hub controls pill — land on Channels & layout. */
+  if (tabId === 'gamehub') return 'channels';
   return tabId;
 }
 

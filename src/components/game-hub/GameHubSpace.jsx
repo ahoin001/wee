@@ -24,9 +24,9 @@ import {
 } from '../../design/weeMotion';
 import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
 import { weeMarkGameHubLibrary } from '../../utils/weePerformanceMarks';
-import WToggle from '../../ui/WToggle';
 import './GameHubSpace.css';
 import GameHubTileDialogsProvider from './GameHubTileDialogsProvider';
+import GameHubControlsPill from './GameHubControlsPill';
 
 const MotionDiv = m.div;
 
@@ -853,38 +853,7 @@ export default function GameHubSpace() {
         ) : null}
 
         <m.div className="aura-hub-stage-toolbar" variants={hubBandVariants}>
-          <button
-            type="button"
-            className="aura-hub-mode-toggle"
-            onClick={() => setGameHubState({ ui: { showHubBackdrop: !showHubBackdrop } })}
-            title={showHubBackdrop ? 'Hide hub backdrop' : 'Show hub backdrop'}
-          >
-            {showHubBackdrop ? 'Backdrop On' : 'Backdrop Off'}
-          </button>
-          <div
-            className="aura-hub-steam-only"
-            title="Non-Steam games can still be opened, but art may not be found."
-          >
-            <WToggle
-              checked={hubSteamOnlyGames}
-              onChange={(checked) => setGameHubState({ ui: { hubSteamOnlyGames: checked } })}
-              label="Only Steam games"
-              containerClassName="aura-hub-steam-only__toggle"
-            />
-          </div>
-          {dockMorphEnabled ? (
-            <div
-              className="aura-hub-dock-morph-toggle"
-              title="Scroll-linked dock rail and library width. Off uses a simpler layout with a compact hero bar after you scroll."
-            >
-              <WToggle
-                checked={hubDockScrollMorphEnabled}
-                onChange={(checked) => setGameHubState({ ui: { hubDockScrollMorphEnabled: checked } })}
-                label="Dock morph"
-                containerClassName="aura-hub-dock-morph-toggle__toggle"
-              />
-            </div>
-          ) : null}
+          <GameHubControlsPill showDockMorphToggle={dockMorphEnabled} />
         </m.div>
 
         {useDockMorphLayout ? (

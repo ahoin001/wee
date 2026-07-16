@@ -5,7 +5,7 @@ import {
   mergeChannelsSlice,
   normalizeUnifiedSettingsSnapshot,
 } from '../utils/store/settingsPersistenceContract';
-import { normalizeShellSpaceOrder } from '../utils/channelSpaces';
+import { normalizeShellSpaceOrder, resolveMediaHubEnabled } from '../utils/channelSpaces';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { createSeededWorkspaceState } from '../utils/workspaces/workspaceState';
 import { weeMeasureAsync, weeMarkStartupHydrationCommitted } from '../utils/weePerformanceMarks';
@@ -133,17 +133,22 @@ export const useAppInitialization = () => {
             slices.workspaces = resolvedSettings.workspaces;
           }
           if (resolvedSettings.spaces) {
-            const mediaHubEnabled =
-              typeof resolvedSettings.spaces.mediaHubEnabled === 'boolean'
-                ? resolvedSettings.spaces.mediaHubEnabled
-                : Array.isArray(resolvedSettings.spaces.order) &&
-                  resolvedSettings.spaces.order.includes('mediahub');
+            const mediaHubEnabled = resolveMediaHubEnabled(resolvedSettings.spaces.order, {
+              mediaHubEnabled: resolvedSettings.spaces.mediaHubEnabled,
+            });
+            const order = normalizeShellSpaceOrder(resolvedSettings.spaces.order, {
+              mediaHubEnabled,
+            });
+            const activeSpaceId = order.includes(resolvedSettings.spaces.activeSpaceId)
+              ? resolvedSettings.spaces.activeSpaceId
+              : resolvedSettings.spaces.lastChannelSpaceId === 'workspaces'
+                ? 'workspaces'
+                : 'home';
             slices.spaces = {
               ...resolvedSettings.spaces,
               mediaHubEnabled,
-              order: normalizeShellSpaceOrder(resolvedSettings.spaces.order, {
-                mediaHubEnabled,
-              }),
+              order,
+              activeSpaceId,
               isTransitioning: resolvedSettings.spaces.isTransitioning ?? false,
             };
           }

@@ -73,8 +73,8 @@ function SpaceWallpaperAppearanceSection({
           Space &amp; page look
         </Text>
         <Text variant="desc" className="mb-4">
-          Pick Home, Focus, Game Hub, or Media Hub. On Home you can use a different wallpaper per
-          channel page. Hubs can override the desktop wallpaper entirely.
+          Pick Home, Focus, Game Hub, or Media Hub from the sticky bar above. On Home and Focus,
+          choose a page in the map below — no need to flip the live board first.
         </Text>
         <p className="mt-0 mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
           Opacity is global. Blur, brightness, and saturation stay per space.
@@ -197,8 +197,9 @@ function SpaceWallpaperAppearanceSection({
                   Page {selectedBoardCurrentPage + 1}
                 </div>
                 <div className="mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
-                  Apply the selected library asset (or current desktop wallpaper) to this channel page.
-                  Empty pages share the fallback look — flips between them skip the crossfade.
+                  Select a page chip to target it, then apply a library asset (or the current
+                  desktop wallpaper). Empty pages share the fallback look — flips between them skip
+                  the crossfade.
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <WeeButton

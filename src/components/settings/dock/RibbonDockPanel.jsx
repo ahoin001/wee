@@ -211,8 +211,8 @@ function RibbonDockPanel({
       <RibbonLivePreview sticky />
       <WeeHelpParagraph>
         Scope ribbon colors per Home/Focus page in{' '}
-        <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SURFACES)}>
-          Surfaces
+        <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.WALLPAPER)}>
+          Wallpaper
         </WeeHelpLinkButton>
         .
       </WeeHelpParagraph>

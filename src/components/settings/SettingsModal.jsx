@@ -27,17 +27,13 @@ import {
   TimeSettingsTab,
   SoundsSettingsTab,
   GeneralSettingsTab,
-  GameHubSettingsTab,
   PresetsSettingsTab,
   MonitorSettingsTab,
   ApiIntegrationsSettingsTab,
   ShortcutsSettingsTab,
   UpdatesSettingsTab,
-  NavigationSettingsTab,
   NavigationPillSettingsTab,
   MotionFeedbackSettingsTab,
-  WorkspacesSettingsTab,
-  SurfacesSettingsTab,
 } from './index';
 
 const TabPanel = m.div;
@@ -48,19 +44,15 @@ const SETTINGS_TAB_COMPONENTS = {
   channels: ChannelsLayoutSettingsTab,
   dock: UnifiedDockSettingsTab,
   colors: ColorsSettingsTab,
-  gamehub: GameHubSettingsTab,
   general: GeneralSettingsTab,
   motion: MotionFeedbackSettingsTab,
   'navigation-pill': NavigationPillSettingsTab,
   themes: PresetsSettingsTab,
   sounds: SoundsSettingsTab,
-  surfaces: SurfacesSettingsTab,
   time: TimeSettingsTab,
   updates: UpdatesSettingsTab,
   wallpaper: WallpaperSettingsTab,
-  workspaces: WorkspacesSettingsTab,
   monitor: MonitorSettingsTab,
-  navigation: NavigationSettingsTab,
   shortcuts: ShortcutsSettingsTab,
 };
 

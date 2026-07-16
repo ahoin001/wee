@@ -18,13 +18,20 @@ export const SETTINGS_TAB_ID = {
   THEMES: 'themes',
   UPDATES: 'updates',
   WALLPAPER: 'wallpaper',
-  SURFACES: 'surfaces',
+  /** @deprecated Merged into Wallpaper — normalizeSettingsTabId redirects `surfaces`. */
+  SURFACES: 'wallpaper',
   TIME: 'time',
   SHORTCUTS: 'shortcuts',
   MONITOR: 'monitor',
   MOTION: 'motion',
+  /**
+   * @deprecated Page arrows settings removed — Wee peeks are the only style.
+   * normalizeSettingsTabId redirects to `channels`.
+   */
   NAVIGATION: 'navigation',
-  /** Shell / Media Hub tab id (kept as `workspaces` for route stability). */
+  /**
+   * @deprecated Shell / Media Hub tab archived — normalizeSettingsTabId redirects to `channels`.
+   */
   WORKSPACES: 'workspaces',
 };
 

@@ -6,6 +6,8 @@ import {
   DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
   migrateLegacyChannelsToDataBySpace,
   normalizeSecondaryChannelProfiles,
+  normalizeShellSpaceOrder,
+  resolveMediaHubEnabled,
 } from '../channelSpaces.js';
 import { sanitizeRecentLaunches } from '../recentLaunches.js';
 import { pruneKeyedCacheForPersistence } from './persistedCachePrune.js';
@@ -242,10 +244,12 @@ const selectPersistedUi = (ui = {}) => ({
   homeSteamWidget: normalizeHomeSteamWidget(ui.homeSteamWidget),
 });
 
-/** Strip modal / loading chrome — prefs only. */
+/** Strip modal / loading chrome — prefs only. Side peeks are always Wee. */
 const selectPersistedNavigation = (navigation = {}) => {
   if (!isPlainObject(navigation)) return {};
-  return omitKeys(navigation, ['showNavigationModal', 'loading', 'error']);
+  const next = omitKeys(navigation, ['showNavigationModal', 'loading', 'error']);
+  next.sideNavStyle = 'wee';
+  return next;
 };
 
 /** Strip live telemetry; keep positions, visibility, and configs. */
@@ -258,13 +262,18 @@ const selectPersistedFloatingWidgets = (floatingWidgets = {}) => {
   return next;
 };
 
-/** Strip rail animation flags; keep active space, order, and mediaHubEnabled. */
+/** Strip rail animation flags; force Media Hub archived off when flagged. */
 const selectPersistedSpaces = (spaces = {}) => {
   if (!isPlainObject(spaces)) return {};
   const next = omitKeys(spaces, ['isTransitioning', 'railVisible']);
-  if (typeof next.mediaHubEnabled !== 'boolean') {
-    next.mediaHubEnabled =
-      Array.isArray(next.order) && next.order.includes('mediahub');
+  const mediaHubEnabled = resolveMediaHubEnabled(next.order, {
+    mediaHubEnabled: next.mediaHubEnabled,
+  });
+  next.mediaHubEnabled = mediaHubEnabled;
+  next.order = normalizeShellSpaceOrder(next.order, { mediaHubEnabled });
+  if (Array.isArray(next.order) && next.activeSpaceId && !next.order.includes(next.activeSpaceId)) {
+    next.activeSpaceId =
+      next.lastChannelSpaceId === 'workspaces' ? 'workspaces' : 'home';
   }
   return next;
 };

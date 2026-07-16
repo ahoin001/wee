@@ -1,19 +1,36 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { useWeeMotion } from '../../design/weeMotion';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { captureSpaceAppearanceFromState } from '../../utils/appearance/spaceAppearance';
+import {
+  captureSpaceAppearanceFromState,
+  syncActiveSpaceAppearanceCapture,
+} from '../../utils/appearance/spaceAppearance';
+import {
+  mergeSpaceScopedRibbonFields,
+  normalizeRibbonByPage,
+  normalizeRibbonScope,
+  pickRibbonLook,
+} from '../../utils/appearance/resolveEffectiveRibbonLook';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { getSecondaryChannelSpaceData } from '../../utils/channelSpaces';
+import { resolveLayout } from '../../utils/channelLayoutSystem';
 import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsWeeSection from './SettingsWeeSection';
-import { WeeHelpLinkButton, WeeModalFieldCard, WeeSpaceRailPillButton } from '../../ui/wee';
+import {
+  WeeButton,
+  WeeHelpLinkButton,
+  WeeModalFieldCard,
+  WeeSegmentedControl,
+  WeeSpaceRailPillButton,
+} from '../../ui/wee';
 import WallpaperLibrarySection from './wallpaper/WallpaperLibrarySection';
+import SpaceWallpaperAppearanceSection from './wallpaper/SpaceWallpaperAppearanceSection';
 import WallpaperCyclingSection from './wallpaper/WallpaperCyclingSection';
 import WallpaperOverlaySection from './wallpaper/WallpaperOverlaySection';
 import {
@@ -92,16 +109,50 @@ function useWallpaperSettingsController() {
     selectedSpaceAppearance.wallpaperScope === 'perPage' ? 'perPage' : 'space';
   const supportsPerPageWallpaper =
     selectedSpaceId === 'home' || selectedSpaceId === 'workspaces';
-  const selectedBoardCurrentPage =
+  const boardSpaceData =
     selectedSpaceId === 'workspaces'
-      ? getSecondaryChannelSpaceData(channels)?.navigation?.currentPage ?? 0
-      : channels?.dataBySpace?.home?.navigation?.currentPage ?? 0;
+      ? getSecondaryChannelSpaceData(channels)
+      : channels?.dataBySpace?.home;
+  const liveBoardPage = boardSpaceData?.navigation?.currentPage ?? 0;
+  /** Settings-local page target — pick any page without visiting it on Home first. */
+  const [settingsTargetPage, setSettingsTargetPage] = useState(liveBoardPage);
+  const boardLayout = resolveLayout(boardSpaceData || {});
+  const totalPages = Math.max(1, Number(boardLayout?.totalPages) || 1);
+
+  useEffect(() => {
+    // When switching space pills, seed target from that board's live page.
+    setSettingsTargetPage(Math.max(0, Math.min(totalPages - 1, liveBoardPage)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only reseed on space change
+  }, [selectedSpaceId]);
+
+  useEffect(() => {
+    setSettingsTargetPage((prev) => Math.max(0, Math.min(totalPages - 1, prev)));
+  }, [totalPages]);
+
+  const selectedBoardCurrentPage = settingsTargetPage;
   const selectedPageWallpaperUrl = (() => {
     const byPage = selectedSpaceAppearance.wallpaperByPage;
     if (!byPage || typeof byPage !== 'object') return null;
     const url = byPage[selectedBoardCurrentPage] ?? byPage[String(selectedBoardCurrentPage)];
     return typeof url === 'string' && url.length > 0 ? url : null;
   })();
+  const pageMapEntries = useMemo(() => {
+    const byPage = selectedSpaceAppearance.wallpaperByPage || {};
+    return Array.from({ length: totalPages }, (_, pageIndex) => {
+      const url = byPage[pageIndex] ?? byPage[String(pageIndex)];
+      return {
+        pageIndex,
+        url: typeof url === 'string' && url.length > 0 ? url : null,
+      };
+    });
+  }, [selectedSpaceAppearance.wallpaperByPage, totalPages]);
+  const selectedSpaceRibbon = appearanceBySpace?.[selectedSpaceId]?.ribbon || {};
+  const ribbonScope = normalizeRibbonScope(selectedSpaceRibbon.ribbonScope);
+  const ribbonByPage = normalizeRibbonByPage(selectedSpaceRibbon.ribbonByPage);
+  const pageRibbonLook =
+    ribbonByPage[String(selectedBoardCurrentPage)] ||
+    ribbonByPage[selectedBoardCurrentPage] ||
+    null;
   /** Resolve preview URL: per-page → space override → global (Home never uses space override). */
   const effectiveActiveWallpaperUrl = (() => {
     if (selectedWallpaperScope === 'perPage' && selectedPageWallpaperUrl) {
@@ -262,18 +313,30 @@ function useWallpaperSettingsController() {
     [selectedSpaceId, updateSpaceWallpaperAppearance]
   );
 
+  const handleSelectSettingsTargetPage = useCallback((pageIndex) => {
+    const page = Math.max(0, Math.floor(Number(pageIndex) || 0));
+    setSettingsTargetPage(Math.max(0, Math.min(totalPages - 1, page)));
+  }, [totalPages]);
+
   const handleApplyWallpaperToCurrentPage = useCallback(
     (url) => {
       const page = selectedBoardCurrentPage;
       const prev = selectedSpaceAppearance.wallpaperByPage;
       const nextByPage = {
         ...(prev && typeof prev === 'object' ? prev : {}),
-        [page]: url || null,
       };
-      updateSpaceWallpaperAppearance(selectedSpaceId, {
-        wallpaperScope: 'perPage',
-        wallpaperByPage: nextByPage,
-      });
+      if (typeof url === 'string' && url.length > 0) {
+        nextByPage[page] = url;
+        nextByPage[String(page)] = url;
+        updateSpaceWallpaperAppearance(selectedSpaceId, {
+          wallpaperScope: 'perPage',
+          wallpaperByPage: nextByPage,
+        });
+        return;
+      }
+      delete nextByPage[page];
+      delete nextByPage[String(page)];
+      updateSpaceWallpaperAppearance(selectedSpaceId, { wallpaperByPage: nextByPage });
     },
     [
       selectedBoardCurrentPage,
@@ -286,6 +349,83 @@ function useWallpaperSettingsController() {
   const handleClearCurrentPageWallpaper = useCallback(() => {
     handleApplyWallpaperToCurrentPage(null);
   }, [handleApplyWallpaperToCurrentPage]);
+
+  const updateSpaceRibbonAppearance = useCallback(
+    (spaceId, patch) => {
+      const state = useConsolidatedAppStore.getState();
+      const currentSnapshot =
+        state.appearanceBySpace?.[spaceId] ?? captureSpaceAppearanceFromState(state);
+      const nextRibbon = mergeSpaceScopedRibbonFields(
+        { ...(currentSnapshot.ribbon || {}), ...patch },
+        { ...(currentSnapshot.ribbon || {}), ...patch }
+      );
+      setAppearanceBySpaceState({
+        [spaceId]: {
+          ...currentSnapshot,
+          ribbon: nextRibbon,
+        },
+      });
+      if (spaceId === state.spaces?.activeSpaceId) {
+        setRibbonState(pickRibbonLook(nextRibbon));
+        syncActiveSpaceAppearanceCapture({
+          getState: () => useConsolidatedAppStore.getState(),
+          setAppearanceBySpaceState,
+        });
+      }
+    },
+    [setAppearanceBySpaceState, setRibbonState]
+  );
+
+  const handleRibbonScopeChange = useCallback(
+    (next) => {
+      updateSpaceRibbonAppearance(selectedSpaceId, { ribbonScope: next });
+    },
+    [selectedSpaceId, updateSpaceRibbonAppearance]
+  );
+
+  const handleApplyRibbonToCurrentPage = useCallback(() => {
+    const look = pickRibbonLook(ribbon);
+    const prev = normalizeRibbonByPage(selectedSpaceRibbon.ribbonByPage);
+    updateSpaceRibbonAppearance(selectedSpaceId, {
+      ribbonScope: 'perPage',
+      ribbonByPage: {
+        ...prev,
+        [String(selectedBoardCurrentPage)]: look,
+      },
+    });
+  }, [
+    ribbon,
+    selectedBoardCurrentPage,
+    selectedSpaceId,
+    selectedSpaceRibbon.ribbonByPage,
+    updateSpaceRibbonAppearance,
+  ]);
+
+  const handleClearCurrentPageRibbon = useCallback(() => {
+    const prev = { ...normalizeRibbonByPage(selectedSpaceRibbon.ribbonByPage) };
+    delete prev[String(selectedBoardCurrentPage)];
+    delete prev[selectedBoardCurrentPage];
+    updateSpaceRibbonAppearance(selectedSpaceId, { ribbonByPage: prev });
+  }, [
+    selectedBoardCurrentPage,
+    selectedSpaceId,
+    selectedSpaceRibbon.ribbonByPage,
+    updateSpaceRibbonAppearance,
+  ]);
+
+  const handleSaveRibbonForSpace = useCallback(() => {
+    updateSpaceRibbonAppearance(selectedSpaceId, {
+      ...pickRibbonLook(ribbon),
+      ribbonScope,
+      ribbonByPage: normalizeRibbonByPage(selectedSpaceRibbon.ribbonByPage),
+    });
+  }, [
+    ribbon,
+    ribbonScope,
+    selectedSpaceId,
+    selectedSpaceRibbon.ribbonByPage,
+    updateSpaceRibbonAppearance,
+  ]);
 
   // Handlers for overlay effects that update consolidated store
   const handleOverlayEnabledChange = useCallback((value) => {
@@ -639,7 +779,6 @@ function useWallpaperSettingsController() {
     deleting,
     handleDelete,
     wallpaperOpacity,
-    wallpaperBlur,
     handleWallpaperOpacityChange,
     selectedSpaceId,
     setSelectedSpaceId,
@@ -664,8 +803,17 @@ function useWallpaperSettingsController() {
     handleSelectedWallpaperScopeChange,
     selectedBoardCurrentPage,
     selectedPageWallpaperUrl,
+    pageMapEntries,
+    handleSelectSettingsTargetPage,
     handleApplyWallpaperToCurrentPage,
     handleClearCurrentPageWallpaper,
+    ribbon,
+    ribbonScope,
+    pageRibbonLook,
+    handleRibbonScopeChange,
+    handleApplyRibbonToCurrentPage,
+    handleClearCurrentPageRibbon,
+    handleSaveRibbonForSpace,
     cycling,
     handleCyclingChange,
     cycleInterval,
@@ -724,7 +872,6 @@ const WallpaperSettingsTab = React.memo(() => {
     deleting,
     handleDelete,
     wallpaperOpacity,
-    wallpaperBlur,
     handleWallpaperOpacityChange,
     selectedSpaceId,
     setSelectedSpaceId,
@@ -749,8 +896,17 @@ const WallpaperSettingsTab = React.memo(() => {
     handleSelectedWallpaperScopeChange,
     selectedBoardCurrentPage,
     selectedPageWallpaperUrl,
+    pageMapEntries,
+    handleSelectSettingsTargetPage,
     handleApplyWallpaperToCurrentPage,
     handleClearCurrentPageWallpaper,
+    ribbon,
+    ribbonScope,
+    pageRibbonLook,
+    handleRibbonScopeChange,
+    handleApplyRibbonToCurrentPage,
+    handleClearCurrentPageRibbon,
+    handleSaveRibbonForSpace,
     cycling,
     handleCyclingChange,
     cycleInterval,
@@ -783,6 +939,10 @@ const WallpaperSettingsTab = React.memo(() => {
     handleOverlayGravityChange,
   } = controller;
   const isHomeSpace = selectedSpaceId === 'home';
+  const applyPageWallpaperUrl =
+    (typeof selectedWallpaper?.url === 'string' && selectedWallpaper.url) ||
+    effectiveActiveWallpaperUrl ||
+    null;
 
   if (loading && !hasLoadedOnce) {
     return (
@@ -798,7 +958,7 @@ const WallpaperSettingsTab = React.memo(() => {
     <div className="settings-wee-tab-root pb-12">
       <SettingsTabPageHeader
         title="Wallpaper"
-        subtitle="Library, cycling, overlays & ribbon match"
+        subtitle="Library, space & page looks, cycling, overlays"
       />
 
       {message.text ? (
@@ -815,25 +975,10 @@ const WallpaperSettingsTab = React.memo(() => {
         </div>
       ) : null}
 
-      <SettingsWeeSection eyebrow="Space & page looks">
-        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-          <Text variant="h3" className="mb-1 playful-hero-text">
-            Surfaces
-          </Text>
-          <Text variant="desc" className="mb-3">
-            Per-space blur, per-page wallpapers, and ribbon color scopes live in Surfaces so this
-            tab stays focused on the library and cycling.
-          </Text>
-          <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SURFACES)}>
-            Configure space &amp; page looks in Surfaces
-          </WeeHelpLinkButton>
-        </WeeModalFieldCard>
-      </SettingsWeeSection>
-
       <div className="settings-wee-sticky-step-bar">
         <div className="mb-2 flex items-center justify-between gap-3">
           <Text variant="small" className="!m-0 font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-            Library target space
+            Editing space
           </Text>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -849,6 +994,10 @@ const WallpaperSettingsTab = React.memo(() => {
             </WeeSpaceRailPillButton>
           ))}
         </div>
+        <p className="settings-wee-help !mb-0 mt-2">
+          Pick a space here — no need to switch on the home rail first. Page targets are below in
+          Space &amp; page look.
+        </p>
       </div>
 
       <WallpaperLibrarySection
@@ -870,6 +1019,131 @@ const WallpaperSettingsTab = React.memo(() => {
         deleting={deleting}
         handleDelete={handleDelete}
       />
+
+      <SpaceWallpaperAppearanceSection
+        wallpaperOpacity={wallpaperOpacity}
+        handleWallpaperOpacityChange={handleWallpaperOpacityChange}
+        selectedSpaceId={selectedSpaceId}
+        setSelectedSpaceId={setSelectedSpaceId}
+        reduceMotion={reduceMotion}
+        tabTransition={tabTransition}
+        selectedSpaceLabel={selectedSpaceLabel}
+        selectedSpaceUsesGlobalWallpaper={selectedSpaceUsesGlobalWallpaper}
+        handleSelectedSpaceUseGlobalWallpaperChange={handleSelectedSpaceUseGlobalWallpaperChange}
+        selectedWallpaper={selectedWallpaper}
+        handleSelectedSpaceWallpaperOverride={handleSelectedSpaceWallpaperOverride}
+        selectedSpaceWallpaperEntry={selectedSpaceWallpaperEntry}
+        selectedSpaceWallpaperUrl={selectedSpaceWallpaperUrl}
+        effectiveActiveWallpaperUrl={effectiveActiveWallpaperUrl}
+        selectedSpaceBlur={selectedSpaceBlur}
+        handleSelectedSpaceBlurChange={handleSelectedSpaceBlurChange}
+        selectedSpaceBrightness={selectedSpaceBrightness}
+        handleSelectedSpaceBrightnessChange={handleSelectedSpaceBrightnessChange}
+        selectedSpaceSaturate={selectedSpaceSaturate}
+        handleSelectedSpaceSaturateChange={handleSelectedSpaceSaturateChange}
+        handleResetSelectedSpaceAppearance={handleResetSelectedSpaceAppearance}
+        showSpaceSelector={false}
+        showGlobalOpacity={isHomeSpace}
+        showWallpaperSourceSection={!isHomeSpace}
+        supportsPerPageWallpaper={supportsPerPageWallpaper}
+        selectedWallpaperScope={selectedWallpaperScope}
+        onWallpaperScopeChange={handleSelectedWallpaperScopeChange}
+        selectedBoardCurrentPage={selectedBoardCurrentPage}
+        selectedPageWallpaperUrl={selectedPageWallpaperUrl}
+        onApplyWallpaperToCurrentPage={() =>
+          handleApplyWallpaperToCurrentPage(applyPageWallpaperUrl)
+        }
+        onClearCurrentPageWallpaper={handleClearCurrentPageWallpaper}
+        canApplyPageWallpaper={Boolean(applyPageWallpaperUrl)}
+        pageMapEntries={pageMapEntries}
+        onSelectBoardPage={handleSelectSettingsTargetPage}
+      />
+
+      <SettingsWeeSection eyebrow="Ribbon look">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <Text variant="h3" className="mb-1 playful-hero-text">
+            Ribbon by space &amp; page
+          </Text>
+          <Text variant="desc" className="mb-4">
+            Color and glass for the Wii ribbon on the space you&apos;re editing. Buttons stay
+            global — tune chrome in Dock.
+          </Text>
+
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <span
+              className="h-8 w-8 rounded-full border border-[hsl(var(--border-primary)/0.5)] shadow-[var(--shadow-sm)]"
+              style={{ background: ribbon?.ribbonColor || 'hsl(var(--primary))' }}
+              title="Current ribbon color"
+              aria-hidden
+            />
+            <span
+              className="h-8 w-8 rounded-full border border-[hsl(var(--border-primary)/0.5)] shadow-[var(--shadow-sm)]"
+              style={{ background: ribbon?.ribbonGlowColor || 'hsl(var(--primary))' }}
+              title="Current ribbon glow"
+              aria-hidden
+            />
+            <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.DOCK)}>
+              Edit ribbon colors in Dock
+            </WeeHelpLinkButton>
+          </div>
+
+          {supportsPerPageWallpaper ? (
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                Ribbon scope
+              </span>
+              <WeeSegmentedControl
+                size="sm"
+                ariaLabel="Ribbon look scope"
+                layoutId="wallpaperRibbonScope"
+                value={ribbonScope}
+                onChange={handleRibbonScopeChange}
+                options={[
+                  { value: 'space', label: 'Space', title: 'One ribbon look for this space' },
+                  {
+                    value: 'perPage',
+                    label: 'Per page',
+                    title: 'Different ribbon look per Home/Focus page',
+                  },
+                ]}
+              />
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            <WeeButton type="button" variant="primary" size="sm" onClick={handleSaveRibbonForSpace}>
+              Save current look for {selectedSpaceLabel}
+            </WeeButton>
+            {supportsPerPageWallpaper && ribbonScope === 'perPage' ? (
+              <>
+                <WeeButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleApplyRibbonToCurrentPage}
+                >
+                  Apply to page {selectedBoardCurrentPage + 1}
+                </WeeButton>
+                <WeeButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleClearCurrentPageRibbon}
+                >
+                  Clear page look
+                </WeeButton>
+              </>
+            ) : null}
+          </div>
+          <p className="settings-wee-help !mb-0 mt-3">
+            {supportsPerPageWallpaper && ribbonScope === 'perPage'
+              ? pageRibbonLook
+                ? `Page ${selectedBoardCurrentPage + 1} has a custom ribbon look.`
+                : `Page ${selectedBoardCurrentPage + 1} uses the space ribbon look until you apply one.`
+              : 'Space-level ribbon look. Page flips keep the same colors.'}
+          </p>
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Match wallpaper">
         <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">

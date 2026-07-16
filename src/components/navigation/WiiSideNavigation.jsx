@@ -35,8 +35,7 @@ function rgbToRgba(rgbString, alpha = 1) {
 
 /**
  * Home Wii-layout edge peeks for channel pages.
- * Visual + motion chrome: {@link WeeGooeySideNavButton}
- * (`wee` = Pill Morph Reveal; `classic` = legacy edge slide).
+ * Always Wee Pill Morph Reveal (`WeeGooeySideNavButton` variant="wee").
  */
 const WiiSideNavigation = () => {
   const channelSpaceKey = useMemo(() => 'home', []);
@@ -51,8 +50,6 @@ const WiiSideNavigation = () => {
   const shouldUseDynamicNavColors = spotifyEnabled && dynamicRibbonColorEnabled;
 
   const navigationSettings = useConsolidatedAppStore((state) => state.navigation);
-  const sideNavVariant =
-    navigationSettings.sideNavStyle === 'classic' ? 'classic' : 'wee';
   const leftIcon = navigationSettings.icons?.left || null;
   const rightIcon = navigationSettings.icons?.right || null;
   const leftGlassSettings = navigationSettings.glassEffect?.left || {
@@ -70,15 +67,6 @@ const WiiSideNavigation = () => {
     shineOpacity: 0.7,
   };
   const navigationSpotifyIntegration = navigationSettings.spotifyIntegration || false;
-
-  const handleContextMenu = useCallback((event) => {
-    event.preventDefault();
-    const { setUIState } = useConsolidatedAppStore.getState().actions;
-    setUIState({
-      showSettingsModal: true,
-      settingsActiveTab: 'navigation',
-    });
-  }, []);
 
   const getGlassStyleVars = useCallback(
     (glassSettings) => {
@@ -154,13 +142,12 @@ const WiiSideNavigation = () => {
     <>
       <WeeGooeySideNavButton
         side="left"
-        variant={sideNavVariant}
+        variant="wee"
         isOpen={canGoLeft}
         disabled={isAnimating}
         surfaceStyle={getGlassStyleVars(leftGlassSettings)}
-        title="Previous page (Right-click to customize)"
+        title="Previous page"
         aria-label="Previous page"
-        onContextMenu={handleContextMenu}
         onClick={async () => {
           await playChannelClick();
           prevPage();
@@ -171,13 +158,12 @@ const WiiSideNavigation = () => {
 
       <WeeGooeySideNavButton
         side="right"
-        variant={sideNavVariant}
+        variant="wee"
         isOpen={canGoRight}
         disabled={isAnimating}
         surfaceStyle={getGlassStyleVars(rightGlassSettings)}
-        title="Next page (Right-click to customize)"
+        title="Next page"
         aria-label="Next page"
-        onContextMenu={handleContextMenu}
         onClick={async () => {
           await playChannelClick();
           nextPage();
