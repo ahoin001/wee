@@ -270,8 +270,8 @@
     "semantic_hash": "1ac1a6025ad87b57776afa5f050f6958"
   },
   "src/components/channels/hooks/useChannelEffectiveState.js": {
-    "mtime": 1784295613.469301,
-    "ast_hash": "e516b357431d41aa510d8234a614ce64",
+    "mtime": 1784256089.7009635,
+    "ast_hash": "f9189e6f9d71cf6332421bf9b109a6ef",
     "semantic_hash": ""
   },
   "src/components/channels/hooks/useChannelInteractions.js": {
@@ -550,8 +550,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784295616.2024603,
-    "ast_hash": "8b4251c4a8ff354139a0c63f962cc167",
+    "mtime": 1784236251.2845085,
+    "ast_hash": "3a907c88392220c6c1322788464de75e",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -615,8 +615,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
-    "mtime": 1784295607.9557655,
-    "ast_hash": "91c1dd5403f6e5b8128c56a9ccd6a599",
+    "mtime": 1784295195.422062,
+    "ast_hash": "285600d4d7fd4913e900686496f19a29",
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
@@ -715,8 +715,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/SoundsSettingsTab.jsx": {
-    "mtime": 1784295642.9300346,
-    "ast_hash": "75e4dd8e6e07038034ecc8952e3bc5d8",
+    "mtime": 1783965932.8518772,
+    "ast_hash": "90aed6f513e352846cccb3f2bbeeb947",
     "semantic_hash": ""
   },
   "src/components/settings/TimeSettingsTab.jsx": {
@@ -1555,8 +1555,8 @@
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784295608.0374997,
-    "ast_hash": "8b338da53fe5fab94371b6143a7047fb",
+    "mtime": 1784256089.704042,
+    "ast_hash": "bfcbd3f6bedba20976e29554ec104f3d",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -2115,8 +2115,8 @@
     "semantic_hash": ""
   },
   "src/utils/settingsRegistry.js": {
-    "mtime": 1784295637.061871,
-    "ast_hash": "a34f429837f6d4eae92184168317f9a2",
+    "mtime": 1784294855.9283457,
+    "ast_hash": "0cac81c092ba235b8cb03d28a99e4ab7",
     "semantic_hash": ""
   },
   ".impeccable/critique/2026-07-15T16-35-33Z__src-components-home-grid.md": {

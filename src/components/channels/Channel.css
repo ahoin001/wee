@@ -11,8 +11,11 @@
   justify-content: center;
   cursor: pointer;
   /* Prefer box-shadow over filter for hover glow — CSS filter promotes layers and
-     can make sibling tiles flash when one channel is hovered (Chromium compositing). */
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+     can make sibling channels flash when one channel is hovered (Chromium compositing).
+     Glow eases slower than scale so hover on/off feels soft, not abrupt. */
+  transition:
+    transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.48s cubic-bezier(0.22, 0.61, 0.36, 1);
   min-width: 180px;
   min-height: 110px;
   aspect-ratio: 2 / 1;
@@ -36,7 +39,32 @@
 
 .channel:hover, .channel:focus {
   transform: translateZ(0) scale(1.06);
-  box-shadow: var(--shadow-soft-hover), var(--shadow-hover-glow);
+  box-shadow: var(--shadow-soft-hover);
+}
+
+/* Soft glow fade for non-Wii channel chrome (same clock as Wii strip). */
+.channel:not(.wii-mode-tile)::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  box-shadow: var(--shadow-hover-glow);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.48s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.channel:not(.wii-mode-tile):hover::after,
+.channel:not(.wii-mode-tile):focus-visible::after,
+.channel:not(.wii-mode-tile).channel--gooey-glow:hover::after,
+.channel:not(.wii-mode-tile).channel--gooey-glow:focus-visible::after {
+  opacity: 1;
+}
+
+.channel:not(.wii-mode-tile).channel--gooey-motion:not(.channel--gooey-glow):hover::after,
+.channel:not(.wii-mode-tile).channel--gooey-motion:not(.channel--gooey-glow):focus-visible::after {
+  opacity: 0;
 }
 
 /* Gooey Framer hover owns transform; keep legacy CSS only when gooey motion is off. */
@@ -47,7 +75,7 @@
 
 .channel.channel--gooey-motion.channel--gooey-glow:hover,
 .channel.channel--gooey-motion.channel--gooey-glow:focus {
-  box-shadow: var(--shadow-soft-hover), var(--shadow-hover-glow);
+  box-shadow: var(--shadow-soft-hover);
 }
 
 .channel.channel--gooey-motion:not(.channel--gooey-glow):hover,
@@ -113,7 +141,11 @@
   box-shadow:
     0 6px 16px hsl(var(--color-pure-black) / 0.16),
     inset 0 1px 0 hsl(var(--color-pure-white) / 0.88);
-  transition: transform 0.19s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.19s cubic-bezier(0.22, 0.61, 0.36, 1), filter 0.19s cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Soft glow fade — box-shadow alone snaps; opacity on ::after interpolates cleanly. */
+  transition:
+    transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
+    filter 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
   aspect-ratio: 1.95 / 1;
 }
 
@@ -135,12 +167,36 @@
   z-index: 2;
 }
 
+/* Soft ambient glow layer — fades in/out instead of hard box-shadow swap. */
+.channel.wii-mode-tile::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: var(--shadow-hover-glow);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.48s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.channel.wii-mode-tile:hover::after,
+.channel.wii-mode-tile:focus-visible::after,
+.channel.wii-mode-tile.channel--gooey-glow:hover::after,
+.channel.wii-mode-tile.channel--gooey-glow:focus-visible::after {
+  opacity: 1;
+}
+
+.channel.wii-mode-tile.channel--gooey-motion:not(.channel--gooey-glow):hover::after,
+.channel.wii-mode-tile.channel--gooey-motion:not(.channel--gooey-glow):focus-visible::after {
+  opacity: 0;
+}
+
 .channel.wii-mode-tile:hover,
 .channel.wii-mode-tile:focus {
   transform: translateZ(0) scale(1.03);
   box-shadow:
     0 10px 22px hsl(var(--color-pure-black) / 0.2),
-    var(--shadow-hover-glow),
     inset 0 1px 0 hsl(var(--color-pure-white) / 0.9);
 }
 
@@ -153,7 +209,6 @@
 .channel.wii-mode-tile.channel--gooey-motion.channel--gooey-glow:focus {
   box-shadow:
     0 10px 22px hsl(var(--color-pure-black) / 0.2),
-    var(--shadow-hover-glow),
     inset 0 1px 0 hsl(var(--color-pure-white) / 0.9);
 }
 

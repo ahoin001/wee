@@ -43,6 +43,35 @@ const SPACE_SCOPED_WALLPAPER_KEYS = [
 
 const SPACE_IDS = ['home', 'workspaces', 'mediahub', 'gamehub'];
 
+/** Live match toggles are global Atmosphere settings — never space-scoped. */
+const GLOBAL_UI_MATCH_KEYS = ['spotifyMatchEnabled', 'wallpaperMatchEnabled'];
+
+/**
+ * Empty defaults for a space appearance row (do not copy the active space’s live look).
+ * Home follows global wallpaper; other spaces default to follow-global as well.
+ */
+export function createDefaultSpaceAppearance(spaceId = 'home') {
+  const isHome = spaceId === 'home';
+  return {
+    wallpaper: {
+      useGlobalWallpaper: true,
+      spaceWallpaperUrl: null,
+      wallpaperScope: 'space',
+      wallpaperByPage: {},
+      spaceBlur: isHome ? undefined : 0,
+      spaceBrightness: isHome ? undefined : 1,
+      spaceSaturate: isHome ? undefined : 1,
+    },
+    ribbon: {
+      ribbonScope: 'space',
+      ribbonByPage: {},
+    },
+    time: {},
+    overlay: {},
+    ui: {},
+  };
+}
+
 /**
  * Merge space-scoped wallpaper identity onto a live wallpaper capture so space
  * switches / presets do not wipe `spaceWallpaperUrl`, per-page maps, etc.
@@ -67,6 +96,15 @@ function mergeSpaceScopedWallpaperFields(liveWallpaper, storedWallpaper) {
   return wp;
 }
 
+function stripGlobalMatchUi(ui) {
+  if (!ui || typeof ui !== 'object') return ui;
+  const next = { ...ui };
+  for (const key of GLOBAL_UI_MATCH_KEYS) {
+    delete next[key];
+  }
+  return next;
+}
+
 /** @returns {{ wallpaper: object, ribbon: object, time: object, overlay: object, ui: object }} */
 export function captureSpaceAppearanceFromState(storeState) {
   const { wallpaper, ribbon, time, overlay, ui, spaces, appearanceBySpace } = storeState;
@@ -84,12 +122,11 @@ export function captureSpaceAppearanceFromState(storeState) {
     ribbon: mergeSpaceScopedRibbonFields({ ...ribbon }, storedRibbon),
     time: { ...time },
     overlay: { ...overlay },
+    // Theme chrome only — wallpaper/Spotify match stay global (Atmosphere / Surfaces).
     ui: {
       isDarkMode: ui.isDarkMode,
       useCustomCursor: ui.useCustomCursor,
       classicMode: ui.classicMode,
-      spotifyMatchEnabled: ui.spotifyMatchEnabled ?? false,
-      wallpaperMatchEnabled: ui.wallpaperMatchEnabled !== false,
     },
   };
 }
@@ -123,9 +160,10 @@ export function mergeLiveStateFromSpaceAppearance(currentState, incoming) {
     out.overlay = { ...currentState.overlay, ...incoming.overlay };
   }
   if (incoming.ui) {
+    const uiPatch = stripGlobalMatchUi(incoming.ui);
     out.ui = {
       ...currentState.ui,
-      ...incoming.ui,
+      ...uiPatch,
     };
   }
   return out;
@@ -153,4 +191,4 @@ export function syncActiveSpaceAppearanceCapture(storeApi) {
   return { spaceId, appearance };
 }
 
-export { SPACE_IDS, mergeSpaceScopedWallpaperFields };
+export { SPACE_IDS, mergeSpaceScopedWallpaperFields, GLOBAL_UI_MATCH_KEYS };

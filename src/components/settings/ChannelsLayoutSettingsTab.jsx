@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Activity, Aperture, Info, LayoutGrid, Minus, Plus, Sparkles } from 'lucide-react';
+import { Activity, Aperture, LayoutGrid, Minus, Plus, Sparkles } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
@@ -14,11 +14,9 @@ import {
   WeeModalFieldCard,
   WeeSegmentedControl,
   WeeSectionEyebrow,
-  WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
-import SettingsMultiToggleChips from './SettingsMultiToggleChips';
 import ChannelBoardLivePreview from './ChannelBoardLivePreview';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -58,8 +56,8 @@ const LAYOUT_SUB_TABS = [
     icon: Sparkles,
   },
   {
-    id: 'tile-style',
-    label: 'Tile style',
+    id: 'channel-style',
+    label: 'Channel style',
     description: 'Look & hover',
     icon: Activity,
   },
@@ -69,15 +67,6 @@ const LAYOUT_SUB_TABS = [
     description: 'Zoom & pan',
     icon: Aperture,
   },
-];
-
-const IDLE_TYPE_ITEMS = [
-  { value: 'pulse', label: 'Pulse' },
-  { value: 'bounce', label: 'Bounce' },
-  { value: 'glow', label: 'Glow' },
-  { value: 'heartbeat', label: 'Heartbeat' },
-  { value: 'shake', label: 'Shake' },
-  { value: 'wiggle', label: 'Wiggle' },
 ];
 
 const KEN_BURNS_MODE_OPTIONS = [
@@ -154,12 +143,6 @@ function LayoutStepper({ label, value, min, max, onChange, ariaLabel }) {
 
 const ChannelsLayoutSettingsTab = React.memo(() => {
   const channels = useConsolidatedAppStore((state) => state.channels);
-  const ribbonColors = useConsolidatedAppStore(
-    useShallow((state) => ({
-      ribbonColor: state.ribbon?.ribbonColor,
-      ribbonGlowColor: state.ribbon?.ribbonGlowColor,
-    }))
-  );
   const wallpaperPreviewUrl = useConsolidatedAppStore((state) =>
     wallpaperEntryUrlKey(state.wallpaper?.current)
   );
@@ -348,17 +331,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     stripLayout.totalChannels,
   ]);
 
-  const adaptivePreviewStyle = useMemo(() => {
-    const accentColor =
-      ribbonColors?.ribbonGlowColor || ribbonColors?.ribbonColor || 'hsl(var(--primary))';
-
-    return {
-      background: `color-mix(in srgb, hsl(var(--surface-secondary)) 76%, ${accentColor} 24%)`,
-      borderColor: `color-mix(in srgb, hsl(var(--border-primary)) 58%, ${accentColor} 42%)`,
-      boxShadow: `0 0 0 2px color-mix(in srgb, transparent 72%, ${accentColor} 28%) inset`,
-    };
-  }, [ribbonColors?.ribbonColor, ribbonColors?.ribbonGlowColor]);
-
   const handleAnimatedOnHoverChange = useCallback((checked) => {
     actions.setChannelSettings({ animatedOnHover: checked });
   }, [actions]);
@@ -367,24 +339,12 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     actions.setChannelSettings({ kenBurnsEnabled: checked });
   }, [actions]);
 
-  const handleAdaptiveEmptyChannelsChange = useCallback((checked) => {
-    actions.setChannelSettings({ adaptiveEmptyChannels: checked });
-  }, [actions]);
-
-  const handleFocusRecedeChange = useCallback((checked) => {
-    actions.setChannelSettings({ focusRecedeEnabled: checked });
-  }, [actions]);
-
   const handleKenBurnsForGifsChange = useCallback((checked) => {
     actions.setChannelSettings({ kenBurnsForGifs: checked });
   }, [actions]);
 
   const handleKenBurnsForVideosChange = useCallback((checked) => {
     actions.setChannelSettings({ kenBurnsForVideos: checked });
-  }, [actions]);
-
-  const handleIdleAnimationIntervalChange = useCallback((value) => {
-    actions.setChannelSettings({ idleAnimationInterval: value });
   }, [actions]);
 
   const handleKenBurnsModeChange = useCallback((value) => {
@@ -415,51 +375,149 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     actions.setChannelSettings({ kenBurnsEasing: value });
   }, [actions]);
 
-  const handleIdleAnimationTypeToggle = useCallback(
-    (type) => {
-      const currentTypes = settings.idleAnimationTypes || ['pulse', 'bounce', 'glow'];
-      const newTypes = currentTypes.includes(type)
-        ? currentTypes.filter((t) => t !== type)
-        : [...currentTypes, type];
-      actions.setChannelSettings({ idleAnimationTypes: newTypes });
-    },
-    [actions, settings.idleAnimationTypes]
-  );
-
-  const idleSelected = settings.idleAnimationTypes || ['pulse', 'bounce', 'glow'];
-
   const renderBoardPanel = () => (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <WeeSectionEyebrow className="block" trackingClassName="tracking-[0.14em]">
-          Grid size
-        </WeeSectionEyebrow>
-        <h2 className="m-0 text-xl font-black tracking-tight text-[hsl(var(--text-primary))] md:text-2xl">
-          {boardLabel} · {layout.columns}×{layout.rows}×{stripLayout.totalPages}
-        </h2>
-        <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-          {totalChannels} slots · classic {WII_LAYOUT_PRESET.columns}×{WII_LAYOUT_PRESET.rows}×
-          {WII_LAYOUT_PRESET.totalPages}
-          {pageLayout.hasPageOverride ? ' · this page has a custom size' : ''}
-        </Text>
-        <div className="mt-2 max-w-sm">
-          <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-            Board
-          </WeeSectionEyebrow>
-          <WeeSegmentedControl
-            ariaLabel="Channel board to edit"
-            value={layoutSpaceKey}
-            onChange={(key) => setBoardPickerKey(key)}
-            options={[
-              { value: 'home', label: 'Home' },
-              { value: 'workspaces', label: 'Focus' },
-            ]}
-            size="sm"
+    <div className="flex flex-col gap-4">
+      {/* Toolbox — all size / page / punch controls above the canvas */}
+      <div className="rounded-[2rem] border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] p-4 md:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+              Board studio
+            </WeeSectionEyebrow>
+            <h2 className="m-0 text-xl font-black tracking-tight text-[hsl(var(--text-primary))] md:text-2xl">
+              {boardLabel} · {layout.columns}×{layout.rows}×{stripLayout.totalPages}
+            </h2>
+            <Text variant="desc" className="!mt-1 !mb-0 text-[hsl(var(--text-secondary))]">
+              {totalChannels} slots
+              {pageLayout.hasPageOverride ? ' · this page has a custom size' : ''}
+            </Text>
+          </div>
+          <div className="w-full max-w-[14rem] sm:w-auto">
+            <WeeSegmentedControl
+              ariaLabel="Channel board to edit"
+              value={layoutSpaceKey}
+              onChange={(key) => setBoardPickerKey(key)}
+              options={[
+                { value: 'home', label: 'Home' },
+                { value: 'workspaces', label: 'Focus' },
+              ]}
+              size="sm"
+            />
+          </div>
+        </div>
+
+        {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
+          <Text variant="caption" className="!mt-2 !mb-0 text-[hsl(var(--text-tertiary))]">
+            You&apos;re in a Hub — pick Home or Focus above to choose which grid to edit.
+          </Text>
+        ) : null}
+
+        {stripLayout.totalPages > 1 ? (
+          <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Preview page">
+            {Array.from({ length: stripLayout.totalPages }, (_, page) => {
+              const selected = safePreviewPage === page;
+              return (
+                <button
+                  key={`toolbox-page-${page}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setPreviewPage(page)}
+                  className={`rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide transition-colors ${
+                    selected
+                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+                      : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))] hover:border-[hsl(var(--border-secondary))]'
+                  }`}
+                >
+                  Page {page + 1}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <LayoutStepper
+            label="Columns"
+            value={layout.columns}
+            min={CHANNEL_LAYOUT_LIMITS.columns.min}
+            max={CHANNEL_LAYOUT_LIMITS.columns.max}
+            onChange={(v) => handleLayoutFieldChange('columns', v)}
+            ariaLabel="columns"
+          />
+          <LayoutStepper
+            label="Rows"
+            value={layout.rows}
+            min={CHANNEL_LAYOUT_LIMITS.rows.min}
+            max={CHANNEL_LAYOUT_LIMITS.rows.max}
+            onChange={(v) => handleLayoutFieldChange('rows', v)}
+            ariaLabel="rows"
+          />
+          <LayoutStepper
+            label="Pages"
+            value={stripLayout.totalPages}
+            min={CHANNEL_LAYOUT_LIMITS.totalPages.min}
+            max={CHANNEL_LAYOUT_LIMITS.totalPages.max}
+            onChange={(v) => handleLayoutFieldChange('totalPages', v)}
+            ariaLabel="pages"
+          />
+          <LayoutStepper
+            label="Peek %"
+            value={stripLayout.peekPercent}
+            min={CHANNEL_LAYOUT_LIMITS.peekPercent.min}
+            max={CHANNEL_LAYOUT_LIMITS.peekPercent.max}
+            onChange={(v) => handleLayoutFieldChange('peekPercent', v)}
+            ariaLabel="next-page peek percent"
           />
         </div>
-        {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
-          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-            You&apos;re in a Hub — pick Home or Focus above to choose which grid to edit.
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
+          <div className="mr-auto flex flex-wrap items-center gap-3">
+            <WToggle
+              checked={pageOnlyLayout}
+              onChange={setPageOnlyLayout}
+              label="This page only"
+            />
+            <WeeButton type="button" variant="secondary" className="!px-3 !py-2" onClick={handleResetToClassic}>
+              Reset classic
+            </WeeButton>
+            {pageLayout.hasPageOverride ? (
+              <WeeButton type="button" variant="secondary" className="!px-3 !py-2" onClick={handleClearPageOverride}>
+                Clear page size
+              </WeeButton>
+            ) : null}
+          </div>
+          <WeeButton
+            type="button"
+            variant={punchHoleMode ? 'primary' : 'secondary'}
+            className="shrink-0"
+            aria-pressed={punchHoleMode}
+            onClick={() => setPunchHoleMode((v) => !v)}
+          >
+            {punchHoleMode ? 'Done punching' : 'Punch holes'}
+          </WeeButton>
+          {!isFocusBoard ? (
+            <WeeButton type="button" variant="secondary" className="shrink-0" onClick={handlePunchOnHome}>
+              Punch on Home
+            </WeeButton>
+          ) : null}
+          <WeeButton
+            type="button"
+            variant="primary"
+            className="shrink-0"
+            onClick={isFocusBoard ? handleOpenFocusBoard : handleArrangeOnHome}
+          >
+            {isFocusBoard ? 'Open Focus' : 'Edit Home'}
+          </WeeButton>
+        </div>
+
+        {layoutStatus ? (
+          <Text variant="caption" className="!mt-3 !mb-0 text-[hsl(var(--text-secondary))]" role="status">
+            {layoutStatus}
+          </Text>
+        ) : pageOnlyLayout ? (
+          <Text variant="caption" className="!mt-3 !mb-0 text-[hsl(var(--text-tertiary))]">
+            Columns/rows apply to page {safePreviewPage + 1} only. Pages &amp; peek stay board-wide.
           </Text>
         ) : null}
       </div>
@@ -476,162 +534,9 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
         punchHoleMode={punchHoleMode}
         onToggleSlot={handleToggleSlotHidden}
         safePreviewPage={safePreviewPage}
-        totalPages={stripLayout.totalPages}
-        onPreviewPage={setPreviewPage}
         currentPage={currentPage}
         wallpaperUrl={wallpaperPreviewUrl || null}
       />
-
-      {/* Punch / arrange tools sit directly under the preview so enabling punch is obvious. */}
-      <div className="flex flex-col gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--surface-wii-tint)/0.5)] p-4 md:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 max-w-xl">
-            <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-              Punch holes
-            </WeeSectionEyebrow>
-            <Text variant="body" className="!m-0 !font-black !text-[hsl(var(--text-primary))]">
-              {punchHoleMode ? 'Tap slots in the preview above' : 'Hide slots to show wallpaper through'}
-            </Text>
-            <Text variant="desc" className="!mt-1.5 !mb-0 text-[hsl(var(--text-secondary))]">
-              {isFocusBoard
-                ? 'Edit holes on the Focus preview above, or open Focus to arrange in place.'
-                : 'Use the preview above for quick holes, or Edit Home for full Live Board Studio.'}
-            </Text>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <WeeButton
-              type="button"
-              variant={punchHoleMode ? 'primary' : 'secondary'}
-              className="shrink-0"
-              aria-pressed={punchHoleMode}
-              onClick={() => setPunchHoleMode((v) => !v)}
-            >
-              {punchHoleMode ? 'Done punching' : 'Punch in preview'}
-            </WeeButton>
-            {!isFocusBoard ? (
-              <WeeButton
-                type="button"
-                variant="secondary"
-                className="shrink-0"
-                onClick={handlePunchOnHome}
-              >
-                Punch on Home
-              </WeeButton>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--border-primary)/0.25)] pt-3">
-          <div className="min-w-0">
-            <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-              {isFocusBoard ? 'Open Focus' : 'Live Board Studio'}
-            </WeeSectionEyebrow>
-            <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-              {isFocusBoard
-                ? 'Arrange Focus tiles in place. Grid size stays here.'
-                : 'Reorder, resize widgets, and punch on the real Home board.'}
-            </Text>
-          </div>
-          <WeeButton
-            type="button"
-            variant="primary"
-            className="shrink-0"
-            onClick={isFocusBoard ? handleOpenFocusBoard : handleArrangeOnHome}
-          >
-            {isFocusBoard ? 'Open Focus' : 'Edit Home'}
-          </WeeButton>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <LayoutStepper
-          label="Columns"
-          value={layout.columns}
-          min={CHANNEL_LAYOUT_LIMITS.columns.min}
-          max={CHANNEL_LAYOUT_LIMITS.columns.max}
-          onChange={(v) => handleLayoutFieldChange('columns', v)}
-          ariaLabel="columns"
-        />
-        <LayoutStepper
-          label="Rows"
-          value={layout.rows}
-          min={CHANNEL_LAYOUT_LIMITS.rows.min}
-          max={CHANNEL_LAYOUT_LIMITS.rows.max}
-          onChange={(v) => handleLayoutFieldChange('rows', v)}
-          ariaLabel="rows"
-        />
-        <LayoutStepper
-          label="Pages"
-          value={stripLayout.totalPages}
-          min={CHANNEL_LAYOUT_LIMITS.totalPages.min}
-          max={CHANNEL_LAYOUT_LIMITS.totalPages.max}
-          onChange={(v) => handleLayoutFieldChange('totalPages', v)}
-          ariaLabel="pages"
-        />
-        <LayoutStepper
-          label="Peek %"
-          value={stripLayout.peekPercent}
-          min={CHANNEL_LAYOUT_LIMITS.peekPercent.min}
-          max={CHANNEL_LAYOUT_LIMITS.peekPercent.max}
-          onChange={(v) => handleLayoutFieldChange('peekPercent', v)}
-          ariaLabel="next-page peek percent"
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] px-4 py-3">
-        <div className="min-w-0 max-w-md">
-          <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-            Advanced · This page only
-          </WeeSectionEyebrow>
-          <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-            Columns/rows apply to preview page {safePreviewPage + 1} only. Pages &amp; peek stay
-            board-wide.
-          </Text>
-        </div>
-        <WToggle
-          checked={pageOnlyLayout}
-          onChange={setPageOnlyLayout}
-          label="This page only"
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <WeeButton type="button" variant="secondary" onClick={handleResetToClassic}>
-          Reset to classic
-        </WeeButton>
-        {pageLayout.hasPageOverride ? (
-          <WeeButton type="button" variant="secondary" onClick={handleClearPageOverride}>
-            Clear this page&apos;s size
-          </WeeButton>
-        ) : null}
-      </div>
-
-      {layoutStatus ? (
-        <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]" role="status">
-          {layoutStatus}
-        </Text>
-      ) : (
-        <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-          Shrinking keeps channels that still fit; extras are cleared. Growing adds empty slots.
-          Home and Focus sizes are independent.
-        </Text>
-      )}
-
-      <div className="flex flex-col gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--surface-wii-tint)/0.45)] p-4 md:flex-row md:items-start md:gap-4">
-        <Info className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--primary))]" aria-hidden />
-        <div className="min-w-0">
-          <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
-            Reorder feel lives under{' '}
-            <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}>
-              Motion
-            </WeeHelpLinkButton>
-            . Sounds:{' '}
-            <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SOUNDS)}>
-              Sounds
-            </WeeHelpLinkButton>
-            .
-          </Text>
-        </div>
-      </div>
     </div>
   );
 
@@ -675,35 +580,13 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
         >
           Music, Steam &amp; Widgets
         </WeeHelpLinkButton>
-        . Use a Now Playing tile on Home instead of a floating player.
+        . Use a Now Playing channel on Home instead of a floating player.
       </Text>
     </div>
   );
 
-  const renderTileStylePanel = () => (
+  const renderChannelStylePanel = () => (
     <div className="flex flex-col gap-4">
-      <SettingsToggleFieldCard
-        hoverAccent="none"
-        titleClassName={TOGGLE_TITLE}
-        title="Adaptive empty slots"
-        desc="Empty channel slots blend into your wallpaper for a cohesive look."
-        checked={settings.adaptiveEmptyChannels ?? true}
-        onChange={handleAdaptiveEmptyChannelsChange}
-      />
-      <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
-        <WeeSectionEyebrow className="mb-3 block" trackingClassName="tracking-[0.14em]">
-          Live adaptive preview
-        </WeeSectionEyebrow>
-        <div
-          className="flex h-16 w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-[hsl(var(--border-primary)/0.5)] px-4 shadow-inner transition-colors duration-200"
-          style={adaptivePreviewStyle}
-          aria-hidden="true"
-        >
-          <span className="h-10 w-10 rounded-xl border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary)/0.55)] shadow-[var(--shadow-sm)]" />
-          <span className="-ml-2 h-10 w-10 rotate-6 rounded-xl border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary)/0.55)] shadow-[var(--shadow-sm)]" />
-        </div>
-      </WeeModalFieldCard>
-
       <SettingsToggleFieldCard
         hoverAccent="none"
         titleClassName={TOGGLE_TITLE}
@@ -713,24 +596,15 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
         onChange={handleAnimatedOnHoverChange}
       />
 
-      <SettingsToggleFieldCard
-        hoverAccent="none"
-        titleClassName={TOGGLE_TITLE}
-        title="Focus & recede"
-        desc="Hovering a tile lightly dims neighbors (filled tiles only)."
-        checked={settings.focusRecedeEnabled ?? true}
-        onChange={handleFocusRecedeChange}
-      />
-
       <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
         <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-          Tile hover physics
+          Channel hover physics
         </WeeSectionEyebrow>
         <Text variant="caption" className="!mb-3 block text-[hsl(var(--text-tertiary))]">
-          Space-pill gooey hover on channel tiles. Bounce strength is under Motion → Gooey physics.
+          Space-pill gooey hover on channels. Bounce strength is under Motion → Gooey physics.
         </Text>
         <WeeSegmentedControl
-          ariaLabel="Channel tile hover physics mode"
+          ariaLabel="Channel hover physics mode"
           value={gooeyPrefs.channelHoverMode ?? GOOEY_HOVER_MODES.both}
           onChange={handleChannelHoverModeChange}
           options={[
@@ -747,52 +621,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
           Open Motion settings
         </button>
       </WeeModalFieldCard>
-
-      <WeeSettingsCollapsibleSection
-        icon={Activity}
-        title="Idle micro-motions"
-        description="Which one-shot tile delights can play when idle."
-        defaultOpen={false}
-      >
-        <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
-          <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-            Auto-fade, attract mode, and intensity live under Motion → Idle experience.
-          </Text>
-          <button
-            type="button"
-            className="mt-2 text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
-            onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
-          >
-            Open Motion → Idle experience
-          </button>
-        </WeeModalFieldCard>
-
-        <div className="mt-3 space-y-4">
-          <div className="w-full min-w-0">
-            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-              Animation types
-            </WeeSectionEyebrow>
-            <SettingsMultiToggleChips
-              items={IDLE_TYPE_ITEMS}
-              selectedValues={idleSelected}
-              onToggle={handleIdleAnimationTypeToggle}
-              ariaLabel="Idle animation types"
-            />
-          </div>
-          <div className="w-full min-w-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
-            <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-              Animation interval: {settings.idleAnimationInterval ?? 8} seconds
-            </Text>
-            <Slider
-              value={settings.idleAnimationInterval ?? 8}
-              min={2}
-              max={20}
-              step={1}
-              onChange={handleIdleAnimationIntervalChange}
-            />
-          </div>
-        </div>
-      </WeeSettingsCollapsibleSection>
     </div>
   );
 
@@ -951,8 +779,9 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
         return renderBoardPanel();
       case 'widgets':
         return renderWidgetsPanel();
-      case 'tile-style':
-        return renderTileStylePanel();
+      case 'channel-style':
+      case 'tile-style': // legacy local subtab id
+        return renderChannelStylePanel();
       case 'ken-burns':
         return renderKenBurnsPanel();
       default:
@@ -964,7 +793,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
       <SettingsTabPageHeader
         title="Channel & layout"
-        subtitle="Size the Home or Focus grid, place widgets, and tune how tiles look"
+        subtitle="Size the Home or Focus grid, place widgets, and tune how channels look"
         className="mb-6"
       />
 
@@ -991,15 +820,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
           </m.div>
         </AnimatePresence>
       </div>
-
-      <footer className="mt-10 rounded-[2rem] border-2 border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-5 py-4 md:px-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <Info size={16} strokeWidth={2.25} className="shrink-0 text-[hsl(var(--wee-text-rail-muted))]" aria-hidden />
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--wee-text-rail-muted))]">
-            Settings sync automatically
-          </span>
-        </div>
-      </footer>
     </div>
   );
 });

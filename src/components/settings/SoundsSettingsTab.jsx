@@ -37,7 +37,7 @@ const SOUND_CATEGORY_ICONS = {
 const SOUND_CATEGORY_DESCRIPTIONS = {
   backgroundMusic: 'Continuous background audio — playlist, loop, and library.',
   channelClick: 'One-shot when you activate a channel tile.',
-  channelHover: 'Optional hover feedback — can add overhead with many tiles.',
+  channelHover: 'Optional hover feedback — can add overhead with many channels.',
 };
 
 /**

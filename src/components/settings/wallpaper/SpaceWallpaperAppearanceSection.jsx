@@ -4,7 +4,13 @@ import WToggle from '../../../ui/WToggle';
 import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
 import SettingsWeeSection from '../SettingsWeeSection';
-import { WeeButton, WeeModalFieldCard, WeeRevealWhen, WeeSpaceRailPillButton } from '../../../ui/wee';
+import {
+  WeeButton,
+  WeeModalFieldCard,
+  WeeRevealWhen,
+  WeeSegmentedControl,
+  WeeSpaceRailPillButton,
+} from '../../../ui/wee';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import { SPACE_WALLPAPER_OPTIONS } from './wallpaperSettingsConstants';
 import WallpaperScenePreview from './WallpaperScenePreview';
@@ -58,7 +64,7 @@ function SpaceWallpaperAppearanceSection({
     null;
 
   return (
-    <SettingsWeeSection eyebrow="Wallpaper by space & page">
+    <SettingsWeeSection eyebrow="Apply & tone">
       <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
         <WallpaperScenePreview
           wallpaperUrl={sceneUrl}
@@ -70,11 +76,11 @@ function SpaceWallpaperAppearanceSection({
         />
 
         <Text variant="h3" className="mb-1 playful-hero-text">
-          Space &amp; page look
+          Apply to this space
         </Text>
         <Text variant="desc" className="mb-4">
-          Pick Home, Focus, Game Hub, or Media Hub from the sticky bar above. On Home and Focus,
-          choose a page in the map below — no need to flip the live board first.
+          Scope and tone for {selectedSpaceLabel}. Use the sticky bar above to change space or
+          page — no need to flip the live board first.
         </Text>
         <p className="mt-0 mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
           Opacity is global. Blur, brightness, and saturation stay per space.
@@ -138,23 +144,25 @@ function SpaceWallpaperAppearanceSection({
             </p>
 
             {supportsPerPageWallpaper ? (
-              <div className="settings-wee-field-row mb-3">
-                <span className="settings-wee-field-row__label">Wallpaper scope</span>
-                <div className="flex min-w-0 flex-wrap items-center gap-3">
-                  <WToggle
-                    checked={selectedWallpaperScope === 'perPage'}
-                    onChange={(checked) =>
-                      onWallpaperScopeChange?.(checked ? 'perPage' : 'space')
-                    }
-                    disableLabelClick
-                    title="Use a different wallpaper per channel page"
-                  />
-                  <Text variant="small" className="!m-0 text-[hsl(var(--text-secondary))]">
-                    {selectedWallpaperScope === 'perPage'
-                      ? 'Per page — flip pages to change the backdrop'
-                      : 'One wallpaper for this whole space'}
-                  </Text>
-                </div>
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                  Scope
+                </span>
+                <WeeSegmentedControl
+                  size="sm"
+                  ariaLabel="Wallpaper scope"
+                  layoutId="surfacesWallpaperScope"
+                  value={selectedWallpaperScope}
+                  onChange={(value) => onWallpaperScopeChange?.(value)}
+                  options={[
+                    { value: 'space', label: 'Space', title: 'One wallpaper for this whole space' },
+                    {
+                      value: 'perPage',
+                      label: 'Per page',
+                      title: 'Different wallpaper per Home/Focus page',
+                    },
+                  ]}
+                />
               </div>
             ) : null}
 

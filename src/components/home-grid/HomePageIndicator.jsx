@@ -6,23 +6,27 @@ import {
 } from '../../design/weeMotion';
 import { WeeGlassPill, WeePillFloorShadow } from '../../ui/wee';
 import useChannelOperations from '../../utils/useChannelOperations';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { resolveActiveChannelSpaceKey } from '../../utils/channelSpaces';
 
 const COMPACT_PX = 40;
 const DOT_STEP_PX = 22;
 
 /**
- * Pill Morph Reveal page indicator for the Home board: compact page-count disc that expands
- * into clickable page dots on hover/focus. Horizontal twin of `WeeGooeySideNavButton`.
+ * Pill Morph Reveal page indicator for the active channel board (Home or Focus):
+ * compact page-count disc that expands into clickable page dots on hover/focus.
+ * Horizontal twin of `WeeGooeySideNavButton`.
  *
  * Mount in `.channel-space-chrome__stack` (viewport chrome above the dock) — not inside the
- * transformed space-world track, or the ribbon paints over it. Reads Home via
- * `useChannelOperations('home')`.
+ * transformed space-world track, or the ribbon paints over it.
  *
  * Sits at the top of `--channel-page-indicator-band`, just under the channel grid and clear
  * of `--channel-ribbon-crest-clearance` (wave + time pill).
  */
 function HomePageIndicator() {
-  const { navigation, goToPage } = useChannelOperations('home');
+  const activeSpaceId = useConsolidatedAppStore((s) => s.spaces?.activeSpaceId);
+  const channelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
+  const { navigation, goToPage } = useChannelOperations(channelSpaceKey);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const reducedMotion = useReducedMotion();
@@ -60,7 +64,7 @@ function HomePageIndicator() {
       <div
         className="pointer-events-auto relative flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary)/0.75)]"
         role="group"
-        aria-label={`Home pages — page ${currentPage + 1} of ${totalPages}`}
+        aria-label={`Pages — page ${currentPage + 1} of ${totalPages}`}
         tabIndex={0}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -87,10 +91,10 @@ function HomePageIndicator() {
               const active = page === currentPage;
               return (
                 <button
-                  key={`home-page-dot-${page}`}
+                  key={`${channelSpaceKey}-page-dot-${page}`}
                   type="button"
                   aria-current={active ? 'page' : undefined}
-                  aria-label={`Go to Home page ${page + 1}`}
+                  aria-label={`Go to page ${page + 1}`}
                   onClick={() => goToPage(page)}
                   className={`h-2.5 w-2.5 shrink-0 rounded-full transition-transform duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary)/0.75)] ${
                     active

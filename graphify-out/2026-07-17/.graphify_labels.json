@@ -192,7 +192,6 @@
   "190": "fast-average-color",
   "191": "[Unreleased]",
   "192": "useIdleChannelAnimations.js",
-  "193": "channelMediaType.js",
   "194": "systeminformation",
   "195": "CommandPalette.jsx",
   "196": "gifuct-js",
@@ -202,19 +201,12 @@
   "200": "tailwind-variants",
   "201": "homeWidgetSurface.js",
   "202": "mediaHubStremio.js",
-  "203": "react",
-  "204": "test-settings-merge.mjs",
   "205": "fs-extra",
   "206": "SystemInfoWidget.jsx",
   "207": "framer-motion",
   "208": "react-icons",
-  "209": "SKILL.md",
-  "210": "fast-average-color",
   "211": "README.md",
   "212": "MusicReactiveBars.jsx",
   "213": "usePlaybackSeek.js",
-  "214": "SpotifyScrollLabel.jsx",
-  "215": "p-queue",
-  "216": "uuid",
-  "217": "SettingsMultiToggleChips.jsx"
+  "214": "SpotifyScrollLabel.jsx"
 }

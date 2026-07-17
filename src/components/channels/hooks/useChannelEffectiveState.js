@@ -114,17 +114,8 @@ export function useChannelEffectiveState({
     [channelSettings.kenBurnsMode]
   );
 
-  const effectiveAdaptiveEmptyChannels = useMemo(
-    () =>
-      effectiveConfig && effectiveConfig.adaptiveEmptyChannels !== undefined
-        ? effectiveConfig.adaptiveEmptyChannels
-        : channelSettings.adaptiveEmptyChannels ?? true,
-    [effectiveConfig?.adaptiveEmptyChannels, channelSettings.adaptiveEmptyChannels]
-  );
-  const useAdaptiveEmptyChannels = useMemo(
-    () => Boolean(effectiveAdaptiveEmptyChannels),
-    [effectiveAdaptiveEmptyChannels]
-  );
+  // Adaptive empty slots are always on (setting defaults true; UI toggle removed).
+  const useAdaptiveEmptyChannels = true;
 
   const adaptiveEmptyStyle = useChannelAdaptiveEmptyStyle({
     effectiveIsEmpty,

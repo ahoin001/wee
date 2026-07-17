@@ -43,24 +43,24 @@ export const SETTINGS_TAB_META = Object.freeze([
     categoryId: 'home',
     keywords: [
       'edit home', 'arrange', 'board', 'grid', 'widgets', 'quick access',
-      'ken burns', 'idle', 'auto fade', 'focus recede', 'hover', 'tiles', 'layout',
-      'punch', 'holes', 'tile style',
+      'ken burns', 'idle', 'auto fade', 'hover', 'channels', 'layout',
+      'punch', 'holes', 'channel style', 'tiles',
     ],
   },
   // —— Appearance ——
   {
     id: 'wallpaper',
-    label: 'Wallpaper',
+    label: 'Surfaces',
     icon: '🖼️',
     color: 'hsl(var(--settings-tab-wallpaper))',
-    description: 'Library, space & page looks, cycling & match',
+    description: 'Wallpaper, ribbon, and looks per space & page',
     categoryId: 'appearance',
     keywords: [
       'background', 'cycling', 'blur', 'overlay', 'particles', 'image', 'video',
-      'wallpaper library', 'desktop wallpaper',
+      'wallpaper library', 'desktop wallpaper', 'wallpaper',
       'surfaces', 'per page wallpaper', 'page wallpaper', 'space wallpaper',
       'game hub wallpaper', 'media hub wallpaper', 'home wallpaper', 'focus wallpaper',
-      'ribbon scope', 'ribbon by page', 'per page ribbon', 'space look',
+      'ribbon scope', 'ribbon by page', 'per page ribbon', 'space look', 'match wallpaper',
     ],
   },
   {

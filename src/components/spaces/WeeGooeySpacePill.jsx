@@ -458,11 +458,17 @@ export default function WeeGooeySpacePill() {
     setHovered(false);
   };
 
-  /** Edit Home from any space — enterArrange jumps to the Home board itself. */
-  const handleEditHome = () => {
+  /** Live Board Studio on the current channel board (Home/Focus stay put; hubs jump to Home). */
+  const handleEditBoard = () => {
     enterHomeBoardArrange({ closeSettings: true });
     setHovered(false);
   };
+  const editBoardLabel =
+    activeSpaceId === 'workspaces'
+      ? 'Edit board — arrange Focus tiles and widgets'
+      : activeSpaceId === 'home'
+        ? 'Edit board — arrange Home tiles and widgets'
+        : 'Edit Home — arrange tiles and widgets';
 
   const onPillHoverEnter = useCallback(() => {
     clearHideTimer();
@@ -653,10 +659,10 @@ export default function WeeGooeySpacePill() {
                         reducedMotion={reducedMotion}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEditHome();
+                          handleEditBoard();
                         }}
-                        title="Edit Home — arrange tiles and widgets (Ctrl+E)"
-                        aria-label="Edit Home — arrange tiles and widgets"
+                        title={`${editBoardLabel} (Ctrl+E)`}
+                        aria-label={editBoardLabel}
                       >
                         <PenLine size={22} strokeWidth={2} className="relative z-10" aria-hidden />
                       </WeeGooeyIconButton>

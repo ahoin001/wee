@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, m } from 'framer-motion';
-import { Anchor, Gamepad2, Info, Layers } from 'lucide-react';
+import { Anchor, Gamepad2, Layers } from 'lucide-react';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { findDockThemePath, getDockThemeByPath } from '../../utils/dockThemeUtils';
@@ -439,15 +439,6 @@ const UnifiedDockSettingsTab = React.memo(() => {
           </m.div>
         </AnimatePresence>
       </div>
-
-      <footer className="mt-10 rounded-[2rem] border-2 border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-5 py-4 md:px-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <Info size={16} strokeWidth={2.25} className="shrink-0 text-[hsl(var(--wee-text-rail-muted))]" aria-hidden />
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--wee-text-rail-muted))]">
-            Settings sync automatically
-          </span>
-        </div>
-      </footer>
     </div>
   );
 });

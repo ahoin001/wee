@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import useChannelOperations from '../../utils/useChannelOperations';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { resolveActiveChannelSpaceKey } from '../../utils/channelSpaces';
 import { playChannelClick } from '../../utils/soundPlayback';
 import { WeeGooeySideNavButton } from '../../ui/wee';
 
@@ -34,11 +35,12 @@ function rgbToRgba(rgbString, alpha = 1) {
 }
 
 /**
- * Home Wii-layout edge peeks for channel pages.
+ * Wii-layout edge peeks for the active channel board (Home or Focus).
  * Always Wee Pill Morph Reveal (`WeeGooeySideNavButton` variant="wee").
  */
 const WiiSideNavigation = () => {
-  const channelSpaceKey = useMemo(() => 'home', []);
+  const activeSpaceId = useConsolidatedAppStore((s) => s.spaces?.activeSpaceId);
+  const channelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
   const { navigation, nextPage, prevPage } = useChannelOperations(channelSpaceKey);
   const { totalPages, isAnimating, mode } = navigation;
 

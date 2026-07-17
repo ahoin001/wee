@@ -301,7 +301,7 @@ const PaginatedChannelsInner = React.memo(() => {
     adaptiveEmptyChannels: channelSettings.adaptiveEmptyChannels ?? true,
     kenBurnsEnabled: channelSettings.kenBurnsEnabled ?? false,
     kenBurnsMode: channelSettings.kenBurnsMode ?? 'hover',
-    focusRecedeEnabled: channelSettings.focusRecedeEnabled ?? true,
+    focusRecedeEnabled: false,
   }), [channelSettings]);
 
   const lastPointerThrottleRef = useRef(0);

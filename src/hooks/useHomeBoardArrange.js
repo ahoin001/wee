@@ -1,13 +1,28 @@
 import { useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { CHANNEL_SPACE_KEYS } from '../utils/channelSpaces';
+
+function isChannelBoardSpaceId(spaceId) {
+  return CHANNEL_SPACE_KEYS.includes(spaceId);
+}
+
+/**
+ * Jump to Home only when arrange is entered from a hub (no channel board underfoot).
+ * Home / Focus already host a board — stay put so Focus users are not scrolled away.
+ */
+function ensureChannelBoardForArrange(actions, activeSpaceId) {
+  if (isChannelBoardSpaceId(activeSpaceId)) return;
+  actions.setSpacesState({ activeSpaceId: 'home' });
+}
 
 /**
  * Toggle Live Board Studio from outside React (keyboard shortcut registry, admin commands).
  * Single source of the toggle rules — the hook's `toggleArrange` delegates here.
  */
 export function toggleHomeBoardArrange() {
-  const { actions } = useConsolidatedAppStore.getState();
+  const state = useConsolidatedAppStore.getState();
+  const { actions } = state;
   actions.setUIState((prev) => {
     if (prev.homeBoardArrangeMode) {
       return {
@@ -16,7 +31,7 @@ export function toggleHomeBoardArrange() {
         homeBoardSelectedSlotIndex: null,
       };
     }
-    actions.setSpacesState({ activeSpaceId: 'home' });
+    ensureChannelBoardForArrange(actions, state.spaces?.activeSpaceId);
     return { homeBoardArrangeMode: true, homeBoardPunchMode: false };
   });
 }
@@ -41,13 +56,16 @@ export function useHomeBoardArrange() {
     );
 
   /**
-   * Enter Live Board Studio on Home.
-   * Always jumps to the Home space and closes Settings so the arrange bar is visible.
+   * Enter Live Board Studio on the current channel board (Home or Focus).
+   * Hubs jump to Home so arrange has a board; Home/Focus stay put.
    * Pass `punchMode: true` to deep-link straight into wallpaper-hole editing.
    */
   const enterArrange = useCallback(
     ({ closeSettings = false, punchMode: startPunch = false } = {}) => {
-      setSpacesState({ activeSpaceId: 'home' });
+      const activeSpaceId = useConsolidatedAppStore.getState().spaces?.activeSpaceId;
+      if (!isChannelBoardSpaceId(activeSpaceId)) {
+        setSpacesState({ activeSpaceId: 'home' });
+      }
       setUIState({
         homeBoardArrangeMode: true,
         homeBoardPunchMode: Boolean(startPunch),

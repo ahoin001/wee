@@ -35,8 +35,9 @@ export function resolvePreviewSlotLabel(slot, configuredChannels, slotIndex) {
 }
 
 /**
- * Sticky live grid preview for Channels & layout — schematic cells with real slot labels.
- * Punch mode toggles wallpaper holes; size edits update the grid live (ribbon-preview pattern).
+ * Live grid canvas for Channels & layout — schematic cells with real slot labels.
+ * Punch mode toggles wallpaper holes; size edits update the grid live.
+ * Page / dimension controls live in the parent toolbox above this canvas.
  */
 function ChannelBoardLivePreview({
   layout,
@@ -47,8 +48,6 @@ function ChannelBoardLivePreview({
   punchHoleMode,
   onToggleSlot,
   safePreviewPage,
-  totalPages,
-  onPreviewPage,
   currentPage,
   wallpaperUrl,
 }) {
@@ -91,53 +90,25 @@ function ChannelBoardLivePreview({
     </div>
   );
 
-  const beforeCanvas =
-    totalPages > 1 ? (
-      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Preview page">
-        {Array.from({ length: totalPages }, (_, page) => {
-          const selected = safePreviewPage === page;
-          return (
-            <m.button
-              key={`preview-page-${page}`}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => onPreviewPage(page)}
-              whileHover={reduceMotion ? undefined : { scale: 1.06 }}
-              whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-              transition={press}
-              className={`rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ${
-                selected
-                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                  : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
-              }`}
-            >
-              Page {page + 1}
-            </m.button>
-          );
-        })}
-      </div>
-    ) : null;
-
   return (
     <SettingsLivePreviewFrame
-      eyebrow="Live grid"
+      eyebrow="Board canvas"
       caption={
         punchHoleMode
-          ? 'Tap a tile to punch a wallpaper hole — holes stay put when you reorder.'
-          : 'Updates as you change size. Edit Home to reorder and resize tiles.'
+          ? 'Tap a tile to punch a wallpaper hole.'
+          : 'Canvas updates as you change size above.'
       }
       headerAside={headerAside}
-      beforeCanvas={beforeCanvas}
-      sticky
-      minHeightClassName="min-h-[11.5rem] md:min-h-[13rem]"
+      sticky={false}
+      minHeightClassName="min-h-[16rem] md:min-h-[20rem] lg:min-h-[22rem]"
+      canvasClassName="!p-4 md:!p-5"
       canvasStyle={canvasStyle}
     >
       <div
-        className="relative z-[1] mx-auto grid h-full w-full max-w-xl gap-2"
+        className="relative z-[1] mx-auto grid h-full w-full max-w-2xl gap-2.5 md:gap-3"
         style={{
           gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${layout.rows}, minmax(2.4rem, 1fr))`,
+          gridTemplateRows: `repeat(${layout.rows}, minmax(3rem, 1fr))`,
         }}
         role="group"
         aria-label="Channel board preview"
@@ -163,7 +134,7 @@ function ChannelBoardLivePreview({
                     : 'Hide this slot'
                   : label || `Slot ${slotIndex + 1}`
               }
-              className={`relative flex min-h-[2.4rem] items-center justify-center overflow-hidden rounded-xl border-2 px-1 text-[9px] font-bold uppercase leading-tight tracking-wide ${
+              className={`relative flex min-h-[3rem] items-center justify-center overflow-hidden rounded-xl border-2 px-1 text-[9px] font-bold uppercase leading-tight tracking-wide md:min-h-[3.25rem] md:text-[10px] ${
                 hidden
                   ? 'border-dashed border-[hsl(var(--border-secondary))] bg-transparent text-[hsl(var(--text-tertiary))]'
                   : 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)]'
@@ -194,8 +165,6 @@ ChannelBoardLivePreview.propTypes = {
   punchHoleMode: PropTypes.bool,
   onToggleSlot: PropTypes.func.isRequired,
   safePreviewPage: PropTypes.number.isRequired,
-  totalPages: PropTypes.number.isRequired,
-  onPreviewPage: PropTypes.func.isRequired,
   currentPage: PropTypes.number.isRequired,
   wallpaperUrl: PropTypes.string,
 };

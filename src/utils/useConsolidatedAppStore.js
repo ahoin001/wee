@@ -402,7 +402,7 @@ useConsolidatedAppStore = create(
             kenBurnsAnimationType: 'both',
             kenBurnsCrossfadeReturn: true,
             kenBurnsTransitionType: 'cross-dissolve',
-            focusRecedeEnabled: true,
+            focusRecedeEnabled: false,
             /** Unified idle experience (see utils/idleExperience.js) */
             idleExperienceMode: 'subtle',
             idleAttractDelaySec: 120,

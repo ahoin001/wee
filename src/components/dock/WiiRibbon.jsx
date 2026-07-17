@@ -106,7 +106,6 @@ const WiiRibbonComponent = ({
   const {
     activeSpaceId,
     appearanceBySpace,
-    channels,
     wallpaperMatchEnabled,
     wallpaperCurrent,
     ambientCachedForUrl,
@@ -115,7 +114,6 @@ const WiiRibbonComponent = ({
     useShallow((state) => ({
       activeSpaceId: state.spaces.activeSpaceId,
       appearanceBySpace: state.appearanceBySpace,
-      channels: state.channels,
       wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
       wallpaperCurrent: state.wallpaper?.current,
       // Re-render when ambient cache/active URL updates so paint target can peek LRU.
@@ -123,18 +121,14 @@ const WiiRibbonComponent = ({
       ambientPalette: state.ui.ambientColor?.palette ?? null,
     }))
   );
-  const boardCurrentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
-  const homeNavPage = useConsolidatedAppStore(
-    (s) => s.channels?.dataBySpace?.home?.navigation?.currentPage ?? 0
+  // Shared board-page SSOT (Home + Focus) — same as wallpaper/ambient/crossfade.
+  // Select the primitive page so paint retargets even if `channels` identity is sticky.
+  const pageForPaint = useConsolidatedAppStore((s) =>
+    resolveActiveBoardCurrentPage({
+      activeSpaceId: s.spaces.activeSpaceId,
+      channels: s.channels,
+    })
   );
-  const focusNavPage = useConsolidatedAppStore((s) => {
-    const secondaryId = s.channels?.activeSecondaryChannelProfileId;
-    const space = s.channels?.secondaryChannelProfiles?.[secondaryId]?.channelSpace;
-    return space?.navigation?.currentPage ?? 0;
-  });
-  // Primitive page deps so wallpaper-match paint retargets even if channels identity is sticky.
-  const pageForPaint =
-    activeSpaceId === 'workspaces' ? focusNavPage : activeSpaceId === 'home' ? homeNavPage : boardCurrentPage;
   const supportsPerPageRibbon = activeSpaceId === 'home' || activeSpaceId === 'workspaces';
   const spaceRibbon = appearanceBySpace?.[activeSpaceId]?.ribbon || null;
   const pageWallpaperUrl = useMemo(

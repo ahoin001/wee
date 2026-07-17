@@ -159,6 +159,28 @@ test('paint: wallpaper ribbon matches Effective accent hex', () => {
   assert.equal(look.ribbonGlowColor, accent.hex);
 });
 
+test('paint: Focus page index uses same wallpaper overlay as Home (board SSOT)', () => {
+  const { look, source } = resolveRibbonPaintTarget({
+    liveRibbon: MANUAL,
+    spaceRibbon: {
+      ribbonScope: 'perPage',
+      ribbonByPage: {
+        2: { ribbonColor: '#010101', ribbonGlowColor: '#020202' },
+      },
+    },
+    currentPage: 2,
+    supportsPerPage: true,
+    wallpaperMatchEnabled: true,
+    wallpaperUrl: 'file:///focus-wall.jpg',
+    ambientPalette: WALLPAPER_PALETTE,
+    ambientCachedForUrl: 'file:///focus-wall.jpg',
+    spotifyMatchEnabled: false,
+  });
+  assert.equal(source, 'wallpaper');
+  assert.equal(look.ribbonColor, '#112233');
+  assert.notEqual(look.ribbonColor, '#010101');
+});
+
 test('paint: mid-nav URL mismatch still uses live ambient (stays with Effective accent)', () => {
   const accent = resolveEffectiveAccent({
     wallpaperMatchEnabled: true,

@@ -18,7 +18,7 @@ export const SETTINGS_TAB_ID = {
   THEMES: 'themes',
   UPDATES: 'updates',
   WALLPAPER: 'wallpaper',
-  /** @deprecated Merged into Wallpaper — normalizeSettingsTabId redirects `surfaces`. */
+  /** Alias of wallpaper route id — rail label is Surfaces. */
   SURFACES: 'wallpaper',
   TIME: 'time',
   SHORTCUTS: 'shortcuts',
