@@ -32,6 +32,7 @@ import { resolveEffectiveAccent } from '../../utils/theme/resolveEffectiveAccent
 import { DEFAULT_AMBIENT_COLOR } from '../../utils/theme/extractImagePalette';
 import { DEFAULT_RIBBON_GLOW_HEX, DEFAULT_RIBBON_SURFACE_HEX } from '../../design/runtimeColorStrings';
 import { syncActiveSpaceAppearanceCapture } from '../../utils/appearance/spaceAppearance';
+import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import WToggle from '../../ui/WToggle';
 import WeeButton from '../../ui/wee/WeeButton';
@@ -282,44 +283,32 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
   const toggleWallpaperMatch = useCallback(async () => {
     const next = !wallpaperMatchEnabled;
     if (next) await ensureDynamicChromeOn();
-    setUIState({ wallpaperMatchEnabled: next });
-    await saveUnifiedSettingsSnapshot({ ui: { wallpaperMatchEnabled: next } });
-    if (next && spotifyMatchEnabled) {
-      setAtmosphereStatus(
-        'Wallpaper match on — Now Playing still wins the ribbon while music plays'
-      );
-    } else {
-      setAtmosphereStatus(
-        next
-          ? 'Wallpaper Color Match on'
-          : 'Wallpaper Color Match off — pick your own colors in Dock or Colors'
-      );
-    }
-  }, [
-    ensureDynamicChromeOn,
-    setUIState,
-    spotifyMatchEnabled,
-    wallpaperMatchEnabled,
-  ]);
+    const uiPatch = next
+      ? liveColorMatchUiPatch('wallpaper')
+      : { wallpaperMatchEnabled: false };
+    setUIState(uiPatch);
+    await saveUnifiedSettingsSnapshot({ ui: uiPatch });
+    setAtmosphereStatus(
+      next
+        ? 'Wallpaper Color Match on — Now Playing match turned off'
+        : 'Wallpaper Color Match off — pick your own colors in Dock'
+    );
+  }, [ensureDynamicChromeOn, setUIState, wallpaperMatchEnabled]);
 
   const toggleSpotifyMatch = useCallback(async () => {
     const next = !spotifyMatchEnabled;
     if (next) await ensureDynamicChromeOn();
-    setUIState({ spotifyMatchEnabled: next });
-    await saveUnifiedSettingsSnapshot({ ui: { spotifyMatchEnabled: next } });
+    const uiPatch = next
+      ? liveColorMatchUiPatch('spotify')
+      : { spotifyMatchEnabled: false };
+    setUIState(uiPatch);
+    await saveUnifiedSettingsSnapshot({ ui: uiPatch });
     setAtmosphereStatus(
       next
-        ? wallpaperMatchEnabled
-          ? 'Now Playing Color Match on — overrides wallpaper while music plays'
-          : 'Now Playing Color Match on'
+        ? 'Now Playing Color Match on — Wallpaper match turned off'
         : 'Now Playing Color Match off'
     );
-  }, [
-    ensureDynamicChromeOn,
-    setUIState,
-    spotifyMatchEnabled,
-    wallpaperMatchEnabled,
-  ]);
+  }, [ensureDynamicChromeOn, setUIState, spotifyMatchEnabled]);
 
   const toggleLiveGradientWash = useCallback(() => {
     const next = !liveGradientWallpaper;
@@ -531,7 +520,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
             <div className="wee-modal-scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-8 py-6 md:px-10">
               <WeeSettingsDisclosure
                 title="Colors & accents"
-                description="Everything that drives live color — match, wash, widgets, chrome"
+                description="One live match at a time — wallpaper or Now Playing — plus wash and chrome"
                 defaultOpen
                 className="!mb-0"
               >
@@ -548,6 +537,9 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
                       </p>
                       <p className="m-0 font-mono text-[12px] font-semibold text-[hsl(var(--text-primary))]">
                         {effectiveAccent.hex.toUpperCase()} · {accentSourceLabel}
+                      </p>
+                      <p className="m-0 mt-0.5 text-[10px] text-[hsl(var(--text-tertiary))]">
+                        Drives ribbon chrome and UI primary
                       </p>
                     </div>
                   </div>

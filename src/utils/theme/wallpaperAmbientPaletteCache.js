@@ -37,18 +37,21 @@ export function peekWallpaperAmbientPalette(imageUrl) {
 }
 
 /**
- * Map ambient palette → ribbon color fields (same mapping as legacy ambient hook).
+ * Map ambient palette → ribbon color fields.
+ * Same seed as {@link resolveEffectiveAccent} (primary → accent) so the Quick Menu
+ * “Effective accent” swatch matches the ribbon body + glow under wallpaper match.
+ *
  * @param {{ accent?: string, primary?: string, surfaceHint?: string, secondary?: string } | null | undefined} palette
  * @returns {{ ribbonColor: string, ribbonGlowColor: string } | null}
  */
 export function ambientPaletteToRibbonColors(palette) {
   if (!palette || typeof palette !== 'object') return null;
-  const ribbonGlowColor = palette.accent || palette.primary;
-  const ribbonColor = palette.surfaceHint || palette.secondary;
-  if (!ribbonGlowColor && !ribbonColor) return null;
+  // Mirror resolveEffectiveAccent wallpaper branch: primary, then accent.
+  const accentHex = palette.primary || palette.accent;
+  if (!accentHex) return null;
   return {
-    ...(ribbonColor ? { ribbonColor } : {}),
-    ...(ribbonGlowColor ? { ribbonGlowColor } : {}),
+    ribbonColor: accentHex,
+    ribbonGlowColor: accentHex,
   };
 }
 

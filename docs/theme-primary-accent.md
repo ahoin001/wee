@@ -10,6 +10,9 @@
 
 ## Live color precedence
 
+Wallpaper Color Match and Now Playing Color Match are **mutually exclusive** in the UI
+(enabling one turns the other off). Resolver still keeps a safe order if both ever end up on:
+
 ```
 Spotify Match → Wallpaper match → Manual ribbon glow → Default blue
 ```
@@ -21,7 +24,9 @@ Spotify Match → Wallpaper match → Manual ribbon glow → Default blue
 | Manual ribbon glow | Dock / Lock colors | **Yes** — only then glow drives `--primary` |
 | Default | `#0099ff` | — |
 
-Wallpaper match paints the ribbon from the ambient LRU / store palette and does **not** continuously overwrite `ribbon.ribbonColor`. Persist via **Lock this look**, **Save current look**, or a manual Dock color pick (which turns live match off).
+Wallpaper / Spotify match paint the ribbon from the same seed as Effective accent
+(`primary` then `accent` for wallpaper; `accent` then `primary` for Spotify), so the
+Quick Menu swatch matches ribbon body + glow. Persist via **Lock this look**, **Save current look**, or a manual Dock color pick (which turns live match off).
 
 ## What updates with the effective accent
 

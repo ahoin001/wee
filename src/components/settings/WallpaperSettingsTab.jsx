@@ -17,6 +17,7 @@ import {
   resolveLiveMatchRibbonOverlay,
 } from '../../utils/appearance/resolveEffectiveRibbonLook';
 import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAccent';
+import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { getSecondaryChannelSpaceData } from '../../utils/channelSpaces';
 import { resolveLayout } from '../../utils/channelLayoutSystem';
@@ -283,8 +284,12 @@ function useWallpaperSettingsController() {
   const handleWallpaperMatchChange = useCallback(
     async (enabled) => {
       // Turning match off leaves last manual/locked ribbon colors; only clears ambient extract cache.
+      // Enabling wallpaper match turns off Now Playing match (mutual exclusive).
+      const matchPatch = enabled
+        ? liveColorMatchUiPatch('wallpaper')
+        : { wallpaperMatchEnabled: false };
       setUIState({
-        wallpaperMatchEnabled: enabled,
+        ...matchPatch,
         ...(enabled
           ? {
               ambientColor: {
@@ -298,7 +303,7 @@ function useWallpaperSettingsController() {
           : {}),
       });
       await saveUnifiedSettingsSnapshot({
-        ui: { wallpaperMatchEnabled: enabled },
+        ui: matchPatch,
       });
     },
     [setUIState]

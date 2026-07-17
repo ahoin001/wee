@@ -1,6 +1,7 @@
 /**
  * Ribbon / accent color precedence invariants.
- * Precedence: Spotify Match → explicit per-page → Wallpaper match → manual.
+ * Precedence: Spotify Match → Wallpaper match → explicit per-page → manual.
+ * Live match modes are mutually exclusive in UI; resolver keeps Spotify > wallpaper if both on.
  * Run with: npm run test:ribbon-color
  */
 
@@ -41,9 +42,9 @@ const WALLPAPER_PALETTE = {
   surfaceHint: '#aabbcc',
 };
 
-test('spotifyColorsToRibbonLook maps primary fill + accent glow to hex', () => {
+test('spotifyColorsToRibbonLook maps accent seed to fill + glow (matches Effective accent)', () => {
   const look = spotifyColorsToRibbonLook(SPOTIFY);
-  assert.equal(look.ribbonColor, '#0a141e');
+  assert.equal(look.ribbonColor, '#c82850');
   assert.equal(look.ribbonGlowColor, '#c82850');
 });
 
@@ -58,7 +59,7 @@ test('paint: Spotify Match beats wallpaper and manual', () => {
     spotifyColors: SPOTIFY,
   });
   assert.equal(source, 'spotify');
-  assert.equal(look.ribbonColor, '#0a141e');
+  assert.equal(look.ribbonColor, '#c82850');
   assert.equal(look.ribbonGlowColor, '#c82850');
 });
 
@@ -83,7 +84,7 @@ test('paint: Spotify Match beats explicit per-page look', () => {
     spotifyColors: SPOTIFY,
   });
   assert.equal(source, 'spotify');
-  assert.equal(look.ribbonColor, '#0a141e');
+  assert.equal(look.ribbonColor, '#c82850');
 });
 
 test('paint: wallpaper match beats explicit per-page when match is on', () => {
@@ -104,7 +105,8 @@ test('paint: wallpaper match beats explicit per-page when match is on', () => {
     spotifyMatchEnabled: false,
   });
   assert.equal(source, 'wallpaper');
-  assert.equal(look.ribbonColor, '#aabbcc');
+  assert.equal(look.ribbonColor, '#112233');
+  assert.equal(look.ribbonGlowColor, '#112233');
 });
 
 test('paint: explicit per-page wins when wallpaper match is off', () => {
@@ -136,8 +138,25 @@ test('paint: wallpaper store palette overlays manual when match on', () => {
     spotifyMatchEnabled: false,
   });
   assert.equal(source, 'wallpaper');
-  assert.equal(look.ribbonColor, '#aabbcc');
-  assert.equal(look.ribbonGlowColor, '#445566');
+  assert.equal(look.ribbonColor, '#112233');
+  assert.equal(look.ribbonGlowColor, '#112233');
+});
+
+test('paint: wallpaper ribbon matches Effective accent hex', () => {
+  const accent = resolveEffectiveAccent({
+    wallpaperMatchEnabled: true,
+    ambientPalette: WALLPAPER_PALETTE,
+  });
+  const { look } = resolveRibbonPaintTarget({
+    liveRibbon: MANUAL,
+    wallpaperMatchEnabled: true,
+    wallpaperUrl: 'file:///wall.jpg',
+    ambientPalette: WALLPAPER_PALETTE,
+    ambientCachedForUrl: 'file:///wall.jpg',
+  });
+  assert.equal(accent.hex, '#112233');
+  assert.equal(look.ribbonColor, accent.hex);
+  assert.equal(look.ribbonGlowColor, accent.hex);
 });
 
 test('paint: manual when no live match', () => {
@@ -222,6 +241,7 @@ test('live match overlay for Save/Lock capture prefers Spotify', () => {
     ambientPalette: WALLPAPER_PALETTE,
     ambientCachedForUrl: 'file:///wall.jpg',
   });
+  assert.equal(overlay.ribbonColor, '#c82850');
   assert.equal(overlay.ribbonGlowColor, '#c82850');
 });
 

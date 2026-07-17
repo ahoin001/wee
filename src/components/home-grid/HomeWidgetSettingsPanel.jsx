@@ -26,6 +26,7 @@ import {
   defaultFrozenSpotifyLookName,
   saveFrozenSpotifyLookPreset,
 } from '../../utils/presets/saveFrozenSpotifyLookPreset';
+import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 
 const STEAM_KIND_IDS = new Set(['steamRecent', 'steamMostPlayed', 'steamFriends']);
 
@@ -189,7 +190,9 @@ function NowPlayingWidgetSettings() {
   const handleRibbon = useCallback(
     (checked) => {
       const enabled = Boolean(checked);
-      actions.setUIState({ spotifyMatchEnabled: enabled });
+      actions.setUIState(
+        enabled ? liveColorMatchUiPatch('spotify') : { spotifyMatchEnabled: false }
+      );
       if (enabled) {
         actions.setRibbonState({ dynamicRibbonColorEnabled: true });
       }

@@ -30,6 +30,7 @@ import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
 import { buildWorkspaceDataFromStore } from '../../utils/workspaces/buildWorkspaceSnapshot';
 import { normalizeWorkspacesState } from '../../utils/workspaces/workspaceState';
 import { createPresetId } from '../../utils/presets/presetIds';
+import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import {
   PRESET_SCOPE_VISUAL,
   PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
@@ -481,8 +482,11 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   const handleSpotifyMatchToggle = async (enabled) => {
-    setUIState({ spotifyMatchEnabled: enabled });
-    await saveUnifiedAppearancePatch({ spotifyMatchEnabled: enabled });
+    const uiPatch = enabled
+      ? liveColorMatchUiPatch('spotify')
+      : { spotifyMatchEnabled: false };
+    setUIState(uiPatch);
+    await saveUnifiedAppearancePatch(uiPatch);
 
     const updatedPresets = presets.map((preset) => {
       if (preset.name === SPOTIFY_MATCH_PRESET_NAME) {
@@ -492,7 +496,7 @@ const PresetsSettingsTab = React.memo(() => {
             ...preset.data,
             ui: {
               ...preset.data?.ui,
-              spotifyMatchEnabled: enabled,
+              ...uiPatch,
             },
           },
           timestamp: new Date().toISOString(),

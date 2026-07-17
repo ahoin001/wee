@@ -4,6 +4,7 @@
  *
  * Live paint precedence (SSOT with resolveEffectiveAccent):
  *   Spotify Match → Wallpaper match → explicit per-page look → space/live manual
+ * UI keeps Wallpaper vs Now Playing mutually exclusive; Spotify > wallpaper remains a safety net.
  */
 
 import { colorStringToHex } from '../theme/extractImagePalette.js';
@@ -67,21 +68,19 @@ export function pickRibbonLook(source) {
 
 /**
  * Map Now Playing / Spotify extracted colors → ribbon fill + glow (hex).
+ * Same seed as {@link resolveEffectiveAccent} (accent → primary) so Effective accent
+ * matches ribbon chrome under Now Playing match.
  * @param {{ accent?: string, primary?: string, secondary?: string } | null | undefined} spotifyColors
  * @returns {{ ribbonColor: string, ribbonGlowColor: string } | null}
  */
 export function spotifyColorsToRibbonLook(spotifyColors) {
   if (!spotifyColors || typeof spotifyColors !== 'object') return null;
-  const ribbonGlowColor =
+  const accentHex =
     colorStringToHex(spotifyColors.accent) || colorStringToHex(spotifyColors.primary);
-  const ribbonColor =
-    colorStringToHex(spotifyColors.primary) ||
-    colorStringToHex(spotifyColors.secondary) ||
-    ribbonGlowColor;
-  if (!ribbonColor && !ribbonGlowColor) return null;
+  if (!accentHex) return null;
   return {
-    ...(ribbonColor ? { ribbonColor } : {}),
-    ...(ribbonGlowColor ? { ribbonGlowColor } : {}),
+    ribbonColor: accentHex,
+    ribbonGlowColor: accentHex,
   };
 }
 

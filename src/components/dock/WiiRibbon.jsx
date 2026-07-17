@@ -34,6 +34,7 @@ import {
   RIBBON_SPACE_TRANSITION_MS,
 } from '../../hooks/useRibbonLookTransition';
 import { resolveRibbonPaintTarget } from '../../utils/appearance/resolveEffectiveRibbonLook';
+import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import {
   resolveActiveBoardCurrentPage,
 } from '../../utils/channelSpaces';
@@ -633,7 +634,7 @@ const WiiRibbonComponent = ({
     // Only expose error logging functions
     window.enableSpotifyMatch = async () => {
       try {
-        setUIState({ spotifyMatchEnabled: true });
+        setUIState(liveColorMatchUiPatch('spotify'));
       } catch (error) {
         logError('WiiRibbon', 'Failed to enable Spotify Match', error);
       }
