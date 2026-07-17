@@ -66,7 +66,7 @@ export const useThemeEffect = (isDarkMode) => {
 
 /**
  * Drives global `--primary` / `--wii-blue*` from the ambient accent resolver
- * (Spotify → wallpaper → manual ribbon glow → default).
+ * (Spotify → wallpaper → manual ribbon glow when dynamic chrome on → default).
  *
  * @param {{
  *   wallpaperMatchEnabled?: boolean,

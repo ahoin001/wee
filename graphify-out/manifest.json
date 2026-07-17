@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784238465.399884,
-    "ast_hash": "507bcc41aee7e01e09b9f9bf653658c7",
+    "mtime": 1784251521.2840364,
+    "ast_hash": "9d27a4645ec694223975c374215c7aa1",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/WiiRibbon.jsx": {
-    "mtime": 1784242647.8446097,
-    "ast_hash": "ea0ef29a12cbc706e045f65880988c02",
+    "mtime": 1784251456.8615596,
+    "ast_hash": "dd73454cf283813a46982f3fccd81696",
     "semantic_hash": ""
   },
   "src/components/dock/WiiStyleButton.jsx": {
@@ -625,8 +625,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
-    "mtime": 1784237385.612978,
-    "ast_hash": "697a661566576788ec40a3f725307394",
+    "mtime": 1784251481.0737395,
+    "ast_hash": "3c5425ebaca4eb402ac89972a6395a76",
     "semantic_hash": ""
   },
   "src/components/settings/GameHubSettingsTab.jsx": {
@@ -740,8 +740,8 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1784239859.1362476,
-    "ast_hash": "f55d0e7436cf4d4f1b02c6ba96994f32",
+    "mtime": 1784251497.8364172,
+    "ast_hash": "c5853da4b7d046c93def4d47d034264d",
     "semantic_hash": ""
   },
   "src/components/settings/WorkspacesSettingsTab.jsx": {
@@ -770,8 +770,8 @@
     "semantic_hash": "bc56fd97e8acbbfd62f61a7de3601fcc"
   },
   "src/components/settings/dock/RibbonDockPanel.jsx": {
-    "mtime": 1784239826.880075,
-    "ast_hash": "da70862479617fe2f38290abe76f3ba6",
+    "mtime": 1784251480.625234,
+    "ast_hash": "6efc526c1be0be1776791e0a4504d726",
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
@@ -1025,8 +1025,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useAppShellEffects.js": {
-    "mtime": 1784213936.8956773,
-    "ast_hash": "f4335b81cff60ca8f019bf7f6e0c0019",
+    "mtime": 1784251521.307753,
+    "ast_hash": "d4d0f90d6e5a200f141578f83f9f9bf0",
     "semantic_hash": ""
   },
   "src/hooks/useAppUpdater.js": {
@@ -1895,8 +1895,8 @@
     "semantic_hash": ""
   },
   "docs/theme-primary-accent.md": {
-    "mtime": 1776050490.891413,
-    "ast_hash": "257a0300d56561bd6270dadfb223db18",
+    "mtime": 1784251519.7565556,
+    "ast_hash": "6e4202b84d41a39c9df871f3a0e72bbd",
     "semantic_hash": ""
   },
   "hub-design.html": {
@@ -2015,8 +2015,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useWallpaperAmbientColor.js": {
-    "mtime": 1784242635.9997156,
-    "ast_hash": "209f8db65205a92549f02d053a9fc7f1",
+    "mtime": 1784251470.4588158,
+    "ast_hash": "c759446320795e860caf1cf4d19c61d0",
     "semantic_hash": ""
   },
   "src/hooks/useWheelNavigation.js": {
@@ -2060,8 +2060,8 @@
     "semantic_hash": ""
   },
   "src/utils/theme/resolveEffectiveAccent.js": {
-    "mtime": 1784228313.458552,
-    "ast_hash": "e290b3d5efb629eadd1fa60741aa47ed",
+    "mtime": 1784251390.952385,
+    "ast_hash": "971ab815f4f48932250b8abfbaac1c07",
     "semantic_hash": ""
   },
   ".agents/skills/design-taste-frontend/SKILL.md": {
@@ -2205,8 +2205,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784235316.0127997,
-    "ast_hash": "f41a24b978ec73afc08e66374a979cda",
+    "mtime": 1784242987.5662823,
+    "ast_hash": "8b6e08116b3264034457364e6319b4b6",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2485,8 +2485,8 @@
     "semantic_hash": ""
   },
   "src/utils/appearance/resolveEffectiveRibbonLook.js": {
-    "mtime": 1784242608.100362,
-    "ast_hash": "9cd04c3481423543302a12a1365bbb54",
+    "mtime": 1784251390.9353242,
+    "ast_hash": "50c70d733602ca9989907aadf1dd9473",
     "semantic_hash": ""
   },
   "src/utils/appearance/disableLiveMatchForManualAccent.js": {
@@ -2512,6 +2512,11 @@
   "src/utils/theme/wallpaperAmbientPaletteCache.js": {
     "mtime": 1784242603.2684445,
     "ast_hash": "3f51187e67219e05345316a94a7862c4",
+    "semantic_hash": ""
+  },
+  "scripts/test/ribbon-color-invariants.mjs": {
+    "mtime": 1784251514.8690343,
+    "ast_hash": "07c8b367b5cc9fc7958c96e94ee40583",
     "semantic_hash": ""
   }
 }

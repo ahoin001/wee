@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/WiiRibbon.jsx": {
-    "mtime": 1784238243.7789502,
-    "ast_hash": "d2bbbd691f88a683949dfdb6e6f32dbf",
+    "mtime": 1784242647.8446097,
+    "ast_hash": "ea0ef29a12cbc706e045f65880988c02",
     "semantic_hash": ""
   },
   "src/components/dock/WiiStyleButton.jsx": {
@@ -1875,8 +1875,8 @@
     "semantic_hash": ""
   },
   "docs/spaces-architecture.md": {
-    "mtime": 1784239833.4215765,
-    "ast_hash": "031c3751ee696e04f3c82d5a756d826f",
+    "mtime": 1784242657.15412,
+    "ast_hash": "5bc670a3ba4a711c16ec917bb930df43",
     "semantic_hash": ""
   },
   "docs/spotify-setup.md": {
@@ -2015,8 +2015,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useWallpaperAmbientColor.js": {
-    "mtime": 1784237395.3669126,
-    "ast_hash": "147c97d5dc3062e3112500ccfff74f47",
+    "mtime": 1784242635.9997156,
+    "ast_hash": "209f8db65205a92549f02d053a9fc7f1",
     "semantic_hash": ""
   },
   "src/hooks/useWheelNavigation.js": {
@@ -2260,8 +2260,8 @@
     "semantic_hash": ""
   },
   "src/utils/cacheDomains.js": {
-    "mtime": 1784141331.449956,
-    "ast_hash": "e1bca297e5ad23fee72aa8b9ae0cbca2",
+    "mtime": 1784242610.0545485,
+    "ast_hash": "bac5542212ed38cbecf24fe0ea7c3312",
     "semantic_hash": ""
   },
   "src/utils/cacheRegistry.js": {
@@ -2485,8 +2485,8 @@
     "semantic_hash": ""
   },
   "src/utils/appearance/resolveEffectiveRibbonLook.js": {
-    "mtime": 1784235552.4851649,
-    "ast_hash": "b22b5d9b73f44342b3b1e6beaed6bacf",
+    "mtime": 1784242608.100362,
+    "ast_hash": "9cd04c3481423543302a12a1365bbb54",
     "semantic_hash": ""
   },
   "src/utils/appearance/disableLiveMatchForManualAccent.js": {
@@ -2507,6 +2507,11 @@
   "src/components/game-hub/GameHubControlsPill.jsx": {
     "mtime": 1784240967.0605018,
     "ast_hash": "ebac376d82b4342aa7472a07a8e847fe",
+    "semantic_hash": ""
+  },
+  "src/utils/theme/wallpaperAmbientPaletteCache.js": {
+    "mtime": 1784242603.2684445,
+    "ast_hash": "3f51187e67219e05345316a94a7862c4",
     "semantic_hash": ""
   }
 }

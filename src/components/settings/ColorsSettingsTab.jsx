@@ -95,19 +95,13 @@ const ColorsSettingsTab = React.memo(() => {
             }
           : { ...DEFAULT_AMBIENT_COLOR },
       });
-      if (enabled && !(ribbon?.dynamicRibbonColorEnabled)) {
-        setRibbonState({ dynamicRibbonColorEnabled: true });
-      }
       await saveUnifiedSettingsSnapshot({
         ui: {
           wallpaperMatchEnabled: enabled,
         },
-        ...(enabled && !(ribbon?.dynamicRibbonColorEnabled)
-          ? { ribbon: { dynamicRibbonColorEnabled: true } }
-          : {}),
       });
     },
-    [ambient, ribbon?.dynamicRibbonColorEnabled, setRibbonState, setUIState]
+    [ambient, setUIState]
   );
 
   const handleLockLook = useCallback(async () => {
@@ -167,12 +161,8 @@ const ColorsSettingsTab = React.memo(() => {
           source: 'wallpaper',
         },
       });
-      setRibbonState({
-        ribbonGlowColor: hex,
-        dynamicRibbonColorEnabled: true,
-      });
     },
-    [ambient, palette, setRibbonState, setUIState, wallpaperMatchEnabled]
+    [ambient, palette, setUIState, wallpaperMatchEnabled]
   );
 
   const sourceLabel =
@@ -294,7 +284,8 @@ const ColorsSettingsTab = React.memo(() => {
                 Dynamic chrome accents
               </Text>
               <Text variant="desc" className="!m-0">
-                Off keeps the default brand blue. On lets wallpaper, Spotify, or ribbon glow drive --primary.
+                Off keeps brand blue when no live match is on. On lets a locked/manual ribbon glow
+                drive --primary after Spotify and Wallpaper match.
               </Text>
             </div>
             <WToggle
@@ -343,7 +334,8 @@ const ColorsSettingsTab = React.memo(() => {
               Precedence
             </Text>
             <Text variant="body" className="!mb-0 !mt-1">
-              Spotify Match → Wallpaper match → Ribbon glow → Default. Now using {sourceLabel}.
+              Spotify Match → Wallpaper match → Ribbon glow (when dynamic chrome is on) → Default.
+              Now using {sourceLabel}.
             </Text>
             <Text variant="caption" className="!mb-0 !mt-1 text-[hsl(var(--text-tertiary))]">
               Time color {(time?.color || '#FFFFFF').toUpperCase()}. Edit ribbon colors in Dock.

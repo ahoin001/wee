@@ -1,5 +1,9 @@
 /**
- * Single accent choke point: Spotify → wallpaper → manual ribbon glow → default.
+ * Single accent choke point — same live-match precedence as ribbon paint:
+ *   Spotify Match → Wallpaper match → manual ribbon glow (when dynamic chrome on) → default.
+ *
+ * `dynamicRibbonColorEnabled` only gates the manual glow → --primary path.
+ * Live Spotify / wallpaper matches drive --primary whenever their toggles are on.
  */
 
 import { DEFAULT_RIBBON_GLOW_HEX } from '../../design/runtimeColorStrings.js';

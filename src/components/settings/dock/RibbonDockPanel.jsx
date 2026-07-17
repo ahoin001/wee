@@ -235,8 +235,8 @@ function RibbonDockPanel({
           <SettingsToggleFieldCard
             hoverAccent="none"
             titleClassName={TOGGLE_TITLE}
-            title="Dynamic color from ribbon"
-            desc="When on, ribbon glow drives dynamic accents in supported UI areas."
+            title="Dynamic chrome accents"
+            desc="When on, locked/manual ribbon glow drives --primary if Spotify and Wallpaper match are off. Live Match toggles always win when enabled."
             checked={dynamicRibbonColorEnabled}
             onChange={onDynamicRibbonColorEnabledChange}
           />

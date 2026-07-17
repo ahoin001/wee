@@ -5,10 +5,25 @@
 | Layer | Role |
 |--------|------|
 | **CSS** | `:root` defines `--wii-blue`, `--wii-blue-hover`, `--wii-blue-active` and semantic aliases `--primary`, `--primary-hover`, `--primary-active` (see `src/styles/design-system.css`). |
-| **Runtime** | `applyPrimaryAccentFromHex()` in `src/utils/theme/applyPrimaryAccentFromHex.js` writes HSL **components** (space-separated, no `hsl()`) to `document.documentElement` so `hsl(var(--primary))` works everywhere. |
-| **User control** | **Settings → Ribbon → Accent / glow color** (`ribbonGlowColor`, default `#0099ff`) drives the same brand color as primary buttons, focus rings, borders, links, and tints — parallel to how dock themes own `dockAccentColor` for hardware chrome. |
+| **Runtime** | `applyPrimaryAccentFromHex()` writes HSL **components** to `document.documentElement` so `hsl(var(--primary))` works everywhere. |
+| **Resolver** | `resolveEffectiveAccent` (chrome) and `resolveRibbonPaintTarget` (ribbon body) share the same live-match precedence. |
 
-## What updates with the ribbon accent
+## Live color precedence
+
+```
+Spotify Match → Wallpaper match → Manual ribbon glow → Default blue
+```
+
+| Source | When it wins | Needs `dynamicRibbonColorEnabled`? |
+|--------|----------------|-------------------------------------|
+| Spotify Match | `ui.spotifyMatchEnabled` + album colors | No |
+| Wallpaper match | `ui.wallpaperMatchEnabled` + ambient palette | No |
+| Manual ribbon glow | Dock / Lock colors | **Yes** — only then glow drives `--primary` |
+| Default | `#0099ff` | — |
+
+Wallpaper match paints the ribbon from the ambient LRU / store palette and does **not** continuously overwrite `ribbon.ribbonColor`. Persist via **Lock this look**, **Save current look**, or a manual Dock color pick (which turns live match off).
+
+## What updates with the effective accent
 
 On change (and on theme light/dark toggle), the app sets:
 
@@ -34,7 +49,11 @@ These areas still use **hardcoded** hue or `wii-blue` explicitly; they are accep
 - **Inline styles** — Some modals use `hsl(var(--wii-blue))` in class strings; they still follow runtime updates because `--wii-blue` is set with the accent.
 - **Admin / system widgets** — Orange/purple brand tokens (`--admin-widget-*`, `--widget-system-info-*`) stay distinct for recognition.
 
-## Future optional work
+## Key files
 
-- Dedicated **“App accent”** setting in General (duplicate of glow) if ribbon and UI should diverge.
-- **Preset** snapshots: include `ribbonGlowColor` explicitly when saving “full theme” presets (already partially present via ribbon snapshot).
+| Concern | File |
+|---------|------|
+| Ribbon paint + Spotify/wallpaper | `src/utils/appearance/resolveEffectiveRibbonLook.js` |
+| `--primary` resolver | `src/utils/theme/resolveEffectiveAccent.js` |
+| Wallpaper ambient (no ribbon store thrash) | `src/hooks/useWallpaperAmbientColor.js` |
+| Manual pick freezes live match | `src/utils/appearance/disableLiveMatchForManualAccent.js` |

@@ -75,6 +75,7 @@
     "verify:github-release": "node scripts/verify-github-release.cjs",
     "test:settings-patch-merge": "node scripts/test/settings-patch-merge.cjs",
     "test:invariants": "node scripts/test/preset-profile-invariants.mjs",
+    "test:ribbon-color": "node scripts/test/ribbon-color-invariants.mjs",
     "test:experience": "node scripts/test/experience-roadmap-invariants.mjs",
     "test:board-mutation": "npx vite-node scripts/test/board-mutation.cjs",
     "test:smoke": "node scripts/smoke-check.cjs",

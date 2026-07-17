@@ -103,7 +103,8 @@ const WiiRibbonComponent = ({
       })
     );
   const [spotifyColors, setSpotifyColors] = useState(null);
-  const shouldUseDynamicRibbonColor = dynamicRibbonColorEnabled && spotifyMatchEnabled;
+  /** Spotify chrome (icons, time, match chip) — gated by Match only, not dynamic chrome. */
+  const shouldUseSpotifyRibbonChrome = Boolean(spotifyMatchEnabled);
 
   const {
     activeSpaceId,
@@ -112,6 +113,7 @@ const WiiRibbonComponent = ({
     wallpaperMatchEnabled,
     wallpaperCurrent,
     ambientCachedForUrl,
+    ambientPalette,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       activeSpaceId: state.spaces.activeSpaceId,
@@ -121,6 +123,7 @@ const WiiRibbonComponent = ({
       wallpaperCurrent: state.wallpaper?.current,
       // Re-render when ambient cache/active URL updates so paint target can peek LRU.
       ambientCachedForUrl: state.ui.ambientColor?.cachedForUrl ?? null,
+      ambientPalette: state.ui.ambientColor?.palette ?? null,
     }))
   );
   const boardCurrentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
@@ -161,7 +164,11 @@ const WiiRibbonComponent = ({
       propGlassShineOpacity,
     ]
   );
-  const targetRibbonLook = useMemo(() => {
+  const paintSpotifyColors = shouldUseSpotifyRibbonChrome
+    ? spotifyExtractedColors || spotifyColors
+    : null;
+
+  const { look: targetRibbonLook, source: ribbonPaintSource } = useMemo(() => {
     // Touch LRU so paint stays in sync after ambient extract fills the cache.
     if (wallpaperMatchEnabled && pageWallpaperUrl) {
       peekWallpaperAmbientPalette(pageWallpaperUrl);
@@ -173,6 +180,10 @@ const WiiRibbonComponent = ({
       supportsPerPage: supportsPerPageRibbon,
       wallpaperMatchEnabled,
       wallpaperUrl: pageWallpaperUrl,
+      ambientPalette,
+      ambientCachedForUrl,
+      spotifyMatchEnabled: shouldUseSpotifyRibbonChrome,
+      spotifyColors: paintSpotifyColors,
     });
   }, [
     liveRibbonLook,
@@ -182,6 +193,9 @@ const WiiRibbonComponent = ({
     wallpaperMatchEnabled,
     pageWallpaperUrl,
     ambientCachedForUrl,
+    ambientPalette,
+    shouldUseSpotifyRibbonChrome,
+    paintSpotifyColors,
   ]);
   const lastSpaceForRibbonRef = React.useRef(activeSpaceId);
   const spaceTweenMs =
@@ -199,9 +213,8 @@ const WiiRibbonComponent = ({
   const paintedRibbonLook = useRibbonLookTransition({
     targetLook: targetRibbonLook,
     durationMs: ribbonTweenMs,
-    // Spotify owns live colors — wallpaper match uses the tween path instead.
-    ambientOverride: shouldUseDynamicRibbonColor,
   });
+  const spotifyOwnsRibbonPaint = ribbonPaintSource === 'spotify';
 
   const ribbonColor =
     paintedRibbonLook.ribbonColor != null ? paintedRibbonLook.ribbonColor : propRibbonColor;
@@ -286,14 +299,14 @@ const WiiRibbonComponent = ({
     if (showPresetsButtonModal) setPresetsButtonModalMounted(true);
   }, [showPresetsButtonModal]);
 
-  // Mirror album-art colors into local paint state only when dynamic ribbon color is enabled.
+  // Mirror album-art colors into local state when Spotify Match is on.
   useEffect(() => {
-    if (shouldUseDynamicRibbonColor && spotifyExtractedColors) {
+    if (shouldUseSpotifyRibbonChrome && spotifyExtractedColors) {
       setSpotifyColors(spotifyExtractedColors);
-    } else if (!shouldUseDynamicRibbonColor) {
+    } else if (!shouldUseSpotifyRibbonChrome) {
       setSpotifyColors(null);
     } else if (
-      shouldUseDynamicRibbonColor &&
+      shouldUseSpotifyRibbonChrome &&
       !spotifyExtractedColors &&
       spotifyAlbumArtUrl
     ) {
@@ -303,7 +316,7 @@ const WiiRibbonComponent = ({
     } else {
       setSpotifyColors(null);
     }
-  }, [spotifyAlbumArtUrl, spotifyExtractedColors, shouldUseDynamicRibbonColor]);
+  }, [spotifyAlbumArtUrl, spotifyExtractedColors, shouldUseSpotifyRibbonChrome]);
 
   // Load configs from consolidated store on mount and subscribe to changes
   useEffect(() => {
@@ -502,7 +515,7 @@ const WiiRibbonComponent = ({
       // Determine which color to use for tinting: Spotify accent if available, otherwise ribbon glow color
       let colorToUse = ribbonGlowColor;
       
-      if (shouldUseDynamicRibbonColor && spotifyColors?.accent) {
+      if (spotifyOwnsRibbonPaint && spotifyColors?.accent) {
         colorToUse = spotifyColors.accent;
       }
       
@@ -524,7 +537,7 @@ const WiiRibbonComponent = ({
       const iconsToTint = new Set();
       for (const config of allConfigs) {
         // Tint icons if adaptive color is enabled OR if Spotify Match is enabled
-        const shouldTintIcon = (config?.useAdaptiveColor || (shouldUseDynamicRibbonColor && spotifyColors?.accent)) && 
+        const shouldTintIcon = (config?.useAdaptiveColor || (spotifyOwnsRibbonPaint && spotifyColors?.accent)) && 
                               config?.icon && 
                               !config.icon.startsWith('data:') && 
                               !['palette', 'star', 'heart'].includes(config.icon);
@@ -546,7 +559,7 @@ const WiiRibbonComponent = ({
     };
 
     generateTintedImages();
-  }, [propRibbonGlowColor, ribbonGlowColor, buttonConfigs, presetsButtonConfig, shouldUseDynamicRibbonColor, spotifyColors]);
+  }, [propRibbonGlowColor, ribbonGlowColor, buttonConfigs, presetsButtonConfig, spotifyOwnsRibbonPaint, spotifyColors]);
 
   // Handle Escape key to close admin menu
   useEffect(() => {
@@ -582,7 +595,7 @@ const WiiRibbonComponent = ({
   // Helper function to get the appropriate image source for adaptive color
   const getImageSource = (originalUrl, useAdaptiveColor) => {
     // Use tinted image if adaptive color is enabled OR if Spotify Match is enabled
-    const shouldUseTintedImage = (useAdaptiveColor || (shouldUseDynamicRibbonColor && spotifyColors?.accent)) && tintedImages[originalUrl];
+    const shouldUseTintedImage = (useAdaptiveColor || (spotifyOwnsRibbonPaint && spotifyColors?.accent)) && tintedImages[originalUrl];
     
     if (shouldUseTintedImage) {
       return tintedImages[originalUrl];
@@ -689,15 +702,14 @@ const WiiRibbonComponent = ({
     setShowAdminMenu(false);
   };
 
-  const ribbonGlowHex =
-    (shouldUseDynamicRibbonColor ? spotifyColors?.accent : null) || ribbonGlowColor || CSS_WII_BLUE;
+  const ribbonGlowHex = ribbonGlowColor || CSS_WII_BLUE;
   const glowPx = ribbonHoverAnimationEnabled && isRibbonHovered
     ? (propRibbonGlowStrengthHover ?? 28)
     : (ribbonGlowStrength ?? 20);
   const ribbonGlowFilter = `drop-shadow(0 0 ${glowPx}px ${ribbonGlowHex}) drop-shadow(0 0 12px ${ribbonGlowHex})`;
 
   const pillBackdropBackground = (() => {
-    if (spotifyColors?.secondary && shouldUseDynamicRibbonColor) {
+    if (spotifyColors?.secondary && spotifyOwnsRibbonPaint) {
       const match = spotifyColors.secondary.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       if (match) {
         const [, r, g, b] = match;
@@ -721,17 +733,17 @@ const WiiRibbonComponent = ({
   const ribbonBtnFont = (textFont) =>
     textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif";
 
-  const ribbonAccentStyle = shouldUseDynamicRibbonColor && spotifyColors?.accent
+  const ribbonAccentStyle = spotifyOwnsRibbonPaint && spotifyColors?.accent
     ? { ['--ribbon-accent-color']: spotifyColors.accent }
     : {};
 
   const timeLineColor = (() => {
-    if (spotifyColors?.text && shouldUseDynamicRibbonColor) return spotifyColors.text;
+    if (spotifyColors?.text && spotifyOwnsRibbonPaint) return spotifyColors.text;
     return timeColor;
   })();
 
   const dateLineColor = (() => {
-    if (spotifyColors?.textSecondary && shouldUseDynamicRibbonColor) return spotifyColors.textSecondary;
+    if (spotifyColors?.textSecondary && spotifyOwnsRibbonPaint) return spotifyColors.textSecondary;
     return timeColor;
   })();
 
@@ -741,10 +753,7 @@ const WiiRibbonComponent = ({
   );
 
   const ribbonFillColor =
-    (shouldUseDynamicRibbonColor && spotifyColors?.primary
-      ? spotifyColors.primary
-      : ribbonColor) +
-    (ribbonDockOpacity !== undefined ? hexAlpha(ribbonDockOpacity) : '');
+    ribbonColor + (ribbonDockOpacity !== undefined ? hexAlpha(ribbonDockOpacity) : '');
 
   const chromeFxDurationSec = (2.4 / Math.min(2, Math.max(0.25, chromeEffectSpeed ?? 1))).toFixed(2);
   const pulseChromeActive =
@@ -765,9 +774,7 @@ const WiiRibbonComponent = ({
       >
         <DockParticleSystem
           {...particleProps}
-          ribbonGlowColor={
-            (shouldUseDynamicRibbonColor ? spotifyColors?.accent : null) || ribbonGlowColor || CSS_WII_BLUE
-          }
+          ribbonGlowColor={ribbonGlowColor || CSS_WII_BLUE}
         />
         <RibbonChrome
           glassWiiRibbon={glassWiiRibbon}
@@ -795,7 +802,7 @@ const WiiRibbonComponent = ({
         <RibbonAccessories>
           <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[300px] z-20 text-center pointer-events-auto">
               {/* Spotify Match Indicator */}
-              {shouldUseDynamicRibbonColor && spotifyTrackName && (
+              {spotifyOwnsRibbonPaint && spotifyTrackName && (
                 <div 
                   className="spotify-match-indicator"
                   style={{
@@ -895,8 +902,8 @@ const WiiRibbonComponent = ({
                 glassShineOpacity={buttonConfigs[0]?.glassShineOpacity}
                 ribbonGlowColor={ribbonGlowHex}
                 spotifySecondaryColor={spotifyColors?.secondary || null}
-                spotifyTextColor={shouldUseDynamicRibbonColor && spotifyColors?.text ? spotifyColors.text : null}
-                spotifyAccentColor={shouldUseDynamicRibbonColor && spotifyColors?.accent ? spotifyColors.accent : null}
+                spotifyTextColor={spotifyOwnsRibbonPaint && spotifyColors?.text ? spotifyColors.text : null}
+                spotifyAccentColor={spotifyOwnsRibbonPaint && spotifyColors?.accent ? spotifyColors.accent : null}
                 className={activeButton === 'left' ? 'ribbon-wii-btn-press ml-4' : 'ribbon-wii-btn-idle ml-4'}
               >
                 {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
@@ -910,7 +917,7 @@ const WiiRibbonComponent = ({
                     {buttonConfigs[0].text || 'Wii'}
                   </span>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'palette' ? (
-                  <svg className="palette-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="palette-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="13.5" cy="6.5" r="2.5"/>
                     <circle cx="17.5" cy="10.5" r="2.5"/>
                     <circle cx="8.5" cy="7.5" r="2.5"/>
@@ -918,11 +925,11 @@ const WiiRibbonComponent = ({
                     <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'star' ? (
-                  <svg className="star-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="star-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'heart' ? (
-                  <svg className="heart-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="heart-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon ? (
@@ -944,7 +951,7 @@ const WiiRibbonComponent = ({
           <div
             className="ribbon-settings-cog-host"
             style={{
-              ...(shouldUseDynamicRibbonColor && spotifyColors?.text ? { ['--settings-icon-color']: spotifyColors.text } : {}),
+              ...(spotifyOwnsRibbonPaint && spotifyColors?.text ? { ['--settings-icon-color']: spotifyColors.text } : {}),
             }}
             onClick={(e) => handleSettingsClick(e)}
             onContextMenu={handleDockEffectsContextMenu}
@@ -982,7 +989,7 @@ const WiiRibbonComponent = ({
               glassShineOpacity={presetsButtonConfig?.glassShineOpacity}
               ribbonGlowColor={ribbonGlowHex}
               spotifySecondaryColor={spotifyColors?.secondary || null}
-              spotifyTextColor={shouldUseDynamicRibbonColor && spotifyColors?.text ? spotifyColors.text : null}
+              spotifyTextColor={spotifyOwnsRibbonPaint && spotifyColors?.text ? spotifyColors.text : null}
             >
             {/* Dynamic icon based on configuration */}
             {presetsButtonConfig.type === 'text' ? (
@@ -997,7 +1004,7 @@ const WiiRibbonComponent = ({
               </span>
 
             ) : presetsButtonConfig.icon === 'palette' ? (
-              <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="13.5" cy="6.5" r="2.5"/>
                 <circle cx="17.5" cy="10.5" r="2.5"/>
                 <circle cx="8.5" cy="7.5" r="2.5"/>
@@ -1005,11 +1012,11 @@ const WiiRibbonComponent = ({
                 <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
               </svg>
             ) : presetsButtonConfig.icon === 'star' ? (
-              <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
               </svg>
             ) : presetsButtonConfig.icon === 'heart' ? (
-              <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
             ) : presetsButtonConfig.icon ? (
@@ -1045,8 +1052,8 @@ const WiiRibbonComponent = ({
                     glassShineOpacity={buttonConfigs[1]?.glassShineOpacity}
                     ribbonGlowColor={ribbonGlowHex}
                     spotifySecondaryColor={spotifyColors?.secondary || null}
-                    spotifyTextColor={shouldUseDynamicRibbonColor && spotifyColors?.text ? spotifyColors.text : null}
-                    spotifyAccentColor={shouldUseDynamicRibbonColor && spotifyColors?.accent ? spotifyColors.accent : null}
+                    spotifyTextColor={spotifyOwnsRibbonPaint && spotifyColors?.text ? spotifyColors.text : null}
+                    spotifyAccentColor={spotifyOwnsRibbonPaint && spotifyColors?.accent ? spotifyColors.accent : null}
                     className={activeButton === 'right' ? 'ribbon-wii-btn-press' : 'ribbon-wii-btn-idle'}
                   >
                       {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
@@ -1060,7 +1067,7 @@ const WiiRibbonComponent = ({
                           {buttonConfigs[1].text || ''}
                         </span>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon === 'palette' ? (
-                        <svg className="palette-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="palette-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="13.5" cy="6.5" r="2.5"/>
                           <circle cx="17.5" cy="10.5" r="2.5"/>
                           <circle cx="8.5" cy="7.5" r="2.5"/>
@@ -1068,11 +1075,11 @@ const WiiRibbonComponent = ({
                           <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
                         </svg>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon === 'star' ? (
-                        <svg className="star-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="star-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
                         </svg>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon === 'heart' ? (
-                        <svg className="heart-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="heart-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                         </svg>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon ? (
@@ -1083,7 +1090,7 @@ const WiiRibbonComponent = ({
                           style={{ ['--ribbon-icon-filter']: getIconFilter(buttonConfigs[1].useWiiGrayFilter) }} 
                         />
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-wii-gray-dark"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={(spotifyOwnsRibbonPaint && spotifyColors?.accent) ? spotifyColors.accent : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-wii-gray-dark"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                       )}
                   </WiiStyleButton>
               </div>

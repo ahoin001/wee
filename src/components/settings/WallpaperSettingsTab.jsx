@@ -14,7 +14,9 @@ import {
   normalizeRibbonByPage,
   normalizeRibbonScope,
   pickRibbonLook,
+  resolveLiveMatchRibbonOverlay,
 } from '../../utils/appearance/resolveEffectiveRibbonLook';
+import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAccent';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { getSecondaryChannelSpaceData } from '../../utils/channelSpaces';
 import { resolveLayout } from '../../utils/channelLayoutSystem';
@@ -43,7 +45,7 @@ const selectFile = window.api?.selectWallpaperFile;
 
 function useWallpaperSettingsController() {
   // Use consolidated store directly
-  const { wallpaper, overlay, appearanceBySpace, activeSpaceId, channels, wallpaperMatchEnabled, ribbon } =
+  const { wallpaper, overlay, appearanceBySpace, activeSpaceId, channels, wallpaperMatchEnabled, ribbon, ambientColor, spotifyMatchEnabled, spotifyColors } =
     useConsolidatedAppStore(
       useShallow((state) => ({
         wallpaper: state.wallpaper,
@@ -53,6 +55,9 @@ function useWallpaperSettingsController() {
         channels: state.channels,
         wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
         ribbon: state.ribbon,
+        ambientColor: state.ui.ambientColor ?? null,
+        spotifyMatchEnabled: Boolean(state.ui.spotifyMatchEnabled),
+        spotifyColors: state.spotify?.extractedColors ?? null,
       }))
     );
   const { setWallpaperState, setOverlayState, setAppearanceBySpaceState, setUIState, setRibbonState } =
@@ -277,7 +282,7 @@ function useWallpaperSettingsController() {
 
   const handleWallpaperMatchChange = useCallback(
     async (enabled) => {
-      // Turning match off leaves last painted ribbon colors; only clears ambient extract cache.
+      // Turning match off leaves last manual/locked ribbon colors; only clears ambient extract cache.
       setUIState({
         wallpaperMatchEnabled: enabled,
         ...(enabled
@@ -292,17 +297,11 @@ function useWallpaperSettingsController() {
             }
           : {}),
       });
-      if (enabled && !(ribbon?.dynamicRibbonColorEnabled)) {
-        setRibbonState({ dynamicRibbonColorEnabled: true });
-      }
       await saveUnifiedSettingsSnapshot({
         ui: { wallpaperMatchEnabled: enabled },
-        ...(enabled && !(ribbon?.dynamicRibbonColorEnabled)
-          ? { ribbon: { dynamicRibbonColorEnabled: true } }
-          : {}),
       });
     },
-    [ribbon?.dynamicRibbonColorEnabled, setRibbonState, setUIState]
+    [setUIState]
   );
 
   const handleSelectedWallpaperScopeChange = useCallback(
@@ -384,7 +383,25 @@ function useWallpaperSettingsController() {
   );
 
   const handleApplyRibbonToCurrentPage = useCallback(() => {
-    const look = pickRibbonLook(ribbon);
+    const wallpaperUrl = resolveDisplayWallpaperUrl({
+      activeSpaceId: selectedSpaceId,
+      wallpaperCurrent: wallpaper?.current,
+      appearanceBySpace,
+      wallpaperEntryUrlKey,
+      currentPage: selectedBoardCurrentPage,
+    });
+    const liveOverlay = resolveLiveMatchRibbonOverlay({
+      wallpaperMatchEnabled,
+      wallpaperUrl,
+      ambientPalette: ambientColor?.palette ?? null,
+      ambientCachedForUrl: ambientColor?.cachedForUrl ?? null,
+      spotifyMatchEnabled,
+      spotifyColors,
+    });
+    const look = {
+      ...pickRibbonLook(ribbon),
+      ...(liveOverlay || {}),
+    };
     const prev = normalizeRibbonByPage(selectedSpaceRibbon.ribbonByPage);
     updateSpaceRibbonAppearance(selectedSpaceId, {
       ribbonScope: 'perPage',
@@ -394,11 +411,18 @@ function useWallpaperSettingsController() {
       },
     });
   }, [
+    ambientColor?.cachedForUrl,
+    ambientColor?.palette,
+    appearanceBySpace,
     ribbon,
     selectedBoardCurrentPage,
     selectedSpaceId,
     selectedSpaceRibbon.ribbonByPage,
+    spotifyColors,
+    spotifyMatchEnabled,
     updateSpaceRibbonAppearance,
+    wallpaper?.current,
+    wallpaperMatchEnabled,
   ]);
 
   const handleClearCurrentPageRibbon = useCallback(() => {
@@ -414,17 +438,41 @@ function useWallpaperSettingsController() {
   ]);
 
   const handleSaveRibbonForSpace = useCallback(() => {
+    const wallpaperUrl = resolveDisplayWallpaperUrl({
+      activeSpaceId: selectedSpaceId,
+      wallpaperCurrent: wallpaper?.current,
+      appearanceBySpace,
+      wallpaperEntryUrlKey,
+      currentPage: selectedBoardCurrentPage,
+    });
+    const liveOverlay = resolveLiveMatchRibbonOverlay({
+      wallpaperMatchEnabled,
+      wallpaperUrl,
+      ambientPalette: ambientColor?.palette ?? null,
+      ambientCachedForUrl: ambientColor?.cachedForUrl ?? null,
+      spotifyMatchEnabled,
+      spotifyColors,
+    });
     updateSpaceRibbonAppearance(selectedSpaceId, {
       ...pickRibbonLook(ribbon),
+      ...(liveOverlay || {}),
       ribbonScope,
       ribbonByPage: normalizeRibbonByPage(selectedSpaceRibbon.ribbonByPage),
     });
   }, [
+    ambientColor?.cachedForUrl,
+    ambientColor?.palette,
+    appearanceBySpace,
     ribbon,
     ribbonScope,
+    selectedBoardCurrentPage,
     selectedSpaceId,
     selectedSpaceRibbon.ribbonByPage,
+    spotifyColors,
+    spotifyMatchEnabled,
     updateSpaceRibbonAppearance,
+    wallpaper?.current,
+    wallpaperMatchEnabled,
   ]);
 
   // Handlers for overlay effects that update consolidated store

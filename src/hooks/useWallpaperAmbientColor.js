@@ -5,15 +5,12 @@ import { wallpaperEntryUrlKey } from '../utils/wallpaperShape';
 import { applyAmbientRoleTokens } from '../utils/theme/extractImagePalette';
 import { resolveDisplayWallpaperUrl } from '../utils/theme/resolveEffectiveAccent';
 import {
-  ambientPaletteToRibbonColors,
   getWallpaperAmbientPalette,
   peekWallpaperAmbientPalette,
   prefetchWallpaperAmbientPalette,
 } from '../utils/theme/wallpaperAmbientPaletteCache';
 import { resolveActiveBoardCurrentPage, getSecondaryChannelSpaceData } from '../utils/channelSpaces';
 import { resolveLayout } from '../utils/channelLayoutSystem';
-import { syncActiveSpaceAppearanceCapture } from '../utils/appearance/spaceAppearance';
-import { hasExplicitPageRibbonLook } from '../utils/appearance/resolveEffectiveRibbonLook';
 
 /** Debounce when already settled (e.g. wallpaper cycling). */
 const EXTRACT_DEBOUNCE_SETTLED_MS = 400;
@@ -21,15 +18,11 @@ const EXTRACT_DEBOUNCE_SETTLED_MS = 400;
 const EXTRACT_DEBOUNCE_NAV_MS = 32;
 
 /**
- * Apply active ambient palette to store + CSS tokens (+ ribbon when allowed).
+ * Apply active ambient palette to store + CSS tokens.
+ * Does NOT write ribbon.ribbonColor — paint reads the LRU / store ambient via
+ * resolveRibbonPaintTarget. Persist colors only via Lock / Save / manual pick.
  */
-function applyAmbientEntry({
-  url,
-  entry,
-  setUIState,
-  setRibbonState,
-  writeRibbon,
-}) {
+function applyAmbientEntry({ url, entry, setUIState }) {
   if (!entry?.palette) {
     setUIState({
       ambientColor: {
@@ -59,21 +52,6 @@ function applyAmbientEntry({
     },
   });
   applyAmbientRoleTokens(entry.palette);
-
-  if (writeRibbon) {
-    const colors = ambientPaletteToRibbonColors(entry.palette);
-    if (colors) {
-      setRibbonState({
-        ...colors,
-        dynamicRibbonColorEnabled: true,
-      });
-      syncActiveSpaceAppearanceCapture({
-        getState: () => useConsolidatedAppStore.getState(),
-        setAppearanceBySpaceState:
-          useConsolidatedAppStore.getState().actions.setAppearanceBySpaceState,
-      });
-    }
-  }
 }
 
 function resolveBoardTotalPages(activeSpaceId, channels) {
@@ -100,7 +78,6 @@ export function useWallpaperAmbientColor() {
     visualCommittedUrl,
     cachedForUrl,
     setUIState,
-    setRibbonState,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
@@ -111,14 +88,11 @@ export function useWallpaperAmbientColor() {
       visualCommittedUrl: state.wallpaper?.visualCommittedUrl ?? null,
       cachedForUrl: state.ui.ambientColor?.cachedForUrl ?? null,
       setUIState: state.actions.setUIState,
-      setRibbonState: state.actions.setRibbonState,
     }))
   );
 
   const sessionPower = useConsolidatedAppStore((s) => s.ui.sessionPower ?? 'normal');
   const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
-  const supportsPerPage = activeSpaceId === 'home' || activeSpaceId === 'workspaces';
-  const spaceRibbon = appearanceBySpace?.[activeSpaceId]?.ribbon || null;
 
   const displayUrl = resolveDisplayWallpaperUrl({
     activeSpaceId,
@@ -154,12 +128,6 @@ export function useWallpaperAmbientColor() {
       return undefined;
     }
 
-    const writeRibbon = !hasExplicitPageRibbonLook({
-      spaceRibbon,
-      currentPage,
-      supportsPerPage,
-    });
-
     const cached = peekWallpaperAmbientPalette(displayUrl);
     if (cached) {
       if (cachedForUrl !== displayUrl) {
@@ -167,8 +135,6 @@ export function useWallpaperAmbientColor() {
           url: displayUrl,
           entry: cached,
           setUIState,
-          setRibbonState,
-          writeRibbon,
         });
       } else {
         applyAmbientRoleTokens(cached.palette);
@@ -203,19 +169,10 @@ export function useWallpaperAmbientColor() {
         });
         if (stillUrl !== url) return;
 
-        const stillWriteRibbon = !hasExplicitPageRibbonLook({
-          spaceRibbon: state.appearanceBySpace?.[state.spaces.activeSpaceId]?.ribbon || null,
-          currentPage: stillPage,
-          supportsPerPage:
-            state.spaces.activeSpaceId === 'home' || state.spaces.activeSpaceId === 'workspaces',
-        });
-
         applyAmbientEntry({
           url,
           entry,
           setUIState,
-          setRibbonState,
-          writeRibbon: stillWriteRibbon,
         });
       });
     }, debounceMs);
@@ -229,11 +186,7 @@ export function useWallpaperAmbientColor() {
     displayUrl,
     visualCommittedUrl,
     cachedForUrl,
-    currentPage,
-    spaceRibbon,
-    supportsPerPage,
     setUIState,
-    setRibbonState,
   ]);
 
   // Prefetch neighbor page wallpapers into the LRU (no apply).

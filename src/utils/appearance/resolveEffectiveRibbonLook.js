@@ -1,8 +1,12 @@
 /**
  * Lean ribbon look fields for per-space / per-page Surfaces scope.
  * Button layouts stay on the live global `ribbon` slice.
+ *
+ * Live paint precedence (SSOT with resolveEffectiveAccent):
+ *   Spotify Match → explicit per-page look → Wallpaper match → space/live manual
  */
 
+import { colorStringToHex } from '../theme/extractImagePalette.js';
 import {
   ambientPaletteToRibbonColors,
   peekWallpaperAmbientPalette,
@@ -22,6 +26,8 @@ export const RIBBON_LOOK_KEYS = Object.freeze([
 
 /** Scope keys stored on the space appearance ribbon snapshot. */
 export const RIBBON_SCOPED_META_KEYS = Object.freeze(['ribbonScope', 'ribbonByPage']);
+
+/** @typedef {'spotify' | 'page' | 'wallpaper' | 'manual'} RibbonPaintSource */
 
 /**
  * @param {unknown} raw
@@ -57,6 +63,51 @@ export function pickRibbonLook(source) {
     if (source[key] !== undefined) out[key] = source[key];
   }
   return out;
+}
+
+/**
+ * Map Now Playing / Spotify extracted colors → ribbon fill + glow (hex).
+ * @param {{ accent?: string, primary?: string, secondary?: string } | null | undefined} spotifyColors
+ * @returns {{ ribbonColor: string, ribbonGlowColor: string } | null}
+ */
+export function spotifyColorsToRibbonLook(spotifyColors) {
+  if (!spotifyColors || typeof spotifyColors !== 'object') return null;
+  const ribbonGlowColor =
+    colorStringToHex(spotifyColors.accent) || colorStringToHex(spotifyColors.primary);
+  const ribbonColor =
+    colorStringToHex(spotifyColors.primary) ||
+    colorStringToHex(spotifyColors.secondary) ||
+    ribbonGlowColor;
+  if (!ribbonColor && !ribbonGlowColor) return null;
+  return {
+    ...(ribbonColor ? { ribbonColor } : {}),
+    ...(ribbonGlowColor ? { ribbonGlowColor } : {}),
+  };
+}
+
+/**
+ * Wallpaper ambient → ribbon colors. Prefers live store palette when it matches the
+ * display URL (seed picks), else session LRU cache.
+ *
+ * @param {{
+ *   wallpaperUrl?: string|null,
+ *   ambientPalette?: object|null,
+ *   ambientCachedForUrl?: string|null,
+ * }} args
+ * @returns {{ ribbonColor?: string, ribbonGlowColor?: string } | null}
+ */
+export function resolveWallpaperRibbonOverlay({
+  wallpaperUrl = null,
+  ambientPalette = null,
+  ambientCachedForUrl = null,
+} = {}) {
+  if (!wallpaperUrl) return null;
+  const storePalette =
+    ambientPalette && ambientCachedForUrl && ambientCachedForUrl === wallpaperUrl
+      ? ambientPalette
+      : null;
+  const cached = peekWallpaperAmbientPalette(wallpaperUrl);
+  return ambientPaletteToRibbonColors(storePalette || cached?.palette);
 }
 
 /**
@@ -145,8 +196,8 @@ export function hasExplicitPageRibbonLook({
 }
 
 /**
- * Paint target for WiiRibbon tween: explicit page look > wallpaper-match cache > space/live.
- * Spotify is handled separately in the ribbon paint path (ambientOverride).
+ * Paint target for WiiRibbon tween.
+ * Precedence: Spotify Match → explicit per-page → Wallpaper match → space/live manual.
  *
  * @param {{
  *   liveRibbon?: object,
@@ -155,8 +206,12 @@ export function hasExplicitPageRibbonLook({
  *   supportsPerPage?: boolean,
  *   wallpaperMatchEnabled?: boolean,
  *   wallpaperUrl?: string|null,
+ *   ambientPalette?: object|null,
+ *   ambientCachedForUrl?: string|null,
+ *   spotifyMatchEnabled?: boolean,
+ *   spotifyColors?: object|null,
  * }} args
- * @returns {object}
+ * @returns {{ look: object, source: RibbonPaintSource }}
  */
 export function resolveRibbonPaintTarget({
   liveRibbon = {},
@@ -165,6 +220,10 @@ export function resolveRibbonPaintTarget({
   supportsPerPage = true,
   wallpaperMatchEnabled = false,
   wallpaperUrl = null,
+  ambientPalette = null,
+  ambientCachedForUrl = null,
+  spotifyMatchEnabled = false,
+  spotifyColors = null,
 } = {}) {
   const baseLook = resolveEffectiveRibbonLook({
     liveRibbon,
@@ -172,6 +231,13 @@ export function resolveRibbonPaintTarget({
     currentPage,
     supportsPerPage,
   });
+
+  if (spotifyMatchEnabled) {
+    const fromSpotify = spotifyColorsToRibbonLook(spotifyColors);
+    if (fromSpotify) {
+      return { look: { ...baseLook, ...fromSpotify }, source: 'spotify' };
+    }
+  }
 
   if (
     hasExplicitPageRibbonLook({
@@ -181,18 +247,57 @@ export function resolveRibbonPaintTarget({
       supportsPerPage,
     })
   ) {
-    return baseLook;
+    return { look: baseLook, source: 'page' };
   }
 
   if (wallpaperMatchEnabled && wallpaperUrl) {
-    const cached = peekWallpaperAmbientPalette(wallpaperUrl);
-    const fromCache = ambientPaletteToRibbonColors(cached?.palette);
-    if (fromCache) {
-      return { ...baseLook, ...fromCache };
+    const fromWallpaper = resolveWallpaperRibbonOverlay({
+      wallpaperUrl,
+      ambientPalette,
+      ambientCachedForUrl,
+    });
+    if (fromWallpaper) {
+      return { look: { ...baseLook, ...fromWallpaper }, source: 'wallpaper' };
     }
   }
 
-  return baseLook;
+  return { look: baseLook, source: 'manual' };
+}
+
+/**
+ * Colors to persist when the user saves “current look” while live match is on.
+ * Same overlay stack as paint (Spotify → wallpaper), without page/space merge.
+ *
+ * @param {{
+ *   wallpaperMatchEnabled?: boolean,
+ *   wallpaperUrl?: string|null,
+ *   ambientPalette?: object|null,
+ *   ambientCachedForUrl?: string|null,
+ *   spotifyMatchEnabled?: boolean,
+ *   spotifyColors?: object|null,
+ * }} args
+ * @returns {{ ribbonColor?: string, ribbonGlowColor?: string } | null}
+ */
+export function resolveLiveMatchRibbonOverlay({
+  wallpaperMatchEnabled = false,
+  wallpaperUrl = null,
+  ambientPalette = null,
+  ambientCachedForUrl = null,
+  spotifyMatchEnabled = false,
+  spotifyColors = null,
+} = {}) {
+  if (spotifyMatchEnabled) {
+    const fromSpotify = spotifyColorsToRibbonLook(spotifyColors);
+    if (fromSpotify) return fromSpotify;
+  }
+  if (wallpaperMatchEnabled && wallpaperUrl) {
+    return resolveWallpaperRibbonOverlay({
+      wallpaperUrl,
+      ambientPalette,
+      ambientCachedForUrl,
+    });
+  }
+  return null;
 }
 
 export default resolveEffectiveRibbonLook;
