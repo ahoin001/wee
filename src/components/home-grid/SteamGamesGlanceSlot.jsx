@@ -242,7 +242,11 @@ function SteamGamesGlanceSlot({
       ) : (
         <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
           {layout.showHeader ? (
-            <SteamWidgetHeading title={meta.title} icon={Gamepad2} />
+            <SteamWidgetHeading
+              title={meta.title}
+              icon={Gamepad2}
+              compact={rowSpan <= 1}
+            />
           ) : null}
           <SteamGamesShelf
             prefs={steamPrefs}

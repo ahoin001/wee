@@ -1,7 +1,7 @@
 /**
- * Home-grid Now Playing tile — system-media display with size-aware layouts.
- * Large tiles float square art over a soft ambient wash so wallpaper stays visible;
- * chrome is an inset glass pill, not a full-bleed slab.
+ * Home-grid Now Playing — size-aware layouts up to 3×3.
+ * Crisp square cover over a darkened, lightly blurred album backdrop;
+ * optional reactive bars via Looks → Visualizer.
  */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
@@ -15,7 +15,10 @@ import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
 import { createWeeTransition } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import { useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
+import MusicReactiveBars from '../widgets/MusicReactiveBars';
 import { WEE_GOOEY_ICON_PRESS } from '../../ui/wee/WeeGooeyIconButton';
+import { normalizeHomeNowPlayingWidget } from '../../utils/homeNowPlayingWidgetPrefs';
 import {
   EMPTY_NOW_PLAYING,
   nowPlayingFromSystemSession,
@@ -35,9 +38,9 @@ function formatMs(ms) {
 
 /**
  * Per-size chrome + layout.
- * - immersive (2×2 / tall): floating square cover + inset glass pill
+ * - immersive / hero: floating square cover + inset glass pill
  * - wide (2×1): side-by-side cover + chrome
- * - compact (1×1): soft wash + mini chrome
+ * - compact (1×1): mini square + chrome
  */
 function chromeForSize(sizeId) {
   switch (sizeId) {
@@ -53,6 +56,7 @@ function chromeForSize(sizeId) {
         showProgress: false,
         showStatus: false,
         showTimestamps: false,
+        showVisualizer: false,
         playBox: 'h-6 w-6 rounded-lg border-b-2',
         playIcon: 11,
         skipIcon: 12,
@@ -60,7 +64,8 @@ function chromeForSize(sizeId) {
         glassRadius: 'rounded-lg',
         transportGap: 'gap-2',
         artRadius: 'rounded-xl',
-        artMax: 'h-10 w-10',
+        artMax: 'h-10 w-10 shrink-0',
+        vizMaxH: 0,
       };
     case 'T':
       return {
@@ -74,6 +79,7 @@ function chromeForSize(sizeId) {
         showProgress: true,
         showStatus: true,
         showTimestamps: false,
+        showVisualizer: true,
         playBox: 'h-8 w-8 rounded-[0.9rem] border-b-[4px] sm:h-9 sm:w-9',
         playIcon: 14,
         skipIcon: 16,
@@ -81,7 +87,31 @@ function chromeForSize(sizeId) {
         glassRadius: 'rounded-2xl',
         transportGap: 'gap-2.5',
         artRadius: 'rounded-[1.35rem]',
-        artMax: 'max-h-[min(58%,11rem)] max-w-[min(88%,11rem)]',
+        artMax: 'aspect-square w-[min(88%,11rem)] max-h-[min(52%,11rem)]',
+        vizMaxH: 22,
+      };
+    case 'V':
+      return {
+        layout: 'immersive',
+        stackPad: 'gap-2.5 p-3',
+        glassPad: 'gap-1 px-3.5 py-2.5',
+        glassWidth: 'mx-auto w-[min(100%,16rem)]',
+        title: 'text-sm leading-snug',
+        artist: 'text-[9px] tracking-[0.16em]',
+        showArtist: true,
+        showProgress: true,
+        showStatus: true,
+        showTimestamps: true,
+        showVisualizer: true,
+        playBox: 'h-10 w-10 rounded-[1.05rem] border-b-[5px]',
+        playIcon: 17,
+        skipIcon: 17,
+        skipBox: 'h-8 w-8',
+        glassRadius: 'rounded-[1.35rem]',
+        transportGap: 'gap-3',
+        artRadius: 'rounded-[1.5rem]',
+        artMax: 'aspect-square w-[min(90%,13.5rem)] max-h-[min(48%,13.5rem)]',
+        vizMaxH: 26,
       };
     case 'L':
       return {
@@ -95,6 +125,7 @@ function chromeForSize(sizeId) {
         showProgress: true,
         showStatus: true,
         showTimestamps: true,
+        showVisualizer: true,
         playBox: 'h-10 w-10 rounded-[1.05rem] border-b-[5px] sm:h-11 sm:w-11',
         playIcon: 18,
         skipIcon: 18,
@@ -102,7 +133,54 @@ function chromeForSize(sizeId) {
         glassRadius: 'rounded-[1.35rem]',
         transportGap: 'gap-3',
         artRadius: 'rounded-[1.65rem]',
-        artMax: 'max-h-[min(56%,14rem)] max-w-[min(72%,14rem)]',
+        artMax: 'aspect-square w-[min(72%,14rem)] max-h-[min(52%,14rem)]',
+        vizMaxH: 28,
+      };
+    case 'W':
+      return {
+        layout: 'immersive',
+        stackPad: 'gap-2.5 p-3',
+        glassPad: 'gap-1 px-4 py-2.5',
+        glassWidth: 'mx-auto w-[min(100%,22rem)]',
+        title: 'text-base leading-snug',
+        artist: 'text-[10px] tracking-[0.18em]',
+        showArtist: true,
+        showProgress: true,
+        showStatus: true,
+        showTimestamps: true,
+        showVisualizer: true,
+        playBox: 'h-11 w-11 rounded-[1.1rem] border-b-[5px]',
+        playIcon: 18,
+        skipIcon: 18,
+        skipBox: 'h-9 w-9',
+        glassRadius: 'rounded-[1.45rem]',
+        transportGap: 'gap-3.5',
+        artRadius: 'rounded-[1.75rem]',
+        artMax: 'aspect-square w-[min(42%,15rem)] max-h-[min(58%,15rem)]',
+        vizMaxH: 30,
+      };
+    case 'XL':
+      return {
+        layout: 'immersive',
+        stackPad: 'gap-3 p-3.5',
+        glassPad: 'gap-1.5 px-4 py-3',
+        glassWidth: 'mx-auto w-[min(100%,24rem)]',
+        title: 'text-base leading-snug sm:text-lg',
+        artist: 'text-[10px] tracking-[0.2em]',
+        showArtist: true,
+        showProgress: true,
+        showStatus: true,
+        showTimestamps: true,
+        showVisualizer: true,
+        playBox: 'h-12 w-12 rounded-[1.15rem] border-b-[5px]',
+        playIcon: 20,
+        skipIcon: 20,
+        skipBox: 'h-9 w-9',
+        glassRadius: 'rounded-[1.55rem]',
+        transportGap: 'gap-4',
+        artRadius: 'rounded-[1.85rem]',
+        artMax: 'aspect-square w-[min(58%,16.5rem)] max-h-[min(48%,16.5rem)]',
+        vizMaxH: 34,
       };
     case 'M':
     default:
@@ -117,6 +195,7 @@ function chromeForSize(sizeId) {
         showProgress: true,
         showStatus: true,
         showTimestamps: false,
+        showVisualizer: true,
         playBox: 'h-7 w-7 rounded-[0.85rem] border-b-[3px]',
         playIcon: 13,
         skipIcon: 14,
@@ -124,7 +203,8 @@ function chromeForSize(sizeId) {
         glassRadius: 'rounded-xl',
         transportGap: 'gap-2.5',
         artRadius: 'rounded-[1.15rem]',
-        artMax: 'h-[min(100%,5.75rem)] w-[min(100%,5.75rem)]',
+        artMax: 'aspect-square h-[min(100%,5.75rem)] w-[min(100%,5.75rem)] shrink-0',
+        vizMaxH: 18,
       };
   }
 }
@@ -147,6 +227,7 @@ function NowPlayingSlot({
     systemEnabled,
     systemAvailable,
     extractedColors,
+    nowPlayingLooksRaw,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       globalNp: state.nowPlaying || EMPTY_NOW_PLAYING,
@@ -156,7 +237,13 @@ function NowPlayingSlot({
       systemEnabled: state.ui.systemMediaEnabled !== false,
       systemAvailable: Boolean(state.systemMedia?.available),
       extractedColors: state.spotify?.extractedColors || null,
+      nowPlayingLooksRaw: state.ui?.homeNowPlayingWidget,
     }))
+  );
+
+  const npLooks = useMemo(
+    () => normalizeHomeNowPlayingWidget(nowPlayingLooksRaw),
+    [nowPlayingLooksRaw]
   );
 
   const np = useMemo(() => {
@@ -196,6 +283,20 @@ function NowPlayingSlot({
   const interactionsLocked = arrangeMode || punchMode;
   const hasTrack = Boolean(trackName);
   const hasArt = Boolean(albumArtUrl);
+
+  const showVisualizer =
+    Boolean(npLooks.showVisualizer) &&
+    Boolean(chrome.showVisualizer) &&
+    hasTrack &&
+    !interactionsLocked;
+
+  const vizLevels = useMusicReactiveLevels({
+    isPlaying,
+    progressMs,
+    durationMs,
+    enabled: showVisualizer,
+    bandCount: isWide || isCompact ? 8 : 12,
+  });
 
   const runTransport = useCallback(async (action) => {
     if (!useSystemKeys) return;
@@ -265,27 +366,6 @@ function NowPlayingSlot({
     };
   }, [extractedColors]);
 
-  const ambientWashStyle = useMemo(() => {
-    const primary = extractedColors?.primary;
-    const secondary = extractedColors?.secondary || primary;
-    const accent = extractedColors?.accent || primary;
-    if (primary) {
-      return {
-        background: [
-          `radial-gradient(ellipse 78% 68% at 50% 28%, color-mix(in srgb, ${primary} 42%, transparent), transparent 72%)`,
-          `radial-gradient(ellipse 62% 48% at 18% 88%, color-mix(in srgb, ${secondary || primary} 28%, transparent), transparent 70%)`,
-          `radial-gradient(ellipse 55% 42% at 88% 78%, color-mix(in srgb, ${accent || primary} 22%, transparent), transparent 68%)`,
-        ].join(', '),
-      };
-    }
-    return {
-      background: [
-        'radial-gradient(ellipse 80% 65% at 50% 30%, hsl(var(--primary) / 0.18), transparent 70%)',
-        'radial-gradient(ellipse 60% 50% at 85% 85%, hsl(var(--ambient-secondary) / 0.12), transparent 65%)',
-      ].join(', '),
-    };
-  }, [extractedColors]);
-
   const statusLabel = isPlaying
     ? appName || 'Now Playing'
     : hasTrack
@@ -297,7 +377,8 @@ function NowPlayingSlot({
   const showProgress =
     chrome.showProgress && hasTrack && durationMs > 0 && !interactionsLocked;
 
-  const artistColor = extractedColors?.accent || extractedColors?.primary || null;
+  const accentColor =
+    extractedColors?.accent || extractedColors?.primary || 'hsl(var(--primary))';
 
   const pressTransition = createWeeTransition('press', { reducedMotion });
   const playMotion = reducedMotion
@@ -326,7 +407,7 @@ function NowPlayingSlot({
     chrome.glassRadius,
     chrome.glassPad,
     chrome.glassWidth,
-    'border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-md',
+    'border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated)/0.82)] text-[hsl(var(--text-primary))] backdrop-blur-md',
   ].join(' ');
 
   const transportRow = showTransport ? (
@@ -398,8 +479,7 @@ function NowPlayingSlot({
           <Music
             size={isCompact ? 8 : 10}
             strokeWidth={2.5}
-            className="shrink-0"
-            style={artistColor ? { color: artistColor } : { color: 'hsl(var(--primary))' }}
+            className="shrink-0 text-[hsl(var(--primary))]"
             aria-hidden
           />
           <span className="truncate">{statusLabel}</span>
@@ -414,8 +494,7 @@ function NowPlayingSlot({
 
       {chrome.showArtist && artistLine ? (
         <span
-          className={`truncate font-black uppercase ${chrome.artist}`}
-          style={{ color: artistColor || 'hsl(var(--primary))' }}
+          className={`truncate font-black uppercase text-[hsl(var(--text-secondary))] ${chrome.artist}`}
         >
           {artistLine}
         </span>
@@ -428,10 +507,7 @@ function NowPlayingSlot({
               className="h-full rounded-full transition-[width] duration-700 ease-out"
               style={{
                 width: `${progressRatio * 100}%`,
-                backgroundColor:
-                  extractedColors?.accent ||
-                  extractedColors?.primary ||
-                  'hsl(var(--primary))',
+                backgroundColor: accentColor,
               }}
             />
           </div>
@@ -449,13 +525,11 @@ function NowPlayingSlot({
   const floatingArt = hasArt ? (
     <div
       className={[
-        'relative shrink-0 overflow-hidden border border-[hsl(var(--color-pure-white)/0.28)]',
+        'relative shrink-0 overflow-hidden border border-[hsl(var(--color-pure-white)/0.32)]',
         'bg-[hsl(var(--surface-elevated)/0.35)] shadow-[var(--shadow-soft-hover)]',
-        'ring-1 ring-[hsl(var(--color-pure-black)/0.12)]',
+        'ring-1 ring-[hsl(var(--color-pure-black)/0.18)]',
         chrome.artRadius,
         chrome.artMax || '',
-        isImmersive ? 'aspect-square w-full' : '',
-        isWide ? 'aspect-square' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -463,7 +537,7 @@ function NowPlayingSlot({
       <img
         src={albumArtUrl}
         alt=""
-        className="pointer-events-none h-full w-full object-cover [image-rendering:auto] contrast-[1.04] saturate-[1.08]"
+        className="pointer-events-none h-full w-full object-cover"
         draggable={false}
         decoding="async"
       />
@@ -479,8 +553,7 @@ function NowPlayingSlot({
         'bg-[hsl(var(--surface-elevated)/0.55)] shadow-[var(--shadow-soft)]',
         chrome.artRadius,
         chrome.artMax || '',
-        isImmersive ? 'aspect-square w-full' : '',
-        isWide ? 'aspect-square' : 'h-11 w-11',
+        !isImmersive && !isWide ? 'h-11 w-11' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -501,6 +574,20 @@ function NowPlayingSlot({
     </div>
   );
 
+  const visualizerRow =
+    showVisualizer && chrome.vizMaxH > 0 ? (
+      <div className="relative z-10 flex w-full shrink-0 justify-center py-0.5">
+        <MusicReactiveBars
+          levels={vizLevels}
+          color={accentColor}
+          minHeightPx={3}
+          maxHeightPx={chrome.vizMaxH}
+          opacity={isPlaying ? 0.9 : 0.35}
+          className="h-8"
+        />
+      </div>
+    ) : null;
+
   const chromeCard = (
     <div className={glassPanelClass}>
       {trackMeta}
@@ -508,21 +595,39 @@ function NowPlayingSlot({
     </div>
   );
 
+  /** Darkened enlarged album art + light blur — not a heavy color wash. */
   const ambientLayer = hasTrack ? (
     <>
-      {/* Soft color wash — wallpaper remains visible around the floating cover */}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-95"
-        style={ambientWashStyle}
-        aria-hidden
-      />
       {hasArt ? (
         <img
           src={albumArtUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-[0.22] blur-[28px] saturate-150"
+          className="pointer-events-none absolute inset-0 h-full w-full scale-[1.18] object-cover blur-[10px]"
           draggable={false}
           decoding="async"
+          aria-hidden
+        />
+      ) : (
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[inherit]"
+          style={{
+            background: extractedColors?.primary
+              ? `radial-gradient(ellipse 80% 70% at 50% 35%, ${extractedColors.primary}, transparent 70%)`
+              : 'radial-gradient(ellipse 80% 65% at 50% 30%, hsl(var(--primary) / 0.22), transparent 70%)',
+          }}
+          aria-hidden
+        />
+      )}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[hsl(var(--color-pure-black)/0.48)]"
+        aria-hidden
+      />
+      {extractedColors?.primary ? (
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-[0.1]"
+          style={{
+            background: `radial-gradient(ellipse 70% 55% at 50% 30%, ${extractedColors.primary}, transparent 68%)`,
+          }}
           aria-hidden
         />
       ) : null}
@@ -555,8 +660,9 @@ function NowPlayingSlot({
   } else if (isImmersive) {
     body = (
       <div className={`relative z-10 flex h-full min-h-0 w-full flex-col ${chrome.stackPad}`}>
-        <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1">
           {floatingArt}
+          {visualizerRow}
         </div>
         <div className="mt-auto flex w-full shrink-0 justify-center">{chromeCard}</div>
       </div>
@@ -566,7 +672,10 @@ function NowPlayingSlot({
       <div
         className={`relative z-10 flex h-full min-h-0 w-full items-center ${chrome.stackPad}`}
       >
-        <div className="flex h-full shrink-0 items-center">{floatingArt}</div>
+        <div className="flex h-full shrink-0 flex-col items-center justify-center gap-1">
+          {floatingArt}
+          {visualizerRow}
+        </div>
         <div className="flex min-h-0 min-w-0 flex-1 items-center pl-1">{chromeCard}</div>
       </div>
     );

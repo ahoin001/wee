@@ -19,12 +19,15 @@ export const HOME_SLOT_PICKER_CATEGORIES = Object.freeze([
   Object.freeze({ id: 'system', label: 'System' }),
 ]);
 
-/** Now Playing size set: 1×1, 1×2, 2×1, 2×2 — art + controls on every size. */
+/** Now Playing size set — max 3×3 (never 4 cols/rows). Art + controls on every size. */
 const NOW_PLAYING_SIZE_PRESETS = Object.freeze({
   S: Object.freeze({ id: 'S', label: '1×1', colSpan: 1, rowSpan: 1, capacity: 0 }),
   T: Object.freeze({ id: 'T', label: '1×2', colSpan: 1, rowSpan: 2, capacity: 2 }),
   M: Object.freeze({ id: 'M', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 3 }),
   L: Object.freeze({ id: 'L', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 6 }),
+  W: Object.freeze({ id: 'W', label: '3×2', colSpan: 3, rowSpan: 2, capacity: 8 }),
+  V: Object.freeze({ id: 'V', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 8 }),
+  XL: Object.freeze({ id: 'XL', label: '3×3', colSpan: 3, rowSpan: 3, capacity: 12 }),
 });
 
 /** Clock / weather — keep S for compact glance. */
@@ -36,9 +39,12 @@ const GLANCE_TILE_SIZE_PRESETS = Object.freeze({
 
 /**
  * Steam Recent / Most Played tiles — never 1×1. Min 2 columns.
- * Includes tall 2×3 (fits default 3-row home boards) plus 2×4 / wide 3×2.
+ * Shelves (1-row) first, then tall boards, then wide 3×2. Cap matches 4×4 board max.
  */
 export const STEAM_TILE_SIZE_PRESETS = Object.freeze({
+  H2: Object.freeze({ id: 'H2', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 24 }),
+  H3: Object.freeze({ id: 'H3', label: '3×1', colSpan: 3, rowSpan: 1, capacity: 28 }),
+  H4: Object.freeze({ id: 'H4', label: '4×1', colSpan: 4, rowSpan: 1, capacity: 30 }),
   M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 12 }),
   L: Object.freeze({ id: 'L', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 18 }),
   XL: Object.freeze({ id: 'XL', label: '2×4', colSpan: 2, rowSpan: 4, capacity: 24 }),
@@ -47,11 +53,13 @@ export const STEAM_TILE_SIZE_PRESETS = Object.freeze({
 });
 
 /**
- * Steam Friends list tiles — short 2×1 banner + standard 2×2 board.
+ * Steam Friends list tiles — banner + boards sized for sectioned online/offline lists.
  */
 export const STEAM_FRIENDS_SIZE_PRESETS = Object.freeze({
-  S: Object.freeze({ id: 'S', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 4 }),
-  M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 8 }),
+  S: Object.freeze({ id: 'S', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 6 }),
+  M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 12 }),
+  L: Object.freeze({ id: 'L', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 18 }),
+  W: Object.freeze({ id: 'W', label: '3×2', colSpan: 3, rowSpan: 2, capacity: 16 }),
 });
 
 export const HOME_SLOT_KINDS = {
@@ -160,7 +168,7 @@ export const HOME_SLOT_KINDS = {
   steamFriends: {
     id: 'steamFriends',
     label: 'Steam Friends',
-    description: 'Friends & what they’re playing',
+    description: 'Friends online & offline',
     icon: '👥',
     category: 'steam',
     colSpan: STEAM_FRIENDS_SIZE_PRESETS.M.colSpan,

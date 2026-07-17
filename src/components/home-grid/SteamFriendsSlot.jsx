@@ -1,5 +1,5 @@
 /**
- * Home-grid Steam Friends — console-style list of friends in-game.
+ * Home-grid Steam Friends — sectioned online (in-game first) then offline list.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
@@ -24,12 +24,58 @@ const EMPTY_FRIENDS_PLAYING = Object.freeze([]);
 const PRIVATE_FRIENDS_HINT =
   'Friends list is private on Steam. Set Friends List → Public, then tap to retry.';
 
+/** Steam personaState → short label (0 Offline handled separately). */
+const PERSONA_STATUS = Object.freeze({
+  1: 'Online',
+  2: 'Busy',
+  3: 'Away',
+  4: 'Snooze',
+  5: 'Looking to trade',
+  6: 'Looking to play',
+});
+
+function isFriendInGame(friend) {
+  if (typeof friend?.inGame === 'boolean') return friend.inGame;
+  return Boolean(friend?.gameId || friend?.gameName);
+}
+
+function isFriendOnline(friend) {
+  if (typeof friend?.online === 'boolean') return friend.online;
+  return isFriendInGame(friend) || Number(friend?.personaState || 0) >= 1;
+}
+
+function friendStatusLabel(friend) {
+  if (isFriendInGame(friend) && friend.gameName) return null; // rendered as Playing · title
+  if (!isFriendOnline(friend)) return 'Offline';
+  return PERSONA_STATUS[Number(friend.personaState)] || 'Online';
+}
+
+function FriendSectionLabel({ children, spanGrid = false }) {
+  return (
+    <p
+      className={`m-0 px-0.5 pt-1 text-[8px] font-black uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))] first:pt-0 ${
+        spanGrid ? 'col-span-2' : ''
+      }`}
+    >
+      {children}
+    </p>
+  );
+}
+
+FriendSectionLabel.propTypes = {
+  children: PropTypes.node,
+  spanGrid: PropTypes.bool,
+};
+
 function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile, layout }) {
   const gameId = friend.gameId ? String(friend.gameId) : '';
   const gameThumb = gameId ? STEAM_CDN_HEADER(gameId) : '';
   const coverFallback = gameId ? STEAM_CDN_LIBRARY_COVER(gameId) : '';
   const avatarPx = Number(layout.listAvatarPx) || 40;
   const avatarStyle = { width: avatarPx, height: avatarPx };
+  const online = isFriendOnline(friend);
+  const inGame = isFriendInGame(friend);
+  const statusOnly = friendStatusLabel(friend);
   const nameClass =
     layout.density === 'roomy'
       ? 'text-[length:var(--font-size-caption)]'
@@ -37,6 +83,19 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
         ? 'text-[length:var(--font-size-micro)]'
         : 'text-[11px]';
   const statusClass = layout.density === 'compact' ? 'text-[8px]' : 'text-[9px]';
+  const avatarRing = inGame
+    ? 'border-[hsl(var(--state-success)/0.75)]'
+    : online
+      ? 'border-[hsl(var(--primary)/0.65)]'
+      : 'border-[hsl(var(--border-primary)/0.45)]';
+  const presenceDot = inGame
+    ? 'bg-[hsl(var(--state-success))]'
+    : online
+      ? 'bg-[hsl(var(--primary))]'
+      : 'bg-[hsl(var(--text-tertiary))]';
+  const accentBar = online
+    ? 'bg-[hsl(var(--primary))] opacity-80'
+    : 'bg-[hsl(var(--border-primary))] opacity-50';
 
   return (
     <button
@@ -49,7 +108,7 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
       aria-label={
         friend.gameName
           ? `${friend.personaName} playing ${friend.gameName}`
-          : friend.personaName
+          : `${friend.personaName}${statusOnly ? `, ${statusOnly}` : ''}`
       }
       disabled={interactionsLocked}
       onClick={(event) => {
@@ -58,10 +117,12 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
         if (friend.gameId) onLaunchGame?.(friend);
         else onOpenProfile?.(friend);
       }}
-      className={`group relative flex w-full min-w-0 items-center overflow-hidden border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.72)] text-left shadow-[var(--shadow-sm)] backdrop-blur-md transition-[transform,background-color,border-color,box-shadow] hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-elevated)/0.92)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.985] disabled:pointer-events-none disabled:opacity-70 ${layout.listRowClass}`}
+      className={`group relative flex w-full min-w-0 items-center overflow-hidden border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.72)] text-left shadow-[var(--shadow-sm)] backdrop-blur-md transition-[transform,background-color,border-color,box-shadow,opacity] hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-elevated)/0.92)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.985] disabled:pointer-events-none disabled:opacity-70 ${
+        online ? '' : 'opacity-80'
+      } ${layout.listRowClass}`}
     >
       <span
-        className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[hsl(var(--primary))] opacity-80"
+        className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${accentBar}`}
         aria-hidden
       />
 
@@ -71,20 +132,20 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
             src={friend.avatarUrl}
             alt=""
             style={avatarStyle}
-            className="rounded-full border-2 border-[hsl(var(--state-success)/0.75)] object-cover"
+            className={`rounded-full border-2 object-cover ${avatarRing}`}
             draggable={false}
           />
         ) : (
           <span
             style={avatarStyle}
-            className="flex items-center justify-center rounded-full border-2 border-[hsl(var(--state-success)/0.75)] bg-[hsl(var(--surface-secondary))] text-[11px] font-black text-[hsl(var(--text-secondary))]"
+            className={`flex items-center justify-center rounded-full border-2 bg-[hsl(var(--surface-secondary))] text-[11px] font-black text-[hsl(var(--text-secondary))] ${avatarRing}`}
           >
             {(friend.personaName || '?').slice(0, 1).toUpperCase()}
           </span>
         )}
         <span
-          className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[hsl(var(--surface-elevated))] bg-[hsl(var(--state-success))]"
-          title="In game"
+          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[hsl(var(--surface-elevated))] ${presenceDot}`}
+          title={inGame ? 'In game' : online ? 'Online' : 'Offline'}
           aria-hidden
         />
       </div>
@@ -103,7 +164,13 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
               <span className="text-[hsl(var(--text-secondary))]">{friend.gameName}</span>
             </>
           ) : (
-            <span className="text-[hsl(var(--text-secondary))]">Online</span>
+            <span
+              className={
+                online ? 'text-[hsl(var(--text-secondary))]' : 'text-[hsl(var(--text-tertiary))]'
+              }
+            >
+              {statusOnly || 'Online'}
+            </span>
           )}
         </div>
       </div>
@@ -142,6 +209,9 @@ FriendListRow.propTypes = {
     avatarUrl: PropTypes.string,
     gameId: PropTypes.string,
     gameName: PropTypes.string,
+    personaState: PropTypes.number,
+    online: PropTypes.bool,
+    inGame: PropTypes.bool,
   }).isRequired,
   interactionsLocked: PropTypes.bool,
   onLaunchGame: PropTypes.func,
@@ -181,6 +251,7 @@ function SteamFriendsSlot({
   const [loading, setLoading] = useState(false);
 
   const friendsList = Array.isArray(friendsPlaying) ? friendsPlaying : EMPTY_FRIENDS_PLAYING;
+  const rowSpan = slot?.rowSpan ?? 2;
 
   const sizePreset = useMemo(
     () =>
@@ -188,7 +259,7 @@ function SteamFriendsSlot({
         id: 'M',
         colSpan: 2,
         rowSpan: 2,
-        capacity: 8,
+        capacity: 12,
       },
     [slot?.colSpan, slot?.rowSpan]
   );
@@ -197,8 +268,8 @@ function SteamFriendsSlot({
     [slot?.colSpan, slot?.rowSpan]
   );
   const capacity = Math.max(
-    Number(sizePreset.capacity) || 8,
-    layout.cells <= 2 ? 4 : layout.density === 'roomy' ? 16 : 8
+    Number(sizePreset.capacity) || 12,
+    layout.cells <= 2 ? 6 : layout.density === 'roomy' ? 24 : 12
   );
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
@@ -206,10 +277,21 @@ function SteamFriendsSlot({
     friendsPlayingStatusCode === 'private-friends' ||
     /private/i.test(String(friendsPlayingError || ''));
 
-  const friends = useMemo(
-    () => friendsList.slice(0, capacity),
-    [friendsList, capacity]
-  );
+  const { onlineFriends, offlineFriends, visibleCount, onlineCount } = useMemo(() => {
+    const capped = friendsList.slice(0, capacity);
+    const online = [];
+    const offline = [];
+    for (const friend of capped) {
+      if (isFriendOnline(friend)) online.push(friend);
+      else offline.push(friend);
+    }
+    return {
+      onlineFriends: online,
+      offlineFriends: offline,
+      visibleCount: capped.length,
+      onlineCount: friendsList.filter(isFriendOnline).length,
+    };
+  }, [friendsList, capacity]);
 
   useEffect(() => {
     if (!steamId || !apiEnabled || !window.api?.steam?.getFriendsPlaying) return;
@@ -318,14 +400,14 @@ function SteamFriendsSlot({
         openSteamPrivacySettings();
         return;
       }
-      if (friends.length === 0) openSteamApiSettings();
+      if (visibleCount === 0) openSteamApiSettings();
     },
     [
       arrangeMode,
       punchMode,
       interactionsLocked,
       isPrivateFriends,
-      friends.length,
+      visibleCount,
       openSteamPrivacySettings,
       openSteamApiSettings,
       onArrangeSelect,
@@ -345,7 +427,19 @@ function SteamFriendsSlot({
             ? friendsPlayingError
             : loading
               ? 'Loading friends…'
-              : 'No friends in-game right now';
+              : 'No Steam friends found';
+
+  const renderFriendRows = (list) =>
+    list.map((friend) => (
+      <FriendListRow
+        key={friend.steamId}
+        friend={friend}
+        interactionsLocked={interactionsLocked}
+        onLaunchGame={handleLaunchGame}
+        onOpenProfile={handleOpenProfile}
+        layout={layout}
+      />
+    ));
 
   return (
     <HomeWidgetShell
@@ -354,9 +448,9 @@ function SteamFriendsSlot({
       selected={selected}
       className={layout.shellPadClass}
       onClick={handleActivate}
-      aria-label="Steam Friends playing"
+      aria-label="Steam Friends"
     >
-      {friends.length === 0 ? (
+      {visibleCount === 0 ? (
         <button
           type="button"
           className={`flex h-full w-full flex-col items-center justify-center px-2 text-center transition-transform hover:scale-[1.02] active:scale-95 ${layout.gapClass}`}
@@ -394,10 +488,13 @@ function SteamFriendsSlot({
         </button>
       ) : (
         <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
-          <SteamWidgetHeading title="Friends" icon={Users} />
+          <SteamWidgetHeading title="Friends" icon={Users} compact={rowSpan <= 1} />
           {layout.density !== 'compact' ? (
             <p className="-mt-0.5 mb-0 px-0.5 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-              {friends.length} in-game
+              {onlineCount} online
+              {friendsList.length > onlineCount
+                ? ` · ${friendsList.length - onlineCount} offline`
+                : ''}
             </p>
           ) : null}
           <WeeFadeScroll axis="y" fadePx={28} hideScrollbar className="min-h-0 flex-1">
@@ -406,16 +503,22 @@ function SteamFriendsSlot({
                 layout.listColumns > 1 ? 'grid grid-cols-2' : 'flex flex-col'
               }`}
             >
-              {friends.map((friend) => (
-                <FriendListRow
-                  key={friend.steamId}
-                  friend={friend}
-                  interactionsLocked={interactionsLocked}
-                  onLaunchGame={handleLaunchGame}
-                  onOpenProfile={handleOpenProfile}
-                  layout={layout}
-                />
-              ))}
+              {onlineFriends.length > 0 ? (
+                <>
+                  <FriendSectionLabel spanGrid={layout.listColumns > 1}>
+                    Online · {onlineFriends.length}
+                  </FriendSectionLabel>
+                  {renderFriendRows(onlineFriends)}
+                </>
+              ) : null}
+              {offlineFriends.length > 0 ? (
+                <>
+                  <FriendSectionLabel spanGrid={layout.listColumns > 1}>
+                    Offline · {offlineFriends.length}
+                  </FriendSectionLabel>
+                  {renderFriendRows(offlineFriends)}
+                </>
+              ) : null}
             </div>
           </WeeFadeScroll>
         </div>

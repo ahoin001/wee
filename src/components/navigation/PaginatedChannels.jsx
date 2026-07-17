@@ -734,11 +734,6 @@ const PaginatedChannelsInner = React.memo(() => {
       ? 'Nice — now pick a widget from the tray below'
       : 'Tap an empty tile to add a widget · drag tiles to reorder';
 
-  /** “Show tips” under More — recalls the coach for this and future sessions. */
-  const handleReopenGuide = useCallback(() => {
-    setUIState({ homeBoardWidgetCoachDismissed: false });
-  }, [setUIState]);
-
   useEffect(() => {
     if (!isChannelBoardSpace && homeBoardArrangeMode) {
       exitHomeBoardArrange();
@@ -1515,7 +1510,6 @@ const PaginatedChannelsInner = React.memo(() => {
             blockedPresetIds={blockedSizePresetIds}
             pickerOpen={arrangePickerOpen}
             onPickerOpenChange={setArrangePickerOpen}
-            onReopenGuide={handleReopenGuide}
           />
           <AnimatePresence>
             {isHomeSpace && widgetCoachVisible ? (

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Bookmark, Library, Music, Palette, Users } from 'lucide-react';
+import { Bookmark, Library, Palette, Users } from 'lucide-react';
 import { getCommunityPresetUpdates, uploadPreset, downloadPreset } from '../../utils/supabase';
 import {
   capturePresetThumbnailDataUrl,
@@ -11,7 +11,6 @@ import {
 } from '../../utils/presetSharing';
 import {
   loadUnifiedSettingsSnapshot,
-  saveUnifiedAppearancePatch,
   saveUnifiedSettingsSnapshot,
 } from '../../utils/electronApi';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -19,18 +18,13 @@ import { buildPresetDataFromStore } from '../../utils/presets/buildPresetSnapsho
 import { applyPresetData } from '../../utils/presets/applyPresetData';
 import { normalizePresetRecord, sanitizePresetCollection, toVisualOnlyPreset } from '../../utils/presets/presetThemeData';
 import { exportPresetToFile, parsePresetFile, WEE_PRESET_FILE_EXTENSION } from '../../utils/presets/presetFileTransfer';
-import { createDefaultSpotifyMatchPreset, SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
-import {
-  defaultFrozenSpotifyLookName,
-  MAX_CUSTOM_PRESETS,
-  saveFrozenSpotifyLookPreset,
-} from '../../utils/presets/saveFrozenSpotifyLookPreset';
+import { SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
+import { MAX_CUSTOM_PRESETS } from '../../utils/presets/saveFrozenSpotifyLookPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
 import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
 import { buildWorkspaceDataFromStore } from '../../utils/workspaces/buildWorkspaceSnapshot';
 import { normalizeWorkspacesState } from '../../utils/workspaces/workspaceState';
 import { createPresetId } from '../../utils/presets/presetIds';
-import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import {
   PRESET_SCOPE_VISUAL,
   PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
@@ -45,18 +39,15 @@ import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import './surfaceStyles.css';
 
 import PresetsSaveCurrentCard from './presets/PresetsSaveCurrentCard';
-import PresetsSpotifyMatchSection from './presets/PresetsSpotifyMatchSection';
 import PresetsSavedListCard from './presets/PresetsSavedListCard';
 import PresetsCommunityCard from './presets/PresetsCommunityCard';
 import {
   WeeButton,
   WeeModalShell,
-  WeeRevealWhen,
   WeeSectionEyebrow,
   WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import WInput from '../../ui/WInput';
 
 const normalizePresetName = (value) => value.trim().toLowerCase();
 
@@ -70,17 +61,15 @@ const PRESET_UPDATE_SCOPE_OPTIONS = [
 ];
 
 const PresetsSettingsTab = React.memo(() => {
-  const { presets, spotifyMatchEnabled, workspaces } = useConsolidatedAppStore(
+  const { presets, workspaces } = useConsolidatedAppStore(
     useShallow((state) => ({
       presets: state.presets,
-      spotifyMatchEnabled: state.ui.spotifyMatchEnabled,
       workspaces: state.workspaces,
     }))
   );
-  const { setPresets, setUIState, setWorkspacesState } = useConsolidatedAppStore(
+  const { setPresets, setWorkspacesState } = useConsolidatedAppStore(
     useShallow((state) => ({
       setPresets: state.actions.setPresets,
-      setUIState: state.actions.setUIState,
       setWorkspacesState: state.actions.setWorkspacesState,
     }))
   );
@@ -117,8 +106,6 @@ const PresetsSettingsTab = React.memo(() => {
   const [isUpdatingPreset, setIsUpdatingPreset] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [spotifyNameModalOpen, setSpotifyNameModalOpen] = useState(false);
-  const [spotifyNameInput, setSpotifyNameInput] = useState('');
   const [importPreview, setImportPreview] = useState(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const importFileInputRef = useRef(null);
@@ -142,29 +129,19 @@ const PresetsSettingsTab = React.memo(() => {
         const unifiedSettings = await loadUnifiedSettingsSnapshot();
         let currentPresets = Array.isArray(unifiedSettings?.presets) ? unifiedSettings.presets : [];
 
-        const spotifyMatchExists = currentPresets.some((p) => p.name === SPOTIFY_MATCH_PRESET_NAME);
-        if (!spotifyMatchExists) {
-          currentPresets = [...currentPresets, createDefaultSpotifyMatchPreset()];
-        }
-
         const { presets: sanitizedPresets, changed } = sanitizePresetCollection(currentPresets);
         currentPresets = sanitizedPresets;
-        if (!spotifyMatchExists || changed) {
+        if (changed) {
           await savePresetsToBackend(currentPresets);
         }
 
         setPresets(currentPresets);
-
-        const sm = currentPresets.find((p) => p.name === SPOTIFY_MATCH_PRESET_NAME);
-        if (sm?.data?.ui && typeof sm.data.ui.spotifyMatchEnabled === 'boolean') {
-          setUIState({ spotifyMatchEnabled: sm.data.ui.spotifyMatchEnabled });
-        }
       } catch (e) {
         console.error('[PresetsSettingsTab] Load presets failed:', e);
       }
     };
     loadPresets();
-  }, [setPresets, setUIState, savePresetsToBackend]);
+  }, [setPresets, savePresetsToBackend]);
 
   useEffect(() => {
     const loadCommunityUpdates = async () => {
@@ -479,78 +456,6 @@ const PresetsSettingsTab = React.memo(() => {
       items: nextItems,
       activeWorkspaceId: normalizedProfiles.activeWorkspaceId,
     });
-  };
-
-  const handleSpotifyMatchToggle = async (enabled) => {
-    const uiPatch = enabled
-      ? liveColorMatchUiPatch('spotify')
-      : { spotifyMatchEnabled: false };
-    setUIState(uiPatch);
-    await saveUnifiedAppearancePatch(uiPatch);
-
-    const updatedPresets = presets.map((preset) => {
-      if (preset.name === SPOTIFY_MATCH_PRESET_NAME) {
-        return {
-          ...preset,
-          data: {
-            ...preset.data,
-            ui: {
-              ...preset.data?.ui,
-              ...uiPatch,
-            },
-          },
-          timestamp: new Date().toISOString(),
-        };
-      }
-      return preset;
-    });
-
-    setPresets(updatedPresets);
-    await savePresetsToBackend(updatedPresets);
-
-    if (enabled) {
-      const sm = updatedPresets.find((p) => p.name === SPOTIFY_MATCH_PRESET_NAME);
-      if (sm) await applyPresetData(sm);
-    }
-  };
-
-  const handleSaveSpotifyLookAsPreset = async () => {
-    const extracted = useConsolidatedAppStore.getState().spotify?.extractedColors;
-    if (customPresetCount >= MAX_CUSTOM_PRESETS) {
-      setCaptureNotice({
-        type: 'warning',
-        text: `You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one first.`,
-      });
-      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
-      return;
-    }
-    if (!extracted?.primary) {
-      setCaptureNotice({
-        type: 'warning',
-        text: 'No album colors yet. Start playback or enable Color Match until colors appear.',
-      });
-      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
-      return;
-    }
-
-    setSpotifyNameInput(defaultFrozenSpotifyLookName());
-    setSpotifyNameModalOpen(true);
-  };
-
-  const handleConfirmSpotifyNameSave = async () => {
-    const name = spotifyNameInput.trim();
-    if (!name) return;
-
-    const result = await saveFrozenSpotifyLookPreset({ name });
-    if (!result.ok) {
-      setCaptureNotice({ type: 'warning', text: result.error });
-      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
-      return;
-    }
-
-    setSpotifyNameModalOpen(false);
-    setCaptureNotice({ type: 'success', text: `Saved preset "${name}" with frozen colors.` });
-    setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2500);
   };
 
   const handleImportCommunityPreset = async (presetData) => {
@@ -880,7 +785,6 @@ const PresetsSettingsTab = React.memo(() => {
     if (uploadMessage.text) setUploadMessage({ type: '', text: '' });
   };
 
-  const showSpotifySection = presets.some((p) => p.name === SPOTIFY_MATCH_PRESET_NAME);
   const selectedPresetNeedsShareableCopy = Boolean(
     uploadFormData.selectedPreset?.captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
   );
@@ -979,29 +883,6 @@ const PresetsSettingsTab = React.memo(() => {
           />
         </WeeSettingsCollapsibleSection>
       </div>
-
-      <WeeRevealWhen when={showSpotifySection} keepMounted={false}>
-        <WeeSettingsCollapsibleSection
-          icon={Music}
-          title="Spotify Match"
-          description="Album-driven colors for your look."
-          defaultOpen={false}
-        >
-          <PresetsSpotifyMatchSection
-            spotifyMatchEnabled={spotifyMatchEnabled}
-            onSpotifyMatchToggle={handleSpotifyMatchToggle}
-            onSaveLookAsPreset={handleSaveSpotifyLookAsPreset}
-            onOpenColorMatchSettings={() => {
-              setUIState({
-                showSettingsModal: false,
-                homeBoardArrangeMode: true,
-                homeBoardPunchMode: false,
-              });
-              useConsolidatedAppStore.getState().actions.setSpacesState({ activeSpaceId: 'home' });
-            }}
-          />
-        </WeeSettingsCollapsibleSection>
-      </WeeRevealWhen>
 
       <WeeSettingsCollapsibleSection
         icon={Library}
@@ -1262,43 +1143,6 @@ const PresetsSettingsTab = React.memo(() => {
             Adds this look to your saved presets without applying it. Only visual settings
             (wallpaper, colors, dock, chrome) are imported — never Home channels or app paths.
           </p>
-        </div>
-      </WeeModalShell>
-
-      <WeeModalShell
-        isOpen={spotifyNameModalOpen}
-        onClose={() => {
-          setSpotifyNameModalOpen(false);
-        }}
-        headerTitle="Freeze matched colors"
-        showRail={false}
-        maxWidth="min(480px, 94vw)"
-        footerContent={() => (
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <WeeButton
-              variant="secondary"
-              onClick={() => {
-                setSpotifyNameModalOpen(false);
-              }}
-            >
-              Cancel
-            </WeeButton>
-            <WeeButton variant="primary" onClick={handleConfirmSpotifyNameSave} disabled={!spotifyNameInput.trim()}>
-              Save preset
-            </WeeButton>
-          </div>
-        )}
-      >
-        <div className="space-y-3">
-          <p className="m-0 text-sm font-medium text-[hsl(var(--text-secondary))]">
-            Saves frozen album colors with your current visual look.
-          </p>
-          <WInput
-            variant="wee"
-            value={spotifyNameInput}
-            onChange={(e) => setSpotifyNameInput(e.target.value)}
-            placeholder="Preset name"
-          />
         </div>
       </WeeModalShell>
     </div>

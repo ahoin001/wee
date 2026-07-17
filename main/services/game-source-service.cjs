@@ -229,8 +229,8 @@ function createGameSourceService({ fs, path, vdf, os, scanCacheFile = null }) {
   }
 
   /**
-   * Friends currently in a game (GetFriendList + GetPlayerSummaries).
-   * Requires a public friend list on the Steam profile.
+   * Full Steam friends list (GetFriendList + GetPlayerSummaries).
+   * Online (in-game first) sorted ahead of offline. Requires a public friend list.
    */
   async function getSteamFriendsPlaying({ steamId, apiKey }) {
     if (!steamId) {
@@ -303,34 +303,50 @@ function createGameSourceService({ fs, path, vdf, os, scanCacheFile = null }) {
         if (Array.isArray(batch)) players.push(...batch);
       }
 
-      const friends = players
-        .filter((p) => p?.gameid || p?.gameextrainfo)
-        .map((p) => ({
-          steamId: String(p.steamid || ''),
-          personaName: typeof p.personaname === 'string' ? p.personaname : 'Friend',
-          avatarUrl:
-            typeof p.avatarfull === 'string'
-              ? p.avatarfull
-              : p.avatarmedium || p.avatar || '',
-          profileUrl: typeof p.profileurl === 'string' ? p.profileurl : '',
-          gameId: p.gameid ? String(p.gameid) : '',
-          gameName: typeof p.gameextrainfo === 'string' ? p.gameextrainfo : '',
-          personaState: Number(p.personastate || 0),
-        }))
-        .filter((f) => f.steamId)
-        .sort((a, b) =>
-          (a.personaName || '').localeCompare(b.personaName || '', undefined, {
-            sensitivity: 'base',
-          })
-        );
+      const nameCmp = (a, b) =>
+        (a.personaName || '').localeCompare(b.personaName || '', undefined, {
+          sensitivity: 'base',
+        });
 
+      const friends = players
+        .map((p) => {
+          const gameId = p.gameid ? String(p.gameid) : '';
+          const gameName = typeof p.gameextrainfo === 'string' ? p.gameextrainfo : '';
+          const personaState = Number(p.personastate || 0);
+          const inGame = Boolean(gameId || gameName);
+          // Treat anyone with a game session as online even if state is briefly 0.
+          const online = inGame || personaState >= 1;
+          return {
+            steamId: String(p.steamid || ''),
+            personaName: typeof p.personaname === 'string' ? p.personaname : 'Friend',
+            avatarUrl:
+              typeof p.avatarfull === 'string'
+                ? p.avatarfull
+                : p.avatarmedium || p.avatar || '',
+            profileUrl: typeof p.profileurl === 'string' ? p.profileurl : '',
+            gameId,
+            gameName,
+            personaState,
+            online,
+            inGame,
+          };
+        })
+        .filter((f) => f.steamId)
+        .sort((a, b) => {
+          // Online first; within online, in-game first; then name.
+          if (a.online !== b.online) return a.online ? -1 : 1;
+          if (a.inGame !== b.inGame) return a.inGame ? -1 : 1;
+          return nameCmp(a, b);
+        });
+
+      const onlineCount = friends.filter((f) => f.online).length;
       return {
         friends,
         status: 'ok',
         statusCode: 'ok',
         statusReason: friends.length
-          ? `${friends.length} friend${friends.length === 1 ? '' : 's'} in-game.`
-          : 'No friends currently in a game.',
+          ? `${friends.length} friend${friends.length === 1 ? '' : 's'} (${onlineCount} online).`
+          : 'No Steam friends found.',
         fetchedAt: Date.now(),
       };
     } catch (error) {

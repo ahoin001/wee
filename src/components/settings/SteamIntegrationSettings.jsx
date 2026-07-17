@@ -454,8 +454,8 @@ const SteamIntegrationSettings = React.memo(() => {
                 More Steam can do later
               </WeeSectionEyebrow>
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                Same connection also powers the Home Steam Friends widget (in-game friends). Friend
-                lists must be public. Future ideas: store tags, news, and live player counts.
+                Same connection also powers the Home Steam Friends widget (online then offline).
+                Friend lists must be public. Future ideas: store tags, news, and live player counts.
               </Text>
             </div>
           </div>

@@ -23,10 +23,19 @@ import {
   normalizeHomeSteamWidget,
 } from '../../utils/homeSteamWidgetPrefs';
 import {
+  DEFAULT_HOME_CLOCK_WIDGET,
+  HOME_CLOCK_ALIGN,
+  HOME_CLOCK_DATE_STACK,
+  normalizeHomeClockWidget,
+} from '../../utils/homeClockWidgetPrefs';
+import { normalizeHomeNowPlayingWidget } from '../../utils/homeNowPlayingWidgetPrefs';
+import {
   defaultFrozenSpotifyLookName,
   saveFrozenSpotifyLookPreset,
 } from '../../utils/presets/saveFrozenSpotifyLookPreset';
 import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
+import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings';
+import { useTimeColor } from '../../utils/useConsolidatedAppHooks';
 
 const STEAM_KIND_IDS = new Set(['steamRecent', 'steamMostPlayed', 'steamFriends']);
 
@@ -160,6 +169,7 @@ function NowPlayingWidgetSettings() {
     extractedColors,
     immersiveMode,
     spotifyWidget,
+    nowPlayingLooksRaw,
   } = useConsolidatedAppStore(
     useShallow((s) => ({
       spotifyMatchEnabled: Boolean(s.ui?.spotifyMatchEnabled),
@@ -168,9 +178,14 @@ function NowPlayingWidgetSettings() {
       extractedColors: s.spotify?.extractedColors || null,
       immersiveMode: s.spotify?.immersiveMode || null,
       spotifyWidget: s.floatingWidgets?.spotify || null,
+      nowPlayingLooksRaw: s.ui?.homeNowPlayingWidget,
     }))
   );
   const actions = useConsolidatedAppStore((s) => s.actions);
+  const npLooks = useMemo(
+    () => normalizeHomeNowPlayingWidget(nowPlayingLooksRaw),
+    [nowPlayingLooksRaw]
+  );
 
   const [nameModalOpen, setNameModalOpen] = useState(false);
   const [presetName, setPresetName] = useState('');
@@ -228,6 +243,21 @@ function NowPlayingWidgetSettings() {
     [actions, spotifyWidget]
   );
 
+  const handleVisualizer = useCallback(
+    (checked) => {
+      const prev = normalizeHomeNowPlayingWidget(
+        useConsolidatedAppStore.getState().ui?.homeNowPlayingWidget
+      );
+      actions.setUIState({
+        homeNowPlayingWidget: normalizeHomeNowPlayingWidget({
+          ...prev,
+          showVisualizer: Boolean(checked),
+        }),
+      });
+    },
+    [actions]
+  );
+
   const openSaveModal = useCallback(() => {
     if (!extractedColors?.primary) {
       flashStatus(
@@ -264,6 +294,22 @@ function NowPlayingWidgetSettings() {
       </p>
 
       <div className="flex w-full max-w-[28rem] flex-col gap-2">
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
+          <div className="min-w-0">
+            <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
+              Visualizer
+            </p>
+            <p className="m-0 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+              Reactive bars under the cover while playing
+            </p>
+          </div>
+          <WeeToggle
+            checked={npLooks.showVisualizer}
+            onChange={handleVisualizer}
+            title="Show music visualizer bars"
+          />
+        </div>
+
         <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
           <div className="min-w-0">
             <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
@@ -412,6 +458,91 @@ function NowPlayingWidgetSettings() {
   );
 }
 
+function ClockWidgetSettings() {
+  const clockPrefsRaw = useConsolidatedAppStore((s) => s.ui?.homeClockWidget);
+  const looks = useMemo(() => normalizeHomeClockWidget(clockPrefsRaw), [clockPrefsRaw]);
+  const timeColor = useTimeColor();
+  const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
+  const pickerColor = looks.color || timeColor || INPUT_COLOR_DEFAULT_HEX;
+
+  const patchLooks = useCallback(
+    (partial) => {
+      const prev = normalizeHomeClockWidget(
+        useConsolidatedAppStore.getState().ui?.homeClockWidget
+      );
+      setUIState({
+        homeClockWidget: normalizeHomeClockWidget({ ...prev, ...partial }),
+      });
+    },
+    [setUIState]
+  );
+
+  return (
+    <div className="flex w-full flex-col gap-2.5">
+      <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[auto_1fr] sm:gap-x-3">
+        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))] sm:text-right">
+          Align
+        </span>
+        <WeeSegmentedControl
+          size="sm"
+          ariaLabel="Clock text alignment"
+          layoutId="homeArrangeClockAlign"
+          value={looks.align}
+          onChange={(align) => patchLooks({ align })}
+          options={[
+            { value: HOME_CLOCK_ALIGN.left, label: 'Left', title: 'Align time and date left' },
+            { value: HOME_CLOCK_ALIGN.center, label: 'Middle', title: 'Center time and date' },
+            { value: HOME_CLOCK_ALIGN.right, label: 'Right', title: 'Align time and date right' },
+          ]}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[auto_1fr] sm:gap-x-3">
+        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))] sm:text-right">
+          Date
+        </span>
+        <WeeSegmentedControl
+          size="sm"
+          ariaLabel="Clock date stack position"
+          layoutId="homeArrangeClockDateStack"
+          value={looks.dateStack}
+          onChange={(dateStack) => patchLooks({ dateStack })}
+          options={[
+            { value: HOME_CLOCK_DATE_STACK.above, label: 'Above', title: 'Date above time' },
+            { value: HOME_CLOCK_DATE_STACK.below, label: 'Below', title: 'Date below time' },
+          ]}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start sm:pl-[4.5rem]">
+        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+          Color
+        </span>
+        <label className="inline-flex cursor-pointer items-center gap-2">
+          <input
+            type="color"
+            value={pickerColor}
+            onChange={(e) => patchLooks({ color: e.target.value })}
+            className="h-8 w-10 cursor-pointer rounded-md border-2 border-[hsl(var(--border-primary)/0.45)] bg-transparent p-0.5"
+            title="Clock text color"
+            aria-label="Clock text color"
+          />
+          <span className="font-mono text-[11px] font-semibold text-[hsl(var(--text-secondary))]">
+            {pickerColor.toUpperCase()}
+          </span>
+        </label>
+        <button
+          type="button"
+          className="text-[9px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))] underline-offset-2 hover:text-[hsl(var(--text-secondary))] hover:underline"
+          onClick={() => patchLooks({ ...DEFAULT_HOME_CLOCK_WIDGET })}
+        >
+          Reset look
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function HomeWidgetSettingsPanel({ kindId, nested = false }) {
   let title = null;
   let body = null;
@@ -425,6 +556,9 @@ function HomeWidgetSettingsPanel({ kindId, nested = false }) {
   } else if (kindId === 'nowPlaying') {
     title = 'Now Playing';
     body = <NowPlayingWidgetSettings />;
+  } else if (kindId === 'clock') {
+    title = 'Clock';
+    body = <ClockWidgetSettings />;
   }
 
   if (!body) return null;
@@ -456,7 +590,12 @@ HomeWidgetSettingsPanel.propTypes = {
 
 /** Whether Edit Home should expand the widget-settings tray for this kind. */
 export function homeSlotKindHasWidgetSettings(kindId) {
-  return kindId === 'weather' || kindId === 'nowPlaying' || STEAM_KIND_IDS.has(kindId);
+  return (
+    kindId === 'weather' ||
+    kindId === 'nowPlaying' ||
+    kindId === 'clock' ||
+    STEAM_KIND_IDS.has(kindId)
+  );
 }
 
 export default React.memo(HomeWidgetSettingsPanel);

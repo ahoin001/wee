@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Check, Grip, HelpCircle, PenLine, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Check, Grip, PenLine, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { createWeeTransition } from '../../design/weeMotion';
 import {
   WeeGlassPill,
@@ -46,7 +46,6 @@ function HomeBoardArrangeBar({
   blockedPresetIds = [],
   pickerOpen = false,
   onPickerOpenChange,
-  onReopenGuide,
 }) {
   const reducedMotion = useReducedMotion();
   const transition = createWeeTransition('pillOpen', { reducedMotion });
@@ -292,18 +291,6 @@ function HomeBoardArrangeBar({
                 </span>
               </WeeButton>
 
-              {typeof onReopenGuide === 'function' ? (
-                <WeeButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={onReopenGuide}
-                  title="Show the Edit Home tips again"
-                  aria-label="Show Edit Home tips"
-                >
-                  <HelpCircle size={13} strokeWidth={2.5} aria-hidden />
-                </WeeButton>
-              ) : null}
-
               <WeeButton variant="primary" size="sm" onClick={onDone}>
                 <span className="flex items-center gap-1.5">
                   <Check size={13} strokeWidth={3} aria-hidden />
@@ -388,7 +375,6 @@ HomeBoardArrangeBar.propTypes = {
   blockedPresetIds: PropTypes.arrayOf(PropTypes.string),
   pickerOpen: PropTypes.bool,
   onPickerOpenChange: PropTypes.func,
-  onReopenGuide: PropTypes.func,
 };
 
 export default React.memo(HomeBoardArrangeBar);

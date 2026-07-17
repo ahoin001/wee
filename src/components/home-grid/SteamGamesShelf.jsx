@@ -166,18 +166,21 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children, cov
   const isHorizontal = scrollAxis === 'horizontal';
   const density = coverDensity || 'compact';
 
+  // Single board-row shelves pack one cover row; taller horizontal (e.g. 3×2) keep Dense’s 2.
+  const horizontalRows = rowSpan <= 1 ? 1 : tileCfg.horizontalRows;
+
   const gridStyle = useMemo(() => {
     if (isHorizontal) {
       return {
         gridAutoFlow: 'column',
-        gridTemplateRows: `repeat(${tileCfg.horizontalRows}, minmax(0, auto))`,
+        gridTemplateRows: `repeat(${horizontalRows}, minmax(0, auto))`,
         gridAutoColumns: `minmax(0, ${tileCfg.tileMaxPx}px)`,
       };
     }
     return {
       gridTemplateColumns: `repeat(${tileCfg.columns}, minmax(0, 1fr))`,
     };
-  }, [isHorizontal, tileCfg.columns, tileCfg.horizontalRows, tileCfg.tileMaxPx]);
+  }, [isHorizontal, horizontalRows, tileCfg.columns, tileCfg.tileMaxPx]);
 
   const enrichedChildren = useMemo(() => {
     return React.Children.map(children, (child) => {

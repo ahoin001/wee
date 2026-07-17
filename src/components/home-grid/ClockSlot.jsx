@@ -1,16 +1,21 @@
 /**
- * Home-grid Clock tile — local time/date using ribbon time font + color prefs.
- * Layout adapts to compact / wide / tall footprints.
+ * Home-grid Clock widget — stacked local time + date.
+ * Looks (align / date stack / color) live on `ui.homeClockWidget`.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Clock } from 'lucide-react';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import { useTimeColor, useTimeFont } from '../../utils/useConsolidatedAppHooks';
 import { DEFAULT_TIME_COLOR_HEX } from '../../design/runtimeColorStrings';
 import { useActivityInterval } from '../../hooks/useActivityInterval';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import {
+  HOME_CLOCK_ALIGN,
+  HOME_CLOCK_DATE_STACK,
+  normalizeHomeClockWidget,
+} from '../../utils/homeClockWidgetPrefs';
 
 function formatClockTime(date) {
   return date.toLocaleTimeString('en-US', {
@@ -28,6 +33,12 @@ function formatClockDate(date, { includeWeekday = true } = {}) {
   });
 }
 
+function alignItemsClass(align) {
+  if (align === HOME_CLOCK_ALIGN.left) return 'items-start text-left';
+  if (align === HOME_CLOCK_ALIGN.right) return 'items-end text-right';
+  return 'items-center text-center';
+}
+
 function ClockSlot({
   slot,
   channelId,
@@ -38,6 +49,8 @@ function ClockSlot({
 }) {
   const timeFont = useTimeFont();
   const timeColor = useTimeColor();
+  const clockPrefsRaw = useConsolidatedAppStore((s) => s.ui?.homeClockWidget);
+  const looks = useMemo(() => normalizeHomeClockWidget(clockPrefsRaw), [clockPrefsRaw]);
   const [now, setNow] = useState(() => new Date());
 
   useActivityInterval(() => setNow(new Date()), 1000, {
@@ -55,17 +68,24 @@ function ClockSlot({
     timeFont === 'digital'
       ? 'DigitalDisplayRegular-ODEO, monospace'
       : "'Orbitron', sans-serif";
-  const color = timeColor || DEFAULT_TIME_COLOR_HEX;
+  const color = looks.color || timeColor || DEFAULT_TIME_COLOR_HEX;
 
   const timeSizeClass = layout.isCompact
-    ? 'text-2xl'
+    ? 'text-xl'
     : layout.isTall
       ? 'text-5xl'
-      : layout.isWide
+      : layout.density === 'roomy'
         ? 'text-4xl'
-        : layout.density === 'roomy'
+        : layout.isWide
           ? 'text-4xl'
           : 'text-3xl';
+
+  // Medium (cozy / wide 2×1 or 2×2) needs a pronounced date — compact stays readable but smaller.
+  const dateSizeClass = layout.isCompact
+    ? 'text-[10px] tracking-[0.1em]'
+    : layout.density === 'roomy' || layout.isTall
+      ? 'text-sm tracking-[0.12em]'
+      : 'text-xs tracking-[0.11em]';
 
   const handleActivate = useCallback(
     (event) => {
@@ -86,16 +106,22 @@ function ClockSlot({
     </div>
   );
 
-  const dateBlock =
-    !layout.isCompact ? (
-      <div
-        className={`home-widget-float-type font-black uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))] ${
-          layout.isTall || layout.density === 'roomy' ? 'text-xs' : 'text-[10px]'
-        }`}
-      >
-        {formatClockDate(now, { includeWeekday: true })}
-      </div>
-    ) : null;
+  const dateBlock = (
+    <div
+      className={`home-widget-float-type font-black uppercase leading-tight ${dateSizeClass}`}
+      style={{
+        fontFamily: fontStack,
+        color,
+        opacity: layout.isCompact ? 0.72 : 0.82,
+      }}
+    >
+      {formatClockDate(now, { includeWeekday: !layout.isCompact })}
+    </div>
+  );
+
+  const stackAbove = looks.dateStack === HOME_CLOCK_DATE_STACK.above;
+  const alignClass = alignItemsClass(looks.align);
+  const stackGap = layout.isCompact ? 'gap-0.5' : layout.density === 'roomy' ? 'gap-2' : 'gap-1.5';
 
   return (
     <HomeWidgetShell
@@ -103,45 +129,15 @@ function ClockSlot({
       selected={selected}
       className={layout.shellPadClass}
       onClick={handleActivate}
-      aria-label={`Clock ${formatClockTime(now)}`}
+      aria-label={`Clock ${formatClockTime(now)}, ${formatClockDate(now)}`}
     >
-      {layout.isWide && !layout.isCompact ? (
-        <div className={`flex h-full w-full min-h-0 items-center justify-between ${layout.gapClass}`}>
-          <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1">
-            {layout.showHeader ? (
-              <span className={layout.kickerClass}>Clock</span>
-            ) : null}
-            {timeBlock}
-          </div>
-          <div className="flex shrink-0 flex-col items-end justify-center gap-1 text-right">
-            <Clock
-              size={layout.iconPx - 8}
-              strokeWidth={2.5}
-              className="text-[hsl(var(--text-tertiary))]"
-              aria-hidden
-            />
-            {dateBlock}
-          </div>
-        </div>
-      ) : (
-        <div
-          className={`flex h-full w-full min-h-0 flex-col items-center justify-center text-center ${layout.gapClass}`}
-        >
-          {layout.showHeader ? (
-            <div className="flex w-full items-center justify-between gap-1 px-0.5">
-              <span className={`truncate ${layout.kickerClass}`}>Clock</span>
-              <Clock
-                size={12}
-                strokeWidth={2.5}
-                className="shrink-0 text-[hsl(var(--text-tertiary))]"
-                aria-hidden
-              />
-            </div>
-          ) : null}
-          {timeBlock}
-          {dateBlock}
-        </div>
-      )}
+      <div
+        className={`flex h-full w-full min-h-0 flex-col justify-center ${alignClass} ${stackGap}`}
+      >
+        {stackAbove ? dateBlock : null}
+        {timeBlock}
+        {!stackAbove ? dateBlock : null}
+      </div>
     </HomeWidgetShell>
   );
 }

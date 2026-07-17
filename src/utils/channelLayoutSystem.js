@@ -13,7 +13,7 @@ export const WII_LAYOUT_PRESET = Object.freeze({
 
 /** Clamped ranges for settings geometry controls. */
 export const CHANNEL_LAYOUT_LIMITS = Object.freeze({
-  columns: { min: 3, max: 6 },
+  columns: { min: 3, max: 4 },
   rows: { min: 2, max: 4 },
   totalPages: { min: 1, max: 5 },
   peekPercent: { min: 4, max: 14 },
