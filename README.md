@@ -1,190 +1,138 @@
-<img width="1609" height="1010" alt="image" src="https://github.com/user-attachments/assets/9f366428-036e-4ef2-97a4-a4162e5955af" />
+<img width="1609" height="1010" alt="Wee desktop launcher" src="https://github.com/user-attachments/assets/9f366428-036e-4ef2-97a4-a4162e5955af" />
 
-# WiiDesktop Launcher
+# Wee
 
-Transform your Windows desktop into a nostalgic and functional masterpiece with WiiDesktop Launcher! This custom application replicates the beloved visual experience of the classic Nintendo Wii home screen, allowing you to launch your favorite apps, games, and websites from beautiful, interactive "channel" tiles.
+**A Wii-inspired living desktop launcher for Windows.**
 
-## ✨ Main Features
+Wee turns your PC into a customizable channel plaza: launch apps, games, and sites from glass tiles, float widgets over your wallpaper, and switch between Home, Focus, Media Hub, and Game Hub with console-feel motion. It takes heavy inspiration from the Wii menu—then modernizes it for all-day desktop use.
 
-WiiDesktop Launcher is built for ultimate personalization. Nearly every aspect of the UI can be tailored to your liking, creating a desktop experience that is uniquely yours.
+> Not a pixel-perfect Wii recreation. The feel is the feature: springs, sound, glass, and deep customization without SaaS chrome or utility clutter.
 
-* **🎨 Easy Wallpaper Customization!**
-  * Easily change your background to any image you like.
-  * Save your favorite wallpapers directly in the app, making it simple to switch between them.
-  * Adjust the wallpaper's transparency for the perfect look, or enable the "liquid glass" effect for the bottom ribbon to see it through the UI.
+---
 
-* **🎵 Full Sound Customization**
-  * Personalize your experience by setting custom sounds for channel clicks, hovers, and background music.
-  * Set your own background music to create the perfect ambiance.
+## What you get
 
-* **🚀 Quick & Easy Channel Creation**
-  * Make new channels in seconds. Use the built-in image finder to search a community-driven database for the perfect thumbnail, or upload your own.
-  * Add paths to local `.exe` files or website URLs in one simple menu to get your channels up and running instantly.
+### Spaces
 
-* **⚙️ Customizable UI Buttons**
-  * Change the text or icons of the primary buttons on the bottom ribbon to fit your style or needs.
+| Space | Role |
+|-------|------|
+| **Home** | Primary channel grid + widgets — your daily launcher |
+| **Focus** | Second Home-like board for work / alternate layouts |
+| **Media Hub** | Optional media browsing space (enable in settings) |
+| **Game Hub** | Steam-oriented game shelf and collections |
 
-* **🎬 Control Channel Animations**
-  * You have control over interactive behaviors. Choose to have channel animations (GIFs and MP4s) play constantly or only when you hover over them to save resources and reduce distractions.
+Switch spaces from the left **space rail**. Page flips on Home/Focus use side peeks, the page indicator pill, wheel tilt, or shortcuts.
 
-* **💙 Beautiful Wii-like UI**
-  * A beautifully crafted interface that pays homage to the classic Wii design, complete with a dynamic, interactive bottom ribbon and a clean, grid-based layout for your channels.
+### Home board
 
-* **🖥️ Multi-Monitor Support**
-  * Full support for dual and multi-monitor setups with automatic detection and management.
-  * Set different wallpapers for each monitor for a truly personalized experience.
-  * Monitor-specific settings and preferences that persist across sessions.
-  * Easy switching between monitors with dedicated controls and preferences.
+- **Channels** — local apps (exe / shortcuts / Store apps), URLs, animated art (GIF/MP4), Ken Burns, idle behaviors
+- **Live Board Studio** — right-click the grid (or Settings → Channels & layout) to arrange, resize, punch wallpaper holes, and place widgets
+- **Widgets** — Now Playing, Quick Access, Clock, Weather, Recently Used, Steam Recent / Most Played / Friends
+- **Per-page looks** — wallpaper (and ribbon accents) can follow each channel page
 
-## 📥 How to Install (for Users)
+### Atmosphere & chrome
 
-1. **Download the Latest Release:**
-   * Go to the [**Releases Page**](https://github.com/ahoin001/wee/releases) of this repository.
-* Under the latest version, find the "Assets" section and click on the `WeeDesktopLauncher-Setup-x.x.x.exe` file to download it.
+- Wallpaper library, opacity/blur/tone, cycling transitions, particle overlays
+- **Ribbon** or classic dock — glass, glow, chrome FX, dynamic color match from wallpaper or Now Playing
+- **Looks (presets)** — save, apply, import/export, and optionally share community looks
+- Custom sounds for clicks, hover, startup, and background music
+- Motion feedback with reduced-motion respect and low-power gates for long sessions
 
-2. **Run the Installer:**
-   * Once downloaded, double-click the `.exe` file.
-   * Windows might show a security warning. If it does, click **"More info"** and then **"Run anyway"**.
-   * The application will install and launch automatically. You can find it in your Start Menu or on your Desktop.
+### Integrations
 
-## 👨‍💻 For Developers: Running from Source
+- **Now Playing** — Windows system media (Spotify Desktop, Apple Music, browsers, …) with transport controls on the Home tile
+- **Spotify** — optional Web API floating widget / Premium features ([setup](docs/spotify-setup.md))
+- **Steam** — library enrichment, friends, Game Hub, Home Steam tiles
+- **Admin / Quick Access** — floating panel and Home tile for Windows power actions
+- **Command palette** — Ctrl+Space for channels, settings, and actions
 
-If you'd like to contribute or run the app in a development environment, follow these steps.
+### System
 
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/ahoin001/wee.git
-   ```
+- Multi-monitor detection, launch-on-monitor preferences, monitor-specific wallpaper
+- Keyboard shortcuts, startup options, updates via GitHub releases
+- Unified settings persistence (`unified-data.json`) — one source of truth for looks, boards, and chrome
 
-2. **Set up Supabase (Optional - for Community Presets):**
-   If you want to use the community preset sharing features, you'll need to set up Supabase:
-   
-   - Create a `.env` file in the project root with:
-     ```bash
-     VITE_SUPABASE_URL=https://your-project.supabase.co
-     VITE_SUPABASE_ANON_KEY=your-anon-key
-     ```
-   - See [docs/supabase-setup.md](docs/supabase-setup.md) for detailed setup instructions
+---
 
-### Project layout
+## Install (users)
+
+1. Download the latest **`Wee-Setup-*.exe`** from [Releases](https://github.com/ahoin001/wee/releases).
+2. Run the installer. If Windows SmartScreen appears, choose **More info → Run anyway**.
+3. Launch **Wee** from the Start Menu or Desktop.
+
+---
+
+## Develop from source
+
+**Requirements:** Node.js (LTS), Windows (Electron + system media / Steam features).
+
+```bash
+git clone https://github.com/ahoin001/wee.git
+cd wee
+npm install
+npm run dev
+```
+
+### Optional `.env`
+
+```bash
+# Community Looks (Supabase) — see docs/supabase-setup.md
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+
+# Spotify floating widget — see docs/spotify-setup.md
+VITE_SPOTIFY_CLIENT_ID=...
+```
+
+### Useful scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Vite + Electron |
+| `npm run build` | Production renderer build |
+| `npm run lint` | Design-system / Tailwind contract check |
+| `npm run lint:eslint` | Full ESLint |
+| `npm run test:smoke` | Smoke checks |
+| `npm run release:local` | Local release packaging |
+
+Release publishing: [docs/release-guide.md](docs/release-guide.md).
+
+---
+
+## Project layout
 
 | Path | Contents |
 |------|----------|
-| `src/` | React app (components, hooks, utils, UI kit) |
-| `scripts/` | Release, migration, and tooling (`load-env.cjs`, `test/`, `supabase/`, `debug/`) |
-| `supabase/migrations/` | Versioned SQL migrations |
-| `supabase/sql/manual/` | One-off / reference SQL (not auto-run) |
-| `docs/` | [Documentation index](docs/README.md) (Supabase, Spotify, releases, installer) |
-| `config/` | Sample or optional JSON config |
-| `electron.cjs`, `preload.cjs` | Electron main and preload |
+| `src/` | React app — spaces, Home grid, dock, settings, UI kit, design tokens |
+| `main/` | Electron main-process services (IPC, system media, Steam, etc.) |
+| `shared/` | Shared contracts (e.g. settings patch merge) |
+| `electron.cjs` / `preload.cjs` | Electron entry + preload bridge |
+| `docs/` | Setup, architecture, chrome/style, performance |
+| `supabase/` | Migrations for community Looks / media |
+| `scripts/` | Release, tests, migrations, tooling |
+| `PRODUCT.md` / `DESIGN.md` | Product register & visual system |
+| `AGENTS.md` | Contributor / agent implementation checklist |
 
-## 🖥️ Multi-Monitor Settings Guide
+Architecture notes for spaces and boards: [docs/spaces-architecture.md](docs/spaces-architecture.md). Doc index: [docs/README.md](docs/README.md).
 
-WiiDesktop Launcher includes comprehensive multi-monitor support, allowing you to customize your experience across all connected displays.
+---
 
-### **Accessing Monitor Settings**
+## Design principles (short)
 
-1. **Open Settings**: Right-click on the Wii ribbon or use the settings button
-2. **Navigate to Monitor Tab**: Click on the "🖥️ Monitor" tab in the settings sidebar
-3. **Open Monitor Settings**: Click "📺 Open Monitor Settings" to access the full monitor management interface
+1. **The feel is the feature** — motion and sound carry personality without blocking launch.
+2. **Modernize the heart, not the pixels** — Wii warmth through glass and springs, not cosplay.
+3. **Depth without overwhelm** — simple first run; power is discoverable.
+4. **Built for all-day sessions** — gate heavy FX; prefer shared tokens and motion clocks.
+5. **One vocabulary of whimsy** — extend `weeMotion`, design-system tokens, and `src/ui/` instead of one-offs.
 
-### **Monitor Detection & Management**
+---
 
-The app automatically detects all connected monitors and provides detailed information for each:
+## Contributing
 
-* **Monitor Information**: Resolution, position, and status (Primary/Current)
-* **Real-time Updates**: Automatically detects when monitors are added, removed, or reconfigured
-* **Visual Indicators**: Clear labeling shows which monitor is primary and which is currently active
+Issues and PRs welcome. Prefer extending existing systems (store slices, slot kinds, motion helpers, UI primitives) over parallel paths — see `AGENTS.md` and `.cursor/rules/`.
 
-### **Monitor Switching**
+---
 
-#### **Quick Actions**
-* **Move to Primary**: Instantly move the launcher to your primary monitor
-* **Move to Secondary**: Switch to the first secondary monitor
-* **Move Here**: Click on any detected monitor to move the launcher there
-* **Refresh**: Update monitor detection if changes aren't reflected
+## License / credits
 
-#### **Launch Preferences**
-Configure where the launcher should appear when starting:
-
-* **Primary Monitor**: Always start on the primary display
-* **Secondary Monitor**: Always start on the first secondary display
-* **Last Used Monitor**: Remember and return to the last monitor you used
-* **Specific Monitor**: Choose a particular monitor by ID
-* **Remember Last Used**: Toggle to save monitor preferences across sessions
-
-### **Monitor-Specific Wallpapers**
-
-One of the most powerful features is the ability to set different wallpapers for each monitor:
-
-#### **Setting Monitor Wallpapers**
-1. **Open Monitor Settings**: Go to Settings → Monitor → "📺 Open Monitor Settings"
-2. **Find Monitor Section**: Scroll to "Monitor-Specific Settings"
-3. **Select Monitor**: Each monitor will have its own settings card
-4. **Set Wallpaper**: Click "Set Wallpaper" to choose an image for that specific monitor
-5. **Clear Wallpaper**: Use "Clear" to remove the monitor-specific wallpaper
-
-#### **How It Works**
-* **Automatic Switching**: When you move between monitors, the wallpaper automatically changes to that monitor's specific wallpaper
-* **Persistent Storage**: Each monitor's wallpaper is saved and remembered
-* **Fallback Behavior**: If no monitor-specific wallpaper is set, the app uses the global wallpaper
-* **Opacity & Blur**: Monitor-specific wallpapers support the same opacity and blur settings as global wallpapers
-
-### **Monitor-Specific Settings**
-
-Beyond wallpapers, each monitor can have its own settings:
-
-* **Theme Settings**: Different themes per monitor (future feature)
-* **Color Schemes**: Monitor-specific color preferences (future feature)
-* **Custom Configurations**: Save monitor-specific UI preferences
-
-### **Advanced Features**
-
-#### **Hot-Plugging Support**
-* **Automatic Detection**: When you connect or disconnect monitors, the app automatically detects the changes
-* **Real-time Updates**: Monitor list updates immediately when configuration changes
-* **Graceful Handling**: The app handles monitor changes smoothly without requiring restarts
-
-#### **Monitor Metrics**
-* **Resolution Changes**: Automatically adapts to resolution changes
-* **Position Tracking**: Knows which monitor the launcher is currently on
-* **Bounds Management**: Handles monitor positioning and overlapping
-
-### **Troubleshooting**
-
-#### **Monitor Not Detected**
-* **Check Connections**: Ensure the monitor is properly connected
-* **Refresh Detection**: Click "Refresh" in the monitor settings
-* **Restart App**: If issues persist, restart the application
-
-#### **Wallpaper Not Switching**
-* **Check Monitor Settings**: Ensure a wallpaper is set for the target monitor
-* **Verify Monitor ID**: Make sure you're setting wallpaper for the correct monitor
-* **Clear and Reset**: Try clearing the wallpaper and setting it again
-
-#### **Performance Issues**
-* **Reduce Wallpaper Quality**: Use smaller image files for better performance
-* **Disable Animations**: Turn off wallpaper cycling if experiencing lag
-* **Monitor Count**: Very high monitor counts may impact performance
-
-### **Best Practices**
-
-#### **Wallpaper Management**
-* **Consistent Themes**: Use wallpapers with similar themes for a cohesive look
-* **Resolution Matching**: Use wallpapers that match each monitor's resolution
-* **File Size**: Keep wallpaper files under 10MB for optimal performance
-
-#### **Monitor Configuration**
-* **Primary Setup**: Designate your main monitor as primary for consistent behavior
-* **Remember Preferences**: Enable "Remember last used monitor" for convenience
-* **Regular Updates**: Refresh monitor detection after major display changes
-
-### **Technical Details**
-
-The multi-monitor system uses:
-* **Electron Screen API**: For monitor detection and management
-* **Zustand State Management**: For monitor state and preferences
-* **Persistent Storage**: Monitor-specific data is saved to local storage
-* **Real-time Events**: Monitor changes trigger immediate UI updates
-
-This comprehensive multi-monitor support ensures that WiiDesktop Launcher provides a seamless and personalized experience across all your displays! 🎮✨
+Product name **Wee**. Inspired by Nintendo’s Wii Menu aesthetic; not affiliated with Nintendo.
