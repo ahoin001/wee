@@ -910,7 +910,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "package_dependencies_cors",
-      "community": 40,
+      "community": 171,
       "norm_label": "cors"
     },
     {
@@ -920,7 +920,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "cors",
-      "community": 40,
+      "community": 171,
       "norm_label": "cors"
     },
     {
@@ -930,7 +930,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "package_dependencies_electron_updater",
-      "community": 171,
+      "community": 53,
       "norm_label": "electron-updater"
     },
     {
@@ -940,7 +940,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "electron_updater",
-      "community": 171,
+      "community": 53,
       "norm_label": "electron-updater"
     },
     {
@@ -1500,7 +1500,7 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "package_devdependencies_vitejs_plugin_react",
-      "community": 8,
+      "community": 73,
       "norm_label": "@vitejs/plugin-react"
     },
     {
@@ -1510,7 +1510,7 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "vitejs_plugin_react",
-      "community": 8,
+      "community": 73,
       "norm_label": "@vitejs/plugin-react"
     },
     {
@@ -1540,7 +1540,7 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "package_devdependencies_concurrently",
-      "community": 89,
+      "community": 8,
       "norm_label": "concurrently"
     },
     {
@@ -1550,7 +1550,7 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "concurrently",
-      "community": 89,
+      "community": 8,
       "norm_label": "concurrently"
     },
     {
@@ -4157,7 +4157,7 @@
       "label": "hslToRgb()",
       "file_type": "code",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L76",
+      "source_location": "L98",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_hsltorgb",
       "community": 84,
@@ -4167,7 +4167,7 @@
       "label": "parseGlowRgb()",
       "file_type": "code",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L112",
+      "source_location": "L134",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_parseglowrgb",
       "community": 84,
@@ -4177,7 +4177,7 @@
       "label": "glowToRgba()",
       "file_type": "code",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L159",
+      "source_location": "L181",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_glowtorgba",
       "community": 84,
@@ -4187,7 +4187,7 @@
       "label": "duoPartnerHex()",
       "file_type": "code",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L166",
+      "source_location": "L188",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_duopartnerhex",
       "community": 84,
@@ -4197,7 +4197,7 @@
       "label": "neonRaceLengths()",
       "file_type": "code",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L172",
+      "source_location": "L194",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_neonracelengths",
       "community": 84,
@@ -5420,7 +5420,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_homepageindicator",
-      "community": 2,
+      "community": 39,
       "norm_label": "homepageindicator.jsx"
     },
     {
@@ -5430,7 +5430,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_home_grid_homepageindicator_homepageindicator",
-      "community": 2,
+      "community": 39,
       "norm_label": "homepageindicator()"
     },
     {
@@ -5560,7 +5560,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetsettingspanel_weatherwidgetsettings",
-      "community": 88,
+      "community": 76,
       "norm_label": "weatherwidgetsettings()"
     },
     {
@@ -6970,7 +6970,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_navigation_wiisidenavigation",
-      "community": 2,
+      "community": 39,
       "norm_label": "wiisidenavigation.jsx"
     },
     {
@@ -6980,7 +6980,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_components_navigation_wiisidenavigation_defaultlefticon",
-      "community": 2,
+      "community": 39,
       "norm_label": "defaultlefticon()"
     },
     {
@@ -6990,7 +6990,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_components_navigation_wiisidenavigation_defaultrighticon",
-      "community": 2,
+      "community": 39,
       "norm_label": "defaultrighticon()"
     },
     {
@@ -7000,7 +7000,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_components_navigation_wiisidenavigation_rgbtorgba",
-      "community": 2,
+      "community": 39,
       "norm_label": "rgbtorgba()"
     },
     {
@@ -7010,7 +7010,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_components_navigation_wiisidenavigation_wiisidenavigation",
-      "community": 2,
+      "community": 39,
       "norm_label": "wiisidenavigation()"
     },
     {
@@ -9610,7 +9610,7 @@
       "source_location": "L296",
       "_origin": "ast",
       "id": "src_design_weemotion_createweesidenavpeekvariants",
-      "community": 2,
+      "community": 39,
       "norm_label": "createweesidenavpeekvariants()"
     },
     {
@@ -10980,7 +10980,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usewheelnavigation",
-      "community": 2,
+      "community": 39,
       "norm_label": "usewheelnavigation.js"
     },
     {
@@ -10990,7 +10990,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_hooks_usewheelnavigation_istypingtarget",
-      "community": 2,
+      "community": 39,
       "norm_label": "istypingtarget()"
     },
     {
@@ -11000,7 +11000,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_hooks_usewheelnavigation_elementcanscrollvertically",
-      "community": 2,
+      "community": 39,
       "norm_label": "elementcanscrollvertically()"
     },
     {
@@ -11010,7 +11010,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_hooks_usewheelnavigation_getnextspaceid",
-      "community": 2,
+      "community": 39,
       "norm_label": "getnextspaceid()"
     },
     {
@@ -11020,7 +11020,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_hooks_usewheelnavigation_usewheelnavigation",
-      "community": 2,
+      "community": 39,
       "norm_label": "usewheelnavigation()"
     },
     {
@@ -13630,7 +13630,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_utils_channellayoutsystem_wrappageindex",
-      "community": 2,
+      "community": 39,
       "norm_label": "wrappageindex()"
     },
     {
@@ -13640,7 +13640,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_utils_channellayoutsystem_resolvesteppedchannelpage",
-      "community": 2,
+      "community": 39,
       "norm_label": "resolvesteppedchannelpage()"
     },
     {
@@ -14120,7 +14120,7 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "src_utils_channelspaces_resolveactivechannelspacekey",
-      "community": 2,
+      "community": 39,
       "norm_label": "resolveactivechannelspacekey()"
     },
     {
@@ -15290,7 +15290,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_utils_homeweather_home_weather_temp_units",
-      "community": 88,
+      "community": 76,
       "norm_label": "home_weather_temp_units"
     },
     {
@@ -15800,7 +15800,7 @@
       "source_location": "L590",
       "_origin": "ast",
       "id": "src_utils_keyboardshortcuts_handleglobalshortcut",
-      "community": 15,
+      "community": 39,
       "norm_label": "handleglobalshortcut()"
     },
     {
@@ -16580,7 +16580,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_overlayescape",
-      "community": 15,
+      "community": 39,
       "norm_label": "overlayescape.js"
     },
     {
@@ -16590,7 +16590,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_utils_overlayescape_isblockingoverlayopen",
-      "community": 15,
+      "community": 39,
       "norm_label": "isblockingoverlayopen()"
     },
     {
@@ -16600,7 +16600,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_utils_overlayescape_closetopoverlayonescape",
-      "community": 15,
+      "community": 39,
       "norm_label": "closetopoverlayonescape()"
     },
     {
@@ -20080,7 +20080,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_usekeyboardshortcuts",
-      "community": 15,
+      "community": 39,
       "norm_label": "usekeyboardshortcuts.js"
     },
     {
@@ -20090,7 +20090,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_utils_usekeyboardshortcuts_empty_keyboard_shortcuts",
-      "community": 15,
+      "community": 39,
       "norm_label": "empty_keyboard_shortcuts"
     },
     {
@@ -20100,7 +20100,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_utils_usekeyboardshortcuts_usekeyboardshortcuts",
-      "community": 15,
+      "community": 39,
       "norm_label": "usekeyboardshortcuts()"
     },
     {
@@ -21250,7 +21250,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "agents_skills_design_taste_frontend_skill_1_the_three_dials_core_configuration",
-      "community": 39,
+      "community": 141,
       "norm_label": "1. the three dials (core configuration)"
     },
     {
@@ -21260,7 +21260,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "agents_skills_design_taste_frontend_skill_1_a_dial_inference_design_read_dial_values",
-      "community": 39,
+      "community": 141,
       "norm_label": "1.a dial inference (design read \u2192 dial values)"
     },
     {
@@ -21270,7 +21270,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "agents_skills_design_taste_frontend_skill_1_b_use_case_presets",
-      "community": 39,
+      "community": 141,
       "norm_label": "1.b use-case presets"
     },
     {
@@ -21280,7 +21280,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "agents_skills_design_taste_frontend_skill_1_c_how_the_dials_drive_output",
-      "community": 39,
+      "community": 141,
       "norm_label": "1.c how the dials drive output"
     },
     {
@@ -22770,7 +22770,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "agents_skills_imagegen_frontend_web_skill",
-      "community": 95,
+      "community": 40,
       "norm_label": "skill.md"
     },
     {
@@ -22780,7 +22780,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "agents_skills_imagegen_frontend_web_skill_hard_output_rule_read_first",
-      "community": 95,
+      "community": 40,
       "norm_label": "hard output rule \u2014 read first"
     },
     {
@@ -22790,7 +22790,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "agents_skills_imagegen_frontend_web_skill_hero_composition_bias_read_first",
-      "community": 95,
+      "community": 40,
       "norm_label": "hero composition bias \u2014 read first"
     },
     {
@@ -38365,7 +38365,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L166",
+      "source_location": "L188",
       "weight": 1.0,
       "source": "src_components_dock_ribbon_ribbonchromeeffects",
       "target": "src_components_dock_ribbon_ribbonchromeeffects_duopartnerhex",
@@ -38375,7 +38375,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L159",
+      "source_location": "L181",
       "weight": 1.0,
       "source": "src_components_dock_ribbon_ribbonchromeeffects",
       "target": "src_components_dock_ribbon_ribbonchromeeffects_glowtorgba",
@@ -38385,7 +38385,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L76",
+      "source_location": "L98",
       "weight": 1.0,
       "source": "src_components_dock_ribbon_ribbonchromeeffects",
       "target": "src_components_dock_ribbon_ribbonchromeeffects_hsltorgb",
@@ -38395,7 +38395,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L172",
+      "source_location": "L194",
       "weight": 1.0,
       "source": "src_components_dock_ribbon_ribbonchromeeffects",
       "target": "src_components_dock_ribbon_ribbonchromeeffects_neonracelengths",
@@ -38405,7 +38405,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L112",
+      "source_location": "L134",
       "weight": 1.0,
       "source": "src_components_dock_ribbon_ribbonchromeeffects",
       "target": "src_components_dock_ribbon_ribbonchromeeffects_parseglowrgb",
@@ -38559,7 +38559,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L153",
+      "source_location": "L175",
       "weight": 1.0,
       "source": "src_components_dock_ribbon_ribbonchromeeffects_parseglowrgb",
       "target": "src_components_dock_ribbon_ribbonchromeeffects_hsltorgb",
@@ -38570,7 +38570,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L167",
+      "source_location": "L189",
       "weight": 1.0,
       "source": "src_components_dock_ribbon_ribbonchromeeffects_duopartnerhex",
       "target": "src_components_dock_ribbon_ribbonchromeeffects_parseglowrgb",
@@ -38581,7 +38581,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/components/dock/ribbon/RibbonChromeEffects.jsx",
-      "source_location": "L161",
+      "source_location": "L183",
       "weight": 1.0,
       "source": "src_components_dock_ribbon_ribbonchromeeffects_glowtorgba",
       "target": "src_components_dock_ribbon_ribbonchromeeffects_parseglowrgb",

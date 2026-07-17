@@ -1925,13 +1925,13 @@
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/RibbonChromeEffects.jsx": {
-    "mtime": 1784299839.2596648,
-    "ast_hash": "c043a3936b03ee45998c3980d3c3d856",
+    "mtime": 1784301531.0688252,
+    "ast_hash": "01c5dbc2f824a46f5e4cbd9a74866647",
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/ribbonChromeEffectMeta.js": {
-    "mtime": 1784299786.61762,
-    "ast_hash": "cb8e5e49c1ecaacb87f02401826088a1",
+    "mtime": 1784301546.3574798,
+    "ast_hash": "3fb61f37930bb963deeed10609147f60",
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/ribbonSilhouette.js": {

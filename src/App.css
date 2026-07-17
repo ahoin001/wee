@@ -728,56 +728,23 @@ body:not(.custom-cursor) {
   transition: opacity 0.8s;
 }
 
-/* Wallpaper transition styles - Ultra smooth */
-.wallpaper-bg {
-  will-change: opacity, transform;
-  backface-visibility: hidden;
-  transform: translateZ(0); /* Force hardware acceleration */
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  /* Ultra-smooth optimizations */
-  contain: layout style paint;
-  isolation: isolate;
-  /* Prevent sub-pixel rendering issues */
-  transform-style: preserve-3d;
-  perspective: 1000px;
-}
-
-.wallpaper-bg-next {
-  will-change: opacity, transform;
-  backface-visibility: hidden;
-  transform: translateZ(0); /* Force hardware acceleration */
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  /* Ultra-smooth optimizations */
-  contain: layout style paint;
-  isolation: isolate;
-  /* Prevent sub-pixel rendering issues */
-  transform-style: preserve-3d;
-  perspective: 1000px;
-}
-
-/* Infinite scroll specific optimizations */
-.wallpaper-bg[style*="transform"],
-.wallpaper-bg-next[style*="transform"] {
-  /* Optimize for transform animations */
-  will-change: transform;
-  /* Prevent layout thrashing during slide */
-  contain: layout style paint;
-  /* Smooth transform interpolation */
-  transform-origin: center center;
-}
-
-/* Prevent flickering during transitions */
+/* Wallpaper layers — keep compositor-friendly (opacity only; no forced 3D / blur(0)) */
 .wallpaper-bg,
 .wallpaper-bg-next {
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  /* Additional optimizations for smooth crossfade */
+  backface-visibility: hidden;
+  transform: translateZ(0);
   contain: layout style paint;
   isolation: isolate;
-  /* Ultra-smooth rendering */
-  filter: blur(0px); /* Force crisp rendering */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+}
+
+.wallpaper-bg--crossfading,
+.wallpaper-bg-next--crossfading {
+  will-change: opacity;
+}
+
+/* Infinite scroll / slide cycling — promote transform only while sliding */
+.wallpaper-bg[style*="translate"],
+.wallpaper-bg-next[style*="translate"] {
+  will-change: transform, opacity;
+  transform-origin: center center;
 }

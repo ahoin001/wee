@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784299981.1934402,
-    "ast_hash": "296e5ffe168141ae8f6c4136112cf610",
+    "mtime": 1784301762.9644244,
+    "ast_hash": "c789f6f65e8bf3962fbd430b955c8895",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -575,8 +575,8 @@
     "semantic_hash": "b944ffb38644906d326267aa5fb662f9"
   },
   "src/components/overlays/IsolatedWallpaperBackground.jsx": {
-    "mtime": 1784235543.1856813,
-    "ast_hash": "bbaa0761f44c4754e7f4fea358657223",
+    "mtime": 1784302210.3492754,
+    "ast_hash": "253934fa8ee496563778da28656aa2be",
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyGradientOverlay.jsx": {
@@ -1030,8 +1030,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useSpaceWallpaperCrossfade.js": {
-    "mtime": 1784235540.0850823,
-    "ast_hash": "546327d1e391ecce3b7fca3048e617cb",
+    "mtime": 1784302200.484419,
+    "ast_hash": "38eedd2ee7fdd95ad330476e31c7c3c8",
     "semantic_hash": ""
   },
   "src/hooks/useSpotifyPlaybackSample.js": {

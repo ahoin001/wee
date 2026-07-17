@@ -131,13 +131,14 @@ export function useSpaceWallpaperCrossfade({
         setParallaxXPercent(0);
       }
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      // Single rAF is enough for CSS to register opacity:0 before fading in.
+      // Double-rAF added a visible stall vs the channel page strip.
       rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = requestAnimationFrame(() => {
-          fadeInIntentRef.current = true;
-          setOverlayOpacity(1);
-          setParallaxXPercent(0);
-          armStallRecovery(transitionMsRef.current + 320);
-        });
+        rafRef.current = null;
+        fadeInIntentRef.current = true;
+        setOverlayOpacity(1);
+        setParallaxXPercent(0);
+        armStallRecovery(transitionMsRef.current + 320);
       });
     },
     [armStallRecovery]
@@ -221,8 +222,6 @@ export function useSpaceWallpaperCrossfade({
       return;
     }
 
-    const usePageParallax = !spaceChanged && pageChanged;
-
     // Mid-crossfade: coalesce to latest target only — do not reset opacity mid-fade
     // (that fires a spurious transitionend and commits early). Drain after commit.
     if (overlayRef.current != null) {
@@ -243,7 +242,8 @@ export function useSpaceWallpaperCrossfade({
       return;
     }
 
-    startCrossfade(fromUrl, toUrl, { usePageParallax });
+    // Opacity-only fade (no page parallax) — keeps flips compositor-cheap with blur.
+    startCrossfade(fromUrl, toUrl);
   }, [
     displayUrl,
     activeSpaceId,

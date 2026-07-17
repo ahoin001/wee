@@ -3,7 +3,6 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useWallpaperCycling from '../../utils/useWallpaperCycling';
 import { useSpaceWallpaperCrossfade } from '../../hooks/useSpaceWallpaperCrossfade';
-import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import {
   DEFAULT_SHELL_SPACE_ORDER,
   getSecondaryChannelSpaceData,
@@ -14,9 +13,10 @@ import {
   SPACE_SHELL_EASE_CSS,
   SPACE_SHELL_TRANSITION_MS_DEFAULT,
 } from '../../design/spaceShellMotion';
-import { CHANNEL_PAGE_FLIP_MS } from '../../utils/channelLayoutSystem';
+import { CHANNEL_PAGE_FLIP_MS, resolveLayout } from '../../utils/channelLayoutSystem';
 import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAccent';
+import { preloadImageUrl } from '../../utils/mediaWarmCache';
 
 /**
  * Space-switch depth cue via background-position (cover stays full viewport).
@@ -41,7 +41,6 @@ function IsolatedWallpaperBackgroundInner({
         channels: state.channels,
       }))
     );
-  const motionFeedback = useMotionFeedback();
   const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
   const boardNav =
     activeSpaceId === 'workspaces'
@@ -62,6 +61,7 @@ function IsolatedWallpaperBackgroundInner({
     wallpaperEntryUrlKey,
     currentPage,
   });
+  const wallpaperCurrent = wallpaper.current;
   const useGlobalWallpaper = activeSpaceAppearance?.useGlobalWallpaper !== false;
   const isHomeShellSpace = activeSpaceId === 'home';
   const spaceWallpaperUrl =
@@ -152,8 +152,7 @@ function IsolatedWallpaperBackgroundInner({
   const effectiveCyclingSlideDirection = canCycleCurrentSpace ? cyclingSlideDirection : 'right';
   const effectiveCycleAnimation = canCycleCurrentSpace ? cycleAnimation : 'fade';
 
-  const pageParallaxEnabled =
-    !reducedMotion && Boolean(motionFeedback?.channelReorderSlotMotion);
+  const pageParallaxEnabled = false;
 
   const spaceFade = useSpaceWallpaperCrossfade({
     displayUrl: displayWallpaperUrl,
@@ -171,6 +170,44 @@ function IsolatedWallpaperBackgroundInner({
   useEffect(() => {
     setWallpaperState({ visualCommittedUrl: spaceFade.committedUrl ?? null });
   }, [spaceFade.committedUrl, setWallpaperState]);
+
+  // Warm neighbor page wallpapers so the next flip can fade without a decode stall.
+  useEffect(() => {
+    if (!(activeSpaceId === 'home' || activeSpaceId === 'workspaces')) return undefined;
+    if (activeSpaceAppearance?.wallpaperScope !== 'perPage') return undefined;
+
+    const boardSpaceData =
+      activeSpaceId === 'workspaces'
+        ? getSecondaryChannelSpaceData(channels)
+        : channels?.dataBySpace?.home;
+    const totalPages = Math.max(1, Number(resolveLayout(boardSpaceData || {})?.totalPages) || 1);
+    const neighbors = [currentPage - 1, currentPage + 1].filter(
+      (p) => p >= 0 && p < totalPages && p !== currentPage
+    );
+
+    const timer = window.setTimeout(() => {
+      for (const pageIndex of neighbors) {
+        const url = resolveDisplayWallpaperUrl({
+          activeSpaceId,
+          wallpaperCurrent,
+          appearanceBySpace,
+          wallpaperEntryUrlKey,
+          currentPage: pageIndex,
+        });
+        if (url && url !== displayWallpaperUrl) preloadImageUrl(url);
+      }
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    activeSpaceId,
+    activeSpaceAppearance?.wallpaperScope,
+    channels,
+    currentPage,
+    wallpaperCurrent,
+    appearanceBySpace,
+    displayWallpaperUrl,
+  ]);
 
   const getCurrentWallpaperStyle = useCallback(() => {
     if (!effectiveCyclingTransitioning || !transitionCurrentWallpaperUrl) {
@@ -381,36 +418,34 @@ function IsolatedWallpaperBackgroundInner({
   const rawIndex = resolvedSpaceOrder.indexOf(activeSpaceId);
   const spaceIndex = rawIndex >= 0 ? rawIndex : 0;
   const parallaxBgY = spaceParallaxBackgroundYPercent(spaceIndex);
-  const pageParallaxX = spaceFade.parallaxXPercent || 0;
 
+  const crossfadeActive = Boolean(spaceFade.spaceCrossfadeActive && spaceFade.overlayUrl);
   const currentLayerStyle = getCurrentWallpaperStyle();
   const nextLayerStyle = getNextWallpaperStyle();
 
-  const idleWallpaperTransition = useMemo(
-    () =>
-      effectiveCyclingTransitioning
-        ? 'none'
-        : `opacity 0.35s ease-out, transform 0.35s ease-out, filter 0.45s ease-out, background-position ${shellTransitionMs}ms ${SPACE_SHELL_EASE_CSS}`,
-    [effectiveCyclingTransitioning, shellTransitionMs]
-  );
+  // Stable base layer URL — never remount when entering/leaving crossfade.
+  const baseWallpaperUrl = crossfadeActive
+    ? spaceFade.baseUrl
+    : effectiveCyclingTransitioning
+      ? effectiveCurrentWallpaperUrl
+      : spaceFade.baseUrl || effectiveCurrentWallpaperUrl;
 
-  const idleLayerStyle = useMemo(
-    () => ({
-      opacity,
-      transform: pageParallaxX ? `translateX(${pageParallaxX}%)` : 'none',
-      filter: toneBlurPx(effectiveSpaceBlur),
-    }),
-    [toneBlurPx, opacity, effectiveSpaceBlur, pageParallaxX]
-  );
+  const baseLayerStyle = crossfadeActive
+    ? {
+        // Freeze paint cost mid-fade: opacity + static filter only (no transform/filter tween).
+        opacity,
+        transform: 'none',
+        filter: toneBlurPx(effectiveSpaceBlur),
+      }
+    : currentLayerStyle;
 
-  const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}, transform ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
+  const baseLayerTransition = useMemo(() => {
+    if (effectiveCyclingTransitioning || crossfadeActive) return 'none';
+    return `opacity 0.35s ease-out, filter 0.45s ease-out, background-position ${shellTransitionMs}ms ${SPACE_SHELL_EASE_CSS}`;
+  }, [effectiveCyclingTransitioning, crossfadeActive, shellTransitionMs]);
 
-  // Idle layers use committed baseUrl (not store display URL) so same-space URL
-  // changes never flash the destination for a frame before the crossfade starts.
-  // During cycling, the cycling hook owns the visible current layer URL.
-  const idleWallpaperUrl = effectiveCyclingTransitioning
-    ? effectiveCurrentWallpaperUrl
-    : spaceFade.baseUrl || effectiveCurrentWallpaperUrl;
+  // Opacity-only overlay — keeps page flips on the compositor without blur thrashing.
+  const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
 
   return (
     <div
@@ -422,95 +457,71 @@ function IsolatedWallpaperBackgroundInner({
         pointerEvents: 'none',
       }}
     >
-      {spaceFade.spaceCrossfadeActive && spaceFade.baseUrl ? (
-        <>
-          <div
-            className="wallpaper-bg wallpaper-bg--space-base"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              zIndex: 0,
-              pointerEvents: 'none',
-              backgroundImage: `url('${spaceFade.baseUrl}')`,
-              backgroundSize: 'cover',
-              backgroundPosition: `center ${parallaxBgY}%`,
-              backgroundRepeat: 'no-repeat',
-              ...idleLayerStyle,
-              transition: idleWallpaperTransition,
-            }}
-          />
-          {spaceFade.overlayUrl ? (
-            <div
-              className="wallpaper-bg wallpaper-bg--space-overlay"
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh',
-                zIndex: 2,
-                pointerEvents: 'none',
-                backgroundImage: `url('${spaceFade.overlayUrl}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: `center ${parallaxBgY}%`,
-                backgroundRepeat: 'no-repeat',
-                opacity: opacity * spaceFade.overlayOpacity,
-                transform: pageParallaxX ? `translateX(${pageParallaxX}%)` : 'none',
-                filter: toneBlurPx(effectiveSpaceBlur),
-                transition: spaceOverlayTransition,
-              }}
-              onTransitionEnd={spaceFade.onOverlayTransitionEnd}
-            />
-          ) : null}
-        </>
-      ) : (
-        <>
-          {idleWallpaperUrl ? (
-            <div
-              className="wallpaper-bg"
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh',
-                zIndex: 0,
-                pointerEvents: 'none',
-                backgroundImage: `url('${idleWallpaperUrl}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: `center ${parallaxBgY}%`,
-                backgroundRepeat: 'no-repeat',
-                ...currentLayerStyle,
-                transition: idleWallpaperTransition,
-              }}
-            />
-          ) : null}
+      {baseWallpaperUrl ? (
+        <div
+          className={`wallpaper-bg${crossfadeActive ? ' wallpaper-bg--crossfading' : ''}`}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 0,
+            pointerEvents: 'none',
+            backgroundImage: `url('${baseWallpaperUrl}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: `center ${parallaxBgY}%`,
+            backgroundRepeat: 'no-repeat',
+            ...baseLayerStyle,
+            transition: baseLayerTransition,
+          }}
+        />
+      ) : null}
 
-          {effectiveCyclingTransitioning && effectiveNextWallpaperUrl ? (
-            <div
-              className="wallpaper-bg-next"
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh',
-                zIndex: 1,
-                pointerEvents: 'none',
-                backgroundImage: `url('${effectiveNextWallpaperUrl}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: `center ${parallaxBgY}%`,
-                backgroundRepeat: 'no-repeat',
-                ...nextLayerStyle,
-                transition: 'none',
-              }}
-            />
-          ) : null}
-        </>
-      )}
+      {crossfadeActive ? (
+        <div
+          className="wallpaper-bg wallpaper-bg--space-overlay wallpaper-bg--crossfading"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 2,
+            pointerEvents: 'none',
+            backgroundImage: `url('${spaceFade.overlayUrl}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: `center ${parallaxBgY}%`,
+            backgroundRepeat: 'no-repeat',
+            opacity: opacity * spaceFade.overlayOpacity,
+            transform: 'none',
+            filter: toneBlurPx(effectiveSpaceBlur),
+            transition: spaceOverlayTransition,
+          }}
+          onTransitionEnd={spaceFade.onOverlayTransitionEnd}
+        />
+      ) : null}
+
+      {effectiveCyclingTransitioning && effectiveNextWallpaperUrl ? (
+        <div
+          className="wallpaper-bg-next"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 1,
+            pointerEvents: 'none',
+            backgroundImage: `url('${effectiveNextWallpaperUrl}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: `center ${parallaxBgY}%`,
+            backgroundRepeat: 'no-repeat',
+            ...nextLayerStyle,
+            transition: 'none',
+          }}
+        />
+      ) : null}
     </div>
   );
 }
