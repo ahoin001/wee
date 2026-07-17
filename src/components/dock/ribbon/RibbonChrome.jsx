@@ -5,6 +5,7 @@ import {
   RIBBON_SILHOUETTE_PATH,
   RIBBON_SHINE_PATH,
 } from './ribbonSilhouette';
+import { tintedHexFill } from '../../../utils/colorHex';
 
 /**
  * Solid / glass SVG ribbon body + glow container.
@@ -20,6 +21,12 @@ function RibbonChrome({
   hoverAnimationEnabled,
   onHoverChange,
 }) {
+  // Glass used to hard-code white frost, so live match / page colors never showed on
+  // the body while the time pill tracked ambient. Tint frost with the painted fill.
+  const pathFill = glassWiiRibbon
+    ? tintedHexFill(fillColor, glassOpacity ?? 0.18)
+    : fillColor;
+
   return (
     <div
       className="absolute inset-0 z-0 svg-container-glow ribbon-svg-glow-dynamic"
@@ -49,11 +56,7 @@ function RibbonChrome({
         ) : null}
         <path
           d={RIBBON_SILHOUETTE_PATH}
-          fill={
-            glassWiiRibbon
-              ? `rgba(255,255,255,${glassOpacity ?? 0.18})`
-              : fillColor
-          }
+          fill={pathFill}
           stroke={`rgba(255,255,255,${glassBorderOpacity ?? 0.5})`}
           strokeWidth="2"
           filter={glassWiiRibbon ? 'url(#glass-blur)' : undefined}

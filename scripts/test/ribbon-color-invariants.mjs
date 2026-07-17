@@ -159,6 +159,34 @@ test('paint: wallpaper ribbon matches Effective accent hex', () => {
   assert.equal(look.ribbonGlowColor, accent.hex);
 });
 
+test('paint: mid-nav URL mismatch still uses live ambient (stays with Effective accent)', () => {
+  const accent = resolveEffectiveAccent({
+    wallpaperMatchEnabled: true,
+    ambientPalette: WALLPAPER_PALETTE,
+  });
+  const { look, source } = resolveRibbonPaintTarget({
+    liveRibbon: MANUAL,
+    spaceRibbon: {
+      ribbonScope: 'perPage',
+      ribbonByPage: {
+        1: { ribbonColor: '#abcdef', ribbonGlowColor: '#fedcba' },
+      },
+    },
+    currentPage: 1,
+    supportsPerPage: true,
+    wallpaperMatchEnabled: true,
+    wallpaperUrl: 'file:///next-wall.jpg',
+    ambientPalette: WALLPAPER_PALETTE,
+    // Still keyed to the previous page while extract/cache catches up.
+    ambientCachedForUrl: 'file:///wall.jpg',
+    spotifyMatchEnabled: false,
+  });
+  assert.equal(source, 'wallpaper');
+  assert.equal(look.ribbonColor, accent.hex);
+  assert.equal(look.ribbonGlowColor, accent.hex);
+  assert.notEqual(look.ribbonColor, '#abcdef');
+});
+
 test('paint: manual when no live match', () => {
   const { look, source } = resolveRibbonPaintTarget({
     liveRibbon: MANUAL,

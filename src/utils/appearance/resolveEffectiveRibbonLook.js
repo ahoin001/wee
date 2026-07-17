@@ -100,13 +100,20 @@ export function resolveWallpaperRibbonOverlay({
   ambientPalette = null,
   ambientCachedForUrl = null,
 } = {}) {
-  if (!wallpaperUrl) return null;
   const storePalette =
-    ambientPalette && ambientCachedForUrl && ambientCachedForUrl === wallpaperUrl
+    ambientPalette &&
+    ambientCachedForUrl &&
+    wallpaperUrl &&
+    ambientCachedForUrl === wallpaperUrl
       ? ambientPalette
       : null;
-  const cached = peekWallpaperAmbientPalette(wallpaperUrl);
-  return ambientPaletteToRibbonColors(storePalette || cached?.palette);
+  const cached = wallpaperUrl ? peekWallpaperAmbientPalette(wallpaperUrl) : null;
+  const matched = ambientPaletteToRibbonColors(storePalette || cached?.palette);
+  if (matched) return matched;
+  // Mid page/space nav: URL cache may lag while Effective accent still uses the
+  // live ambient store. Keep ribbon paint on that same palette so the dock body
+  // does not snap back to a manual/page look while the time pill / --primary update.
+  return ambientPaletteToRibbonColors(ambientPalette);
 }
 
 /**
@@ -240,7 +247,7 @@ export function resolveRibbonPaintTarget({
     }
   }
 
-  if (wallpaperMatchEnabled && wallpaperUrl) {
+  if (wallpaperMatchEnabled) {
     const fromWallpaper = resolveWallpaperRibbonOverlay({
       wallpaperUrl,
       ambientPalette,
@@ -291,7 +298,7 @@ export function resolveLiveMatchRibbonOverlay({
     const fromSpotify = spotifyColorsToRibbonLook(spotifyColors);
     if (fromSpotify) return fromSpotify;
   }
-  if (wallpaperMatchEnabled && wallpaperUrl) {
+  if (wallpaperMatchEnabled) {
     return resolveWallpaperRibbonOverlay({
       wallpaperUrl,
       ambientPalette,

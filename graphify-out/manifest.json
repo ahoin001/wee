@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784256178.9785068,
-    "ast_hash": "0e77edb29023bb1d8e9d259e53f8c7c2",
+    "mtime": 1784257818.3178365,
+    "ast_hash": "4ca56f6338b1b16a8ae0d56e76aecf9f",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -325,8 +325,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/WiiRibbon.jsx": {
-    "mtime": 1784257437.0090644,
-    "ast_hash": "cf22c76b2b92853a7a25cc0ea78d96be",
+    "mtime": 1784259614.1976488,
+    "ast_hash": "3f6a2634006a80ada3e47db9f56aa1c4",
     "semantic_hash": ""
   },
   "src/components/dock/WiiStyleButton.jsx": {
@@ -1320,9 +1320,9 @@
     "semantic_hash": ""
   },
   "src/utils/colorHex.js": {
-    "mtime": 1776021227.1518235,
-    "ast_hash": "6d9da1a7d9e09f0f67d5be177abbdccb",
-    "semantic_hash": "6d9da1a7d9e09f0f67d5be177abbdccb"
+    "mtime": 1784259597.629563,
+    "ast_hash": "a9b343fc95d91f1c9c842c19bbb5d264",
+    "semantic_hash": ""
   },
   "src/utils/devDebugBindings.js": {
     "mtime": 1776050790.3827302,
@@ -1925,8 +1925,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/RibbonChrome.jsx": {
-    "mtime": 1783896890.9919255,
-    "ast_hash": "9ae28e76d53b39c7f13afe97b22a5b7b",
+    "mtime": 1784259610.0857174,
+    "ast_hash": "583065fdd16d2d71eda1b393230029a7",
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/RibbonChromeEffects.jsx": {
@@ -2415,8 +2415,8 @@
     "semantic_hash": ""
   },
   "src/utils/appearance/resolveEffectiveRibbonLook.js": {
-    "mtime": 1784257491.162719,
-    "ast_hash": "9e1ccbef283b6d08619e3025148d8227",
+    "mtime": 1784259597.4506242,
+    "ast_hash": "2398c2e906536d2d9f4c6795d7d8526f",
     "semantic_hash": ""
   },
   "src/utils/appearance/disableLiveMatchForManualAccent.js": {
@@ -2440,13 +2440,13 @@
     "semantic_hash": ""
   },
   "src/utils/theme/wallpaperAmbientPaletteCache.js": {
-    "mtime": 1784257397.9464743,
-    "ast_hash": "1f58dbb45bc7e6138c45798b360e053f",
+    "mtime": 1784259608.9163144,
+    "ast_hash": "489a286cea7295cb17a4111c67022f86",
     "semantic_hash": ""
   },
   "scripts/test/ribbon-color-invariants.mjs": {
-    "mtime": 1784257485.6367626,
-    "ast_hash": "09d8d7efac351b9fc5519989448ee3f8",
+    "mtime": 1784259614.2054563,
+    "ast_hash": "5d9d861a94e795b28c1635bf2d5efae7",
     "semantic_hash": ""
   },
   "src/components/widgets/_archived/FloatingSpotifyWidget.jsx": {

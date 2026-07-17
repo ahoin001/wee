@@ -221,6 +221,8 @@ const WiiRibbonComponent = ({
   const paintedRibbonLook = useRibbonLookTransition({
     targetLook: targetRibbonLook,
     durationMs: ribbonTweenMs,
+    // Live match owns fill/glow — snap with Effective accent instead of competing tweens.
+    ambientOverride: ribbonPaintSource === 'spotify' || ribbonPaintSource === 'wallpaper',
   });
   const spotifyOwnsRibbonPaint = ribbonPaintSource === 'spotify';
 

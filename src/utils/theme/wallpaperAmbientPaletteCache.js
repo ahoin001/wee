@@ -4,7 +4,7 @@
  * immediately instead of waiting for a fresh canvas extract.
  */
 
-import { extractImagePalette } from './extractImagePalette.js';
+import { colorStringToHex, extractImagePalette } from './extractImagePalette.js';
 
 const WALLPAPER_AMBIENT_PALETTE_CACHE_MAX = 24;
 
@@ -47,7 +47,8 @@ export function peekWallpaperAmbientPalette(imageUrl) {
 export function ambientPaletteToRibbonColors(palette) {
   if (!palette || typeof palette !== 'object') return null;
   // Mirror resolveEffectiveAccent wallpaper branch: primary, then accent.
-  const accentHex = palette.primary || palette.accent;
+  const accentHex =
+    colorStringToHex(palette.primary) || colorStringToHex(palette.accent);
   if (!accentHex) return null;
   return {
     ribbonColor: accentHex,
