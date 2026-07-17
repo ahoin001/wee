@@ -5,49 +5,23 @@ import { extractColorsFromAlbumArt } from '../utils/extractColorsFromAlbumArt';
 
 /**
  * Shared Now Playing → album-art palette pipeline.
- * Writes `spotify.extractedColors` (existing SSOT for ribbon + overlays) from
- * whatever the active system media session exposes as `nowPlaying.albumArtUrl`.
- *
- * Runs whenever Color Match (ribbon / wallpaper overlay / widget dynamic colors) is on,
- * so desktop players share the same chrome matching.
+ * Always samples when album art is present so the Home Now Playing tile
+ * (and any chrome that opts in) stay color-matched — immersive by default.
+ * Writes `spotify.extractedColors` (SSOT for ribbon + overlays).
  */
 export function useNowPlayingColorMatch() {
-  const {
-    albumArtUrl,
-    trackName,
-    spotifyMatchEnabled,
-    liveGradientWallpaper,
-    immersiveEnabled,
-    widgetDynamicColors,
-    setSpotifyState,
-  } = useConsolidatedAppStore(
+  const { albumArtUrl, trackName, setSpotifyState } = useConsolidatedAppStore(
     useShallow((s) => ({
       albumArtUrl: s.nowPlaying?.albumArtUrl || '',
       trackName: s.nowPlaying?.trackName || '',
-      spotifyMatchEnabled: Boolean(s.ui?.spotifyMatchEnabled),
-      liveGradientWallpaper: Boolean(s.spotify?.immersiveMode?.liveGradientWallpaper),
-      immersiveEnabled: Boolean(s.spotify?.immersiveMode?.enabled),
-      widgetDynamicColors: Boolean(s.floatingWidgets?.spotify?.settings?.dynamicColors),
       setSpotifyState: s.actions.setSpotifyState,
     }))
   );
-
-  const colorMatchActive =
-    spotifyMatchEnabled || liveGradientWallpaper || immersiveEnabled || widgetDynamicColors;
 
   const lastArtRef = useRef('');
   const lastColorsRef = useRef(null);
 
   useEffect(() => {
-    if (!colorMatchActive) {
-      lastArtRef.current = '';
-      if (lastColorsRef.current) {
-        lastColorsRef.current = null;
-        setSpotifyState({ extractedColors: null });
-      }
-      return undefined;
-    }
-
     const art = String(albumArtUrl || '').trim();
     if (!art) {
       lastArtRef.current = '';
@@ -81,7 +55,7 @@ export function useNowPlayingColorMatch() {
     return () => {
       cancelled = true;
     };
-  }, [albumArtUrl, trackName, colorMatchActive, setSpotifyState]);
+  }, [albumArtUrl, trackName, setSpotifyState]);
 }
 
 export default useNowPlayingColorMatch;

@@ -52,41 +52,51 @@
   opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.7);
 }
 
-/* —— Aurora (incommensurate slow drifts — living field) —— */
+/* —— Aurora (vertical curtains — normal paint so sheets read on light ribbon) —— */
 .ribbon-fx-aurora-group {
-  mix-blend-mode: screen;
+  /* Avoid screen/soft-light washout on bright ribbon fills */
+  isolation: isolate;
 }
 
-.ribbon-chrome-effects--animate .ribbon-fx-aurora-band--a {
-  animation: ribbon-fx-aurora-drift-a calc(var(--ribbon-fx-duration, 2.4s) * 1.618) linear infinite;
+.ribbon-fx-aurora-curtain {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.ribbon-chrome-effects--animate .ribbon-fx-aurora-band--b {
-  animation: ribbon-fx-aurora-drift-b calc(var(--ribbon-fx-duration, 2.4s) * 2.414) linear infinite;
+.ribbon-chrome-effects--animate .ribbon-fx-aurora-curtain--a {
+  animation: ribbon-fx-aurora-curtain-a calc(var(--ribbon-fx-duration, 2.4s) * 2.2) linear infinite;
 }
 
-.ribbon-chrome-effects--animate .ribbon-fx-aurora-band--c {
-  animation: ribbon-fx-aurora-drift-c calc(var(--ribbon-fx-duration, 2.4s) * 3.05) linear infinite;
+.ribbon-chrome-effects--animate .ribbon-fx-aurora-curtain--b {
+  animation: ribbon-fx-aurora-curtain-b calc(var(--ribbon-fx-duration, 2.4s) * 2.85) linear infinite;
 }
 
-.ribbon-chrome-effects--static .ribbon-fx-aurora-band {
-  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.75);
+.ribbon-chrome-effects--animate .ribbon-fx-aurora-curtain--c {
+  animation: ribbon-fx-aurora-curtain-c calc(var(--ribbon-fx-duration, 2.4s) * 3.4) linear infinite;
 }
 
-/* —— Ripple / expanding caustic rings —— */
+.ribbon-chrome-effects--animate .ribbon-fx-aurora-curtain--d {
+  animation: ribbon-fx-aurora-curtain-d calc(var(--ribbon-fx-duration, 2.4s) * 2.55) linear infinite;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-aurora-curtain {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.8);
+}
+
+/* —— Ripple / expanding caustic rings (long cycle, staggered foci) —— */
 .ribbon-fx-ripple-ring {
   transform-box: fill-box;
   transform-origin: center;
 }
 
 .ribbon-chrome-effects--animate .ribbon-fx-ripple-ring {
-  animation: ribbon-fx-ripple-expand calc(var(--ribbon-fx-duration, 2.4s) * 1.85) linear infinite;
+  animation: ribbon-fx-ripple-expand var(--ribbon-fx-ripple-cycle, 14s) linear infinite;
   animation-delay: var(--ribbon-fx-ripple-delay, 0s);
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-ripple-ring {
-  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.55);
-  transform: scale(0.85);
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.45);
+  transform: scale(0.7);
 }
 
 /* —— Edge ember —— */
@@ -200,57 +210,78 @@
   }
 }
 
-/* Continuous drift loops with larger curtain travel. */
-@keyframes ribbon-fx-aurora-drift-a {
+/* Continuous curtain drifts (end ≡ start). */
+@keyframes ribbon-fx-aurora-curtain-a {
   0% {
-    transform: translate3d(-14%, 4%, 0) scale(1.05);
+    transform: translate3d(-80px, 6px, 0) scale(1, 1.02) skewX(-4deg);
   }
   50% {
-    transform: translate3d(16%, -5%, 0) scale(1.12);
+    transform: translate3d(110px, -10px, 0) scale(1.08, 1.06) skewX(3deg);
   }
   100% {
-    transform: translate3d(-14%, 4%, 0) scale(1.05);
+    transform: translate3d(-80px, 6px, 0) scale(1, 1.02) skewX(-4deg);
   }
 }
 
-@keyframes ribbon-fx-aurora-drift-b {
+@keyframes ribbon-fx-aurora-curtain-b {
   0% {
-    transform: translate3d(12%, -6%, 0) scale(1.08);
+    transform: translate3d(90px, -8px, 0) scale(1.04, 1) skewX(5deg);
   }
   50% {
-    transform: translate3d(-18%, 5%, 0) scale(1.02);
+    transform: translate3d(-120px, 8px, 0) scale(0.96, 1.08) skewX(-3deg);
   }
   100% {
-    transform: translate3d(12%, -6%, 0) scale(1.08);
+    transform: translate3d(90px, -8px, 0) scale(1.04, 1) skewX(5deg);
   }
 }
 
-@keyframes ribbon-fx-aurora-drift-c {
+@keyframes ribbon-fx-aurora-curtain-c {
   0% {
-    transform: translate3d(-8%, 8%, 0) scale(1.1);
+    transform: translate3d(-50px, 10px, 0) scale(1.02, 1.04) skewX(-2deg);
   }
   50% {
-    transform: translate3d(14%, -4%, 0) scale(1.18);
+    transform: translate3d(95px, -12px, 0) scale(1.1, 0.98) skewX(4deg);
   }
   100% {
-    transform: translate3d(-8%, 8%, 0) scale(1.1);
+    transform: translate3d(-50px, 10px, 0) scale(1.02, 1.04) skewX(-2deg);
   }
 }
 
-/* Expanding rings: spawn small → grow + fade → invisible restart. */
+@keyframes ribbon-fx-aurora-curtain-d {
+  0% {
+    transform: translate3d(40px, -4px, 0) scale(0.98, 1.05) skewX(3deg);
+  }
+  50% {
+    transform: translate3d(-70px, 12px, 0) scale(1.12, 1.02) skewX(-5deg);
+  }
+  100% {
+    transform: translate3d(40px, -4px, 0) scale(0.98, 1.05) skewX(3deg);
+  }
+}
+
+/*
+ * Long-cycle ripple: brief visible expand (~12% of cycle), then rest invisible.
+ * Delays stagger foci across the full cycle so locations feel sequenced, not stuck.
+ * 0% ≡ 100% (opacity 0) keeps the loop seamless.
+ */
 @keyframes ribbon-fx-ripple-expand {
   0% {
-    transform: scale(0.35);
+    transform: scale(0.28);
     opacity: 0;
   }
-  12% {
-    opacity: 0.9;
+  2% {
+    opacity: 0.95;
   }
-  70% {
-    opacity: 0.35;
+  10% {
+    transform: scale(1.45);
+    opacity: 0.2;
+  }
+  14% {
+    transform: scale(1.55);
+    opacity: 0;
   }
   100% {
-    transform: scale(1.55);
+    transform: scale(0.28);
     opacity: 0;
   }
 }
@@ -298,25 +329,25 @@
 }
 
 /**
- * Soft mote life: spawn near-zero alpha, peak mid-life, die at zero —
- * ease-in-out so the restart at 0% matches 100% (both invisible).
+ * Soft mote life: form inside the body, rise and fade —
+ * 0% and 100% both near-invisible for a seamless restart.
  */
 @keyframes ribbon-fx-sparkle-rise {
   0% {
     opacity: 0;
-    transform: translate(0, 4px) scale(0.4);
+    transform: translate(0, 8px) scale(0.35);
   }
-  18% {
-    opacity: 0.85;
-    transform: translate(calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.3), -2px) scale(1);
+  16% {
+    opacity: 0.9;
+    transform: translate(calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.25), 2px) scale(1);
   }
   55% {
-    opacity: 0.5;
+    opacity: 0.55;
     transform: translate(
-        calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.7),
-        calc(var(--ribbon-fx-sparkle-rise, -24px) * 0.55)
+        calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.65),
+        calc(var(--ribbon-fx-sparkle-rise, -24px) * 0.5)
       )
-      scale(0.9);
+      scale(0.92);
   }
   100% {
     opacity: 0;
@@ -339,7 +370,7 @@
   .ribbon-chrome-effects--animate .ribbon-fx-pulse-fill,
   .ribbon-chrome-effects--animate .ribbon-fx-neon-race,
   .ribbon-chrome-effects--animate .ribbon-fx-neon-hue,
-  .ribbon-chrome-effects--animate .ribbon-fx-aurora-band,
+  .ribbon-chrome-effects--animate .ribbon-fx-aurora-curtain,
   .ribbon-chrome-effects--animate .ribbon-fx-ripple-ring,
   .ribbon-chrome-effects--animate .ribbon-fx-ember-edge,
   .ribbon-chrome-effects--animate .ribbon-fx-ember-mote,

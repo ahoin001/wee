@@ -10,7 +10,6 @@ import {
   Maximize,
   Moon,
   Mouse,
-  Music,
   Palette,
   PanelsTopLeft,
   RefreshCw,
@@ -121,7 +120,6 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
     wallpaperMatchEnabled,
     spotifyMatchEnabled,
     liveGradientWallpaper,
-    mediaWidgetDynamicColors,
     canSaveAtmosphereLook,
     dynamicRibbonColorEnabled,
     ribbonGlowColor,
@@ -129,14 +127,12 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
     ambientPalette,
     spotifyColors,
     immersiveMode,
-    spotifyWidget,
   } = useConsolidatedAppStore(
     useShallow((state) => {
       const extracted = state.spotify?.extractedColors?.primary;
       const wallpaperOn = state.ui.wallpaperMatchEnabled !== false;
       const spotifyOn = Boolean(state.ui.spotifyMatchEnabled);
       const liveWash = Boolean(state.spotify?.immersiveMode?.liveGradientWallpaper);
-      const widgetColors = Boolean(state.floatingWidgets?.spotify?.settings?.dynamicColors);
       return {
         isDarkMode: state.ui.isDarkMode,
         useCustomCursor: state.ui.useCustomCursor,
@@ -148,16 +144,14 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
         wallpaperMatchEnabled: wallpaperOn,
         spotifyMatchEnabled: spotifyOn,
         liveGradientWallpaper: liveWash,
-        mediaWidgetDynamicColors: widgetColors,
         canSaveAtmosphereLook:
-          Boolean(extracted) || wallpaperOn || spotifyOn || liveWash || widgetColors,
+          Boolean(extracted) || wallpaperOn || spotifyOn || liveWash,
         dynamicRibbonColorEnabled: Boolean(state.ribbon?.dynamicRibbonColorEnabled),
         ribbonGlowColor: state.ribbon?.ribbonGlowColor ?? null,
         ribbonColor: state.ribbon?.ribbonColor ?? null,
         ambientPalette: state.ui?.ambientColor?.palette ?? null,
         spotifyColors: state.spotify?.extractedColors ?? null,
         immersiveMode: state.spotify?.immersiveMode || null,
-        spotifyWidget: state.floatingWidgets?.spotify || null,
       };
     })
   );
@@ -165,9 +159,6 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
   const setRibbonState = useConsolidatedAppStore((state) => state.actions.setRibbonState);
   const setNavigationState = useConsolidatedAppStore((state) => state.actions.setNavigationState);
   const setSpotifyState = useConsolidatedAppStore((state) => state.actions.setSpotifyState);
-  const setFloatingWidgetsState = useConsolidatedAppStore(
-    (state) => state.actions.setFloatingWidgetsState
-  );
   const { backdropTransition, modalTransition } = useWeeMotion();
   const [atmosphereStatus, setAtmosphereStatus] = React.useState('');
   const [savingLook, setSavingLook] = React.useState(false);
@@ -326,22 +317,6 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
         : 'Album wallpaper wash off'
     );
   }, [immersiveMode, liveGradientWallpaper, setSpotifyState]);
-
-  const toggleMediaWidgetColors = useCallback(() => {
-    const next = !mediaWidgetDynamicColors;
-    const widget = spotifyWidget || { settings: {} };
-    setFloatingWidgetsState({
-      spotify: {
-        ...widget,
-        settings: { ...widget.settings, dynamicColors: next },
-      },
-    });
-    setAtmosphereStatus(
-      next
-        ? 'Media widget colors on — floating player & Now Playing tile use album accents'
-        : 'Media widget colors off'
-    );
-  }, [mediaWidgetDynamicColors, setFloatingWidgetsState, spotifyWidget]);
 
   const toggleDynamicChrome = useCallback(async () => {
     const next = !dynamicRibbonColorEnabled;
@@ -561,12 +536,6 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
                     icon={Waves}
                     active={liveGradientWallpaper}
                     onToggle={toggleLiveGradientWash}
-                  />
-                  <QuickToggleRow
-                    label="Media widget colors"
-                    icon={Music}
-                    active={mediaWidgetDynamicColors}
-                    onToggle={toggleMediaWidgetColors}
                   />
                   <QuickToggleRow
                     label="Dynamic chrome accents"

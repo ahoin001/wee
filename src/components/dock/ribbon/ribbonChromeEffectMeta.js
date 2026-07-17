@@ -90,7 +90,7 @@ const META_BY_ID = {
   aurora: {
     id: 'aurora',
     label: 'Aurora',
-    description: 'Drifting color curtains across the ribbon — living field, not a short ping-pong.',
+    description: 'Vertical color curtains drifting across the ribbon — northern-lights sheets.',
     defaultIntensity: 0.72,
     defaultSpeed: 0.85,
     defaultIntensityGlass: 0.85,

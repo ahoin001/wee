@@ -9,6 +9,7 @@ import {
   WeeButton,
   WeeModalShell,
   WeeSegmentedControl,
+  WeeSlider,
   WeeToggle,
 } from '../../ui/wee';
 import WInput from '../../ui/WInput';
@@ -28,7 +29,10 @@ import {
   HOME_CLOCK_DATE_STACK,
   normalizeHomeClockWidget,
 } from '../../utils/homeClockWidgetPrefs';
-import { normalizeHomeNowPlayingWidget } from '../../utils/homeNowPlayingWidgetPrefs';
+import {
+  normalizeHomeNowPlayingWidget,
+  NOW_PLAYING_ART_LAYOUTS,
+} from '../../utils/homeNowPlayingWidgetPrefs';
 import {
   defaultFrozenSpotifyLookName,
   saveFrozenSpotifyLookPreset,
@@ -165,19 +169,15 @@ function NowPlayingWidgetSettings() {
   const {
     spotifyMatchEnabled,
     liveGradientWallpaper,
-    dynamicColors,
     extractedColors,
     immersiveMode,
-    spotifyWidget,
     nowPlayingLooksRaw,
   } = useConsolidatedAppStore(
     useShallow((s) => ({
       spotifyMatchEnabled: Boolean(s.ui?.spotifyMatchEnabled),
       liveGradientWallpaper: Boolean(s.spotify?.immersiveMode?.liveGradientWallpaper),
-      dynamicColors: Boolean(s.floatingWidgets?.spotify?.settings?.dynamicColors),
       extractedColors: s.spotify?.extractedColors || null,
       immersiveMode: s.spotify?.immersiveMode || null,
-      spotifyWidget: s.floatingWidgets?.spotify || null,
       nowPlayingLooksRaw: s.ui?.homeNowPlayingWidget,
     }))
   );
@@ -192,15 +192,27 @@ function NowPlayingWidgetSettings() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState({ type: '', text: '' });
 
-  const showLivePalette = Boolean(
-    (spotifyMatchEnabled || liveGradientWallpaper || dynamicColors) &&
-      extractedColors?.primary
-  );
+  const showLivePalette = Boolean(extractedColors?.primary);
 
   const flashStatus = useCallback((type, text, ms = 2800) => {
     setStatus({ type, text });
     window.setTimeout(() => setStatus({ type: '', text: '' }), ms);
   }, []);
+
+  const patchLooks = useCallback(
+    (partial) => {
+      const prev = normalizeHomeNowPlayingWidget(
+        useConsolidatedAppStore.getState().ui?.homeNowPlayingWidget
+      );
+      actions.setUIState({
+        homeNowPlayingWidget: normalizeHomeNowPlayingWidget({
+          ...prev,
+          ...partial,
+        }),
+      });
+    },
+    [actions]
+  );
 
   const handleRibbon = useCallback(
     (checked) => {
@@ -230,40 +242,9 @@ function NowPlayingWidgetSettings() {
     [actions, immersiveMode]
   );
 
-  const handleDynamicColors = useCallback(
-    (checked) => {
-      const widget = spotifyWidget || { settings: {} };
-      actions.setFloatingWidgetsState({
-        spotify: {
-          ...widget,
-          settings: { ...widget.settings, dynamicColors: Boolean(checked) },
-        },
-      });
-    },
-    [actions, spotifyWidget]
-  );
-
-  const handleVisualizer = useCallback(
-    (checked) => {
-      const prev = normalizeHomeNowPlayingWidget(
-        useConsolidatedAppStore.getState().ui?.homeNowPlayingWidget
-      );
-      actions.setUIState({
-        homeNowPlayingWidget: normalizeHomeNowPlayingWidget({
-          ...prev,
-          showVisualizer: Boolean(checked),
-        }),
-      });
-    },
-    [actions]
-  );
-
   const openSaveModal = useCallback(() => {
     if (!extractedColors?.primary) {
-      flashStatus(
-        'warning',
-        'No album colors yet. Play something with Color Match on.'
-      );
+      flashStatus('warning', 'No album colors yet. Play something with cover art.');
       return;
     }
     setPresetName(defaultFrozenSpotifyLookName());
@@ -289,11 +270,73 @@ function NowPlayingWidgetSettings() {
   return (
     <div className="flex flex-col items-center gap-2.5">
       <p className="m-0 max-w-[28rem] text-center text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-        Sample album art for ribbon, wallpaper wash, and media tiles. Works with Spotify,
-        Apple Music, and other desktop players.
+        Album art always color-matches this tile. Tune layout and backdrop, or tint ribbon and
+        wallpaper separately.
       </p>
 
       <div className="flex w-full max-w-[28rem] flex-col gap-2">
+        <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
+          <p className="m-0 mb-2 text-[11px] font-black text-[hsl(var(--text-primary))]">
+            Cover layout
+          </p>
+          <WeeSegmentedControl
+            size="sm"
+            ariaLabel="Now Playing cover layout"
+            layoutId="homeNowPlayingArtLayout"
+            value={npLooks.artLayout}
+            onChange={(next) => patchLooks({ artLayout: next })}
+            options={Object.values(NOW_PLAYING_ART_LAYOUTS).map((opt) => ({
+              value: opt.id,
+              label: opt.label,
+              title:
+                opt.id === 'hero'
+                  ? 'Large square cover above the playback panel'
+                  : 'Square cover inside the panel beside the controls',
+            }))}
+          />
+          <p className="m-0 mt-1.5 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+            Hero floats the cover; Inline docks it next to transport
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
+              Backdrop blur
+            </p>
+            <span className="text-[9px] font-bold tabular-nums text-[hsl(var(--text-tertiary))]">
+              {Math.round(npLooks.backdropBlur)}px
+            </span>
+          </div>
+          <WeeSlider
+            aria-label="Backdrop blur"
+            min={0}
+            max={40}
+            step={1}
+            value={npLooks.backdropBlur}
+            onChange={(value) => patchLooks({ backdropBlur: value })}
+          />
+        </div>
+
+        <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
+              Backdrop darken
+            </p>
+            <span className="text-[9px] font-bold tabular-nums text-[hsl(var(--text-tertiary))]">
+              {Math.round(npLooks.backdropDarken * 100)}%
+            </span>
+          </div>
+          <WeeSlider
+            aria-label="Backdrop darken"
+            min={0}
+            max={85}
+            step={1}
+            value={Math.round(npLooks.backdropDarken * 100)}
+            onChange={(value) => patchLooks({ backdropDarken: value / 100 })}
+          />
+        </div>
+
         <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
           <div className="min-w-0">
             <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
@@ -305,7 +348,7 @@ function NowPlayingWidgetSettings() {
           </div>
           <WeeToggle
             checked={npLooks.showVisualizer}
-            onChange={handleVisualizer}
+            onChange={(checked) => patchLooks({ showVisualizer: Boolean(checked) })}
             title="Show music visualizer bars"
           />
         </div>
@@ -341,22 +384,6 @@ function NowPlayingWidgetSettings() {
             title="Wallpaper color wash from album art"
           />
         </div>
-
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
-          <div className="min-w-0">
-            <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
-              Media widget colors
-            </p>
-            <p className="m-0 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-              Floating player &amp; this tile use album accents
-            </p>
-          </div>
-          <WeeToggle
-            checked={dynamicColors}
-            onChange={handleDynamicColors}
-            title="Dynamic colors on media widgets"
-          />
-        </div>
       </div>
 
       {showLivePalette ? (
@@ -385,7 +412,7 @@ function NowPlayingWidgetSettings() {
         title={
           extractedColors?.primary
             ? 'Freeze the current matched colors into a visual preset'
-            : 'Play a track with Color Match on to unlock'
+            : 'Play a track with cover art to unlock'
         }
       >
         Save matched colors as preset
@@ -403,7 +430,6 @@ function NowPlayingWidgetSettings() {
           {status.text}
         </p>
       ) : null}
-
 
       <WeeModalShell
         isOpen={nameModalOpen}

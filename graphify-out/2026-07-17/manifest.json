@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784297086.342312,
-    "ast_hash": "c334be65ca0c5dbd726287878ccf0d68",
+    "mtime": 1784299981.1934402,
+    "ast_hash": "296e5ffe168141ae8f6c4136112cf610",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -670,8 +670,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/SettingsActionMenu.jsx": {
-    "mtime": 1784257491.162719,
-    "ast_hash": "5e9c429d03853454b41a85a201404e18",
+    "mtime": 1784301056.7347417,
+    "ast_hash": "b0690c3e0bbc4ad562bf6117ea5f4727",
     "semantic_hash": ""
   },
   "src/components/settings/SettingsModal.jsx": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/UnifiedDockSettingsTab.jsx": {
-    "mtime": 1784295166.3298192,
-    "ast_hash": "741a0babff32b61e6265c8cf5794b6d9",
+    "mtime": 1784299853.7645986,
+    "ast_hash": "ea970bddb4842f11dd7c606db6cfc1be",
     "semantic_hash": ""
   },
   "src/components/settings/UpdatesSettingsTab.jsx": {
@@ -760,8 +760,8 @@
     "semantic_hash": "bc56fd97e8acbbfd62f61a7de3601fcc"
   },
   "src/components/settings/dock/RibbonDockPanel.jsx": {
-    "mtime": 1784294978.9192777,
-    "ast_hash": "64e8d1c8a11d288fa423f68f3b4d8ce8",
+    "mtime": 1784299851.1212323,
+    "ast_hash": "6d393afec5eafbd9420ee3201c7184e2",
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
@@ -1925,13 +1925,13 @@
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/RibbonChromeEffects.jsx": {
-    "mtime": 1784209491.6379056,
-    "ast_hash": "589718eefde0baec7eea2b8925b02769",
+    "mtime": 1784299839.2596648,
+    "ast_hash": "c043a3936b03ee45998c3980d3c3d856",
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/ribbonChromeEffectMeta.js": {
-    "mtime": 1784209400.1275191,
-    "ast_hash": "2a6d4c9e82f0d1de6667ba4b02200cd0",
+    "mtime": 1784299786.61762,
+    "ast_hash": "cb8e5e49c1ecaacb87f02401826088a1",
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/ribbonSilhouette.js": {
@@ -2130,8 +2130,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784299153.1846068,
-    "ast_hash": "3adeabdd052de2a26d93973673fb74e2",
+    "mtime": 1784300978.8109758,
+    "ast_hash": "5f32af54a9f72c8650abccdb5fe6feb4",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2360,8 +2360,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetSettingsPanel.jsx": {
-    "mtime": 1784299172.5399828,
-    "ast_hash": "fc44b9256956de53c92d404e258e7c1b",
+    "mtime": 1784301025.907793,
+    "ast_hash": "2ed9ebeaf3c88cc31036e39ab90178e9",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesShelf.jsx": {
@@ -2370,8 +2370,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingColorMatch.js": {
-    "mtime": 1784256089.7081814,
-    "ast_hash": "f76b7c3969fe192eb6b504f120e88dc1",
+    "mtime": 1784300938.4112926,
+    "ast_hash": "b0b6ee13620591710610050220a1bba0",
     "semantic_hash": ""
   },
   "src/utils/homeSteamWidgetPrefs.js": {
@@ -2500,8 +2500,8 @@
     "semantic_hash": ""
   },
   "src/utils/homeNowPlayingWidgetPrefs.js": {
-    "mtime": 1784299109.680718,
-    "ast_hash": "4a07a0a1ce3ece5af161d16afd061b17",
+    "mtime": 1784300938.3448348,
+    "ast_hash": "92980355d3ed8e8410fbe82d5614a7b4",
     "semantic_hash": ""
   }
 }

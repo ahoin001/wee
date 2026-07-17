@@ -41,18 +41,27 @@ const IDLE_NOW_PLAYING = Object.freeze({
 
 const SPARKLE_MIN_MOTES = 6;
 const SPARKLE_MAX_MOTES = 28;
+const SPARKLE_POOL_SIZE = 32;
 
-/** Dense candidate pool — intensity selects how many are visible. */
-const SPARKLE_MOTE_POOL = sampleRibbonTopEdgePoints(48)
-  .slice(0, 32)
-  .map((p, i) => ({
-    ...p,
-    driftX: ((i * 19) % 13) - 6,
-    rise: 18 + ((i * 11) % 20),
-    size: 1.35 + (i % 4) * 0.35,
-    delay: (i / 32) * 5.2 + (i % 5) * 0.11,
-    life: 3.6 + (i % 5) * 0.5,
-  }));
+/**
+ * Full-width sparkle pool — evenly spaced across the entire top bow,
+ * spawned below the lip so motes form inside the ribbon body.
+ */
+const SPARKLE_MOTE_POOL = (() => {
+  const edge = sampleRibbonTopEdgePoints(SPARKLE_POOL_SIZE - 1);
+  return edge.map((p, i) => {
+    const depth = 22 + ((i * 17) % 28) + (i % 3) * 4;
+    return {
+      x: p.x,
+      y: p.y + depth,
+      driftX: ((i * 19) % 13) - 6,
+      rise: 22 + ((i * 11) % 22),
+      size: 1.35 + (i % 4) * 0.35,
+      delay: (i / SPARKLE_POOL_SIZE) * 5.2 + (i % 5) * 0.11,
+      life: 3.6 + (i % 5) * 0.5,
+    };
+  });
+})();
 
 /** Warm travelers along the top bow for Edge ember. */
 const EMBER_TRAVELER_POINTS = sampleRibbonTopEdgePoints(28)
@@ -66,12 +75,25 @@ const EMBER_TRAVELER_POINTS = sampleRibbonTopEdgePoints(28)
     life: 2.8 + (i % 4) * 0.45,
   }));
 
-/** Ripple foci along the ribbon body (viewBox coords). */
+/**
+ * Long ripple sequence — many foci across the ribbon; each fires once
+ * per long seamless cycle (active pulse early, invisible for the rest).
+ */
 const RIPPLE_FOCI = Object.freeze([
-  { cx: 360, cy: 145, rx: 70, ry: 32 },
-  { cx: 720, cy: 155, rx: 85, ry: 36 },
-  { cx: 1080, cy: 140, rx: 65, ry: 30 },
+  { cx: 160, cy: 150, rx: 58, ry: 26 },
+  { cx: 300, cy: 168, rx: 72, ry: 30 },
+  { cx: 440, cy: 142, rx: 64, ry: 28 },
+  { cx: 560, cy: 175, rx: 80, ry: 34 },
+  { cx: 680, cy: 155, rx: 70, ry: 30 },
+  { cx: 800, cy: 178, rx: 76, ry: 32 },
+  { cx: 920, cy: 148, rx: 62, ry: 28 },
+  { cx: 1040, cy: 170, rx: 74, ry: 31 },
+  { cx: 1160, cy: 145, rx: 60, ry: 27 },
+  { cx: 1280, cy: 162, rx: 68, ry: 29 },
+  { cx: 380, cy: 190, rx: 55, ry: 24 },
+  { cx: 980, cy: 188, rx: 58, ry: 25 },
 ]);
+const RIPPLE_CYCLE_MULT = 6.2;
 
 function hslToRgb(h, s, l) {
   const hh = ((h % 360) + 360) % 360;
@@ -258,7 +280,19 @@ function RibbonChromeEffects({
   const sparkleCount = Math.round(
     SPARKLE_MIN_MOTES + clampedIntensity * (SPARKLE_MAX_MOTES - SPARKLE_MIN_MOTES)
   );
-  const sparkleMotes = SPARKLE_MOTE_POOL.slice(0, sparkleCount);
+  const sparkleMotes = useMemo(() => {
+    const pool = SPARKLE_MOTE_POOL;
+    const n = Math.min(sparkleCount, pool.length);
+    if (n >= pool.length) return pool;
+    if (n <= 1) return [pool[Math.floor(pool.length / 2)]];
+    return Array.from({ length: n }, (_, i) => {
+      const idx = Math.round((i / (n - 1)) * (pool.length - 1));
+      return pool[idx];
+    });
+  }, [sparkleCount]);
+
+  const rippleCycleSec = (Number(durationSec) * RIPPLE_CYCLE_MULT).toFixed(2);
+  const rippleSlot = Number(rippleCycleSec) / RIPPLE_FOCI.length;
 
   const styleVars = useMemo(
     () => ({
@@ -270,6 +304,7 @@ function RibbonChromeEffects({
       ['--ribbon-fx-neon-duration']: `${neonDurationSec}s`,
       ['--ribbon-fx-hover-opacity']: String(hoverOpacity),
       ['--ribbon-fx-shimmer-period']: `${RIBBON_VIEWBOX_WIDTH}px`,
+      ['--ribbon-fx-ripple-cycle']: `${rippleCycleSec}s`,
     }),
     [
       clampedGlow,
@@ -280,20 +315,26 @@ function RibbonChromeEffects({
       opacityFloor,
       opacitySpan,
       resolvedGlow,
+      rippleCycleSec,
     ]
   );
 
   const shimmerPeak = glowToRgba(resolvedGlow, 0.14 + clampedIntensity * 0.42);
   const shimmerMid = glowToRgba(resolvedGlow, 0.05 + clampedIntensity * 0.14);
-  const auroraA = glowToRgba(resolvedGlow, 0.38 + clampedIntensity * 0.48 + clampedGlow * 0.12);
-  const auroraB = glowToRgba(resolvedGlow, 0.22 + clampedIntensity * 0.34 + clampedGlow * 0.1);
-  const auroraC = glowToRgba('#7dd3fc', 0.18 + clampedIntensity * 0.28 + clampedGlow * 0.16);
-  const auroraViolet = glowToRgba('#a78bfa', 0.28 + clampedIntensity * 0.32 + clampedGlow * 0.14);
+  /* Aurora: saturated curtain cores (green / violet / cyan) — not a faint wash */
+  const auroraGreen = glowToRgba('#34d399', 0.55 + clampedIntensity * 0.35 + clampedGlow * 0.12);
+  const auroraGreenSoft = glowToRgba('#6ee7b7', 0.22 + clampedIntensity * 0.2);
+  const auroraViolet = glowToRgba('#c084fc', 0.5 + clampedIntensity * 0.32 + clampedGlow * 0.14);
+  const auroraVioletSoft = glowToRgba('#a78bfa', 0.2 + clampedIntensity * 0.18);
+  const auroraCyan = glowToRgba('#22d3ee', 0.48 + clampedIntensity * 0.3 + clampedGlow * 0.16);
+  const auroraCyanSoft = glowToRgba('#67e8f9', 0.18 + clampedIntensity * 0.16);
+  const auroraGlowCore = glowToRgba(resolvedGlow, 0.42 + clampedIntensity * 0.38 + clampedGlow * 0.15);
   const scanAlpha = (glassSoft ? 0.12 : 0.06) + clampedIntensity * (glassSoft ? 0.28 : 0.16);
   const pulseFillOpacity = (glassSoft ? 0.14 : 0.08) + clampedIntensity * (glassSoft ? 0.32 : 0.22);
-  const auroraLayerA = 0.72 + clampedIntensity * 0.28 + clampedGlow * 0.12;
-  const auroraLayerB = 0.58 + clampedIntensity * 0.28 + clampedGlow * 0.14;
-  const auroraLayerC = 0.35 + clampedGlow * 0.45 + clampedIntensity * 0.2;
+  const auroraCurtainOpacity = 0.55 + clampedIntensity * 0.35 + clampedGlow * 0.2;
+  const auroraCurtainOpacityB = 0.48 + clampedIntensity * 0.32 + clampedGlow * 0.22;
+  const auroraCurtainOpacityC = 0.4 + clampedGlow * 0.4 + clampedIntensity * 0.22;
+  const auroraCurtainOpacityD = 0.32 + clampedGlow * 0.45 + clampedIntensity * 0.18;
 
   if (!active) return null;
 
@@ -302,6 +343,8 @@ function RibbonChromeEffects({
   const auroraId1 = `ribbon-fx-aurora-1-${uid}`;
   const auroraId2 = `ribbon-fx-aurora-2-${uid}`;
   const auroraId3 = `ribbon-fx-aurora-3-${uid}`;
+  const auroraId4 = `ribbon-fx-aurora-4-${uid}`;
+  const auroraSoftId = `ribbon-fx-aurora-soft-${uid}`;
   const glowFilterId = `ribbon-fx-glow-${uid}`;
   const softBlurId = `ribbon-fx-soft-${uid}`;
   const emberGlowId = `ribbon-fx-ember-glow-${uid}`;
@@ -419,27 +462,33 @@ function RibbonChromeEffects({
 
           {mode === 'aurora' ? (
             <>
-              <linearGradient id={auroraId1} x1="0%" y1="0%" x2="100%" y2="35%">
-                <stop offset="0%" stopColor={glowToRgba(resolvedGlow, 0)} />
-                <stop offset="28%" stopColor={auroraA} />
-                <stop offset="52%" stopColor={auroraB} />
-                <stop offset="100%" stopColor={glowToRgba(resolvedGlow, 0)} />
-              </linearGradient>
-              <linearGradient id={auroraId2} x1="100%" y1="15%" x2="0%" y2="85%">
-                <stop offset="0%" stopColor={glowToRgba('#a78bfa', 0)} />
-                <stop offset="38%" stopColor={auroraViolet} />
+              {/* Vertical curtain gradients — bright core, soft falloff */}
+              <radialGradient id={auroraId1} cx="50%" cy="18%" r="72%" fx="48%" fy="12%">
+                <stop offset="0%" stopColor={auroraGreen} />
+                <stop offset="45%" stopColor={auroraGreenSoft} />
+                <stop offset="100%" stopColor={glowToRgba('#34d399', 0)} />
+              </radialGradient>
+              <radialGradient id={auroraId2} cx="50%" cy="22%" r="75%" fx="52%" fy="15%">
+                <stop offset="0%" stopColor={auroraViolet} />
+                <stop offset="48%" stopColor={auroraVioletSoft} />
+                <stop offset="100%" stopColor={glowToRgba('#c084fc', 0)} />
+              </radialGradient>
+              <radialGradient id={auroraId3} cx="50%" cy="20%" r="70%" fx="50%" fy="10%">
+                <stop offset="0%" stopColor={auroraCyan} />
+                <stop offset="50%" stopColor={auroraCyanSoft} />
+                <stop offset="100%" stopColor={glowToRgba('#22d3ee', 0)} />
+              </radialGradient>
+              <radialGradient id={auroraId4} cx="50%" cy="25%" r="68%" fx="55%" fy="18%">
+                <stop offset="0%" stopColor={auroraGlowCore} />
                 <stop
-                  offset="68%"
-                  stopColor={glowToRgba(resolvedGlow, 0.16 + clampedIntensity * 0.14)}
+                  offset="55%"
+                  stopColor={glowToRgba(resolvedGlow, 0.18 + clampedIntensity * 0.2)}
                 />
-                <stop offset="100%" stopColor={glowToRgba('#a78bfa', 0)} />
-              </linearGradient>
-              <linearGradient id={auroraId3} x1="20%" y1="100%" x2="80%" y2="0%">
-                <stop offset="0%" stopColor={glowToRgba('#7dd3fc', 0)} />
-                <stop offset="40%" stopColor={auroraC} />
-                <stop offset="70%" stopColor={glowToRgba('#38bdf8', 0.1 + clampedGlow * 0.18)} />
-                <stop offset="100%" stopColor={glowToRgba('#7dd3fc', 0)} />
-              </linearGradient>
+                <stop offset="100%" stopColor={glowToRgba(resolvedGlow, 0)} />
+              </radialGradient>
+              <filter id={auroraSoftId} x="-30%" y="-20%" width="160%" height="140%">
+                <feGaussianBlur stdDeviation={3 + clampedIntensity * 4 + clampedGlow * 2} />
+              </filter>
             </>
           ) : null}
 
@@ -524,33 +573,47 @@ function RibbonChromeEffects({
 
         {mode === 'aurora' ? (
           <g mask={`url(#${maskId})`} className="ribbon-fx-aurora-group">
-            <rect
-              className="ribbon-fx-aurora-band ribbon-fx-aurora-band--a"
-              x="-480"
-              y="-20"
-              width="2400"
-              height="280"
+            {/* Tall vertical curtains — reads as aurora sheets, not a tint wash */}
+            <ellipse
+              className="ribbon-fx-aurora-curtain ribbon-fx-aurora-curtain--a"
+              cx="380"
+              cy="130"
+              rx={95 + clampedIntensity * 30 + clampedGlow * 20}
+              ry={175 + clampedIntensity * 20}
               fill={`url(#${auroraId1})`}
-              opacity={Math.min(1, auroraLayerA)}
+              opacity={Math.min(1, auroraCurtainOpacity)}
+              filter={`url(#${auroraSoftId})`}
             />
-            <rect
-              className="ribbon-fx-aurora-band ribbon-fx-aurora-band--b"
-              x="-480"
-              y="-20"
-              width="2400"
-              height="280"
+            <ellipse
+              className="ribbon-fx-aurora-curtain ribbon-fx-aurora-curtain--b"
+              cx="720"
+              cy="140"
+              rx={110 + clampedIntensity * 35 + clampedGlow * 25}
+              ry={185 + clampedIntensity * 25}
               fill={`url(#${auroraId2})`}
-              opacity={Math.min(1, auroraLayerB)}
+              opacity={Math.min(1, auroraCurtainOpacityB)}
+              filter={`url(#${auroraSoftId})`}
             />
-            {clampedGlow > 0.15 ? (
-              <rect
-                className="ribbon-fx-aurora-band ribbon-fx-aurora-band--c"
-                x="-480"
-                y="-20"
-                width="2400"
-                height="280"
-                fill={`url(#${auroraId3})`}
-                opacity={Math.min(1, auroraLayerC)}
+            <ellipse
+              className="ribbon-fx-aurora-curtain ribbon-fx-aurora-curtain--c"
+              cx="1040"
+              cy="125"
+              rx={100 + clampedIntensity * 28 + clampedGlow * 18}
+              ry={170 + clampedIntensity * 22}
+              fill={`url(#${auroraId3})`}
+              opacity={Math.min(1, auroraCurtainOpacityC)}
+              filter={`url(#${auroraSoftId})`}
+            />
+            {clampedGlow > 0.2 ? (
+              <ellipse
+                className="ribbon-fx-aurora-curtain ribbon-fx-aurora-curtain--d"
+                cx="560"
+                cy="135"
+                rx={80 + clampedGlow * 40}
+                ry={160 + clampedGlow * 30}
+                fill={`url(#${auroraId4})`}
+                opacity={Math.min(1, auroraCurtainOpacityD)}
+                filter={`url(#${auroraSoftId})`}
               />
             ) : null}
           </g>
@@ -558,28 +621,44 @@ function RibbonChromeEffects({
 
         {mode === 'ripple' ? (
           <g mask={`url(#${maskId})`} className="ribbon-fx-ripple-group">
-            {RIPPLE_FOCI.map((focus, fi) =>
-              [0, 1].map((ring) => (
-                <ellipse
-                  key={`ripple-${fi}-${ring}`}
-                  className={`ribbon-fx-ripple-ring ribbon-fx-ripple-ring--${fi + 1}`}
-                  cx={focus.cx}
-                  cy={focus.cy}
-                  rx={focus.rx * (1 + clampedIntensity * 0.35)}
-                  ry={focus.ry * (1 + clampedIntensity * 0.3)}
-                  fill="none"
-                  stroke={glowToRgba(
-                    ring === 0 ? resolvedGlow : '#e8f4ff',
-                    (glassSoft ? 0.42 : 0.32) + clampedIntensity * 0.4
-                  )}
-                  strokeWidth={rippleStroke * (ring === 0 ? 1 : 0.7)}
-                  filter={`url(#${softBlurId})`}
-                  style={{
-                    ['--ribbon-fx-ripple-delay']: `${(fi * 0.35 + ring * 0.55).toFixed(2)}s`,
-                  }}
-                />
-              ))
-            )}
+            {RIPPLE_FOCI.map((focus, fi) => {
+              const delaySec = (fi * rippleSlot).toFixed(2);
+              const echoDelay = (fi * rippleSlot + rippleSlot * 0.12).toFixed(2);
+              return (
+                <React.Fragment key={`ripple-${fi}`}>
+                  <ellipse
+                    className="ribbon-fx-ripple-ring"
+                    cx={focus.cx}
+                    cy={focus.cy}
+                    rx={focus.rx * (1 + clampedIntensity * 0.35)}
+                    ry={focus.ry * (1 + clampedIntensity * 0.3)}
+                    fill="none"
+                    stroke={glowToRgba(
+                      resolvedGlow,
+                      (glassSoft ? 0.48 : 0.38) + clampedIntensity * 0.4
+                    )}
+                    strokeWidth={rippleStroke}
+                    filter={`url(#${softBlurId})`}
+                    style={{ ['--ribbon-fx-ripple-delay']: `${delaySec}s` }}
+                  />
+                  <ellipse
+                    className="ribbon-fx-ripple-ring"
+                    cx={focus.cx}
+                    cy={focus.cy}
+                    rx={focus.rx * (0.75 + clampedIntensity * 0.25)}
+                    ry={focus.ry * (0.7 + clampedIntensity * 0.22)}
+                    fill="none"
+                    stroke={glowToRgba(
+                      '#e8f4ff',
+                      (glassSoft ? 0.28 : 0.2) + clampedIntensity * 0.28
+                    )}
+                    strokeWidth={rippleStroke * 0.65}
+                    filter={`url(#${softBlurId})`}
+                    style={{ ['--ribbon-fx-ripple-delay']: `${echoDelay}s` }}
+                  />
+                </React.Fragment>
+              );
+            })}
           </g>
         ) : null}
 

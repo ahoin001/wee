@@ -1,7 +1,7 @@
 /**
- * Home-grid Now Playing — size-aware layouts up to 3×3.
- * Crisp square cover over a darkened, lightly blurred album backdrop;
- * optional reactive bars via Looks → Visualizer.
+ * Home-grid Now Playing — immersive album-matched player.
+ * Hero: true-square floating cover over blurred art backdrop.
+ * Inline: square cover docked in the glass panel beside transport.
  */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
@@ -37,10 +37,7 @@ function formatMs(ms) {
 }
 
 /**
- * Per-size chrome + layout.
- * - immersive / hero: floating square cover + inset glass pill
- * - wide (2×1): side-by-side cover + chrome
- * - compact (1×1): mini square + chrome
+ * Per-size chrome. Album art sizing is height-led for tall tiles so covers stay square.
  */
 function chromeForSize(sizeId) {
   switch (sizeId) {
@@ -54,7 +51,6 @@ function chromeForSize(sizeId) {
         artist: 'text-[7px] tracking-[0.12em]',
         showArtist: false,
         showProgress: false,
-        showStatus: false,
         showTimestamps: false,
         showVisualizer: false,
         playBox: 'h-6 w-6 rounded-lg border-b-2',
@@ -64,20 +60,21 @@ function chromeForSize(sizeId) {
         glassRadius: 'rounded-lg',
         transportGap: 'gap-2',
         artRadius: 'rounded-xl',
-        artMax: 'h-10 w-10 shrink-0',
+        /** Height-led square — never width+max-h which collapses to a pill. */
+        artHeroClass: 'aspect-square h-[min(100%,2.75rem)] w-auto max-w-full',
+        artInlineClass: 'aspect-square h-10 w-10 shrink-0',
         vizMaxH: 0,
       };
     case 'T':
       return {
         layout: 'immersive',
-        stackPad: 'gap-2 p-2.5',
-        glassPad: 'gap-1 px-3 py-2',
-        glassWidth: 'mx-auto w-[min(100%,13.5rem)]',
+        stackPad: 'gap-1.5 p-2',
+        glassPad: 'gap-0.5 px-3 py-1.5',
+        glassWidth: 'w-full',
         title: 'text-xs leading-snug sm:text-sm',
         artist: 'text-[8px] tracking-[0.16em]',
         showArtist: true,
         showProgress: true,
-        showStatus: true,
         showTimestamps: false,
         showVisualizer: true,
         playBox: 'h-8 w-8 rounded-[0.9rem] border-b-[4px] sm:h-9 sm:w-9',
@@ -87,99 +84,100 @@ function chromeForSize(sizeId) {
         glassRadius: 'rounded-2xl',
         transportGap: 'gap-2.5',
         artRadius: 'rounded-[1.35rem]',
-        artMax: 'aspect-square w-[min(88%,11rem)] max-h-[min(52%,11rem)]',
+        artHeroClass: 'aspect-square h-[min(100%,10.5rem)] w-auto max-w-[92%]',
+        artInlineClass: 'aspect-square h-[4.25rem] w-[4.25rem] shrink-0',
         vizMaxH: 22,
       };
     case 'V':
       return {
         layout: 'immersive',
-        stackPad: 'gap-2.5 p-3',
-        glassPad: 'gap-1 px-3.5 py-2.5',
-        glassWidth: 'mx-auto w-[min(100%,16rem)]',
+        stackPad: 'gap-2 p-2.5',
+        glassPad: 'gap-1 px-3.5 py-2',
+        glassWidth: 'w-full',
         title: 'text-sm leading-snug',
         artist: 'text-[9px] tracking-[0.16em]',
         showArtist: true,
         showProgress: true,
-        showStatus: true,
         showTimestamps: true,
         showVisualizer: true,
-        playBox: 'h-10 w-10 rounded-[1.05rem] border-b-[5px]',
-        playIcon: 17,
+        playBox: 'h-9 w-9 rounded-[1.05rem] border-b-[5px]',
+        playIcon: 16,
         skipIcon: 17,
         skipBox: 'h-8 w-8',
         glassRadius: 'rounded-[1.35rem]',
         transportGap: 'gap-3',
         artRadius: 'rounded-[1.5rem]',
-        artMax: 'aspect-square w-[min(90%,13.5rem)] max-h-[min(48%,13.5rem)]',
+        artHeroClass: 'aspect-square h-[min(100%,13rem)] w-auto max-w-[90%]',
+        artInlineClass: 'aspect-square h-[4.75rem] w-[4.75rem] shrink-0',
         vizMaxH: 26,
       };
     case 'L':
       return {
         layout: 'immersive',
-        stackPad: 'gap-2.5 p-3',
-        glassPad: 'gap-1 px-3.5 py-2.5',
-        glassWidth: 'mx-auto w-[min(100%,17.5rem)]',
+        stackPad: 'gap-2 p-2.5',
+        glassPad: 'gap-1 px-3.5 py-2',
+        glassWidth: 'w-full',
         title: 'text-sm leading-snug sm:text-base',
         artist: 'text-[9px] tracking-[0.18em]',
         showArtist: true,
         showProgress: true,
-        showStatus: true,
         showTimestamps: true,
         showVisualizer: true,
-        playBox: 'h-10 w-10 rounded-[1.05rem] border-b-[5px] sm:h-11 sm:w-11',
-        playIcon: 18,
+        playBox: 'h-9 w-9 rounded-[1.05rem] border-b-[5px] sm:h-10 sm:w-10',
+        playIcon: 17,
         skipIcon: 18,
         skipBox: 'h-8 w-8',
         glassRadius: 'rounded-[1.35rem]',
         transportGap: 'gap-3',
         artRadius: 'rounded-[1.65rem]',
-        artMax: 'aspect-square w-[min(72%,14rem)] max-h-[min(52%,14rem)]',
+        artHeroClass: 'aspect-square h-[min(100%,12.5rem)] w-auto max-w-[78%]',
+        artInlineClass: 'aspect-square h-20 w-20 shrink-0',
         vizMaxH: 28,
       };
     case 'W':
       return {
         layout: 'immersive',
-        stackPad: 'gap-2.5 p-3',
-        glassPad: 'gap-1 px-4 py-2.5',
-        glassWidth: 'mx-auto w-[min(100%,22rem)]',
+        stackPad: 'gap-2 p-2.5',
+        glassPad: 'gap-1 px-4 py-2',
+        glassWidth: 'w-full',
         title: 'text-base leading-snug',
         artist: 'text-[10px] tracking-[0.18em]',
         showArtist: true,
         showProgress: true,
-        showStatus: true,
         showTimestamps: true,
         showVisualizer: true,
-        playBox: 'h-11 w-11 rounded-[1.1rem] border-b-[5px]',
+        playBox: 'h-10 w-10 rounded-[1.1rem] border-b-[5px]',
         playIcon: 18,
         skipIcon: 18,
         skipBox: 'h-9 w-9',
         glassRadius: 'rounded-[1.45rem]',
         transportGap: 'gap-3.5',
         artRadius: 'rounded-[1.75rem]',
-        artMax: 'aspect-square w-[min(42%,15rem)] max-h-[min(58%,15rem)]',
+        artHeroClass: 'aspect-square h-[min(100%,14rem)] w-auto max-w-[48%]',
+        artInlineClass: 'aspect-square h-[5.25rem] w-[5.25rem] shrink-0',
         vizMaxH: 30,
       };
     case 'XL':
       return {
         layout: 'immersive',
-        stackPad: 'gap-3 p-3.5',
-        glassPad: 'gap-1.5 px-4 py-3',
-        glassWidth: 'mx-auto w-[min(100%,24rem)]',
+        stackPad: 'gap-2.5 p-3',
+        glassPad: 'gap-1 px-4 py-2.5',
+        glassWidth: 'w-full',
         title: 'text-base leading-snug sm:text-lg',
         artist: 'text-[10px] tracking-[0.2em]',
         showArtist: true,
         showProgress: true,
-        showStatus: true,
         showTimestamps: true,
         showVisualizer: true,
-        playBox: 'h-12 w-12 rounded-[1.15rem] border-b-[5px]',
-        playIcon: 20,
+        playBox: 'h-11 w-11 rounded-[1.15rem] border-b-[5px]',
+        playIcon: 19,
         skipIcon: 20,
         skipBox: 'h-9 w-9',
         glassRadius: 'rounded-[1.55rem]',
         transportGap: 'gap-4',
         artRadius: 'rounded-[1.85rem]',
-        artMax: 'aspect-square w-[min(58%,16.5rem)] max-h-[min(48%,16.5rem)]',
+        artHeroClass: 'aspect-square h-[min(100%,15rem)] w-auto max-w-[58%]',
+        artInlineClass: 'aspect-square h-24 w-24 shrink-0',
         vizMaxH: 34,
       };
     case 'M':
@@ -193,7 +191,6 @@ function chromeForSize(sizeId) {
         artist: 'text-[8px] tracking-[0.14em]',
         showArtist: true,
         showProgress: true,
-        showStatus: true,
         showTimestamps: false,
         showVisualizer: true,
         playBox: 'h-7 w-7 rounded-[0.85rem] border-b-[3px]',
@@ -203,11 +200,83 @@ function chromeForSize(sizeId) {
         glassRadius: 'rounded-xl',
         transportGap: 'gap-2.5',
         artRadius: 'rounded-[1.15rem]',
-        artMax: 'aspect-square h-[min(100%,5.75rem)] w-[min(100%,5.75rem)] shrink-0',
+        artHeroClass: 'aspect-square h-[min(100%,5.5rem)] w-auto max-w-full',
+        artInlineClass: 'aspect-square h-14 w-14 shrink-0',
         vizMaxH: 18,
       };
   }
 }
+
+function AlbumCover({
+  url,
+  radiusClass,
+  sizeClass,
+  extractedColors,
+  placeholderIconSize = 28,
+}) {
+  if (url) {
+    return (
+      <div
+        className={[
+          'relative overflow-hidden border border-[hsl(var(--color-pure-white)/0.28)]',
+          'bg-[hsl(var(--surface-elevated)/0.35)] shadow-[var(--shadow-soft-hover)]',
+          'ring-1 ring-[hsl(var(--color-pure-black)/0.16)]',
+          radiusClass,
+          sizeClass,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <img
+          src={url}
+          alt=""
+          className="pointer-events-none h-full w-full object-cover object-center"
+          draggable={false}
+          decoding="async"
+        />
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_1px_0_hsl(var(--color-pure-white)/0.22)]"
+          aria-hidden
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={[
+        'relative flex items-center justify-center overflow-hidden border border-[hsl(var(--border-primary)/0.3)]',
+        'bg-[hsl(var(--surface-elevated)/0.55)] shadow-[var(--shadow-soft)]',
+        radiusClass,
+        sizeClass,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={
+        extractedColors?.primary
+          ? {
+              background: `linear-gradient(145deg, ${extractedColors.primary}, ${extractedColors.secondary || extractedColors.primary})`,
+            }
+          : undefined
+      }
+    >
+      <Music
+        size={placeholderIconSize}
+        strokeWidth={2.25}
+        className="text-[hsl(var(--color-pure-white)/0.88)]"
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+AlbumCover.propTypes = {
+  url: PropTypes.string,
+  radiusClass: PropTypes.string,
+  sizeClass: PropTypes.string,
+  extractedColors: PropTypes.object,
+  placeholderIconSize: PropTypes.number,
+};
 
 function NowPlayingSlot({
   slot,
@@ -261,7 +330,6 @@ function NowPlayingSlot({
     artistLine = '',
     albumArtUrl = '',
     isPlaying = false,
-    appName = '',
     controlsVia = null,
     progressMs = 0,
     durationMs = 0,
@@ -280,6 +348,7 @@ function NowPlayingSlot({
   const isCompact = sizeId === 'S';
   const isImmersive = chrome.layout === 'immersive';
   const isWide = chrome.layout === 'wide';
+  const useInlineArt = npLooks.artLayout === 'inline' && !isCompact;
   const interactionsLocked = arrangeMode || punchMode;
   const hasTrack = Boolean(trackName);
   const hasArt = Boolean(albumArtUrl);
@@ -366,12 +435,6 @@ function NowPlayingSlot({
     };
   }, [extractedColors]);
 
-  const statusLabel = isPlaying
-    ? appName || 'Now Playing'
-    : hasTrack
-      ? 'Paused'
-      : '';
-
   const progressRatio =
     durationMs > 0 ? Math.min(1, Math.max(0, progressMs / durationMs)) : 0;
   const showProgress =
@@ -402,17 +465,28 @@ function NowPlayingSlot({
     'text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--primary)/0.14)] hover:text-[hsl(var(--primary))]',
   ].join(' ');
 
+  const glassPanelStyle = useMemo(() => {
+    if (!extractedColors?.primary) return undefined;
+    const primary = extractedColors.primary;
+    const secondary = extractedColors.secondary || primary;
+    return {
+      background: `linear-gradient(155deg, color-mix(in srgb, ${primary} 22%, hsl(var(--surface-elevated) / 0.9)), color-mix(in srgb, ${secondary} 12%, hsl(var(--surface-elevated) / 0.86)))`,
+      borderColor: `color-mix(in srgb, ${primary} 35%, hsl(var(--border-primary) / 0.45))`,
+    };
+  }, [extractedColors]);
+
   const glassPanelClass = [
-    'relative z-10 flex flex-col border shadow-[var(--shadow-soft)]',
+    'relative z-10 flex border shadow-[var(--shadow-soft)]',
     chrome.glassRadius,
     chrome.glassPad,
     chrome.glassWidth,
-    'border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated)/0.82)] text-[hsl(var(--text-primary))] backdrop-blur-md',
+    'border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated)/0.88)] text-[hsl(var(--text-primary))] backdrop-blur-md',
+    useInlineArt ? 'flex-row items-stretch gap-2.5' : 'flex-col',
   ].join(' ');
 
   const transportRow = showTransport ? (
     <div
-      className={`relative z-10 mt-1 flex items-center justify-center ${chrome.transportGap}`}
+      className={`relative z-10 mt-0.5 flex items-center justify-center ${chrome.transportGap}`}
       role="group"
       aria-label="Playback controls"
     >
@@ -469,23 +543,11 @@ function NowPlayingSlot({
   const trackMeta = (
     <button
       type="button"
-      className="flex w-full flex-col gap-0.5 text-left outline-none"
+      className="flex w-full min-w-0 flex-col gap-0.5 text-left outline-none"
       onClick={handleActivate}
       disabled={interactionsLocked && !arrangeMode}
       aria-label={`Now playing: ${trackName} by ${artistLine}`}
     >
-      {chrome.showStatus ? (
-        <span className="flex items-center gap-1 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
-          <Music
-            size={isCompact ? 8 : 10}
-            strokeWidth={2.5}
-            className="shrink-0 text-[hsl(var(--primary))]"
-            aria-hidden
-          />
-          <span className="truncate">{statusLabel}</span>
-        </span>
-      ) : null}
-
       <span
         className={`truncate font-black uppercase italic tracking-tighter text-[hsl(var(--text-primary))] ${chrome.title}`}
       >
@@ -522,56 +584,24 @@ function NowPlayingSlot({
     </button>
   );
 
-  const floatingArt = hasArt ? (
-    <div
-      className={[
-        'relative shrink-0 overflow-hidden border border-[hsl(var(--color-pure-white)/0.32)]',
-        'bg-[hsl(var(--surface-elevated)/0.35)] shadow-[var(--shadow-soft-hover)]',
-        'ring-1 ring-[hsl(var(--color-pure-black)/0.18)]',
-        chrome.artRadius,
-        chrome.artMax || '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <img
-        src={albumArtUrl}
-        alt=""
-        className="pointer-events-none h-full w-full object-cover"
-        draggable={false}
-        decoding="async"
-      />
-      <div
-        className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_1px_0_hsl(var(--color-pure-white)/0.22)]"
-        aria-hidden
-      />
-    </div>
-  ) : (
-    <div
-      className={[
-        'relative flex shrink-0 items-center justify-center overflow-hidden border border-[hsl(var(--border-primary)/0.3)]',
-        'bg-[hsl(var(--surface-elevated)/0.55)] shadow-[var(--shadow-soft)]',
-        chrome.artRadius,
-        chrome.artMax || '',
-        !isImmersive && !isWide ? 'h-11 w-11' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      style={
-        extractedColors?.primary
-          ? {
-              background: `linear-gradient(145deg, ${extractedColors.primary}, ${extractedColors.secondary || extractedColors.primary})`,
-            }
-          : undefined
-      }
-    >
-      <Music
-        size={isImmersive ? 36 : isWide ? 22 : 18}
-        strokeWidth={2.25}
-        className="text-[hsl(var(--color-pure-white)/0.88)]"
-        aria-hidden
-      />
-    </div>
+  const heroArt = (
+    <AlbumCover
+      url={hasArt ? albumArtUrl : ''}
+      radiusClass={chrome.artRadius}
+      sizeClass={chrome.artHeroClass}
+      extractedColors={extractedColors}
+      placeholderIconSize={isImmersive ? 36 : isWide ? 22 : 18}
+    />
+  );
+
+  const inlineArt = (
+    <AlbumCover
+      url={hasArt ? albumArtUrl : ''}
+      radiusClass={chrome.artRadius}
+      sizeClass={`${chrome.artInlineClass} self-center`}
+      extractedColors={extractedColors}
+      placeholderIconSize={22}
+    />
   );
 
   const visualizerRow =
@@ -589,20 +619,27 @@ function NowPlayingSlot({
     ) : null;
 
   const chromeCard = (
-    <div className={glassPanelClass}>
-      {trackMeta}
-      {transportRow}
+    <div className={glassPanelClass} style={glassPanelStyle}>
+      <div className="flex min-w-0 flex-1 flex-col justify-center">
+        {trackMeta}
+        {transportRow}
+      </div>
+      {useInlineArt ? inlineArt : null}
     </div>
   );
 
-  /** Darkened enlarged album art + light blur — not a heavy color wash. */
+  const blurPx = npLooks.backdropBlur;
+  const darken = npLooks.backdropDarken;
+
+  /** Enlarged album art wash — blur/darken from Looks. Always tinted from art when present. */
   const ambientLayer = hasTrack ? (
     <>
       {hasArt ? (
         <img
           src={albumArtUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full scale-[1.18] object-cover blur-[10px]"
+          className="pointer-events-none absolute inset-0 h-full w-full scale-[1.22] object-cover"
+          style={{ filter: `blur(${blurPx}px)` }}
           draggable={false}
           decoding="async"
           aria-hidden
@@ -619,14 +656,15 @@ function NowPlayingSlot({
         />
       )}
       <div
-        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[hsl(var(--color-pure-black)/0.48)]"
+        className="pointer-events-none absolute inset-0 rounded-[inherit]"
+        style={{ backgroundColor: `hsl(var(--color-pure-black) / ${darken})` }}
         aria-hidden
       />
       {extractedColors?.primary ? (
         <div
-          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-[0.1]"
+          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-[0.22]"
           style={{
-            background: `radial-gradient(ellipse 70% 55% at 50% 30%, ${extractedColors.primary}, transparent 68%)`,
+            background: `radial-gradient(ellipse 75% 60% at 50% 28%, ${extractedColors.primary}, transparent 70%)`,
           }}
           aria-hidden
         />
@@ -657,14 +695,21 @@ function NowPlayingSlot({
         </span>
       </button>
     );
+  } else if (useInlineArt) {
+    body = (
+      <div className={`relative z-10 flex h-full min-h-0 w-full flex-col justify-end ${chrome.stackPad}`}>
+        {visualizerRow}
+        <div className="mt-auto flex w-full shrink-0">{chromeCard}</div>
+      </div>
+    );
   } else if (isImmersive) {
     body = (
       <div className={`relative z-10 flex h-full min-h-0 w-full flex-col ${chrome.stackPad}`}>
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1">
-          {floatingArt}
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5">
+          {heroArt}
           {visualizerRow}
         </div>
-        <div className="mt-auto flex w-full shrink-0 justify-center">{chromeCard}</div>
+        <div className="mt-auto flex w-full shrink-0">{chromeCard}</div>
       </div>
     );
   } else if (isWide) {
@@ -673,7 +718,7 @@ function NowPlayingSlot({
         className={`relative z-10 flex h-full min-h-0 w-full items-center ${chrome.stackPad}`}
       >
         <div className="flex h-full shrink-0 flex-col items-center justify-center gap-1">
-          {floatingArt}
+          {heroArt}
           {visualizerRow}
         </div>
         <div className="flex min-h-0 min-w-0 flex-1 items-center pl-1">{chromeCard}</div>
@@ -683,7 +728,7 @@ function NowPlayingSlot({
     body = (
       <div className={`relative z-10 flex h-full min-h-0 w-full flex-col justify-end ${chrome.stackPad}`}>
         {hasArt || extractedColors?.primary ? (
-          <div className="mb-1 flex justify-center">{floatingArt}</div>
+          <div className="mb-1 flex justify-center">{heroArt}</div>
         ) : null}
         {chromeCard}
       </div>
