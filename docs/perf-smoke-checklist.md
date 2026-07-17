@@ -13,7 +13,7 @@ Run this checklist after changes to app shell, wallpaper transitions, ribbon, or
 
 - `FloatingSpotifyWidget` visualizer updates smoothly when active and slows down in low-power mode.
 - `FloatingSpotifyWidget` playback polling pauses when app is not active.
-- `DockParticleSystem` runs while active, reduces intensity in low-power mode, and pauses when inactive.
+- `RibbonChromeEffects` runs while active, reduces intensity in low-power mode, and pauses when inactive.
 - Wallpaper cycling does not trigger channel re-renders or UI stalls.
 - Ribbon interactions remain responsive when toggling low-power mode.
 

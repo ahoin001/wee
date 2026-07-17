@@ -22,7 +22,6 @@ import { weeMarkSettingsTab } from '../../utils/weePerformanceMarks';
 import {
   ChannelsLayoutSettingsTab,
   UnifiedDockSettingsTab,
-  ColorsSettingsTab,
   WallpaperSettingsTab,
   TimeSettingsTab,
   SoundsSettingsTab,
@@ -43,7 +42,6 @@ const SETTINGS_TAB_COMPONENTS = {
   'api-integrations': ApiIntegrationsSettingsTab,
   channels: ChannelsLayoutSettingsTab,
   dock: UnifiedDockSettingsTab,
-  colors: ColorsSettingsTab,
   general: GeneralSettingsTab,
   motion: MotionFeedbackSettingsTab,
   'navigation-pill': NavigationPillSettingsTab,

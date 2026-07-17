@@ -57,7 +57,7 @@ const PresetsSaveCurrentCard = React.memo(
       ) : null}
       {customPresetCount >= maxCustomPresets ? (
         <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-          You can save up to {maxCustomPresets} custom looks (plus Spotify Match).
+          You can save up to {maxCustomPresets} custom presets (plus Spotify Match).
         </Text>
       ) : null}
     </div>

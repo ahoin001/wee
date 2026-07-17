@@ -252,12 +252,7 @@ useConsolidatedAppStore = create(
           homeArrangeHintSeen: false,
           /** One-time Edit Home widget coach (tap tile → Add widget) — true once dismissed or first widget placed. Persisted. */
           homeBoardWidgetCoachDismissed: false,
-          /**
-           * Now Playing source preference: 'auto' | 'spotify' | 'system'. Persisted.
-           * Auto prefers the currently playing session.
-           */
-          nowPlayingSourcePreference: 'auto',
-          /** When true, Windows SMTC sessions may feed the shared nowPlaying slice. Persisted. */
+          /** When true, Windows SMTC sessions feed the shared Now Playing slice. Persisted. */
           systemMediaEnabled: true,
           /** Ctrl+Space command palette. Transient — not persisted. */
           commandPaletteOpen: false,
@@ -464,25 +459,6 @@ useConsolidatedAppStore = create(
           
           // Custom themes
           customThemes: {},
-          
-          // Particle system settings
-          particleSystemEnabled: false,
-          particleEffectType: 'normal',
-          particleDirection: 'upward',
-          particleSpeed: 2,
-          particleCount: 3,
-          particleSpawnRate: 60,
-          particleSize: 3,
-          particleGravity: 0.02,
-          particleFadeSpeed: 0.008,
-          particleSizeDecay: 0.02,
-          particleUseAdaptiveColor: false,
-          particleColorIntensity: 1.0,
-          particleColorVariation: 0.3,
-          particleRotationSpeed: 0.05,
-          particleLifetime: 3.0,
-          particleCustomColors: [],
-          particleClipPathFollow: false,
         },
 
         // Monitor state
@@ -903,8 +879,7 @@ useConsolidatedAppStore = create(
                 : updates;
               if (
                 resolvedUpdates &&
-                (Object.prototype.hasOwnProperty.call(resolvedUpdates, 'nowPlayingSourcePreference') ||
-                  Object.prototype.hasOwnProperty.call(resolvedUpdates, 'systemMediaEnabled'))
+                Object.prototype.hasOwnProperty.call(resolvedUpdates, 'systemMediaEnabled')
               ) {
                 touchedNowPlayingPrefs = true;
               }
@@ -1491,20 +1466,18 @@ useConsolidatedAppStore = create(
           // Spotify manager
           spotifyManager,
           
-          // Widget toggle actions
+          // Widget toggle actions (Spotify + System Info archived — always force off)
           toggleSpotifyWidget: () => {
             const store = useConsolidatedAppStore.getState();
-            const isVisible = store.floatingWidgets.spotify.visible;
             store.actions.setFloatingWidgetsState({
-              spotify: { ...store.floatingWidgets.spotify, visible: !isVisible }
+              spotify: { ...store.floatingWidgets.spotify, visible: false }
             });
           },
 
           toggleSystemInfoWidget: () => {
             const store = useConsolidatedAppStore.getState();
-            const isVisible = store.floatingWidgets.systemInfo.visible;
             store.actions.setFloatingWidgetsState({
-              systemInfo: { ...store.floatingWidgets.systemInfo, visible: !isVisible }
+              systemInfo: { ...store.floatingWidgets.systemInfo, visible: false }
             });
           },
 
@@ -1950,6 +1923,13 @@ useConsolidatedAppStore = create(
                     config: normalizeAdminPanelConfig(ap.config),
                   };
                 }
+                // Archived: floating Spotify + System Info are not mounted.
+                if (nextFw.spotify) {
+                  nextFw.spotify = { ...nextFw.spotify, visible: false };
+                }
+                if (nextFw.systemInfo) {
+                  nextFw.systemInfo = { ...nextFw.systemInfo, visible: false };
+                }
                 next.floatingWidgets = nextFw;
               }
               if (slices.monitors) next.monitors = { ...state.monitors, ...slices.monitors };
@@ -2329,23 +2309,6 @@ useConsolidatedAppStore = create(
               buttonSize: 1.0,
               sdCardSize: 1.0,
               recentColors: []
-            },
-            particles: {
-              enabled: false,
-              effectType: 'normal',
-              direction: 'upward',
-              speed: 2,
-              particleCount: 3,
-              spawnRate: 60,
-              size: 3,
-              gravity: 0.02,
-              fadeSpeed: 0.008,
-              sizeDecay: 0.02,
-              useAdaptiveColor: false,
-              colorIntensity: 1.0,
-              colorVariation: 0.3,
-              rotationSpeed: 0.05,
-              particleLifetime: 3.0
             },
             monitors: {
               displays: [],

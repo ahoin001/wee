@@ -12,7 +12,7 @@ export const SETTINGS_TAB_ID = {
   GENERAL: 'general',
   GAMEHUB: 'gamehub',
   SOUNDS: 'sounds',
-  /** Looks (presets) tab route id. */
+  /** Presets tab route id (legacy `themes` / “Looks”). */
   PRESETS: 'themes',
   /** Back-compat alias retained for older callsites. */
   THEMES: 'themes',
@@ -39,7 +39,7 @@ export const SETTINGS_TAB_ID = {
  * Open the settings modal and select a tab (used from CTAs on toasts, widgets, etc.).
  * @param {string} tabId — see SETTINGS_TAB_ID
  * @param {{ dockSubTab?: string, integrationsSubTab?: string }} [options]
- *   — Dock deep-link (`animations`, …) or Music/Steam/Widgets subtab
+ *   — Dock deep-link (`wii-ribbon`, `classic-dock`, …) or Music/Steam/Widgets subtab
  */
 export function openSettingsToTab(tabId, options = {}) {
   const patch = {
@@ -55,7 +55,7 @@ export function openSettingsToTab(tabId, options = {}) {
   useConsolidatedAppStore.getState().actions.setUIState(patch);
 }
 
-/** Open Dock settings on a specific subtab (type / classic / ribbon / animations). */
+/** Open Dock settings on a specific subtab (type / classic / ribbon). */
 export function openSettingsToDockSubtab(dockSubTab) {
   openSettingsToTab(SETTINGS_TAB_ID.DOCK, { dockSubTab });
 }

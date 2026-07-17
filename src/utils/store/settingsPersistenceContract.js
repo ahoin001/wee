@@ -234,10 +234,6 @@ const selectPersistedUi = (ui = {}) => ({
   homeBoardWidgetCoachDismissed: ui.homeBoardWidgetCoachDismissed ?? false,
   /* Command palette: open state stays transient; only recents persist */
   commandPaletteRecent: Array.isArray(ui.commandPaletteRecent) ? ui.commandPaletteRecent.slice(0, 8) : [],
-  nowPlayingSourcePreference:
-    ui.nowPlayingSourcePreference === 'spotify' || ui.nowPlayingSourcePreference === 'system'
-      ? ui.nowPlayingSourcePreference
-      : 'auto',
   systemMediaEnabled: ui.systemMediaEnabled !== false,
   homeWidgetGlass: normalizeHomeWidgetGlass(ui.homeWidgetGlass),
   homeWeatherTempUnit: ui.homeWeatherTempUnit === 'C' ? 'C' : 'F',
@@ -252,12 +248,20 @@ const selectPersistedNavigation = (navigation = {}) => {
   return next;
 };
 
-/** Strip live telemetry; keep positions, visibility, and configs. */
+/** Strip live telemetry; keep positions, visibility, and configs.
+ * Force archived floating widgets off so old saves cannot remount them.
+ */
 const selectPersistedFloatingWidgets = (floatingWidgets = {}) => {
   if (!isPlainObject(floatingWidgets)) return {};
   const next = { ...floatingWidgets };
+  if (isPlainObject(next.spotify)) {
+    next.spotify = { ...next.spotify, visible: false };
+  }
   if (isPlainObject(next.systemInfo)) {
-    next.systemInfo = omitKeys(next.systemInfo, ['data', 'isLoading', 'error']);
+    next.systemInfo = omitKeys(
+      { ...next.systemInfo, visible: false },
+      ['data', 'isLoading', 'error']
+    );
   }
   return next;
 };

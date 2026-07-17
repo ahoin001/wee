@@ -195,7 +195,7 @@ const GeneralSettingsTab = React.memo(() => {
         />
         <SettingsToggleFieldCard
           title="Pause effects when launching games"
-          desc="When you launch a game (Steam, Epic, Game Hub, or auto-detected game folders), Wee freezes wallpaper cycling, particles, and ambient effects until you return — without minimizing. Channel Behavior can override Auto per tile."
+          desc="When you launch a game (Steam, Epic, Game Hub, or auto-detected game folders), Wee freezes wallpaper cycling, chrome effects, and ambient effects until you return — without minimizing."
           checked={ui.performancePauseOnGameLaunch !== false}
           onChange={handlePerformancePauseOnGameLaunchChange}
         />

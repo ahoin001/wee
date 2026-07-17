@@ -62,165 +62,183 @@ export function extractImagePalette(imageUrl) {
     return Promise.resolve(null);
   }
 
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
+  const isHttpUrl = /^https?:\/\//i.test(imageUrl);
 
-    img.onload = () => {
+  /**
+   * Local / custom-protocol wallpapers (Electron) often taint the canvas when
+   * crossOrigin=anonymous is set. Remote http(s) needs it for CORS bitmaps.
+   */
+  const loadImage = (useCrossOrigin) =>
+    new Promise((resolveLoad) => {
+      const img = new Image();
+      if (useCrossOrigin) {
+        img.crossOrigin = 'anonymous';
+      }
+      img.onload = () => resolveLoad(img);
+      img.onerror = () => resolveLoad(null);
+      img.src = imageUrl;
+    });
+
+  return (async () => {
+    try {
+      let img = await loadImage(isHttpUrl);
+      if (!img && isHttpUrl) {
+        img = await loadImage(false);
+      }
+      if (!img) return null;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      const maxSize = 160;
+      const scale = Math.min(maxSize / img.width, maxSize / img.height) || 1;
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      let imageData;
       try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(null);
-          return;
+        imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      } catch {
+        if (!isHttpUrl) return null;
+        const retryImg = await loadImage(false);
+        if (!retryImg) return null;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(retryImg, 0, 0, canvas.width, canvas.height);
+        try {
+          imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        } catch {
+          return null;
         }
+      }
 
-        const maxSize = 160;
-        const scale = Math.min(maxSize / img.width, maxSize / img.height) || 1;
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
+      const data = imageData.data;
+      const buckets = new Map();
+      // Denser sample than wallpaper path — album art is smaller and more saturated.
+      const step = 3;
 
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < data.length; i += step * 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+        const sum = r + g + b;
+        if (a <= 128 || sum <= 80 || sum >= 720) continue;
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const chroma = max - min;
+        if (chroma < 12 && sum > 140 && sum < 620) continue;
 
-        const buckets = new Map();
-        // Denser sample than wallpaper path — album art is smaller and more saturated.
-        const step = 3;
-
-        for (let i = 0; i < data.length; i += step * 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const a = data[i + 3];
-          const sum = r + g + b;
-          if (a <= 128 || sum <= 80 || sum >= 720) continue;
-
-          // Prefer chromatic pixels over near-gray (accurate album-driven accents).
-          const max = Math.max(r, g, b);
-          const min = Math.min(r, g, b);
-          const chroma = max - min;
-          if (chroma < 12 && sum > 140 && sum < 620) continue;
-
-          const key = quantizeKey(r, g, b);
-          const prev = buckets.get(key);
-          const weight = 1 + chroma / 64;
-          if (prev) {
-            prev.count += weight;
-            prev.r += r * weight;
-            prev.g += g * weight;
-            prev.b += b * weight;
-          } else {
-            buckets.set(key, { count: weight, r: r * weight, g: g * weight, b: b * weight });
-          }
+        const key = quantizeKey(r, g, b);
+        const prev = buckets.get(key);
+        const weight = 1 + chroma / 64;
+        if (prev) {
+          prev.count += weight;
+          prev.r += r * weight;
+          prev.g += g * weight;
+          prev.b += b * weight;
+        } else {
+          buckets.set(key, { count: weight, r: r * weight, g: g * weight, b: b * weight });
         }
+      }
 
-        if (buckets.size === 0) {
-          resolve(null);
-          return;
+      if (buckets.size === 0) return null;
+
+      const ranked = [...buckets.values()]
+        .map((bucket) => ({
+          count: bucket.count,
+          r: Math.round(bucket.r / bucket.count),
+          g: Math.round(bucket.g / bucket.count),
+          b: Math.round(bucket.b / bucket.count),
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      const boost = 1.22;
+      const avg = ranked[0];
+      const primaryR = Math.min(255, Math.round(avg.r * boost));
+      const primaryG = Math.min(255, Math.round(avg.g * boost));
+      const primaryB = Math.min(255, Math.round(avg.b * boost));
+
+      let secondarySrc = ranked[1] || ranked[0];
+      for (const candidate of ranked.slice(1, 6)) {
+        const dr = candidate.r - avg.r;
+        const dg = candidate.g - avg.g;
+        const db = candidate.b - avg.b;
+        if (dr * dr + dg * dg + db * db > 2800) {
+          secondarySrc = candidate;
+          break;
         }
+      }
+      const secondaryR = Math.max(0, Math.min(255, Math.round(secondarySrc.r * 0.92)));
+      const secondaryG = Math.max(0, Math.min(255, Math.round(secondarySrc.g * 0.92)));
+      const secondaryB = Math.max(0, Math.min(255, Math.round(secondarySrc.b * 0.92)));
 
-        const ranked = [...buckets.values()]
-          .map((bucket) => ({
-            count: bucket.count,
-            r: Math.round(bucket.r / bucket.count),
-            g: Math.round(bucket.g / bucket.count),
-            b: Math.round(bucket.b / bucket.count),
-          }))
-          .sort((a, b) => b.count - a.count);
+      const accentR = Math.min(255, Math.round(primaryR * 0.65 + secondaryR * 0.35 + 28));
+      const accentG = Math.min(255, Math.round(primaryG * 0.65 + secondaryG * 0.35 + 28));
+      const accentB = Math.min(255, Math.round(primaryB * 0.65 + secondaryB * 0.35 + 28));
 
-        const boost = 1.22;
-        const avg = ranked[0];
-        const primaryR = Math.min(255, Math.round(avg.r * boost));
-        const primaryG = Math.min(255, Math.round(avg.g * boost));
-        const primaryB = Math.min(255, Math.round(avg.b * boost));
+      const surfaceR = Math.min(255, Math.round(primaryR * 0.5 + 72));
+      const surfaceG = Math.min(255, Math.round(primaryG * 0.5 + 72));
+      const surfaceB = Math.min(255, Math.round(primaryB * 0.5 + 72));
 
-        // Secondary: next distinct bucket by hue distance, not a flat darken.
-        let secondarySrc = ranked[1] || ranked[0];
-        for (const candidate of ranked.slice(1, 6)) {
-          const dr = candidate.r - avg.r;
-          const dg = candidate.g - avg.g;
-          const db = candidate.b - avg.b;
-          if (dr * dr + dg * dg + db * db > 2800) {
-            secondarySrc = candidate;
-            break;
-          }
-        }
-        const secondaryR = Math.max(0, Math.min(255, Math.round(secondarySrc.r * 0.92)));
-        const secondaryG = Math.max(0, Math.min(255, Math.round(secondarySrc.g * 0.92)));
-        const secondaryB = Math.max(0, Math.min(255, Math.round(secondarySrc.b * 0.92)));
+      const brightness = (primaryR * 299 + primaryG * 587 + primaryB * 114) / 1000;
+      const textColor =
+        brightness > 148 ? ALBUM_ART_TEXT_ON_LIGHT : ALBUM_ART_TEXT_ON_DARK;
+      const textSecondaryColor =
+        brightness > 148
+          ? ALBUM_ART_TEXT_ON_LIGHT_SECONDARY
+          : ALBUM_ART_TEXT_ON_DARK_SECONDARY;
 
-        const accentR = Math.min(255, Math.round(primaryR * 0.65 + secondaryR * 0.35 + 28));
-        const accentG = Math.min(255, Math.round(primaryG * 0.65 + secondaryG * 0.35 + 28));
-        const accentB = Math.min(255, Math.round(primaryB * 0.65 + secondaryB * 0.35 + 28));
+      const seedHex = rgbComponentsToHex(primaryR, primaryG, primaryB);
+      const seeds = [];
+      const seen = new Set([seedHex]);
+      for (const candidate of ranked.slice(0, 8)) {
+        const hex = rgbComponentsToHex(
+          Math.min(255, Math.round(candidate.r * boost)),
+          Math.min(255, Math.round(candidate.g * boost)),
+          Math.min(255, Math.round(candidate.b * boost))
+        );
+        if (seen.has(hex)) continue;
+        seen.add(hex);
+        seeds.push(hex);
+        if (seeds.length >= 5) break;
+      }
 
-        const surfaceR = Math.min(255, Math.round(primaryR * 0.5 + 72));
-        const surfaceG = Math.min(255, Math.round(primaryG * 0.5 + 72));
-        const surfaceB = Math.min(255, Math.round(primaryB * 0.5 + 72));
-
-        const brightness = (primaryR * 299 + primaryG * 587 + primaryB * 114) / 1000;
-        const textColor =
-          brightness > 148 ? ALBUM_ART_TEXT_ON_LIGHT : ALBUM_ART_TEXT_ON_DARK;
-        const textSecondaryColor =
-          brightness > 148
-            ? ALBUM_ART_TEXT_ON_LIGHT_SECONDARY
-            : ALBUM_ART_TEXT_ON_DARK_SECONDARY;
-
-        const seedHex = rgbComponentsToHex(primaryR, primaryG, primaryB);
-        const seeds = [];
-        const seen = new Set([seedHex]);
-        for (const candidate of ranked.slice(0, 8)) {
-          const hex = rgbComponentsToHex(
-            Math.min(255, Math.round(candidate.r * boost)),
-            Math.min(255, Math.round(candidate.g * boost)),
-            Math.min(255, Math.round(candidate.b * boost))
-          );
-          if (seen.has(hex)) continue;
-          seen.add(hex);
-          seeds.push(hex);
-          if (seeds.length >= 5) break;
-        }
-
-        const gradient = `linear-gradient(135deg, 
+      const gradient = `linear-gradient(135deg, 
               rgba(${primaryR}, ${primaryG}, ${primaryB}, 1) 0%, 
               rgba(${Math.max(0, primaryR - 60)}, ${Math.max(0, primaryG - 60)}, ${Math.max(0, primaryB - 60)}, 0.95) 30%,
               rgba(${Math.max(0, primaryR - 120)}, ${Math.max(0, primaryG - 120)}, ${Math.max(0, primaryB - 120)}, 0.9) 70%,
               rgba(${Math.max(0, primaryR - 180)}, ${Math.max(0, primaryG - 180)}, ${Math.max(0, primaryB - 180)}, 0.85) 100%)`;
 
-        const blurredBackground = `linear-gradient(135deg, 
+      const blurredBackground = `linear-gradient(135deg, 
               rgba(${primaryR}, ${primaryG}, ${primaryB}, 0.8) 0%, 
               rgba(${Math.max(0, primaryR - 40)}, ${Math.max(0, primaryG - 40)}, ${Math.max(0, primaryB - 40)}, 0.6) 100%)`;
 
-        resolve({
-          seedHex,
-          seeds,
-          palette: {
-            primary: seedHex,
-            secondary: rgbComponentsToHex(secondaryR, secondaryG, secondaryB),
-            accent: rgbComponentsToHex(accentR, accentG, accentB),
-            surfaceHint: rgbComponentsToHex(surfaceR, surfaceG, surfaceB),
-            primaryRgb: rgbToCss(primaryR, primaryG, primaryB),
-            secondaryRgb: rgbToCss(secondaryR, secondaryG, secondaryB),
-            accentRgb: rgbToCss(accentR, accentG, accentB),
-            text: textColor,
-            textSecondary: textSecondaryColor,
-          },
-          gradient,
-          blurredBackground,
-        });
-      } catch (error) {
-        console.error('[extractImagePalette] Failed to extract colors:', error);
-        resolve(null);
-      }
-    };
-
-    img.onerror = () => {
-      resolve(null);
-    };
-
-    img.src = imageUrl;
-  });
+      return {
+        seedHex,
+        seeds,
+        palette: {
+          primary: seedHex,
+          secondary: rgbComponentsToHex(secondaryR, secondaryG, secondaryB),
+          accent: rgbComponentsToHex(accentR, accentG, accentB),
+          surfaceHint: rgbComponentsToHex(surfaceR, surfaceG, surfaceB),
+          primaryRgb: rgbToCss(primaryR, primaryG, primaryB),
+          secondaryRgb: rgbToCss(secondaryR, secondaryG, secondaryB),
+          accentRgb: rgbToCss(accentR, accentG, accentB),
+          text: textColor,
+          textSecondary: textSecondaryColor,
+        },
+        gradient,
+        blurredBackground,
+      };
+    } catch (error) {
+      console.error('[extractImagePalette] Failed to extract colors:', error);
+      return null;
+    }
+  })();
 }
 
 /**

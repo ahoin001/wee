@@ -7,7 +7,6 @@ const LazyPrimaryActionsModal = React.lazy(() => import('../modals/PrimaryAction
 // Update modal is hosted from App.jsx (startup popup + Escape menu).
 
 import WiiStyleButton from './WiiStyleButton';
-import DockParticleSystem from './DockParticleSystem';
 import RibbonChrome from './ribbon/RibbonChrome';
 import RibbonChromeEffects from './ribbon/RibbonChromeEffects';
 import RibbonAccessories from './ribbon/RibbonAccessories';
@@ -27,7 +26,6 @@ import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStr
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
-import { toDockParticleProps } from '../../utils/dockParticleSettings';
 import { openSettingsToDockSubtab } from '../../utils/settingsNavigation';
 import { useRibbonChromeIdleGate } from '../../hooks/useRibbonChromeIdleGate';
 import {
@@ -80,8 +78,6 @@ const WiiRibbonComponent = ({
   glassBorderOpacity: propGlassBorderOpacity,
   glassShineOpacity: propGlassShineOpacity,
   ribbonHoverAnimationEnabled = true,
-  particleSettings = {},
-  onParticleSettingsChange: _onParticleSettingsChange,
   /** Live shell duration from App (includes rapid multi-hop shortening). */
   shellTransitionMs = RIBBON_SPACE_TRANSITION_MS,
 }) => {
@@ -127,6 +123,17 @@ const WiiRibbonComponent = ({
     }))
   );
   const boardCurrentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
+  const homeNavPage = useConsolidatedAppStore(
+    (s) => s.channels?.dataBySpace?.home?.navigation?.currentPage ?? 0
+  );
+  const focusNavPage = useConsolidatedAppStore((s) => {
+    const secondaryId = s.channels?.activeSecondaryChannelProfileId;
+    const space = s.channels?.secondaryChannelProfiles?.[secondaryId]?.channelSpace;
+    return space?.navigation?.currentPage ?? 0;
+  });
+  // Primitive page deps so wallpaper-match paint retargets even if channels identity is sticky.
+  const pageForPaint =
+    activeSpaceId === 'workspaces' ? focusNavPage : activeSpaceId === 'home' ? homeNavPage : boardCurrentPage;
   const supportsPerPageRibbon = activeSpaceId === 'home' || activeSpaceId === 'workspaces';
   const spaceRibbon = appearanceBySpace?.[activeSpaceId]?.ribbon || null;
   const pageWallpaperUrl = useMemo(
@@ -136,9 +143,9 @@ const WiiRibbonComponent = ({
         wallpaperCurrent,
         appearanceBySpace,
         wallpaperEntryUrlKey,
-        currentPage: boardCurrentPage,
+        currentPage: pageForPaint,
       }),
-    [activeSpaceId, wallpaperCurrent, appearanceBySpace, boardCurrentPage]
+    [activeSpaceId, wallpaperCurrent, appearanceBySpace, pageForPaint]
   );
   const liveRibbonLook = useMemo(
     () => ({
@@ -176,7 +183,7 @@ const WiiRibbonComponent = ({
     return resolveRibbonPaintTarget({
       liveRibbon: liveRibbonLook,
       spaceRibbon,
-      currentPage: boardCurrentPage,
+      currentPage: pageForPaint,
       supportsPerPage: supportsPerPageRibbon,
       wallpaperMatchEnabled,
       wallpaperUrl: pageWallpaperUrl,
@@ -188,7 +195,7 @@ const WiiRibbonComponent = ({
   }, [
     liveRibbonLook,
     spaceRibbon,
-    boardCurrentPage,
+    pageForPaint,
     supportsPerPageRibbon,
     wallpaperMatchEnabled,
     pageWallpaperUrl,
@@ -445,7 +452,7 @@ const WiiRibbonComponent = ({
   const handleDockEffectsContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    openSettingsToDockSubtab('animations');
+    openSettingsToDockSubtab('wii-ribbon');
   };
 
   const handlePrimaryActionsSave = useCallback(
@@ -747,11 +754,6 @@ const WiiRibbonComponent = ({
     return timeColor;
   })();
 
-  const particleProps = useMemo(
-    () => toDockParticleProps(particleSettings),
-    [particleSettings]
-  );
-
   const ribbonFillColor =
     ribbonColor + (ribbonDockOpacity !== undefined ? hexAlpha(ribbonDockOpacity) : '');
 
@@ -772,10 +774,6 @@ const WiiRibbonComponent = ({
         }}
         onContextMenu={handleRibbonContextMenu}
       >
-        <DockParticleSystem
-          {...particleProps}
-          ribbonGlowColor={ribbonGlowColor || CSS_WII_BLUE}
-        />
         <RibbonChrome
           glassWiiRibbon={glassWiiRibbon}
           glassBlur={paintedGlassBlur}
@@ -955,7 +953,7 @@ const WiiRibbonComponent = ({
             }}
             onClick={(e) => handleSettingsClick(e)}
             onContextMenu={handleDockEffectsContextMenu}
-            title="Settings (Left-click for Quick Settings, Right-click for particle settings)"
+            title="Settings (Left-click for Quick Settings, Right-click for ribbon chrome)"
           >
               <svg 
                 width="28" 
@@ -1197,8 +1195,7 @@ const arePropsEqual = (prevProps, nextProps) => {
     prevProps.glassBorderOpacity === nextProps.glassBorderOpacity &&
     prevProps.glassShineOpacity === nextProps.glassShineOpacity &&
     prevProps.ribbonHoverAnimationEnabled === nextProps.ribbonHoverAnimationEnabled &&
-    isEqual(prevProps.presetsButtonConfig, nextProps.presetsButtonConfig) &&
-    isEqual(prevProps.particleSettings, nextProps.particleSettings)
+    isEqual(prevProps.presetsButtonConfig, nextProps.presetsButtonConfig)
   );
 };
 

@@ -1,26 +1,19 @@
 import { useEffect } from 'react';
 
+/**
+ * Reset + hydrate ChannelModal local state when opening a channel.
+ * Per-channel motion / Ken Burns / launch-pause are global — not loaded here.
+ */
 export const useChannelModalInitialization = ({
   isOpen = true,
   channelId,
   configuredChannels,
-  channelConfigs,
   setPath,
   setPathError,
   setShowError,
   setMedia,
   setHoverSound,
-  setAnimatedOnHover,
-  setKenBurnsEnabled,
-  setKenBurnsMode,
-  setKenBurnsHoverScale,
-  setKenBurnsAutoplayScale,
-  setKenBurnsHoverDuration,
-  setKenBurnsAutoplayDuration,
-  setKenBurnsCrossfadeDuration,
-  setKenBurnsEasing,
   setAsAdmin,
-  setPerformancePauseMode,
   installedAppsLength,
   uwpAppsLength,
   steamGamesLength,
@@ -45,17 +38,7 @@ export const useChannelModalInitialization = ({
     setShowError(false);
     setMedia(null);
     setHoverSound(null);
-    setAnimatedOnHover('global');
-    setKenBurnsEnabled('global');
-    setKenBurnsMode('global');
-    setKenBurnsHoverScale(1.1);
-    setKenBurnsAutoplayScale(1.15);
-    setKenBurnsHoverDuration(8000);
-    setKenBurnsAutoplayDuration(12000);
-    setKenBurnsCrossfadeDuration(1000);
-    setKenBurnsEasing('ease-out');
     setAsAdmin(false);
-    setPerformancePauseMode?.('auto');
 
     const existingChannel = configuredChannels[channelId];
     if (!existingChannel) return;
@@ -63,46 +46,17 @@ export const useChannelModalInitialization = ({
     setPath(existingChannel.path || '');
     setMedia(existingChannel.media || null);
     setHoverSound(existingChannel.hoverSound || null);
-    setAnimatedOnHover(existingChannel.animatedOnHover ?? 'global');
     setAsAdmin(existingChannel.asAdmin ?? false);
-    setPerformancePauseMode?.(
-      existingChannel.performancePauseMode === 'on' || existingChannel.performancePauseMode === 'off'
-        ? existingChannel.performancePauseMode
-        : 'auto'
-    );
-
-    const channelConfig = channelConfigs[channelId];
-    if (!channelConfig) return;
-
-    setKenBurnsEnabled(channelConfig.kenBurnsEnabled ?? 'global');
-    setKenBurnsMode(channelConfig.kenBurnsMode ?? 'global');
-    setKenBurnsHoverScale(channelConfig.kenBurnsHoverScale ?? 1.1);
-    setKenBurnsAutoplayScale(channelConfig.kenBurnsAutoplayScale ?? 1.15);
-    setKenBurnsHoverDuration(channelConfig.kenBurnsHoverDuration ?? 8000);
-    setKenBurnsAutoplayDuration(channelConfig.kenBurnsAutoplayDuration ?? 12000);
-    setKenBurnsCrossfadeDuration(channelConfig.kenBurnsCrossfadeDuration ?? 1000);
-    setKenBurnsEasing(channelConfig.kenBurnsEasing ?? 'ease-out');
   }, [
     isOpen,
     channelId,
     configuredChannels,
-    channelConfigs,
     setPath,
     setPathError,
     setShowError,
     setMedia,
     setHoverSound,
-    setAnimatedOnHover,
-    setKenBurnsEnabled,
-    setKenBurnsMode,
-    setKenBurnsHoverScale,
-    setKenBurnsAutoplayScale,
-    setKenBurnsHoverDuration,
-    setKenBurnsAutoplayDuration,
-    setKenBurnsCrossfadeDuration,
-    setKenBurnsEasing,
     setAsAdmin,
-    setPerformancePauseMode,
   ]);
 
   useEffect(() => {

@@ -83,8 +83,6 @@ function CommandPaletteMount() {
 }
 const LazySettingsActionMenu = lazyNamedExport(() => import('./components/settings'), 'SettingsActionMenu');
 const LazyUpdateModal = React.lazy(() => import('./components/modals/UpdateModal'));
-const LazyFloatingSpotifyWidget = lazyNamedExport(() => import('./components/widgets'), 'FloatingSpotifyWidget');
-const LazySystemInfoWidget = lazyNamedExport(() => import('./components/widgets'), 'SystemInfoWidget');
 const LazyAdminPanelWidget = lazyNamedExport(() => import('./components/admin'), 'AdminPanelWidget');
 const LazyPerformanceMonitor = lazyNamedExport(() => import('./components/widgets'), 'PerformanceMonitor');
 const LazySpaceRail = lazyNamedExport(() => import('./components/spaces'), 'SpaceRail');
@@ -218,51 +216,37 @@ function App() {
   useWallpaperDataFileSync();
 
   useEffect(() => {
-    if (!IS_DEV) return;
-    console.log('[App] Floating widgets state:', {
-      spotify: floatingWidgets.spotify.visible,
-      systemInfo: floatingWidgets.systemInfo.visible,
-      adminPanel: floatingWidgets.adminPanel.visible,
-      performanceMonitor: floatingWidgets.performanceMonitor.visible
-    });
+    if (IS_DEV) {
+      console.log('[App] Floating widgets state:', {
+        adminPanel: floatingWidgets.adminPanel.visible,
+        performanceMonitor: floatingWidgets.performanceMonitor.visible
+      });
+    }
   }, [floatingWidgets]);
-
 
   
   // Debug: Monitor dock state changes
   useEffect(() => {
     if (IS_DEV) {
       console.log('[App] Dock state changed:', {
-        particleSystemEnabled: dock?.particleSystemEnabled,
-        particleEffectType: dock?.particleEffectType,
-        particleDirection: dock?.particleDirection,
-        particleSpeed: dock?.particleSpeed,
-        particleCount: dock?.particleCount
+        glassEnabled: dock?.glassEnabled,
+        dockScale: dock?.dockScale,
       });
     }
-  }, [dock?.particleSystemEnabled, dock?.particleEffectType, dock?.particleDirection, dock?.particleSpeed, dock?.particleCount]);
+  }, [dock?.glassEnabled, dock?.dockScale]);
 
-  // Debug: Add global function to enable Spotify widget for testing
+  // Debug: expose helpers for remaining floating widgets
   useEffect(() => {
-    window.enableSpotifyWidget = () => {
-      const { actions } = useConsolidatedAppStore.getState();
-      actions.toggleSpotifyWidget();
-      console.log('[App] Spotify widget toggled via debug function');
-    };
-    
     window.showAllWidgets = () => {
       const { actions } = useConsolidatedAppStore.getState();
       actions.setFloatingWidgetsState({
-        spotify: { ...floatingWidgets.spotify, visible: true },
-        systemInfo: { ...floatingWidgets.systemInfo, visible: true },
         adminPanel: { ...floatingWidgets.adminPanel, visible: true },
         performanceMonitor: { ...floatingWidgets.performanceMonitor, visible: true }
       });
-      console.log('[App] All widgets enabled via debug function');
+      console.log('[App] Admin + performance widgets enabled via debug function');
     };
     
     return () => {
-      delete window.enableSpotifyWidget;
       delete window.showAllWidgets;
     };
   }, [floatingWidgets]);
@@ -404,8 +388,6 @@ function App() {
   const isHubSpace = isGameHubSpace || isMediaHubSpace;
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const enableDeferredMounts = appReady && hasUserInteracted;
-  const spotifyWidgetGate = useFloatingWidgetMountGate(floatingWidgets.spotify.visible);
-  const systemInfoWidgetGate = useFloatingWidgetMountGate(floatingWidgets.systemInfo.visible);
   const adminPanelWidgetGate = useFloatingWidgetMountGate(floatingWidgets.adminPanel.visible);
   const performanceMonitorGate = useFloatingWidgetMountGate(floatingWidgets.performanceMonitor.visible);
   const settingsPrefetchPromiseRef = useRef(null);
@@ -719,7 +701,6 @@ function App() {
                     presetsButtonConfig={presetsButtonConfig}
                     onSettingsClick={openSettingsModal}
                     onSettingsChange={(settings) => setRibbonState(settings)}
-                    onParticleSettingsChange={(settings) => setDockState(settings)}
                     onButtonClick={() => {}}
                     onButtonContextMenu={() => {}}
                     onAccessoryButtonClick={handleSettingsActionMenuOpen}
@@ -750,7 +731,6 @@ function App() {
                     onSettingsClick={handleSettingsActionMenuOpen}
                     onPresetsClick={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'themes' })}
                     onSettingsChange={(settings) => setRibbonState(settings)}
-                    onParticleSettingsChange={(settings) => setDockState(settings)}
                     onToggleDarkMode={toggleDarkMode}
                     onToggleCursor={toggleCustomCursor}
                     useCustomCursor={useCustomCursor}
@@ -759,7 +739,6 @@ function App() {
                     timePillOpacity={timePillOpacity ?? 0.05}
                     timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
                     timeFont={timeFont ?? 'default'}
-                    particleSettings={dock}
                     shellTransitionMs={spaceWorldDurationMs}
                   />
                 )}
@@ -899,30 +878,8 @@ function App() {
           </Suspense>
         ) : null}
 
-        {/* Floating Widgets */}
+        {/* Floating Widgets (Spotify + System Info archived — see widgets/_archived) */}
         <Suspense fallback={null}>
-          {enableDeferredMounts && spotifyWidgetGate.shouldMount ? (
-            <LazyFloatingSpotifyWidget
-              isVisible={floatingWidgets.spotify.visible}
-              onExitAnimationComplete={spotifyWidgetGate.onExitAnimationComplete}
-              onClose={() => {
-                const { actions } = useConsolidatedAppStore.getState();
-                actions.toggleSpotifyWidget();
-              }}
-            />
-          ) : null}
-
-          {enableDeferredMounts && systemInfoWidgetGate.shouldMount ? (
-            <LazySystemInfoWidget
-              isVisible={floatingWidgets.systemInfo.visible}
-              onExitAnimationComplete={systemInfoWidgetGate.onExitAnimationComplete}
-              onClose={() => {
-                const { actions } = useConsolidatedAppStore.getState();
-                actions.toggleSystemInfoWidget();
-              }}
-            />
-          ) : null}
-
           {enableDeferredMounts && adminPanelWidgetGate.shouldMount ? (
             <LazyAdminPanelWidget
               isVisible={floatingWidgets.adminPanel.visible}

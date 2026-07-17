@@ -3,7 +3,7 @@
  * Button layouts stay on the live global `ribbon` slice.
  *
  * Live paint precedence (SSOT with resolveEffectiveAccent):
- *   Spotify Match → explicit per-page look → Wallpaper match → space/live manual
+ *   Spotify Match → Wallpaper match → explicit per-page look → space/live manual
  */
 
 import { colorStringToHex } from '../theme/extractImagePalette.js';
@@ -197,7 +197,9 @@ export function hasExplicitPageRibbonLook({
 
 /**
  * Paint target for WiiRibbon tween.
- * Precedence: Spotify Match → explicit per-page → Wallpaper match → space/live manual.
+ * Precedence: Spotify Match → Wallpaper match (when on) → explicit per-page → space/live.
+ * Wallpaper match wins over saved page looks so flipping pages with match on always
+ * follows each page’s wallpaper — page looks apply when match is off.
  *
  * @param {{
  *   liveRibbon?: object,
@@ -239,17 +241,6 @@ export function resolveRibbonPaintTarget({
     }
   }
 
-  if (
-    hasExplicitPageRibbonLook({
-      spaceRibbon,
-      liveRibbon,
-      currentPage,
-      supportsPerPage,
-    })
-  ) {
-    return { look: baseLook, source: 'page' };
-  }
-
   if (wallpaperMatchEnabled && wallpaperUrl) {
     const fromWallpaper = resolveWallpaperRibbonOverlay({
       wallpaperUrl,
@@ -259,6 +250,17 @@ export function resolveRibbonPaintTarget({
     if (fromWallpaper) {
       return { look: { ...baseLook, ...fromWallpaper }, source: 'wallpaper' };
     }
+  }
+
+  if (
+    hasExplicitPageRibbonLook({
+      spaceRibbon,
+      liveRibbon,
+      currentPage,
+      supportsPerPage,
+    })
+  ) {
+    return { look: baseLook, source: 'page' };
   }
 
   return { look: baseLook, source: 'manual' };

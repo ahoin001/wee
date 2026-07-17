@@ -152,29 +152,33 @@ export function useWallpaperAmbientColor() {
     const timer = window.setTimeout(() => {
       const requestId = ++requestIdRef.current;
       const url = displayUrl;
-      getWallpaperAmbientPalette(url).then((entry) => {
-        if (requestId !== requestIdRef.current) return;
-        // Still the active target page URL?
-        const state = useConsolidatedAppStore.getState();
-        const stillPage = resolveActiveBoardCurrentPage({
-          activeSpaceId: state.spaces.activeSpaceId,
-          channels: state.channels,
-        });
-        const stillUrl = resolveDisplayWallpaperUrl({
-          activeSpaceId: state.spaces.activeSpaceId,
-          wallpaperCurrent: state.wallpaper?.current,
-          appearanceBySpace: state.appearanceBySpace,
-          wallpaperEntryUrlKey,
-          currentPage: stillPage,
-        });
-        if (stillUrl !== url) return;
+      getWallpaperAmbientPalette(url)
+        .then((entry) => {
+          if (requestId !== requestIdRef.current) return;
+          const state = useConsolidatedAppStore.getState();
+          const stillPage = resolveActiveBoardCurrentPage({
+            activeSpaceId: state.spaces.activeSpaceId,
+            channels: state.channels,
+          });
+          const stillUrl = resolveDisplayWallpaperUrl({
+            activeSpaceId: state.spaces.activeSpaceId,
+            wallpaperCurrent: state.wallpaper?.current,
+            appearanceBySpace: state.appearanceBySpace,
+            wallpaperEntryUrlKey,
+            currentPage: stillPage,
+          });
+          if (stillUrl !== url) return;
 
-        applyAmbientEntry({
-          url,
-          entry,
-          setUIState,
+          applyAmbientEntry({
+            url,
+            entry,
+            setUIState,
+          });
+        })
+        .catch(() => {
+          if (requestId !== requestIdRef.current) return;
+          applyAmbientEntry({ url, entry: null, setUIState });
         });
-      });
     }, debounceMs);
 
     return () => {

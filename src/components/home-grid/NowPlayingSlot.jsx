@@ -1,25 +1,22 @@
 /**
- * Home-grid Now Playing tile — SMTC-first display with full-bleed art +
- * floating-Spotify–inspired playback chrome, scaled per tile size.
+ * Home-grid Now Playing tile — system-media display with full-bleed art and
+ * player-agnostic playback chrome, scaled per tile size.
  */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { m, useReducedMotion } from 'framer-motion';
-import { Maximize2, Music, Pause, Play, SkipBack, SkipForward } from 'lucide-react';
+import { m } from 'framer-motion';
+import { Music, Pause, Play, SkipBack, SkipForward } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
-import {
-  normalizeNowPlayingExperience,
-  toggleSpotifyTakeover,
-} from '../../utils/spotifyTakeover';
-import { isSpotifyPremiumUser } from '../../utils/spotifyTier';
+import { createWeeTransition } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import { WEE_GOOEY_ICON_PRESS } from '../../ui/wee/WeeGooeyIconButton';
 import {
   EMPTY_NOW_PLAYING,
-  nowPlayingFromSpotify,
   nowPlayingFromSystemSession,
   pickPrimarySystemSession,
   resolveNowPlaying,
@@ -50,7 +47,7 @@ function chromeForSize(sizeId) {
         playBox: 'h-6 w-6 rounded-lg border-b-2',
         playIcon: 11,
         skipIcon: 12,
-        skipOpacity: 'opacity-60 hover:opacity-100',
+        skipBox: 'h-6 w-6',
         glassRadius: 'rounded-lg',
         transportGap: 'gap-2',
       };
@@ -66,7 +63,7 @@ function chromeForSize(sizeId) {
         playBox: 'h-8 w-8 rounded-[0.9rem] border-b-[4px] sm:h-9 sm:w-9',
         playIcon: 14,
         skipIcon: 16,
-        skipOpacity: 'opacity-55 hover:opacity-100',
+        skipBox: 'h-7 w-7',
         glassRadius: 'rounded-xl',
         transportGap: 'gap-2.5',
       };
@@ -82,7 +79,7 @@ function chromeForSize(sizeId) {
         playBox: 'h-10 w-10 rounded-[1.05rem] border-b-[5px] sm:h-11 sm:w-11',
         playIcon: 18,
         skipIcon: 18,
-        skipOpacity: 'opacity-55 hover:opacity-100',
+        skipBox: 'h-8 w-8',
         glassRadius: 'rounded-2xl',
         transportGap: 'gap-3',
       };
@@ -99,7 +96,7 @@ function chromeForSize(sizeId) {
         playBox: 'h-7 w-7 rounded-[0.85rem] border-b-[3px]',
         playIcon: 13,
         skipIcon: 14,
-        skipOpacity: 'opacity-55 hover:opacity-100',
+        skipBox: 'h-7 w-7',
         glassRadius: 'rounded-xl',
         transportGap: 'gap-2.5',
       };
@@ -114,19 +111,15 @@ function NowPlayingSlot({
   selected = false,
   onArrangeSelect,
 }) {
-  const reducedMotion = useReducedMotion();
+  const motionFeedback = useMotionFeedback();
+  const reducedMotion = motionFeedback.osReduced || !motionFeedback.prefs.master;
   const listenApp = String(slot?.widget?.listenApp || 'any').trim() || 'any';
 
   const {
     globalNp,
     sessions,
-    preference,
     systemEnabled,
     systemAvailable,
-    spotifyConnected,
-    spotifyPremium,
-    spotifySlice,
-    takeoverExperienceOn,
     extractedColors,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
@@ -134,14 +127,8 @@ function NowPlayingSlot({
       sessions: Array.isArray(state.systemMedia?.sessions)
         ? state.systemMedia.sessions
         : EMPTY_SYSTEM_SESSIONS,
-      preference: state.ui.nowPlayingSourcePreference || 'auto',
       systemEnabled: state.ui.systemMediaEnabled !== false,
       systemAvailable: Boolean(state.systemMedia?.available),
-      spotifyConnected: Boolean(state.spotify.isConnected),
-      spotifyPremium: isSpotifyPremiumUser(state.spotify.currentUser),
-      spotifySlice: state.spotify,
-      takeoverExperienceOn:
-        normalizeNowPlayingExperience(state.spotify.nowPlayingExperience) !== 'off',
       extractedColors: state.spotify?.extractedColors || null,
     }))
   );
@@ -151,22 +138,14 @@ function NowPlayingSlot({
     const session = pickPrimarySystemSession(sessions, { listenApp });
     if (!session) return { ...EMPTY_NOW_PLAYING };
     return resolveNowPlaying({
-      preference,
       systemEnabled,
-      spotifyConnected,
-      spotifyPremium,
-      spotifyCandidate: spotifyConnected ? nowPlayingFromSpotify(spotifySlice) : null,
       systemCandidate: nowPlayingFromSystemSession(session),
     });
   }, [
     listenApp,
     globalNp,
     sessions,
-    preference,
     systemEnabled,
-    spotifyConnected,
-    spotifyPremium,
-    spotifySlice,
   ]);
 
   const {
@@ -174,21 +153,13 @@ function NowPlayingSlot({
     artistLine = '',
     albumArtUrl = '',
     isPlaying = false,
-    source = null,
     appName = '',
-    canPlay = false,
-    canPause = false,
-    canSkipNext = false,
-    canSkipPrevious = false,
     controlsVia = null,
     progressMs = 0,
     durationMs = 0,
   } = np || {};
 
-  const useApiControls =
-    controlsVia === 'spotify-api' || (source === 'spotify' && controlsVia !== 'system-keys');
-  const useSystemKeys =
-    controlsVia === 'system-keys' || (source === 'system' && !useApiControls);
+  const useSystemKeys = controlsVia === 'system-keys';
 
   const sizePreset = useMemo(
     () =>
@@ -204,40 +175,22 @@ function NowPlayingSlot({
   const hasArt = Boolean(albumArtUrl);
   const onArt = hasTrack && hasArt;
 
-  const openMediaWidget = useCallback(() => {
-    if (window.api?.ui?.showSpotifyWidget) {
-      window.api.ui.showSpotifyWidget();
-      return;
+  const runTransport = useCallback(async (action) => {
+    if (!useSystemKeys) return;
+    try {
+      await window.api?.systemMedia?.transport?.(action);
+    } catch {
+      // Media-key transport is best-effort; stale sessions should not break the tile.
     }
-    const { actions, floatingWidgets } = useConsolidatedAppStore.getState();
-    actions.setFloatingWidgetsState({
-      spotify: { ...floatingWidgets.spotify, visible: true },
-    });
-  }, []);
-
-  const runTransport = useCallback(
-    async (action) => {
-      if (useApiControls) {
-        const manager = useConsolidatedAppStore.getState().actions.spotifyManager;
-        if (action === 'playPause') await manager?.togglePlayback?.();
-        else if (action === 'next') await manager?.skipToNext?.();
-        else if (action === 'previous') await manager?.skipToPrevious?.();
-        return;
-      }
-      if (useSystemKeys) {
-        await window.api?.systemMedia?.transport?.(action);
-      }
-    },
-    [useApiControls, useSystemKeys]
-  );
+  }, [useSystemKeys]);
 
   const emptyLabel = useMemo(() => {
     if (hasTrack) return '';
     if (listenApp !== 'any') return 'Play in that app';
-    if (spotifyConnected || (systemEnabled && systemAvailable)) return 'Play something';
+    if (systemEnabled && systemAvailable) return 'Play something';
     if (systemEnabled) return 'Start a player';
-    return 'Connect Spotify';
-  }, [hasTrack, listenApp, spotifyConnected, systemEnabled, systemAvailable]);
+    return 'Enable desktop media';
+  }, [hasTrack, listenApp, systemEnabled, systemAvailable]);
 
   const handleActivate = useCallback(
     (event) => {
@@ -247,15 +200,11 @@ function NowPlayingSlot({
         return;
       }
       if (interactionsLocked) return;
-      if (!hasTrack && !spotifyConnected && !(systemEnabled && systemAvailable)) {
+      if (!hasTrack && !(systemEnabled && systemAvailable)) {
         openSettingsToIntegrationsSubtab('music');
         return;
       }
       if (!hasTrack) return;
-      if (useApiControls || source === 'spotify') {
-        openMediaWidget();
-        return;
-      }
       if (useSystemKeys) void runTransport('playPause');
     },
     [
@@ -263,15 +212,11 @@ function NowPlayingSlot({
       punchMode,
       interactionsLocked,
       hasTrack,
-      spotifyConnected,
       systemEnabled,
       systemAvailable,
-      source,
-      useApiControls,
       useSystemKeys,
       onArrangeSelect,
       channelId,
-      openMediaWidget,
       runTransport,
     ]
   );
@@ -285,14 +230,9 @@ function NowPlayingSlot({
     [interactionsLocked, runTransport]
   );
 
-  const showTransport =
-    hasTrack && !interactionsLocked && (useApiControls || useSystemKeys);
-  const playPauseEnabled = isPlaying
-    ? canPause || useApiControls
-    : canPlay || useApiControls;
+  const showTransport = hasTrack && !interactionsLocked && useSystemKeys;
+  const playPauseEnabled = useSystemKeys;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
-  const takeoverAvailable =
-    (source === 'spotify' || useApiControls) && takeoverExperienceOn;
 
   const accentStyle = useMemo(() => {
     if (!extractedColors?.primary) return undefined;
@@ -337,9 +277,29 @@ function NowPlayingSlot({
 
   const artistColor = extractedColors?.accent || extractedColors?.primary || null;
 
+  const pressTransition = createWeeTransition('press', { reducedMotion });
   const playMotion = reducedMotion
     ? {}
-    : { whileHover: { scale: 1.08, y: -2 }, whileTap: { scale: 0.92 } };
+    : {
+        whileHover: { scale: 1.08, y: -2 },
+        whileTap: { scale: WEE_GOOEY_ICON_PRESS.tapScale },
+      };
+  const skipMotion = reducedMotion
+    ? {}
+    : {
+        whileHover: { scale: WEE_GOOEY_ICON_PRESS.hoverScale, y: -1 },
+        whileTap: { scale: WEE_GOOEY_ICON_PRESS.tapScale, y: 0 },
+      };
+  const skipButtonClass = [
+    'flex shrink-0 items-center justify-center rounded-full opacity-70',
+    'transition-[color,background-color,opacity,filter] hover:opacity-100',
+    'hover:[filter:var(--filter-hover-glow)] focus-visible:outline-none',
+    'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary)/0.72)]',
+    chrome.skipBox,
+    onArt
+      ? 'text-[hsl(var(--color-pure-black)/0.78)] hover:bg-[hsl(var(--color-pure-white)/0.28)]'
+      : 'text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--primary)/0.14)] hover:text-[hsl(var(--primary))]',
+  ].join(' ');
 
   const glassPanelClass = [
     'relative z-10 flex w-full flex-col border shadow-[var(--shadow-sm)]',
@@ -357,22 +317,23 @@ function NowPlayingSlot({
       role="group"
       aria-label="Playback controls"
     >
-      <button
+      <m.button
         type="button"
-        className={`flex shrink-0 items-center justify-center transition-opacity disabled:opacity-25 ${chrome.skipOpacity} ${
-          onArt ? 'text-[hsl(var(--color-pure-black)/0.78)]' : 'text-[hsl(var(--text-primary))]'
-        }`}
+        {...skipMotion}
+        transition={pressTransition}
+        className={skipButtonClass}
         title="Previous"
         aria-label="Previous track"
-        disabled={!canSkipPrevious && !useApiControls}
+        disabled={!useSystemKeys}
         onClick={handleTransportClick('previous')}
       >
         <SkipBack size={chrome.skipIcon} fill="currentColor" aria-hidden />
-      </button>
+      </m.button>
 
       <m.button
         type="button"
         {...playMotion}
+        transition={pressTransition}
         className={`flex shrink-0 items-center justify-center shadow-md disabled:cursor-not-allowed disabled:opacity-50 ${chrome.playBox}`}
         style={{
           backgroundColor: onArt
@@ -397,18 +358,18 @@ function NowPlayingSlot({
         )}
       </m.button>
 
-      <button
+      <m.button
         type="button"
-        className={`flex shrink-0 items-center justify-center transition-opacity disabled:opacity-25 ${chrome.skipOpacity} ${
-          onArt ? 'text-[hsl(var(--color-pure-black)/0.78)]' : 'text-[hsl(var(--text-primary))]'
-        }`}
+        {...skipMotion}
+        transition={pressTransition}
+        className={skipButtonClass}
         title="Next"
         aria-label="Next track"
-        disabled={!canSkipNext && !useApiControls}
+        disabled={!useSystemKeys}
         onClick={handleTransportClick('next')}
       >
         <SkipForward size={chrome.skipIcon} fill="currentColor" aria-hidden />
-      </button>
+      </m.button>
     </div>
   ) : null;
 
@@ -575,20 +536,6 @@ function NowPlayingSlot({
           )}
         </div>
 
-        {hasTrack && takeoverAvailable && !isCompact && !interactionsLocked ? (
-          <button
-            type="button"
-            className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-[hsl(var(--color-pure-black)/0.38)] text-[hsl(var(--color-pure-white)/0.85)] shadow-[var(--shadow-sm)] backdrop-blur-sm transition-transform hover:scale-110 home-widget-float-chip"
-            title="Now Playing takeover"
-            aria-label="Toggle Now Playing takeover"
-            onClick={(event) => {
-              event.stopPropagation();
-              toggleSpotifyTakeover(useConsolidatedAppStore, 'manual');
-            }}
-          >
-            <Maximize2 size={11} strokeWidth={2.5} aria-hidden />
-          </button>
-        ) : null}
       </div>
     </HomeWidgetShell>
   );

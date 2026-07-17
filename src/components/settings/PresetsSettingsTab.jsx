@@ -720,7 +720,7 @@ const PresetsSettingsTab = React.memo(() => {
     setPresets(updatedPresets);
     await savePresetsToBackend(updatedPresets);
     setImportModalOpen(false);
-    setCaptureNotice({ type: 'success', text: `Imported “${nextName}”. Apply it from Saved looks.` });
+    setCaptureNotice({ type: 'success', text: `Imported “${nextName}”. Apply it from Saved presets.` });
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2600);
   }, [importPreview, hasPresetName, setPresets, savePresetsToBackend]);
 
@@ -930,7 +930,7 @@ const PresetsSettingsTab = React.memo(() => {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
-      <SettingsTabPageHeader title="Looks" subtitle="Save looks, apply themes, and share with the community" />
+      <SettingsTabPageHeader title="Presets" subtitle="Save presets, apply themes, and share with the community" />
 
       <AnimatePresence initial={false}>
         {captureNotice.text ? (
@@ -1001,7 +1001,7 @@ const PresetsSettingsTab = React.memo(() => {
 
       <WeeSettingsCollapsibleSection
         icon={Library}
-        title="Saved looks"
+        title="Saved presets"
         description="Thumbnail previews · Apply is primary · More for update, share, rename"
         defaultOpen
       >
@@ -1053,7 +1053,7 @@ const PresetsSettingsTab = React.memo(() => {
       <WeeSettingsCollapsibleSection
         icon={Users}
         title="Community"
-        description="Browse shared looks or upload yours (wallpaper + colors included)."
+        description="Browse shared presets or upload yours (wallpaper + colors included)."
         defaultOpen={false}
       >
         <PresetsCommunityCard
@@ -1227,7 +1227,7 @@ const PresetsSettingsTab = React.memo(() => {
               Cancel
             </WeeButton>
             <WeeButton variant="primary" onClick={handleConfirmImportFile}>
-              Add to my looks
+              Add to my presets
             </WeeButton>
           </div>
         )}

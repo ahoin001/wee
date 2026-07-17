@@ -415,10 +415,6 @@ export const useDockSettings = () => {
   return useConsolidatedAppStore((state) => state.dock);
 };
 
-export const useParticleSettings = () => {
-  return useConsolidatedAppStore((state) => state.particles);
-};
-
 export const usePresets = () => {
   return useConsolidatedAppStore((state) => state.presets);
 };
@@ -562,14 +558,6 @@ export const useFloatingWidgetsState = () => {
     floatingWidgets,
     setFloatingWidgetsState,
   };
-};
-
-export const useSpotifyWidget = () => {
-  return useConsolidatedAppStore((state) => state.floatingWidgets.spotify);
-};
-
-export const useSystemInfoWidget = () => {
-  return useConsolidatedAppStore((state) => state.floatingWidgets.systemInfo);
 };
 
 export const useAdminPanelWidget = () => {

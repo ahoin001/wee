@@ -16,4 +16,3 @@ export { default as AdminQuickAccessSlot } from './AdminQuickAccessSlot';
 export { default as HomeBoardArrangeBar } from './HomeBoardArrangeBar';
 export { default as HomeSlotResizeHandle } from './HomeSlotResizeHandle';
 export { default as HomePageIndicator } from './HomePageIndicator';
-export { default as HomeBoardSwitcher } from './HomeBoardSwitcher';

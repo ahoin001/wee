@@ -86,7 +86,7 @@ test('paint: Spotify Match beats explicit per-page look', () => {
   assert.equal(look.ribbonColor, '#0a141e');
 });
 
-test('paint: explicit per-page beats wallpaper', () => {
+test('paint: wallpaper match beats explicit per-page when match is on', () => {
   const { look, source } = resolveRibbonPaintTarget({
     liveRibbon: MANUAL,
     spaceRibbon: {
@@ -101,6 +101,24 @@ test('paint: explicit per-page beats wallpaper', () => {
     wallpaperUrl: 'file:///wall.jpg',
     ambientPalette: WALLPAPER_PALETTE,
     ambientCachedForUrl: 'file:///wall.jpg',
+    spotifyMatchEnabled: false,
+  });
+  assert.equal(source, 'wallpaper');
+  assert.equal(look.ribbonColor, '#aabbcc');
+});
+
+test('paint: explicit per-page wins when wallpaper match is off', () => {
+  const { look, source } = resolveRibbonPaintTarget({
+    liveRibbon: MANUAL,
+    spaceRibbon: {
+      ribbonScope: 'perPage',
+      ribbonByPage: {
+        1: { ribbonColor: '#abcdef', ribbonGlowColor: '#fedcba' },
+      },
+    },
+    currentPage: 1,
+    supportsPerPage: true,
+    wallpaperMatchEnabled: false,
     spotifyMatchEnabled: false,
   });
   assert.equal(source, 'page');

@@ -1,10 +1,11 @@
 import React, { useLayoutEffect, useRef, useState, useCallback } from 'react';
+import './SpotifyScrollLabel.css';
 
 const GAP_PX = 32;
 
 /**
  * Spotify-style horizontal scroll when text overflows (seamless loop via duplicated line).
- * Styling lives in FloatingSpotifyWidget.css (`.spotify-scroll-label*`). Reduced motion: ellipsis.
+ * Reduced motion: ellipsis.
  */
 function SpotifyScrollLabel({ text, className = '', as: Comp = 'div', ...rest }) {
   const clipRef = useRef(null);

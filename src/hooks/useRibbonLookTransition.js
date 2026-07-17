@@ -72,7 +72,18 @@ export function useRibbonLookTransition({
   ambientOverride = false,
 }) {
   const reducedMotion = useReducedMotion();
-  const look = useMemo(() => pickRibbonLook(targetLook), [targetLook]);
+  const look = useMemo(() => pickRibbonLook(targetLook), [
+    targetLook?.ribbonColor,
+    targetLook?.ribbonGlowColor,
+    targetLook?.ribbonDockOpacity,
+    targetLook?.ribbonGlowStrength,
+    targetLook?.glassWiiRibbon,
+    targetLook?.glassOpacity,
+    targetLook?.glassBlur,
+    targetLook?.glassBorderOpacity,
+    targetLook?.glassShineOpacity,
+  ]);
+  const colorKey = `${look.ribbonColor || ''}|${look.ribbonGlowColor || ''}|${look.ribbonDockOpacity ?? ''}`;
   const [displayLook, setDisplayLook] = useState(look);
   const displayRef = useRef(look);
   const rafRef = useRef(null);
@@ -151,7 +162,7 @@ export function useRibbonLookTransition({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [look, durationMs, reducedMotion, ambientOverride]);
+  }, [colorKey, look, durationMs, reducedMotion, ambientOverride]);
 
   useEffect(
     () => () => {

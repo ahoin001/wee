@@ -32,9 +32,6 @@ function ChannelModal({
   currentType,
   currentHoverSound,
   currentAsAdmin,
-  currentAnimatedOnHover,
-  currentKenBurnsEnabled,
-  currentKenBurnsMode,
   isOpen = true,
   onExitAnimationComplete,
 }) {
@@ -60,22 +57,7 @@ function ChannelModal({
   const [activeTab, setActiveTab] = useState('setup');
   
   const [asAdmin, setAsAdmin] = useState(currentAsAdmin);
-  const [performancePauseMode, setPerformancePauseMode] = useState('auto');
   const [showError, setShowError] = useState(false);
-  const [animatedOnHover, setAnimatedOnHover] = useState(currentAnimatedOnHover);
-  
-  // Ken Burns settings
-  const [kenBurnsEnabled, setKenBurnsEnabled] = useState(currentKenBurnsEnabled);
-  // FEATURE NOT READY: If slideshow mode was set, default to hover for better single image experience
-  const [kenBurnsMode, setKenBurnsMode] = useState(
-    currentKenBurnsMode === 'slideshow' ? 'hover' : currentKenBurnsMode
-  );
-  const [kenBurnsHoverScale, setKenBurnsHoverScale] = useState(1.1);
-  const [kenBurnsAutoplayScale, setKenBurnsAutoplayScale] = useState(1.15);
-  const [kenBurnsHoverDuration, setKenBurnsHoverDuration] = useState(8000);
-  const [kenBurnsAutoplayDuration, setKenBurnsAutoplayDuration] = useState(12000);
-  const [kenBurnsCrossfadeDuration, setKenBurnsCrossfadeDuration] = useState(1000);
-  const [kenBurnsEasing, setKenBurnsEasing] = useState('ease-out');
   
   // Use app library state from consolidated store
   const { appLibrary, appLibraryManager } = useAppLibraryState();
@@ -90,10 +72,6 @@ function ChannelModal({
   // Get channels data from consolidated store
   const channels = useConsolidatedAppStore((state) => state.channels);
   const actions = useConsolidatedAppStore((state) => state.actions);
-  const channelConfigs = useMemo(
-    () => getChannelDataSlice(channels, channelSpaceKey).channelConfigs || {},
-    [channels, channelSpaceKey]
-  );
   const configuredChannels = useMemo(
     () => getChannelDataSlice(channels, channelSpaceKey).configuredChannels || {},
     [channels, channelSpaceKey]
@@ -160,23 +138,12 @@ function ChannelModal({
     isOpen: Boolean(isOpen),
     channelId,
     configuredChannels,
-    channelConfigs,
     setPath,
     setPathError,
     setShowError,
     setMedia,
     setHoverSound,
-    setAnimatedOnHover,
-    setKenBurnsEnabled,
-    setKenBurnsMode,
-    setKenBurnsHoverScale,
-    setKenBurnsAutoplayScale,
-    setKenBurnsHoverDuration,
-    setKenBurnsAutoplayDuration,
-    setKenBurnsCrossfadeDuration,
-    setKenBurnsEasing,
     setAsAdmin,
-    setPerformancePauseMode,
     installedAppsLength: installedApps?.length || 0,
     uwpAppsLength: uwpApps?.length || 0,
     steamGamesLength: steamGames?.length || 0,
@@ -278,40 +245,17 @@ function ChannelModal({
 
     const persistedPath = trimmed ? normalizeChannelPath(trimmed, type) : null;
 
-    const resolvedAnimatedOnHover = animatedOnHover === 'global' ? undefined : animatedOnHover;
     const newChannel = {
       media,
       path: persistedPath || null,
       type: persistedPath ? type : null,
       asAdmin,
-      performancePauseMode: performancePauseMode || 'auto',
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
-      animatedOnHover: resolvedAnimatedOnHover,
     };
     
     // Save channel data to consolidated store
     if (onSave) {
       onSave(channelId, newChannel);
-    }
-    
-    // Save Ken Burns settings to channel configs
-    const resolvedKenBurnsEnabled = kenBurnsEnabled === 'global' ? undefined : kenBurnsEnabled;
-    const resolvedKenBurnsMode = kenBurnsMode === 'global' ? undefined : kenBurnsMode;
-    const kenBurnsConfig = {
-      kenBurnsEnabled: resolvedKenBurnsEnabled,
-      kenBurnsMode: resolvedKenBurnsMode,
-      kenBurnsHoverScale,
-      kenBurnsAutoplayScale,
-      kenBurnsHoverDuration,
-      kenBurnsAutoplayDuration,
-      kenBurnsCrossfadeDuration,
-      kenBurnsEasing
-    };
-    
-    // Only save config if there are actual settings (not all undefined)
-    const hasKenBurnsSettings = Object.values(kenBurnsConfig).some(value => value !== undefined);
-    if (hasKenBurnsSettings) {
-      actions.updateChannelConfigForSpace(channelSpaceKey, channelId, kenBurnsConfig);
     }
 
     handleClose();
@@ -324,17 +268,7 @@ function ChannelModal({
     setType('exe');
     setPathError('');
     setAsAdmin(false);
-    setPerformancePauseMode('auto');
     resetHoverSoundFields();
-    setAnimatedOnHover(undefined);
-    setKenBurnsEnabled(undefined);
-    setKenBurnsMode(undefined);
-    setKenBurnsHoverScale(1.1);
-    setKenBurnsAutoplayScale(1.15);
-    setKenBurnsHoverDuration(8000);
-    setKenBurnsAutoplayDuration(12000);
-    setKenBurnsCrossfadeDuration(1000);
-    setKenBurnsEasing('ease-out');
     setImageGallery([]);
     setGalleryMode(false);
     
@@ -351,19 +285,11 @@ function ChannelModal({
 
   // Check if any changes have been made compared to original values
   const hasChanges = useMemo(() => {
-    // Check if basic setup has changed
     const mediaChanged = !isEqual(media, currentMedia);
     const pathChanged = path !== (currentPath || '');
     const typeChanged = type !== (currentType || 'exe');
     const asAdminChanged = asAdmin !== currentAsAdmin;
-    const existingPause =
-      configuredChannels[channelId]?.performancePauseMode === 'on' ||
-      configuredChannels[channelId]?.performancePauseMode === 'off'
-        ? configuredChannels[channelId].performancePauseMode
-        : 'auto';
-    const performancePauseChanged = (performancePauseMode || 'auto') !== existingPause;
     
-    // Check if hover sound has changed
     const currentHoverSoundData = currentHoverSound ? {
       url: currentHoverSound.url,
       name: currentHoverSound.name,
@@ -376,36 +302,13 @@ function ChannelModal({
     } : null;
     const hoverSoundChanged = !isEqual(currentHoverSoundData, newHoverSoundData);
     
-    // Check if animation settings have changed
-    const animatedOnHoverChanged = animatedOnHover !== currentAnimatedOnHover;
-    const kenBurnsEnabledChanged = kenBurnsEnabled !== currentKenBurnsEnabled;
-    const kenBurnsModeChanged = kenBurnsMode !== currentKenBurnsMode;
-    
-    // Check if other Ken Burns settings have changed
-    const existingConfig = channelConfigs[channelId] || {};
-    const kenBurnsHoverScaleChanged = kenBurnsHoverScale !== (existingConfig.kenBurnsHoverScale ?? 1.1);
-    const kenBurnsAutoplayScaleChanged = kenBurnsAutoplayScale !== (existingConfig.kenBurnsAutoplayScale ?? 1.15);
-    const kenBurnsHoverDurationChanged = kenBurnsHoverDuration !== (existingConfig.kenBurnsHoverDuration ?? 8000);
-    const kenBurnsAutoplayDurationChanged = kenBurnsAutoplayDuration !== (existingConfig.kenBurnsAutoplayDuration ?? 12000);
-    const kenBurnsCrossfadeDurationChanged = kenBurnsCrossfadeDuration !== (existingConfig.kenBurnsCrossfadeDuration ?? 1000);
-    const kenBurnsEasingChanged = kenBurnsEasing !== (existingConfig.kenBurnsEasing ?? 'ease-out');
-    
-    return mediaChanged || pathChanged || typeChanged || asAdminChanged || performancePauseChanged ||
-           hoverSoundChanged || animatedOnHoverChanged || kenBurnsEnabledChanged || kenBurnsModeChanged ||
-           kenBurnsHoverScaleChanged || kenBurnsAutoplayScaleChanged || kenBurnsHoverDurationChanged ||
-           kenBurnsAutoplayDurationChanged || kenBurnsCrossfadeDurationChanged || kenBurnsEasingChanged;
+    return mediaChanged || pathChanged || typeChanged || asAdminChanged || hoverSoundChanged;
   }, [
     media, currentMedia,
     path, currentPath,
     type, currentType,
     asAdmin, currentAsAdmin,
-    performancePauseMode, configuredChannels, channelId,
     hoverSoundEnabled, hoverSoundUrl, hoverSoundName, hoverSoundVolume, currentHoverSound,
-    animatedOnHover, currentAnimatedOnHover,
-    kenBurnsEnabled, currentKenBurnsEnabled,
-    kenBurnsMode, currentKenBurnsMode,
-    kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration,
-    kenBurnsCrossfadeDuration, kenBurnsEasing, channelConfigs, channelId
   ]);
   
   // Enable save button if there are changes and at least some media is present
@@ -547,10 +450,6 @@ function ChannelModal({
               channelId={channelId}
               asAdmin={asAdmin}
               setAsAdmin={setAsAdmin}
-              path={path}
-              type={type}
-              performancePauseMode={performancePauseMode}
-              setPerformancePauseMode={setPerformancePauseMode}
               hoverSoundEnabled={hoverSoundEnabled}
               setHoverSoundEnabled={setHoverSoundEnabled}
               hoverSoundUrl={hoverSoundUrl}
@@ -567,12 +466,6 @@ function ChannelModal({
               handleHoverSoundVolumeChange={handleHoverSoundVolumeChange}
               handleHoverSoundSelect={handleHoverSoundSelect}
               handleHoverSoundUpload={handleHoverSoundUpload}
-              animatedOnHover={animatedOnHover}
-              setAnimatedOnHover={setAnimatedOnHover}
-              kenBurnsEnabled={kenBurnsEnabled}
-              setKenBurnsEnabled={setKenBurnsEnabled}
-              kenBurnsMode={kenBurnsMode}
-              setKenBurnsMode={setKenBurnsMode}
             />
           )}
         </div>
@@ -590,9 +483,6 @@ ChannelModal.propTypes = {
   currentType: PropTypes.string,
   currentHoverSound: PropTypes.object,
   currentAsAdmin: PropTypes.bool,
-  currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global']),
-  currentKenBurnsEnabled: PropTypes.oneOf([true, false, 'global']),
-  currentKenBurnsMode: PropTypes.oneOf(['hover', 'autoplay', 'slideshow', 'global']),
   isOpen: PropTypes.bool,
   onExitAnimationComplete: PropTypes.func,
 };

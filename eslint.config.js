@@ -52,7 +52,6 @@ export default defineConfig([
       'src/components/navigation/ChannelReorderVfx.jsx',
       'src/components/navigation/ChannelSlotDnd.jsx',
       'src/components/channels/channelModal/ChannelModalInlineMediaSuggestions.jsx',
-      'src/components/dock/DockParticleSystem.jsx',
     ],
     rules: {
       // These modules export hooks, constants, or non-component helpers alongside components.

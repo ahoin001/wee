@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, m } from 'framer-motion';
-import { Anchor, Gamepad2, Info, Layers, Sparkles } from 'lucide-react';
+import { Anchor, Gamepad2, Info, Layers } from 'lucide-react';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { findDockThemePath, getDockThemeByPath } from '../../utils/dockThemeUtils';
@@ -15,7 +15,6 @@ import { WeeDockSettingsSubtabs } from '../../ui/wee';
 import DockTypePanel from './dock/DockTypePanel';
 import ClassicDockPanel from './dock/ClassicDockPanel';
 import RibbonDockPanel from './dock/RibbonDockPanel';
-import AnimationsDockPanel from './dock/AnimationsDockPanel';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import { getRibbonChromeEffectDefaults } from '../dock/ribbon/ribbonChromeEffectMeta';
 import './surfaceStyles.css';
@@ -39,13 +38,14 @@ const DOCK_SUB_TABS = [
     description: 'Glow, glass & chrome',
     icon: Layers,
   },
-  {
-    id: 'animations',
-    label: 'Animations',
-    description: 'Particles',
-    icon: Sparkles,
-  },
 ];
+
+/** Legacy deep-links (`animations`) redirect to ribbon chrome effects. */
+function normalizeDockSubTab(subTab, classicMode) {
+  if (subTab === 'animations') return 'wii-ribbon';
+  if (subTab && DOCK_SUB_TABS.some((t) => t.id === subTab)) return subTab;
+  return classicMode ? 'classic-dock' : 'wii-ribbon';
+}
 
 const UnifiedDockSettingsTab = React.memo(() => {
   const { dock, ribbon, ui } = useConsolidatedAppStore(
@@ -96,10 +96,9 @@ const UnifiedDockSettingsTab = React.memo(() => {
     [setDockState, setRibbonState, setUIState]
   );
 
-  const [activeSubTab, setActiveSubTab] = useState(() => {
-    if (ui?.dockSubTab) return ui.dockSubTab;
-    return ui?.classicMode ? 'classic-dock' : 'wii-ribbon';
-  });
+  const [activeSubTab, setActiveSubTab] = useState(() =>
+    normalizeDockSubTab(ui?.dockSubTab, ui?.classicMode)
+  );
 
   const [expandedGroups, setExpandedGroups] = useState({
     classic: true,
@@ -108,11 +107,12 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
   useEffect(() => {
     if (ui?.dockSubTab) {
+      setActiveSubTab(normalizeDockSubTab(ui.dockSubTab, ui?.classicMode));
       const timer = setTimeout(() => saveSetting('ui', 'dockSubTab', undefined), 100);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [ui?.dockSubTab, saveSetting]);
+  }, [ui?.dockSubTab, ui?.classicMode, saveSetting]);
 
   const handleDockTypeChange = useCallback(
     (dockType) => {
@@ -330,134 +330,6 @@ const UnifiedDockSettingsTab = React.memo(() => {
     [saveSetting, setRibbonState]
   );
 
-  const handleParticleEnabledChange = useCallback(
-    (checked) => {
-      setDockState({ particleSystemEnabled: checked });
-      saveSetting('dock', 'particleSystemEnabled', checked);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleEffectTypeChange = useCallback(
-    (value) => {
-      setDockState({ particleEffectType: value });
-      saveSetting('dock', 'particleEffectType', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleDirectionChange = useCallback(
-    (value) => {
-      setDockState({ particleDirection: value });
-      saveSetting('dock', 'particleDirection', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleCountChange = useCallback(
-    (value) => {
-      setDockState({ particleCount: value });
-      saveSetting('dock', 'particleCount', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleSpeedChange = useCallback(
-    (value) => {
-      setDockState({ particleSpeed: value });
-      saveSetting('dock', 'particleSpeed', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleSizeChange = useCallback(
-    (value) => {
-      setDockState({ particleSize: value });
-      saveSetting('dock', 'particleSize', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleGravityChange = useCallback(
-    (value) => {
-      setDockState({ particleGravity: value });
-      saveSetting('dock', 'particleGravity', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleFadeSpeedChange = useCallback(
-    (value) => {
-      setDockState({ particleFadeSpeed: value });
-      saveSetting('dock', 'particleFadeSpeed', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleUseAdaptiveColorChange = useCallback(
-    (checked) => {
-      setDockState({ particleUseAdaptiveColor: checked });
-      saveSetting('dock', 'particleUseAdaptiveColor', checked);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleColorIntensityChange = useCallback(
-    (value) => {
-      setDockState({ particleColorIntensity: value });
-      saveSetting('dock', 'particleColorIntensity', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleColorVariationChange = useCallback(
-    (value) => {
-      setDockState({ particleColorVariation: value });
-      saveSetting('dock', 'particleColorVariation', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleRotationSpeedChange = useCallback(
-    (value) => {
-      setDockState({ particleRotationSpeed: value });
-      saveSetting('dock', 'particleRotationSpeed', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleLifetimeChange = useCallback(
-    (value) => {
-      setDockState({ particleLifetime: value });
-      saveSetting('dock', 'particleLifetime', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleSpawnRateChange = useCallback(
-    (value) => {
-      setDockState({ particleSpawnRate: value });
-      saveSetting('dock', 'particleSpawnRate', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleSizeDecayChange = useCallback(
-    (value) => {
-      setDockState({ particleSizeDecay: value });
-      saveSetting('dock', 'particleSizeDecay', value);
-    },
-    [saveSetting, setDockState]
-  );
-
-  const handleParticleClipPathFollowChange = useCallback(
-    (checked) => {
-      setDockState({ particleClipPathFollow: checked });
-      saveSetting('dock', 'particleClipPathFollow', checked);
-    },
-    [saveSetting, setDockState]
-  );
-
   const onToggleThemeGroup = useCallback((groupKey) => {
     setExpandedGroups((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }));
   }, []);
@@ -537,28 +409,6 @@ const UnifiedDockSettingsTab = React.memo(() => {
             onChromeEffectIdleOnlyChange={handleChromeEffectIdleOnlyChange}
           />
         );
-      case 'animations':
-        return (
-          <AnimationsDockPanel
-            dock={dock}
-            onParticleEnabledChange={handleParticleEnabledChange}
-            onParticleEffectTypeChange={handleParticleEffectTypeChange}
-            onParticleDirectionChange={handleParticleDirectionChange}
-            onParticleClipPathFollowChange={handleParticleClipPathFollowChange}
-            onParticleCountChange={handleParticleCountChange}
-            onParticleSpeedChange={handleParticleSpeedChange}
-            onParticleSizeChange={handleParticleSizeChange}
-            onParticleGravityChange={handleParticleGravityChange}
-            onParticleFadeSpeedChange={handleParticleFadeSpeedChange}
-            onParticleLifetimeChange={handleParticleLifetimeChange}
-            onParticleSpawnRateChange={handleParticleSpawnRateChange}
-            onParticleSizeDecayChange={handleParticleSizeDecayChange}
-            onParticleUseAdaptiveColorChange={handleParticleUseAdaptiveColorChange}
-            onParticleColorIntensityChange={handleParticleColorIntensityChange}
-            onParticleColorVariationChange={handleParticleColorVariationChange}
-            onParticleRotationSpeedChange={handleParticleRotationSpeedChange}
-          />
-        );
       default:
         return null;
     }
@@ -568,7 +418,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
     <div className="mx-auto flex max-w-4xl flex-col pb-12">
       <SettingsTabPageHeader
         title="Dock"
-        subtitle="Classic shell, ribbon strip, and dock particles"
+        subtitle="Classic shell, ribbon strip, and chrome effects"
         className="mb-6"
       />
 

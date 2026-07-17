@@ -79,10 +79,8 @@ export function useChannelEffectiveState({
     () => storeChannelConfig?.asAdmin ?? asAdmin ?? false,
     [storeChannelConfig, asAdmin]
   );
-  const effectivePerformancePauseMode = useMemo(() => {
-    const m = storeChannelConfig?.performancePauseMode;
-    return m === 'on' || m === 'off' ? m : 'auto';
-  }, [storeChannelConfig?.performancePauseMode]);
+  const effectivePerformancePauseMode = 'auto';
+
   const effectiveHoverSound = useMemo(
     () => storeChannelConfig?.hoverSound || hoverSound,
     [storeChannelConfig?.hoverSound, hoverSound]
@@ -100,28 +98,20 @@ export function useChannelEffectiveState({
     return leaf || appPath;
   }, [effectiveConfig?.title, effectiveMedia?.name, effectivePath]);
 
+  /** Global only — per-channel overrides ignored for simplicity. */
   const effectiveAnimatedOnHover = useMemo(
-    () =>
-      effectiveConfig && effectiveConfig.animatedOnHover !== undefined
-        ? effectiveConfig.animatedOnHover
-        : channelSettings.animatedOnHover ?? false,
-    [effectiveConfig?.animatedOnHover, channelSettings.animatedOnHover]
+    () => channelSettings.animatedOnHover ?? false,
+    [channelSettings.animatedOnHover]
   );
 
   const effectiveKenBurnsEnabled = useMemo(
-    () =>
-      effectiveConfig && effectiveConfig.kenBurnsEnabled !== undefined
-        ? effectiveConfig.kenBurnsEnabled
-        : channelSettings.kenBurnsEnabled ?? false,
-    [effectiveConfig?.kenBurnsEnabled, channelSettings.kenBurnsEnabled]
+    () => channelSettings.kenBurnsEnabled ?? false,
+    [channelSettings.kenBurnsEnabled]
   );
 
   const effectiveKenBurnsMode = useMemo(
-    () =>
-      effectiveConfig && effectiveConfig.kenBurnsMode !== undefined
-        ? effectiveConfig.kenBurnsMode
-        : channelSettings.kenBurnsMode ?? 'hover',
-    [effectiveConfig?.kenBurnsMode, channelSettings.kenBurnsMode]
+    () => channelSettings.kenBurnsMode ?? 'hover',
+    [channelSettings.kenBurnsMode]
   );
 
   const effectiveAdaptiveEmptyChannels = useMemo(

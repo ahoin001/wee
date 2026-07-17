@@ -42,7 +42,7 @@ export function powerProfileFlags(profile) {
     profile,
     isAway,
     isEfficient,
-    /** Decorative loops (particles, chrome FX, idle anims) — callers also gate on isAppActive */
+    /** Decorative loops (chrome FX, idle anims) — callers also gate on isAppActive */
     shouldAnimateDecorative: !isAway,
     /** BGM: callers must still require isAppActive; away forces pause even if briefly focused */
     shouldRunBgm: !isAway,

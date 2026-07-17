@@ -25,7 +25,6 @@ export default function ChannelModalsHost({
   effectiveType,
   effectiveHoverSound,
   effectiveAsAdmin,
-  effectiveConfig,
 }) {
   return (
     <>
@@ -71,9 +70,6 @@ export default function ChannelModalsHost({
           currentType={effectiveType}
           currentHoverSound={effectiveHoverSound}
           currentAsAdmin={effectiveAsAdmin}
-          currentAnimatedOnHover={effectiveConfig?.animatedOnHover}
-          currentKenBurnsEnabled={effectiveConfig?.kenBurnsEnabled}
-          currentKenBurnsMode={effectiveConfig?.kenBurnsMode}
         />
       ) : null}
     </>
@@ -101,5 +97,4 @@ ChannelModalsHost.propTypes = {
   effectiveType: PropTypes.string,
   effectiveHoverSound: PropTypes.object,
   effectiveAsAdmin: PropTypes.bool,
-  effectiveConfig: PropTypes.object,
 };

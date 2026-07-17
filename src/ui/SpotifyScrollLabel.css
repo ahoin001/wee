@@ -1,0 +1,58 @@
+/* Marquee — SpotifyScrollLabel */
+.spotify-scroll-label {
+  width: 100%;
+  min-width: 0;
+}
+
+.spotify-scroll-label__clip {
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+}
+
+.spotify-scroll-label__track {
+  display: inline-flex;
+  align-items: center;
+  gap: 32px;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.spotify-scroll-label__track--animate {
+  animation: spotify-marquee-loop var(--spotify-marquee-duration, 14s) linear infinite;
+}
+
+@keyframes spotify-marquee-loop {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(var(--spotify-marquee-shift, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotify-scroll-label__track--animate {
+    animation: none !important;
+  }
+
+  .spotify-scroll-label--overflow .spotify-scroll-label__line--ghost {
+    display: none !important;
+  }
+
+  .spotify-scroll-label--overflow .spotify-scroll-label__track {
+    display: block;
+    transform: none !important;
+  }
+
+  .spotify-scroll-label--overflow .spotify-scroll-label__line {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.spotify-scroll-label__line {
+  display: inline-block;
+}

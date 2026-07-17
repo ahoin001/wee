@@ -6,10 +6,10 @@ import { extractColorsFromAlbumArt } from '../utils/extractColorsFromAlbumArt';
 /**
  * Shared Now Playing → album-art palette pipeline.
  * Writes `spotify.extractedColors` (existing SSOT for ribbon + overlays) from
- * whatever is on `nowPlaying.albumArtUrl` — Spotify Web API *or* SMTC (Apple Music, etc.).
+ * whatever the active system media session exposes as `nowPlaying.albumArtUrl`.
  *
  * Runs whenever Color Match (ribbon / wallpaper overlay / widget dynamic colors) is on,
- * so Free desktop players get the same chrome matching as Premium Spotify.
+ * so desktop players share the same chrome matching.
  */
 export function useNowPlayingColorMatch() {
   const {

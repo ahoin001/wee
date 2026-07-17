@@ -1,6 +1,6 @@
 /**
  * Shared Wii ribbon silhouette (viewBox 0 0 1440 240).
- * Used by RibbonChrome, RibbonChromeEffects mask, and particle border sampling.
+ * Used by RibbonChrome and RibbonChromeEffects (mask / edge sampling).
  */
 
 export const RIBBON_VIEWBOX = '0 0 1440 240';
@@ -98,19 +98,4 @@ export function sampleRibbonTopEdgePoints(sampleCount = 100) {
     points.push({ x, y });
   }
   return points;
-}
-
-/**
- * Map viewBox edge samples onto a canvas sized to the dock footer.
- * @param {number} width
- * @param {number} height
- * @param {number} [sampleCount]
- */
-export function sampleRibbonTopEdgeForCanvas(width, height, sampleCount = 100) {
-  const sx = width / RIBBON_VIEWBOX_WIDTH;
-  const sy = height / RIBBON_VIEWBOX_HEIGHT;
-  return sampleRibbonTopEdgePoints(sampleCount).map((p) => ({
-    x: p.x * sx,
-    y: p.y * sy,
-  }));
 }

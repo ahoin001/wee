@@ -75,12 +75,8 @@ export function isIntensiveLaunchTarget(path, type) {
  * @returns {boolean}
  */
 export function resolveChannelPerformancePause(opts = {}) {
-  const mode = opts.mode === 'on' || opts.mode === 'off' ? opts.mode : 'auto';
-  if (mode === 'on') return true;
-  if (mode === 'off') return false;
-
+  // Per-channel mode overrides removed — always auto-detect (Game Hub always pauses).
   if (opts.source === 'gamehub') return true;
-
   return isIntensiveLaunchTarget(opts.path, opts.type);
 }
 

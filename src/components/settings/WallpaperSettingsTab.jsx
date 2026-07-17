@@ -1213,8 +1213,8 @@ const WallpaperSettingsTab = React.memo(() => {
             />
           </div>
           <div className="mt-3">
-            <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.COLORS)}>
-              Advanced seed picker in Colors
+            <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.DOCK)}>
+              Edit ribbon accents in Dock
             </WeeHelpLinkButton>
           </div>
         </WeeModalFieldCard>

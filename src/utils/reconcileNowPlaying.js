@@ -1,31 +1,18 @@
 import useConsolidatedAppStore from './useConsolidatedAppStore';
-import { isSpotifyPremiumUser } from './spotifyTier';
 import {
   EMPTY_NOW_PLAYING,
-  nowPlayingFromSpotify,
   nowPlayingFromSystemSession,
-  normalizeNowPlayingSourcePreference,
   pickPrimarySystemSession,
   resolveNowPlaying,
 } from './nowPlayingShape';
 
 /**
- * Recompute the active `nowPlaying` projection from Spotify + system media candidates.
+ * Recompute the active `nowPlaying` projection from Windows system media.
  * Safe to call from event handlers / intervals — uses getState() only.
- *
- * Display is SMTC-first (free desktop players). Premium Spotify Web API enriches controls.
  */
 export function reconcileNowPlaying() {
   const store = useConsolidatedAppStore.getState();
-  const preference = normalizeNowPlayingSourcePreference(
-    store.ui?.nowPlayingSourcePreference
-  );
   const systemEnabled = store.ui?.systemMediaEnabled !== false;
-  const spotifyConnected = Boolean(store.spotify?.isConnected);
-  const spotifyPremium = isSpotifyPremiumUser(store.spotify?.currentUser);
-  const spotifyCandidate = spotifyConnected
-    ? nowPlayingFromSpotify(store.spotify)
-    : null;
   const sessions = Array.isArray(store.systemMedia?.sessions)
     ? store.systemMedia.sessions
     : [];
@@ -37,11 +24,7 @@ export function reconcileNowPlaying() {
     : null;
 
   const next = resolveNowPlaying({
-    preference,
     systemEnabled,
-    spotifyConnected,
-    spotifyPremium,
-    spotifyCandidate,
     systemCandidate,
   });
 

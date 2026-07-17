@@ -2,12 +2,10 @@ import React, { useEffect, useMemo } from 'react';
 import { m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import './ClassicWiiDock.css';
-import DockParticleSystem from './DockParticleSystem';
 import { WeePressSurface } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { CLASSIC_DOCK_DEFAULT_COLORS as DEFAULT_DOCK_COLORS } from '../../design/classicDockThemeDefaults.js';
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
-import { toDockParticleProps } from '../../utils/dockParticleSettings';
 
 const WiiDock = ({ 
   dockSettings = {}, 
@@ -18,7 +16,6 @@ const WiiDock = ({
   onButtonClick,
   buttonConfigs = [],
   accessoryButtonConfig = {},
-  particleSettings = {}
 }) => {
   // Memoize colors object to prevent unnecessary re-renders
   const colors = useMemo(() => ({
@@ -137,12 +134,6 @@ const WiiDock = ({
       onContextMenu={handleContextMenu}
       style={dockStyleVars}
     >
-      {/* Particle System */}
-      <DockParticleSystem
-        {...toDockParticleProps(particleSettings)}
-        ribbonGlowColor={colors.dockAccentColor}
-      />
-      
       <div 
         id="dock-container" 
         className="wii-dock-base"
@@ -389,7 +380,6 @@ const ClassicWiiDock = ({
   
   // Use dock settings from store with fallbacks
   const dockSettings = dock || {};
-  const particleSettings = dock || {};
   
   // Note: Store is now initialized centrally in App.jsx
   
@@ -428,7 +418,6 @@ const ClassicWiiDock = ({
         onButtonClick={onButtonClick}
         buttonConfigs={buttonConfigs}
         accessoryButtonConfig={accessoryButtonConfig}
-        particleSettings={particleSettings}
       />
     </div>
   );

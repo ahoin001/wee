@@ -411,7 +411,6 @@ const Channel = React.memo(({
         effectiveType={effectiveType}
         effectiveHoverSound={effectiveHoverSound}
         effectiveAsAdmin={effectiveAsAdmin}
-        effectiveConfig={effectiveConfig}
       />
     </>
   );

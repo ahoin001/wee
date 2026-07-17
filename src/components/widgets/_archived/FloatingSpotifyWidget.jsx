@@ -35,11 +35,13 @@ import {
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
+import { useSharedSpotifyPlaybackSampler } from '../../hooks/useSharedSpotifyPlaybackSampler';
 import MusicReactiveBars from './MusicReactiveBars';
 
 const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
+  useSharedSpotifyPlaybackSampler();
   const isDarkMode = useIsDarkMode();
-  const { spotify, spotifyManager, setSpotifyState } = useSpotifyState();
+  const { spotify, spotifyManager } = useSpotifyState();
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
   const { isAppActive, isLowPowerMode } = useAnimationActivity({
     activeFps: 60,
@@ -70,13 +72,13 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
     }))
   );
 
-  // SMTC-first display for Free desktop players; Web API only when it owns the row.
+  // Shared Now Playing is system-only. The dedicated Spotify widget keeps its
+  // own API controls only when no desktop media session is supplying the row.
   const isSystemSource = nowPlaying.source === 'system';
+  const isPremium = isSpotifyPremiumUser(currentUser);
   const useApiControls =
-    nowPlaying.controlsVia === 'spotify-api' ||
-    (nowPlaying.source === 'spotify' && nowPlaying.controlsVia !== 'system-keys');
-  const useSystemKeys =
-    nowPlaying.controlsVia === 'system-keys' || (isSystemSource && !useApiControls);
+    !isSystemSource && isConnected && isPremium && !playerWebApiForbidden;
+  const useSystemKeys = isSystemSource && nowPlaying.controlsVia === 'system-keys';
   const currentTrack = isSystemSource
     ? nowPlaying.trackName
       ? {
@@ -100,7 +102,6 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
     enabled: isVisible && Boolean(currentTrack),
   });
 
-  const isPremium = isSpotifyPremiumUser(currentUser);
   const isFreeTierConnected = Boolean(isConnected && currentUser && !isPremium);
 
   const spotifyWidget = floatingWidgets.spotify;

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Music, Activity, Settings2, Radio, Gamepad2 } from 'lucide-react';
+import { Music, Settings2, Radio, Gamepad2 } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
@@ -36,7 +36,7 @@ const INTEGRATION_SUBTABS = [
   {
     id: 'widgets',
     label: 'Widgets',
-    description: 'Floating panels',
+    description: 'Quick Access',
     icon: Settings2,
   },
 ];
@@ -53,7 +53,6 @@ const ApiIntegrationsSettingsTab = () => {
     spotify,
     floatingWidgets,
     systemMedia,
-    nowPlayingSourcePreference,
     systemMediaEnabled,
   } =
     useConsolidatedAppStore(
@@ -61,7 +60,6 @@ const ApiIntegrationsSettingsTab = () => {
         spotify: state.spotify,
         floatingWidgets: state.floatingWidgets,
         systemMedia: state.systemMedia,
-        nowPlayingSourcePreference: state.ui.nowPlayingSourcePreference || 'auto',
         systemMediaEnabled: state.ui.systemMediaEnabled !== false,
       }))
     );
@@ -90,17 +88,6 @@ const ApiIntegrationsSettingsTab = () => {
     }
   }, [actions]);
 
-  const handleToggleSpotifyWidget = useCallback(() => {
-    actions.toggleSpotifyWidget();
-  }, [actions]);
-
-  const handleToggleSystemInfoWidget = useCallback(() => {
-    const isVisible = floatingWidgets.systemInfo.visible;
-    actions.setFloatingWidgetsState({
-      systemInfo: { ...floatingWidgets.systemInfo, visible: !isVisible },
-    });
-  }, [actions, floatingWidgets.systemInfo]);
-
   const handleToggleAdminPanelWidget = useCallback(() => {
     const isVisible = floatingWidgets.adminPanel.visible;
     actions.setFloatingWidgetsState({
@@ -108,26 +95,6 @@ const ApiIntegrationsSettingsTab = () => {
     });
   }, [actions, floatingWidgets.adminPanel]);
 
-  const handleUpdateSystemInfoInterval = useCallback(
-    (interval) => {
-      actions.setFloatingWidgetsState({
-        systemInfo: { ...floatingWidgets.systemInfo, updateInterval: interval },
-      });
-    },
-    [actions, floatingWidgets.systemInfo]
-  );
-
-  const handleUpdateSpotifySettings = useCallback(
-    (settings) => {
-      actions.setFloatingWidgetsState({
-        spotify: {
-          ...floatingWidgets.spotify,
-          settings: { ...floatingWidgets.spotify.settings, ...settings },
-        },
-      });
-    },
-    [actions, floatingWidgets.spotify]
-  );
 
   const handleAdminPanelSave = useCallback(
     (powerActionsOrConfig) => {
@@ -144,13 +111,6 @@ const ApiIntegrationsSettingsTab = () => {
   const handleSystemMediaToggle = useCallback(
     (checked) => {
       actions.setUIState({ systemMediaEnabled: Boolean(checked) });
-    },
-    [actions]
-  );
-
-  const handleNowPlayingSourceChange = useCallback(
-    (value) => {
-      actions.setUIState({ nowPlayingSourcePreference: value });
     },
     [actions]
   );
@@ -242,142 +202,51 @@ const ApiIntegrationsSettingsTab = () => {
       <WeeSettingsCollapsibleSection
         icon={Music}
         title="Spotify Integration"
-        description="Connect to Spotify and configure the floating widget"
+        description="Connect Spotify for Color Match and Now Playing"
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
-          {/* Widget Enable/Disable Control */}
-          <div className="mb-6 flex items-center justify-between rounded-lg bg-[hsl(var(--surface-tertiary))] p-4">
-            <div>
-              <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
-                Spotify Widget
-              </Text>
-              <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
-                Display current Spotify playback in a floating widget
-              </Text>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
-                {floatingWidgets.spotify.visible ? 'Enabled' : 'Disabled'}
-              </Text>
-              <WButton
-                onClick={handleToggleSpotifyWidget}
-                size="sm"
-                variant="primary"
-                className={spotifyBtnClass(floatingWidgets.spotify.visible, true)}
-              >
-                {floatingWidgets.spotify.visible ? 'Disable' : 'Enable'}
-              </WButton>
-            </div>
-          </div>
-
-          <Text variant="body" className="mb-6 text-sm font-semibold text-[hsl(var(--text-primary))]">
-            Widget Settings
-          </Text>
-
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
-                Connection Status
-              </Text>
-              <div className="space-y-2">
-                <div
-                  className={`rounded-md px-3 py-2 text-sm text-[hsl(var(--text-on-accent))] ${
-                    spotify.isConnected
-                      ? 'bg-[hsl(var(--state-success))]'
-                      : 'bg-[hsl(var(--state-error))]'
-                  }`}
-                >
-                  {spotify.isConnected ? 'Connected' : 'Disconnected'}
-                </div>
-                {spotify.error && (
-                  <div className="rounded-md bg-[hsl(var(--state-error))] px-3 py-2 text-sm text-[hsl(var(--text-on-accent))]">
-                    Error: {spotify.error}
-                  </div>
-                )}
-                <WButton
-                  onClick={spotify.isConnected ? handleSpotifyDisconnect : handleSpotifyConnect}
-                  size="sm"
-                  disabled={spotify.loading}
-                  variant="primary"
-                  fullWidth
-                  className={spotifyBtnClass(spotify.isConnected, true)}
-                >
-                  {spotify.loading ? 'Connecting...' : (spotify.isConnected ? 'Disconnect' : 'Connect to Spotify')}
-                </WButton>
-                {!spotify.isConnected && !spotify.loading && (
-                  <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
-                    Click to authorize with Spotify. You'll be redirected to Spotify to grant permissions.
-                  </Text>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
-                Widget Status
-              </Text>
-              <div className="space-y-2">
-                <div
-                  className={`rounded-md px-3 py-2 text-sm text-white ${
-                    floatingWidgets.spotify.visible ? 'bg-blue-500' : 'bg-gray-500'
-                  }`}
-                >
-                  {floatingWidgets.spotify.visible ? 'Visible' : 'Hidden'}
-                </div>
-                {spotify.isConnected && (
-                  <WButton
-                    onClick={handleToggleSpotifyWidget}
-                    size="sm"
-                    variant="primary"
-                    fullWidth
-                    className={spotifyBtnClass(floatingWidgets.spotify.visible, true)}
-                  >
-                    {floatingWidgets.spotify.visible ? 'Hide Widget' : 'Show Widget'}
-                  </WButton>
-                )}
-              </div>
-            </div>
-          </div>
-
           <div className="mb-6">
             <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
-              Features
+              Connection Status
             </Text>
-            <div className="space-y-3">
-              <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-                <div className="flex items-center">
-                  <span className="mr-2 text-sm">🎵</span>
-                  <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
-                    Auto-show widget on playback
-                  </Text>
-                </div>
-                <WToggle
-                  checked={floatingWidgets.spotify.settings.autoShowWidget}
-                  onChange={(checked) => handleUpdateSpotifySettings({ autoShowWidget: checked })}
-                  containerClassName="wii-toggle-spotify-accent"
-                />
+            <div className="max-w-md space-y-2">
+              <div
+                className={`rounded-md px-3 py-2 text-sm text-[hsl(var(--text-on-accent))] ${
+                  spotify.isConnected
+                    ? 'bg-[hsl(var(--state-success))]'
+                    : 'bg-[hsl(var(--state-error))]'
+                }`}
+              >
+                {spotify.isConnected ? 'Connected' : 'Disconnected'}
               </div>
-
-              <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-                <div className="flex items-center">
-                  <span className="mr-2 text-sm">👁️</span>
-                  <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
-                    Auto-hide widget when stopped
-                  </Text>
+              {spotify.error && (
+                <div className="rounded-md bg-[hsl(var(--state-error))] px-3 py-2 text-sm text-[hsl(var(--text-on-accent))]">
+                  Error: {spotify.error}
                 </div>
-                <WToggle
-                  checked={floatingWidgets.spotify.settings.autoHideWidget}
-                  onChange={(checked) => handleUpdateSpotifySettings({ autoHideWidget: checked })}
-                  containerClassName="wii-toggle-spotify-accent"
-                />
-              </div>
-
+              )}
+              <WButton
+                onClick={spotify.isConnected ? handleSpotifyDisconnect : handleSpotifyConnect}
+                size="sm"
+                disabled={spotify.loading}
+                variant="primary"
+                fullWidth
+                className={spotifyBtnClass(spotify.isConnected, true)}
+              >
+                {spotify.loading ? 'Connecting...' : (spotify.isConnected ? 'Disconnect' : 'Connect to Spotify')}
+              </WButton>
+              {!spotify.isConnected && !spotify.loading && (
+                <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
+                  Authorize with Spotify to enable Color Match and library-backed Now Playing.
+                </Text>
+              )}
             </div>
-            <Text variant="caption" className="mt-3 text-[11px] text-[hsl(var(--text-tertiary))]">
-              Color Match (album accents for this widget) lives in Edit Home → Now Playing.
-            </Text>
           </div>
+
+          <Text variant="caption" className="mb-3 block text-[11px] text-[hsl(var(--text-tertiary))]">
+            Place a Now Playing tile on Home via Edit Home. Color Match for that tile is configured
+            there too.
+          </Text>
 
           {/* Now Playing takeover experience */}
           <div className="mt-6">
@@ -405,7 +274,7 @@ const ApiIntegrationsSettingsTab = () => {
       <WeeSettingsCollapsibleSection
         icon={Radio}
         title="System media & Now Playing"
-        description="Desktop players via Windows SMTC — works for Free users; Premium Spotify adds Web API controls"
+        description="One player-agnostic view of desktop audio through Windows system media"
         defaultOpen={false}
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
@@ -430,23 +299,10 @@ const ApiIntegrationsSettingsTab = () => {
             <WToggle checked={systemMediaEnabled} onChange={handleSystemMediaToggle} />
           </div>
 
-          <Text variant="body" className="mb-3 text-sm font-semibold text-[hsl(var(--text-primary))]">
-            Preferred source
-          </Text>
-          <WeeSegmentedControl
-            value={nowPlayingSourcePreference}
-            onChange={handleNowPlayingSourceChange}
-            options={[
-              { value: 'auto', label: 'Auto' },
-              { value: 'spotify', label: 'Spotify' },
-              { value: 'system', label: 'System' },
-            ]}
-          />
           <Text variant="caption" className="mt-3 text-xs text-[hsl(var(--text-tertiary))]">
-            Auto prefers desktop media (SMTC) for everyone. Spotify Web API is used for Premium
-            transport controls when Spotify is the playing app. Free users stay on desktop display
-            + media keys. Edit Home → Now Playing for app filter and Color Match (ribbon, wallpaper
-            wash, media accents).
+            Now Playing follows the active Windows media session and sends standard media keys, so
+            Spotify Desktop, Apple Music, browsers, and other compatible players use the same
+            controls. Edit Home → Now Playing to filter by app and configure Color Match.
           </Text>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
@@ -455,102 +311,12 @@ const ApiIntegrationsSettingsTab = () => {
 
       {activeSubTab === 'widgets' ? (
         <>
-      {/* System Info Widget */}
-      <WeeSettingsCollapsibleSection
-        icon={Activity}
-        title="System Info Widget"
-        description="Real-time system monitoring and performance metrics"
-        defaultOpen={false}
-      >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
-          {/* Widget Enable/Disable Control */}
-          <div className="mb-6 flex items-center justify-between rounded-lg bg-[hsl(var(--surface-tertiary))] p-4">
-            <div>
-              <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
-                System Info Widget
-              </Text>
-              <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
-                Display real-time system information in a floating widget
-              </Text>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
-                {floatingWidgets.systemInfo.visible ? 'Enabled' : 'Disabled'}
-              </Text>
-              <WButton
-                onClick={handleToggleSystemInfoWidget}
-                size="sm"
-                variant="primary"
-                className={spotifyBtnClass(floatingWidgets.systemInfo.visible, false)}
-              >
-                {floatingWidgets.systemInfo.visible ? 'Disable' : 'Enable'}
-              </WButton>
-            </div>
-          </div>
-
-          <Text variant="body" className="mb-6 text-sm font-semibold text-[hsl(var(--text-primary))]">
-            Widget Settings
-          </Text>
-
-          <div className="mb-6">
-            <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
-              Update Interval
-            </Text>
-            <input
-              type="range"
-              min="0"
-              max="60"
-              value={floatingWidgets.systemInfo.updateInterval || 0}
-              onChange={(e) => handleUpdateSystemInfoInterval(parseInt(e.target.value))}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200"
-            />
-            <Text variant="caption" className="mt-1 text-[11px] text-[hsl(var(--text-tertiary))]">
-              {floatingWidgets.systemInfo.updateInterval === 0 ? 'Off' : `${floatingWidgets.systemInfo.updateInterval} seconds`}
-            </Text>
-            <Text variant="caption" className="mt-1 text-[11px] text-[hsl(var(--text-tertiary))]">
-              Set to 0 to disable automatic updates
-            </Text>
-          </div>
-
-          <div className="mb-6">
-            <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
-              Features
-            </Text>
-            <div className="api-integ-grid-features mb-2 grid gap-2">
-              <div className="api-integ-pill rounded-md bg-[hsl(var(--surface-tertiary))] p-2">
-                <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
-                  📊 CPU & Memory
-                </Text>
-              </div>
-              <div className="api-integ-pill rounded-md bg-[hsl(var(--surface-tertiary))] p-2">
-                <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
-                  🎮 GPU & Storage
-                </Text>
-              </div>
-              <div className="api-integ-pill rounded-md bg-[hsl(var(--surface-tertiary))] p-2">
-                <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
-                  🔋 Battery & Power
-                </Text>
-              </div>
-              <div className="api-integ-pill rounded-md bg-[hsl(var(--surface-tertiary))] p-2">
-                <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
-                  🖥️ Task Manager
-                </Text>
-              </div>
-            </div>
-            <Text variant="caption" className="text-[11px] text-[hsl(var(--text-tertiary))]">
-              Click on metrics to open relevant system applications
-            </Text>
-          </div>
-        </WeeModalFieldCard>
-      </WeeSettingsCollapsibleSection>
-
       {/* Admin Panel Widget */}
       <WeeSettingsCollapsibleSection
         icon={Settings2}
         title="Admin Panel Widget"
         description="Quick Access floating menu for Windows tools"
-        defaultOpen={false}
+        defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
           <div className="mb-5 flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.55)] p-4">

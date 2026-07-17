@@ -124,17 +124,6 @@ export const DEFAULT_SHORTCUTS = [
     icon: '🛠️'
   },
   {
-    id: 'open-settings-colors-tab',
-    name: 'Open Colors Settings',
-    description: 'Open settings modal to colors tab',
-    defaultKey: 'c',
-    defaultModifier: 'ctrl+shift',
-    action: 'openSettingsModal',
-    actionParams: { tab: 'colors' },
-    category: 'Settings',
-    icon: '🎨'
-  },
-  {
     id: 'open-settings-motion-tab',
     name: 'Open Motion Settings',
     description: 'Open settings modal to motion tab',
@@ -229,26 +218,6 @@ export const DEFAULT_SHORTCUTS = [
     action: 'openUpdateModal',
     category: 'Navigation',
     icon: '📦'
-  },
-  {
-    id: 'toggle-spotify-widget',
-    name: 'Toggle Spotify Widget',
-    description: 'Show or hide the Spotify floating widget',
-    defaultKey: 'l',
-    defaultModifier: 'ctrl',
-    action: 'toggleSpotifyWidget',
-    category: 'Widgets',
-    icon: '🎵'
-  },
-  {
-    id: 'toggle-system-info-widget',
-    name: 'Toggle System Info Widget',
-    description: 'Show or hide the system information floating widget',
-    defaultKey: 'i',
-    defaultModifier: 'ctrl',
-    action: 'toggleSystemInfoWidget',
-    category: 'Widgets',
-    icon: '📊'
   },
   {
     id: 'toggle-admin-panel-widget',
@@ -497,24 +466,6 @@ export const executeShortcutAction = (action, actionParams = {}) => {
         window.openSettingsModal(actionParams.tab);
       } else {
         logWarn('ShortcutHandler', 'openSettingsModal function not available');
-      }
-      break;
-      
-    case 'toggleSpotifyWidget':
-      // Toggle Spotify widget
-      if (window.toggleSpotifyWidget) {
-        window.toggleSpotifyWidget();
-      } else {
-        logWarn('ShortcutHandler', 'toggleSpotifyWidget function not available');
-      }
-      break;
-      
-    case 'toggleSystemInfoWidget':
-      // Toggle System Info widget
-      if (window.toggleSystemInfoWidget) {
-        window.toggleSystemInfoWidget();
-      } else {
-        logWarn('ShortcutHandler', 'toggleSystemInfoWidget function not available');
       }
       break;
       

@@ -1,8 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { pickPrimarySystemSession } from '../utils/nowPlayingShape';
-import { useSharedSpotifyPlaybackSampler } from './useSharedSpotifyPlaybackSampler';
 import { useNowPlayingColorMatch } from './useNowPlayingColorMatch';
 
 /** Renderer watchdog — main start is non-blocking; this only clears a stuck UI flag. */
@@ -51,21 +49,14 @@ let smtcReleaseTimer = null;
 let smtcStartGeneration = 0;
 
 /**
- * Owns system-media (SMTC) subscription + shared Spotify sampler.
+ * Owns the system-media (SMTC) subscription for shared Now Playing.
  * Mount once from App — event-driven SMTC, no renderer poll of system sessions.
- *
- * Free-first: SMTC stays up for Auto/System so desktop Spotify / Apple Music / etc.
- * always feed the tile. Spotify Web API is sampled separately for Premium controls.
  */
 export function useNowPlayingSources() {
-  useSharedSpotifyPlaybackSampler();
   useNowPlayingColorMatch();
 
-  const { systemMediaEnabled, preference } = useConsolidatedAppStore(
-    useShallow((s) => ({
-      systemMediaEnabled: s.ui.systemMediaEnabled !== false,
-      preference: s.ui.nowPlayingSourcePreference || 'auto',
-    }))
+  const systemMediaEnabled = useConsolidatedAppStore(
+    (s) => s.ui.systemMediaEnabled !== false
   );
 
   const setSystemMediaState = useConsolidatedAppStore((s) => s.actions.setSystemMediaState);
@@ -227,12 +218,6 @@ export function useNowPlayingSources() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publishPrimary uses stable setState + refs
   }, [wantsSystem, setSystemMediaState]);
 
-  useEffect(() => {
-    if (!wantsSystem) return;
-    if (!lastSessionsRef.current.length && !lastMetaRef.current.available) return;
-    publishPrimary(lastSessionsRef.current, lastMetaRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantsSystem, preference, setSystemMediaState]);
 }
 
 export default useNowPlayingSources;

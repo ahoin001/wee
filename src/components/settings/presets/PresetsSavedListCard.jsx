@@ -64,7 +64,7 @@ const PresetsSavedListCard = React.memo(
         <div className="space-y-3">
           <div className="rounded-2xl border border-dashed border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.45)] px-5 py-8 text-center">
             <Text variant="body" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
-              No saved looks yet
+              No saved presets yet
             </Text>
             <Text variant="caption" className="!mt-2 !mb-4 block text-[hsl(var(--text-tertiary))]">
               Capture your current wallpaper and colors as a named preset.
@@ -89,7 +89,7 @@ const PresetsSavedListCard = React.memo(
     const meter = (
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-          {customPresetCount} / {maxCustomPresets} custom looks saved · Drag ⋮⋮ to reorder
+          {customPresetCount} / {maxCustomPresets} custom presets saved · Drag ⋮⋮ to reorder
         </Text>
         {onImportFile ? (
           <Button variant="tertiary" size="sm" onClick={onImportFile}>

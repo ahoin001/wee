@@ -1,32 +1,29 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Film, Maximize2, PlayCircle, Shield, Volume2, Zap } from 'lucide-react';
+import { Shield, Volume2 } from 'lucide-react';
 import Slider from '../../../ui/Slider';
 import Text from '../../../ui/Text';
 import WButton from '../../../ui/WButton';
 import WToggle from '../../../ui/WToggle';
 import {
-  WeeChoiceTileGrid,
   WeeDescriptionToggleRow,
-  WeeIconHeadingRow,
   WeeModalFieldCard,
   WeePressSurface,
   WeeSectionEyebrow,
-  WeeSegmentedControl,
   WeeSettingsCollapsibleSection,
 } from '../../../ui/wee';
 import { createWeeTransition } from '../../../design/weeMotion';
-import { getAutoPerformancePauseHint } from '../../../utils/launch/isIntensiveLaunchTarget';
 
+/**
+ * Per-channel Behavior tab — only tile-specific options:
+ * Run as administrator + Custom hover sound.
+ * Ken Burns, motion architecture, and launch pause are global (Channels / General).
+ */
 function ChannelModalBehaviorTab({
   channelId,
   asAdmin,
   setAsAdmin,
-  path,
-  type,
-  performancePauseMode,
-  setPerformancePauseMode,
   hoverSoundEnabled,
   setHoverSoundEnabled,
   hoverSoundUrl,
@@ -43,40 +40,8 @@ function ChannelModalBehaviorTab({
   handleHoverSoundVolumeChange,
   handleHoverSoundSelect,
   handleHoverSoundUpload,
-  animatedOnHover,
-  setAnimatedOnHover,
-  kenBurnsEnabled,
-  setKenBurnsEnabled,
-  kenBurnsMode,
-  setKenBurnsMode,
 }) {
   const channelHoverSounds = getSoundsByCategory('channelHover') || [];
-  const autoHint = getAutoPerformancePauseHint(path, type);
-
-  const motionGridValue = useMemo(() => {
-    if (animatedOnHover === undefined || animatedOnHover === 'global') return 'global';
-    if (animatedOnHover === true) return 'hover';
-    return 'always';
-  }, [animatedOnHover]);
-
-  const handleMotionGridChange = (key) => {
-    if (key === 'global') setAnimatedOnHover('global');
-    else if (key === 'hover') setAnimatedOnHover(true);
-    else setAnimatedOnHover(false);
-  };
-
-  const kenBurnsSegValue = useMemo(() => {
-    if (kenBurnsEnabled === undefined || kenBurnsEnabled === 'global') return 'global';
-    if (kenBurnsEnabled === true) return 'on';
-    return 'off';
-  }, [kenBurnsEnabled]);
-
-  const handleKenBurnsSeg = (v) => {
-    if (v === 'global') setKenBurnsEnabled('global');
-    else if (v === 'on') setKenBurnsEnabled(true);
-    else setKenBurnsEnabled(false);
-  };
-
   const reduceMotion = useReducedMotion();
   const hoverBodyTransition = createWeeTransition('tab', { reducedMotion: !!reduceMotion });
 
@@ -178,56 +143,6 @@ function ChannelModalBehaviorTab({
     </div>
   );
 
-  const renderKenBurnsModeRadios = () => (
-    <div className="channel-stack-8 border-t-2 border-[hsl(var(--border-primary)/0.25)] pt-6">
-      <Text as="label" size="sm" weight={600} className="mb-2 block text-[hsl(var(--wee-text-header))]">
-        Activation Mode
-      </Text>
-      <label className="channel-radio-label">
-        <input
-          type="radio"
-          name="kenBurnsMode"
-          value="global"
-          checked={kenBurnsMode === undefined || kenBurnsMode === 'global'}
-          onChange={() => setKenBurnsMode('global')}
-        />
-        Use global setting
-      </label>
-      <label className="channel-radio-label">
-        <input
-          type="radio"
-          name="kenBurnsMode"
-          value="hover"
-          checked={kenBurnsMode === 'hover'}
-          onChange={() => setKenBurnsMode('hover')}
-        />
-        Hover to activate (override)
-      </label>
-      <label className="channel-radio-label">
-        <input
-          type="radio"
-          name="kenBurnsMode"
-          value="autoplay"
-          checked={kenBurnsMode === 'autoplay'}
-          onChange={() => setKenBurnsMode('autoplay')}
-        />
-        Always active (override)
-      </label>
-      <label className="channel-radio-label channel-radio-disabled">
-        <input
-          type="radio"
-          name="kenBurnsMode"
-          value="slideshow"
-          checked={kenBurnsMode === 'slideshow'}
-          onChange={() => setKenBurnsMode('slideshow')}
-          disabled
-        />
-        Slideshow mode (override){' '}
-        <span className="text-[11px] text-[hsl(var(--state-error))]">- Not Ready</span>
-      </label>
-    </div>
-  );
-
   return (
     <div className="flex max-w-4xl flex-col gap-12 md:gap-16">
       <section className="space-y-6">
@@ -277,50 +192,6 @@ function ChannelModalBehaviorTab({
               >
                 <WToggle checked={asAdmin} onChange={setAsAdmin} disableLabelClick />
               </div>
-            </div>
-          </div>
-        </WeeModalFieldCard>
-
-        <WeeModalFieldCard hoverAccent="primary" className="w-full" paddingClassName="p-6 md:p-8">
-          <div className="flex items-start gap-4">
-            <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-[var(--shadow-sm)] ${
-                performancePauseMode === 'off'
-                  ? 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-tertiary))]'
-                  : 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-              }`}
-            >
-              <Zap size={24} strokeWidth={2.35} aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1 space-y-4">
-              <div>
-                <p className="mb-1 font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--wee-text-header))]">
-                  Pause Wee effects when launching
-                </p>
-                <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
-                  Frees GPU/CPU while a game runs. Wee stays open — it does not minimize. Auto detects Steam, Epic, and
-                  common game folders; leave Never for browsers and tools.
-                </Text>
-              </div>
-              <WeeSegmentedControl
-                ariaLabel="Performance pause when launching"
-                value={performancePauseMode || 'auto'}
-                onChange={setPerformancePauseMode}
-                size="sm"
-                className="w-full max-w-md"
-                options={[
-                  { value: 'auto', label: 'Auto' },
-                  { value: 'on', label: 'Always' },
-                  { value: 'off', label: 'Never' },
-                ]}
-              />
-              {(performancePauseMode || 'auto') === 'auto' ? (
-                <Text variant="help" className="!m-0">
-                  {autoHint === 'game'
-                    ? 'Detected as a game launch — effects will pause until you return to Wee.'
-                    : 'Detected as casual — only soft background throttling applies (same as switching to Chrome).'}
-                </Text>
-              ) : null}
             </div>
           </div>
         </WeeModalFieldCard>
@@ -385,74 +256,6 @@ function ChannelModalBehaviorTab({
           </div>
         </WeeSettingsCollapsibleSection>
       </section>
-
-      <section className="space-y-6">
-        <WeeSectionEyebrow trackingClassName="tracking-[0.35em]">Animation strategy</WeeSectionEyebrow>
-        <WeeModalFieldCard>
-          <WeeIconHeadingRow icon={Film} title="Motion architecture" iconClassName="text-[hsl(var(--palette-purple))]" />
-          <p className="mb-6 text-[11px] font-bold uppercase leading-relaxed text-[hsl(var(--text-tertiary))]">
-            Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.
-          </p>
-          <WeeChoiceTileGrid
-            value={motionGridValue}
-            onChange={handleMotionGridChange}
-            icon={PlayCircle}
-            items={[
-              { value: 'global', title: 'Global', subtitle: 'Follow app settings' },
-              { value: 'hover', title: 'Hover play', subtitle: 'Only when hovered' },
-              { value: 'always', title: 'Always play', subtitle: 'GIF/MP4 always on' },
-            ]}
-          />
-        </WeeModalFieldCard>
-      </section>
-
-      <section className="space-y-6">
-        <WeeSectionEyebrow trackingClassName="tracking-[0.35em]">Post-processing</WeeSectionEyebrow>
-        <WeeModalFieldCard>
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-6">
-              <div
-                className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl transition-all ${
-                  kenBurnsEnabled === true
-                    ? 'bg-[hsl(var(--palette-purple))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-md)]'
-                    : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-tertiary))]'
-                }`}
-              >
-                <Maximize2 size={32} strokeWidth={1.6} aria-hidden />
-              </div>
-              <div>
-                <p className="mb-1 font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--wee-text-header))]">
-                  Ken Burns movement
-                </p>
-                <p className="max-w-md text-[10px] font-bold uppercase leading-relaxed text-[hsl(var(--text-tertiary))]">
-                  Adds cinematic slow-zoom and pan movement to static channel backgrounds.
-                </p>
-              </div>
-            </div>
-            <WeeSegmentedControl
-              ariaLabel="Ken Burns mode"
-              size="sm"
-              value={kenBurnsSegValue}
-              onChange={handleKenBurnsSeg}
-              options={[
-                { value: 'global', label: 'Global' },
-                { value: 'on', label: 'On' },
-                { value: 'off', label: 'Off' },
-              ]}
-            />
-          </div>
-
-          {kenBurnsEnabled === true && renderKenBurnsModeRadios()}
-
-          <Text variant="help" className="mt-6">
-            {kenBurnsEnabled === true
-              ? 'Ken Burns adds cinematic zoom and pan effects to images. Perfect for creating dynamic single-image channels.'
-              : kenBurnsEnabled === false
-                ? 'Ken Burns effect is disabled for this channel, even if enabled globally.'
-                : 'This channel will follow the global Ken Burns setting.'}
-          </Text>
-        </WeeModalFieldCard>
-      </section>
     </div>
   );
 }
@@ -461,10 +264,6 @@ ChannelModalBehaviorTab.propTypes = {
   channelId: PropTypes.string.isRequired,
   asAdmin: PropTypes.bool,
   setAsAdmin: PropTypes.func.isRequired,
-  path: PropTypes.string,
-  type: PropTypes.string,
-  performancePauseMode: PropTypes.oneOf(['auto', 'on', 'off']),
-  setPerformancePauseMode: PropTypes.func.isRequired,
   hoverSoundEnabled: PropTypes.bool,
   setHoverSoundEnabled: PropTypes.func.isRequired,
   hoverSoundUrl: PropTypes.string,
@@ -481,12 +280,6 @@ ChannelModalBehaviorTab.propTypes = {
   handleHoverSoundVolumeChange: PropTypes.func.isRequired,
   handleHoverSoundSelect: PropTypes.func.isRequired,
   handleHoverSoundUpload: PropTypes.func.isRequired,
-  animatedOnHover: PropTypes.oneOf([true, false, 'global', undefined]),
-  setAnimatedOnHover: PropTypes.func.isRequired,
-  kenBurnsEnabled: PropTypes.oneOf([true, false, 'global', undefined]),
-  setKenBurnsEnabled: PropTypes.func.isRequired,
-  kenBurnsMode: PropTypes.oneOf(['hover', 'autoplay', 'slideshow', 'global', undefined]),
-  setKenBurnsMode: PropTypes.func.isRequired,
 };
 
 export default React.memo(ChannelModalBehaviorTab);

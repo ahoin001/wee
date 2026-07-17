@@ -1,14 +1,11 @@
 /**
- * Normalized now-playing projection — shared by Spotify Web API + Windows SMTC.
+ * Normalized Now Playing projection from Windows SMTC.
  *
- * Display policy (free-first):
- * - Prefer Windows system media (desktop Spotify, Apple Music, browsers, …) for what you see.
- * - Use Spotify Web API mainly for Premium transport controls when the playing app is Spotify.
+ * Desktop players and browsers share this system-media contract so playback
+ * controls stay player-agnostic.
  */
 
-export const NOW_PLAYING_SOURCES = Object.freeze(['spotify', 'system']);
-
-export const NOW_PLAYING_SOURCE_PREFERENCES = Object.freeze(['auto', 'spotify', 'system']);
+export const NOW_PLAYING_SOURCES = Object.freeze(['system']);
 
 export const EMPTY_NOW_PLAYING = Object.freeze({
   source: null,
@@ -23,20 +20,11 @@ export const EMPTY_NOW_PLAYING = Object.freeze({
   canSkipNext: false,
   canSkipPrevious: false,
   appName: '',
-  /** 'spotify-api' | 'system-keys' | null — how the tile/widget should route transport */
+  /** 'system-keys' | null — how shared Now Playing should route transport */
   controlsVia: null,
   sourceAppUserModelId: '',
   updatedAt: 0,
 });
-
-/**
- * @param {unknown} value
- * @returns {'auto' | 'spotify' | 'system'}
- */
-export function normalizeNowPlayingSourcePreference(value) {
-  if (value === 'spotify' || value === 'system') return value;
-  return 'auto';
-}
 
 /**
  * @param {unknown} partial
@@ -45,12 +33,8 @@ export function normalizeNowPlaying(partial) {
   if (!partial || typeof partial !== 'object') {
     return { ...EMPTY_NOW_PLAYING };
   }
-  const source =
-    partial.source === 'spotify' || partial.source === 'system' ? partial.source : null;
-  const controlsVia =
-    partial.controlsVia === 'spotify-api' || partial.controlsVia === 'system-keys'
-      ? partial.controlsVia
-      : null;
+  const source = partial.source === 'system' ? partial.source : null;
+  const controlsVia = partial.controlsVia === 'system-keys' ? partial.controlsVia : null;
   return {
     source,
     trackName: typeof partial.trackName === 'string' ? partial.trackName : '',
@@ -69,55 +53,6 @@ export function normalizeNowPlaying(partial) {
       typeof partial.sourceAppUserModelId === 'string' ? partial.sourceAppUserModelId : '',
     updatedAt: Math.max(0, Number(partial.updatedAt) || 0),
   };
-}
-
-/**
- * @param {string} [appName]
- * @param {string} [aumid]
- */
-export function isSpotifySystemApp(appName = '', aumid = '') {
-  const blob = `${appName} ${aumid}`.toLowerCase();
-  return blob.includes('spotify');
-}
-
-/**
- * @param {object} spotify — store.spotify slice
- */
-export function nowPlayingFromSpotify(spotify) {
-  const track = spotify?.currentTrack;
-  if (!track) {
-    return normalizeNowPlaying({
-      source: 'spotify',
-      isPlaying: false,
-      appName: 'Spotify',
-      controlsVia: 'spotify-api',
-      updatedAt: Date.now(),
-    });
-  }
-  const artists = Array.isArray(track.artists)
-    ? track.artists.map((a) => a?.name).filter(Boolean).join(', ')
-    : '';
-  const art =
-    (Array.isArray(track.album?.images) && track.album.images[0]?.url) ||
-    track.albumArtUrl ||
-    '';
-  const isPlaying = Boolean(spotify.isPlaying);
-  return normalizeNowPlaying({
-    source: 'spotify',
-    trackName: track.name || '',
-    artistLine: artists,
-    albumArtUrl: art,
-    isPlaying,
-    progressMs: spotify.progress || 0,
-    durationMs: spotify.duration || 0,
-    canPlay: true,
-    canPause: true,
-    canSkipNext: true,
-    canSkipPrevious: true,
-    appName: 'Spotify',
-    controlsVia: 'spotify-api',
-    updatedAt: Date.now(),
-  });
 }
 
 /**
@@ -163,10 +98,6 @@ export function nowPlayingFromSystemSession(session) {
   });
 }
 
-function hasTrack(np) {
-  return Boolean(np?.trackName || np?.albumArtUrl || np?.artistLine);
-}
-
 function sessionHasMeta(session) {
   if (!session || typeof session !== 'object') return false;
   return Boolean(
@@ -180,90 +111,16 @@ function sessionHasMeta(session) {
 }
 
 /**
- * Merge Premium Spotify Web API transport onto an SMTC Spotify display row.
- * @param {ReturnType<typeof normalizeNowPlaying>} systemNp
- * @param {ReturnType<typeof normalizeNowPlaying> | null} spotifyApi
- * @param {boolean} spotifyPremium
- */
-function enrichSystemWithPremiumSpotifyControls(systemNp, spotifyApi, spotifyPremium) {
-  if (!spotifyPremium || !systemNp) return systemNp;
-  if (!isSpotifySystemApp(systemNp.appName, systemNp.sourceAppUserModelId)) {
-    return systemNp;
-  }
-  return normalizeNowPlaying({
-    ...systemNp,
-    // Keep SMTC as the display source; route controls through Web API when Premium.
-    controlsVia: 'spotify-api',
-    canPlay: true,
-    canPause: true,
-    canSkipNext: true,
-    canSkipPrevious: true,
-    albumArtUrl: systemNp.albumArtUrl || spotifyApi?.albumArtUrl || '',
-    // Prefer live Web API progress when both refer to Spotify.
-    progressMs: spotifyApi?.progressMs || systemNp.progressMs,
-    durationMs: spotifyApi?.durationMs || systemNp.durationMs,
-    isPlaying:
-      spotifyApi && hasTrack(spotifyApi) ? Boolean(spotifyApi.isPlaying) : systemNp.isPlaying,
-  });
-}
-
-/**
- * Pick the active projection — SMTC-first for free desktop players.
+ * Resolve shared Now Playing from the active system-media session.
  * @param {{
- *   preference?: string,
  *   systemEnabled?: boolean,
- *   spotifyConnected?: boolean,
- *   spotifyPremium?: boolean,
- *   spotifyCandidate?: object,
  *   systemCandidate?: object,
  * }} opts
  */
 export function resolveNowPlaying(opts = {}) {
-  const preference = normalizeNowPlayingSourcePreference(opts.preference);
   const systemEnabled = opts.systemEnabled !== false;
-  const spotifyConnected = Boolean(opts.spotifyConnected);
-  const spotifyPremium = Boolean(opts.spotifyPremium);
-
-  const spotifyApi =
-    spotifyConnected && (hasTrack(opts.spotifyCandidate) || opts.spotifyCandidate?.isPlaying)
-      ? normalizeNowPlaying(opts.spotifyCandidate)
-      : null;
-
-  let system =
-    systemEnabled &&
-    (hasTrack(opts.systemCandidate) || opts.systemCandidate?.isPlaying)
-      ? normalizeNowPlaying(opts.systemCandidate)
-      : null;
-
-  if (system) {
-    system = enrichSystemWithPremiumSpotifyControls(system, spotifyApi, spotifyPremium);
-  }
-
-  if (preference === 'system') {
-    return system || { ...EMPTY_NOW_PLAYING };
-  }
-
-  if (preference === 'spotify') {
-    // Premium Web API when it has a track; otherwise desktop Spotify via SMTC.
-    if (spotifyPremium && spotifyApi && hasTrack(spotifyApi)) {
-      return spotifyApi;
-    }
-    if (system && isSpotifySystemApp(system.appName, system.sourceAppUserModelId)) {
-      return system;
-    }
-    if (spotifyApi && hasTrack(spotifyApi)) return spotifyApi;
-    return { ...EMPTY_NOW_PLAYING };
-  }
-
-  // auto — desktop SMTC first (Apple Music, Spotify Desktop, browsers, …)
-  if (system && (system.isPlaying || hasTrack(system))) {
-    return system;
-  }
-  if (spotifyApi && hasTrack(spotifyApi)) {
-    return spotifyApi;
-  }
-
-  return { ...EMPTY_NOW_PLAYING };
+  if (!systemEnabled || !opts.systemCandidate) return { ...EMPTY_NOW_PLAYING };
+  return normalizeNowPlaying(opts.systemCandidate);
 }
 
 /**

@@ -6,16 +6,16 @@ import { useActivityInterval } from './useActivityInterval';
 import { useAnimationActivity } from './useAnimationActivity';
 
 /**
- * Shared Spotify Web API playback sampler — Premium controls / enrichment only.
- * Free users rely on Windows SMTC for display; do not poll the Player API for them.
+ * Spotify Web API sampler for the dedicated Spotify widget.
+ * Shared Now Playing uses Windows system media and never consumes this sampler.
  */
 export function useSharedSpotifyPlaybackSampler() {
-  const { isConnected, playerWebApiForbidden, preference, isPremium } =
+  const { isConnected, playerWebApiForbidden, widgetVisible, isPremium } =
     useConsolidatedAppStore(
       useShallow((s) => ({
         isConnected: Boolean(s.spotify.isConnected),
         playerWebApiForbidden: Boolean(s.spotify.playerWebApiForbidden),
-        preference: s.ui.nowPlayingSourcePreference || 'auto',
+        widgetVisible: Boolean(s.floatingWidgets.spotify?.visible),
         isPremium: isSpotifyPremiumUser(s.spotify.currentUser),
       }))
     );
@@ -27,13 +27,12 @@ export function useSharedSpotifyPlaybackSampler() {
 
   const spotifyManager = useConsolidatedAppStore((s) => s.actions.spotifyManager);
 
-  // Premium + connected: sample Web API for transport enrichment (and Spotify-preferred display).
-  // Free / forbidden: SMTC owns display — skip Player API polling.
+  // Keep API polling scoped to the visible Spotify experience.
   const needsSpotify =
     isConnected &&
     isPremium &&
     !playerWebApiForbidden &&
-    (preference === 'spotify' || preference === 'auto' || preference === 'system');
+    widgetVisible;
 
   const baseMs = isLowPowerMode ? 6000 : 2000;
   const intervalMs = Math.round(baseMs * (pollIntervalMultiplier || 1));

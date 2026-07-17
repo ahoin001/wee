@@ -44,6 +44,7 @@ export const SETTINGS_TAB_META = Object.freeze([
     keywords: [
       'edit home', 'arrange', 'board', 'grid', 'widgets', 'quick access',
       'ken burns', 'idle', 'auto fade', 'focus recede', 'hover', 'tiles', 'layout',
+      'punch', 'holes', 'tile style',
     ],
   },
   // —— Appearance ——
@@ -63,24 +64,15 @@ export const SETTINGS_TAB_META = Object.freeze([
     ],
   },
   {
-    id: 'colors',
-    label: 'Colors',
-    icon: '🌈',
-    color: 'hsl(var(--settings-tab-colors))',
-    description: 'Discover and route color controls',
-    categoryId: 'appearance',
-    keywords: ['accent', 'theme', 'dark mode', 'ambient', 'match', 'palette'],
-  },
-  {
     id: 'themes',
-    label: 'Looks',
+    label: 'Presets',
     icon: '🎨',
     color: 'hsl(var(--settings-tab-themes))',
-    description: 'Save, share & apply visual looks',
+    description: 'Save, share & apply visual presets',
     categoryId: 'appearance',
     keywords: [
       'presets', 'themes', 'looks', 'community', 'share', 'import', 'export',
-      'saved looks', 'freeze colors',
+      'saved looks', 'saved presets', 'freeze colors',
     ],
   },
   {
@@ -102,8 +94,8 @@ export const SETTINGS_TAB_META = Object.freeze([
     description: 'Classic & Ribbon dock settings',
     categoryId: 'dock-nav',
     keywords: [
-      'ribbon', 'classic', 'glass', 'glow', 'ribbon dock effects', 'chrome effects', 'particles',
-      'buttons', 'animations', 'surface',
+      'ribbon', 'classic', 'glass', 'glow', 'ribbon dock effects', 'chrome effects',
+      'buttons', 'surface', 'accent', 'colors', 'color match', 'palette', 'dynamic chrome',
     ],
   },
   {
@@ -145,11 +137,11 @@ export const SETTINGS_TAB_META = Object.freeze([
     label: 'Music, Steam & Widgets',
     icon: '🔌',
     color: 'hsl(var(--settings-tab-api))',
-    description: 'Spotify, Now Playing, Steam & floating widgets',
+    description: 'Spotify, Now Playing, Steam & Quick Access',
     categoryId: 'integrations',
     keywords: [
       'spotify', 'steam', 'steamid', 'enrichment', 'now playing', 'takeover', 'immersive',
-      'system info', 'admin panel', 'floating widgets', 'integrations', 'api', 'smtc',
+      'admin panel', 'quick access', 'integrations', 'api', 'smtc',
       'apple music', 'system media', 'music',
     ],
   },
@@ -206,6 +198,8 @@ export function normalizeSettingsTabId(tabId) {
   if (tabId === 'navigation') return 'channels';
   /** Game Hub visuals live on the in-hub controls pill — land on Channels & layout. */
   if (tabId === 'gamehub') return 'channels';
+  /** Colors tab folded into Quick menu + Dock — land on Dock for ribbon accents. */
+  if (tabId === 'colors') return 'dock';
   return tabId;
 }
 

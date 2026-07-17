@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { m, useReducedMotion } from 'framer-motion';
-import { Activity, Aperture, Info, LayoutGrid, Minus, Monitor, Plus, Sparkles } from 'lucide-react';
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
+import { Activity, Aperture, Info, LayoutGrid, Minus, Plus, Sparkles } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import {
   WeeButton,
   WeeDescriptionToggleRow,
+  WeeDockSettingsSubtabs,
   WeeHelpLinkButton,
   WeeHelpParagraph,
   WeeModalFieldCard,
@@ -19,7 +20,6 @@ import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsMultiToggleChips from './SettingsMultiToggleChips';
 import ChannelBoardLivePreview from './ChannelBoardLivePreview';
-import { HomeBoardSwitcher } from '../home-grid';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
@@ -38,11 +38,38 @@ import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
-import { createWeeTransition } from '../../design/weeMotion';
+import { createWeeTransition, useWeeMotion } from '../../design/weeMotion';
 
 /** Board-style toggle titles: bold all-caps (matches Wii engine field cards). */
 const TOGGLE_TITLE =
   '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
+
+const LAYOUT_SUB_TABS = [
+  {
+    id: 'board',
+    label: 'Board',
+    description: 'Grid & punch holes',
+    icon: LayoutGrid,
+  },
+  {
+    id: 'widgets',
+    label: 'Widgets',
+    description: 'Floating & Home',
+    icon: Sparkles,
+  },
+  {
+    id: 'tile-style',
+    label: 'Tile style',
+    description: 'Look & hover',
+    icon: Activity,
+  },
+  {
+    id: 'ken-burns',
+    label: 'Ken Burns',
+    description: 'Zoom & pan',
+    icon: Aperture,
+  },
+];
 
 const IDLE_TYPE_ITEMS = [
   { value: 'pulse', label: 'Pulse' },
@@ -148,22 +175,24 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   );
   const motionFeedback = useConsolidatedAppStore((state) => state.ui.motionFeedback);
   const gooeyPrefs = useMemo(() => mergeMotionFeedback(motionFeedback).gooey, [motionFeedback]);
-  const floatingWidgets = useConsolidatedAppStore((state) => state.floatingWidgets);
+  const adminPanelVisible = useConsolidatedAppStore(
+    (state) => Boolean(state.floatingWidgets?.adminPanel?.visible)
+  );
   const setSpacesState = useConsolidatedAppStore((state) => state.actions.setSpacesState);
   const [punchHoleMode, setPunchHoleMode] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
-  /** Explicit board target; defaults follow the active channel space (Home vs Focus). */
   const [boardPickerKey, setBoardPickerKey] = useState(null);
   const [pageOnlyLayout, setPageOnlyLayout] = useState(false);
   const [layoutStatus, setLayoutStatus] = useState('');
+  const [activeSubTab, setActiveSubTab] = useState('board');
   const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
+  const { tabTransition } = useWeeMotion();
 
   const activeChannelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
   const layoutSpaceKey = boardPickerKey || activeChannelSpaceKey;
   const isFocusBoard = layoutSpaceKey === 'workspaces';
   const boardLabel = isFocusBoard ? 'Focus' : 'Home';
 
-  /** When switching Home/Focus, preview the live navigation page for that board. */
   useEffect(() => {
     const data = getChannelDataSlice(
       useConsolidatedAppStore.getState().channels,
@@ -173,35 +202,33 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     setLayoutStatus('');
   }, [layoutSpaceKey]);
 
-  /** Close Settings and open Live Board Studio on Home (primary arrange/punch surface). */
   const handleArrangeOnHome = useCallback(() => {
     enterHomeBoardArrange({ closeSettings: true });
   }, [enterHomeBoardArrange]);
 
-  /** Deep-link into Live Board Studio punch mode on Home. */
   const handlePunchOnHome = useCallback(() => {
     enterHomeBoardArrange({ closeSettings: true, punchMode: true });
   }, [enterHomeBoardArrange]);
 
-  /** Jump to the Focus board (Live Board Studio is Home-primary). */
   const handleOpenFocusBoard = useCallback(() => {
     setSpacesState({ activeSpaceId: 'workspaces' });
     actions.setUIState({ showSettingsModal: false });
   }, [actions, setSpacesState]);
 
-  const handleToggleFloatingWidget = useCallback(
-    (key, nextVisible) => {
-      const current = floatingWidgets?.[key];
+  const handleToggleAdminPanel = useCallback(
+    (nextVisible) => {
+      const current = useConsolidatedAppStore.getState().floatingWidgets?.adminPanel;
       if (!current) return;
       actions.setFloatingWidgetsState({
-        [key]: {
+        adminPanel: {
           ...current,
           visible: typeof nextVisible === 'boolean' ? nextVisible : !current.visible,
         },
       });
     },
-    [actions, floatingWidgets]
+    [actions]
   );
+
   const handleChannelHoverModeChange = useCallback(
     (mode) => {
       actions.setUIState((prev) => {
@@ -231,7 +258,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   const currentPage = currentNavigation.currentPage || 0;
   const slotMeta = currentData.slotMeta || {};
   const safePreviewPage = Math.max(0, Math.min(previewPage, stripLayout.totalPages - 1));
-  // Settings preview + column/row steppers use effective page layout when "This page only".
   const pageLayout = useMemo(
     () => resolveLayoutForPage(currentData, safePreviewPage),
     [currentData, safePreviewPage]
@@ -275,7 +301,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     );
   }, [actions, boardLabel, layoutSpaceKey]);
 
-  /** Clear layoutByPage for the preview page by writing strip columns/rows as a page override (no-op delete). */
   const handleClearPageOverride = useCallback(() => {
     actions.setChannelLayoutForSpace(
       layoutSpaceKey,
@@ -295,7 +320,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
 
   const pageSlotIndices = useMemo(() => {
     const start = safePreviewPage * stripLayout.channelsPerPage;
-    // Page-only preview: show the effective subgrid mapped into strip indices.
     if (
       pageOnlyLayout &&
       (pageLayout.columns !== stripLayout.columns || pageLayout.rows !== stripLayout.rows)
@@ -404,565 +428,568 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
 
   const idleSelected = settings.idleAnimationTypes || ['pulse', 'bounce', 'glow'];
 
+  const renderBoardPanel = () => (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <WeeSectionEyebrow className="block" trackingClassName="tracking-[0.14em]">
+          Grid size
+        </WeeSectionEyebrow>
+        <h2 className="m-0 text-xl font-black tracking-tight text-[hsl(var(--text-primary))] md:text-2xl">
+          {boardLabel} · {layout.columns}×{layout.rows}×{stripLayout.totalPages}
+        </h2>
+        <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+          {totalChannels} slots · classic {WII_LAYOUT_PRESET.columns}×{WII_LAYOUT_PRESET.rows}×
+          {WII_LAYOUT_PRESET.totalPages}
+          {pageLayout.hasPageOverride ? ' · this page has a custom size' : ''}
+        </Text>
+        <div className="mt-2 max-w-sm">
+          <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+            Board
+          </WeeSectionEyebrow>
+          <WeeSegmentedControl
+            ariaLabel="Channel board to edit"
+            value={layoutSpaceKey}
+            onChange={(key) => setBoardPickerKey(key)}
+            options={[
+              { value: 'home', label: 'Home' },
+              { value: 'workspaces', label: 'Focus' },
+            ]}
+            size="sm"
+          />
+        </div>
+        {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
+          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+            You&apos;re in a Hub — pick Home or Focus above to choose which grid to edit.
+          </Text>
+        ) : null}
+      </div>
+
+      <ChannelBoardLivePreview
+        layout={{
+          columns: layout.columns,
+          rows: layout.rows,
+        }}
+        slotMeta={slotMeta}
+        slots={currentData.slots}
+        configuredChannels={currentData.configuredChannels}
+        pageSlotIndices={pageSlotIndices}
+        punchHoleMode={punchHoleMode}
+        onToggleSlot={handleToggleSlotHidden}
+        safePreviewPage={safePreviewPage}
+        totalPages={stripLayout.totalPages}
+        onPreviewPage={setPreviewPage}
+        currentPage={currentPage}
+        wallpaperUrl={wallpaperPreviewUrl || null}
+      />
+
+      {/* Punch / arrange tools sit directly under the preview so enabling punch is obvious. */}
+      <div className="flex flex-col gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--surface-wii-tint)/0.5)] p-4 md:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 max-w-xl">
+            <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+              Punch holes
+            </WeeSectionEyebrow>
+            <Text variant="body" className="!m-0 !font-black !text-[hsl(var(--text-primary))]">
+              {punchHoleMode ? 'Tap slots in the preview above' : 'Hide slots to show wallpaper through'}
+            </Text>
+            <Text variant="desc" className="!mt-1.5 !mb-0 text-[hsl(var(--text-secondary))]">
+              {isFocusBoard
+                ? 'Edit holes on the Focus preview above, or open Focus to arrange in place.'
+                : 'Use the preview above for quick holes, or Edit Home for full Live Board Studio.'}
+            </Text>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <WeeButton
+              type="button"
+              variant={punchHoleMode ? 'primary' : 'secondary'}
+              className="shrink-0"
+              aria-pressed={punchHoleMode}
+              onClick={() => setPunchHoleMode((v) => !v)}
+            >
+              {punchHoleMode ? 'Done punching' : 'Punch in preview'}
+            </WeeButton>
+            {!isFocusBoard ? (
+              <WeeButton
+                type="button"
+                variant="secondary"
+                className="shrink-0"
+                onClick={handlePunchOnHome}
+              >
+                Punch on Home
+              </WeeButton>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--border-primary)/0.25)] pt-3">
+          <div className="min-w-0">
+            <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+              {isFocusBoard ? 'Open Focus' : 'Live Board Studio'}
+            </WeeSectionEyebrow>
+            <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+              {isFocusBoard
+                ? 'Arrange Focus tiles in place. Grid size stays here.'
+                : 'Reorder, resize widgets, and punch on the real Home board.'}
+            </Text>
+          </div>
+          <WeeButton
+            type="button"
+            variant="primary"
+            className="shrink-0"
+            onClick={isFocusBoard ? handleOpenFocusBoard : handleArrangeOnHome}
+          >
+            {isFocusBoard ? 'Open Focus' : 'Edit Home'}
+          </WeeButton>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <LayoutStepper
+          label="Columns"
+          value={layout.columns}
+          min={CHANNEL_LAYOUT_LIMITS.columns.min}
+          max={CHANNEL_LAYOUT_LIMITS.columns.max}
+          onChange={(v) => handleLayoutFieldChange('columns', v)}
+          ariaLabel="columns"
+        />
+        <LayoutStepper
+          label="Rows"
+          value={layout.rows}
+          min={CHANNEL_LAYOUT_LIMITS.rows.min}
+          max={CHANNEL_LAYOUT_LIMITS.rows.max}
+          onChange={(v) => handleLayoutFieldChange('rows', v)}
+          ariaLabel="rows"
+        />
+        <LayoutStepper
+          label="Pages"
+          value={stripLayout.totalPages}
+          min={CHANNEL_LAYOUT_LIMITS.totalPages.min}
+          max={CHANNEL_LAYOUT_LIMITS.totalPages.max}
+          onChange={(v) => handleLayoutFieldChange('totalPages', v)}
+          ariaLabel="pages"
+        />
+        <LayoutStepper
+          label="Peek %"
+          value={stripLayout.peekPercent}
+          min={CHANNEL_LAYOUT_LIMITS.peekPercent.min}
+          max={CHANNEL_LAYOUT_LIMITS.peekPercent.max}
+          onChange={(v) => handleLayoutFieldChange('peekPercent', v)}
+          ariaLabel="next-page peek percent"
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] px-4 py-3">
+        <div className="min-w-0 max-w-md">
+          <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+            Advanced · This page only
+          </WeeSectionEyebrow>
+          <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+            Columns/rows apply to preview page {safePreviewPage + 1} only. Pages &amp; peek stay
+            board-wide.
+          </Text>
+        </div>
+        <WToggle
+          checked={pageOnlyLayout}
+          onChange={setPageOnlyLayout}
+          label="This page only"
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <WeeButton type="button" variant="secondary" onClick={handleResetToClassic}>
+          Reset to classic
+        </WeeButton>
+        {pageLayout.hasPageOverride ? (
+          <WeeButton type="button" variant="secondary" onClick={handleClearPageOverride}>
+            Clear this page&apos;s size
+          </WeeButton>
+        ) : null}
+      </div>
+
+      {layoutStatus ? (
+        <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]" role="status">
+          {layoutStatus}
+        </Text>
+      ) : (
+        <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+          Shrinking keeps channels that still fit; extras are cleared. Growing adds empty slots.
+          Home and Focus sizes are independent.
+        </Text>
+      )}
+
+      <div className="flex flex-col gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--surface-wii-tint)/0.45)] p-4 md:flex-row md:items-start md:gap-4">
+        <Info className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--primary))]" aria-hidden />
+        <div className="min-w-0">
+          <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
+            Reorder feel lives under{' '}
+            <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}>
+              Motion
+            </WeeHelpLinkButton>
+            . Sounds:{' '}
+            <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SOUNDS)}>
+              Sounds
+            </WeeHelpLinkButton>
+            .
+          </Text>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderWidgetsPanel = () => (
+    <div className="flex flex-col gap-4">
+      <SettingsToggleFieldCard
+        hoverAccent="none"
+        titleClassName={TOGGLE_TITLE}
+        title="Admin panel widget"
+        desc="Floating Quick Access menu for Windows tools. You can also pin Quick Access on Home."
+        checked={adminPanelVisible}
+        onChange={handleToggleAdminPanel}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-dashed border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.4)] p-4">
+        <div className="min-w-0 max-w-md">
+          <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+            Widgets on the board
+          </WeeSectionEyebrow>
+          <WeeHelpParagraph className="!normal-case !tracking-[0.04em]">
+            Board widgets float on wallpaper by default (Clear). Use Glass for a light frost,
+            or Basic for a solid card — place and restyle them in Edit Home.
+          </WeeHelpParagraph>
+        </div>
+        <WeeButton
+          type="button"
+          variant="secondary"
+          className="shrink-0"
+          onClick={handleArrangeOnHome}
+        >
+          Edit Home
+        </WeeButton>
+      </div>
+
+      <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+        Spotify connects under{' '}
+        <WeeHelpLinkButton
+          type="button"
+          className="!mt-0 inline"
+          onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS, { integrationsSubTab: 'music' })}
+        >
+          Music, Steam &amp; Widgets
+        </WeeHelpLinkButton>
+        . Use a Now Playing tile on Home instead of a floating player.
+      </Text>
+    </div>
+  );
+
+  const renderTileStylePanel = () => (
+    <div className="flex flex-col gap-4">
+      <SettingsToggleFieldCard
+        hoverAccent="none"
+        titleClassName={TOGGLE_TITLE}
+        title="Adaptive empty slots"
+        desc="Empty channel slots blend into your wallpaper for a cohesive look."
+        checked={settings.adaptiveEmptyChannels ?? true}
+        onChange={handleAdaptiveEmptyChannelsChange}
+      />
+      <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
+        <WeeSectionEyebrow className="mb-3 block" trackingClassName="tracking-[0.14em]">
+          Live adaptive preview
+        </WeeSectionEyebrow>
+        <div
+          className="flex h-16 w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-[hsl(var(--border-primary)/0.5)] px-4 shadow-inner transition-colors duration-200"
+          style={adaptivePreviewStyle}
+          aria-hidden="true"
+        >
+          <span className="h-10 w-10 rounded-xl border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary)/0.55)] shadow-[var(--shadow-sm)]" />
+          <span className="-ml-2 h-10 w-10 rotate-6 rounded-xl border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary)/0.55)] shadow-[var(--shadow-sm)]" />
+        </div>
+      </WeeModalFieldCard>
+
+      <SettingsToggleFieldCard
+        hoverAccent="none"
+        titleClassName={TOGGLE_TITLE}
+        title="Hover-only animations"
+        desc="Animated channel art (GIFs/MP4s) plays only while you hover when this is on."
+        checked={settings.animatedOnHover ?? false}
+        onChange={handleAnimatedOnHoverChange}
+      />
+
+      <SettingsToggleFieldCard
+        hoverAccent="none"
+        titleClassName={TOGGLE_TITLE}
+        title="Focus & recede"
+        desc="Hovering a tile lightly dims neighbors (filled tiles only)."
+        checked={settings.focusRecedeEnabled ?? true}
+        onChange={handleFocusRecedeChange}
+      />
+
+      <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
+        <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+          Tile hover physics
+        </WeeSectionEyebrow>
+        <Text variant="caption" className="!mb-3 block text-[hsl(var(--text-tertiary))]">
+          Space-pill gooey hover on channel tiles. Bounce strength is under Motion → Gooey physics.
+        </Text>
+        <WeeSegmentedControl
+          ariaLabel="Channel tile hover physics mode"
+          value={gooeyPrefs.channelHoverMode ?? GOOEY_HOVER_MODES.both}
+          onChange={handleChannelHoverModeChange}
+          options={[
+            { value: GOOEY_HOVER_MODES.squash, label: 'Squash' },
+            { value: GOOEY_HOVER_MODES.glow, label: 'Glow' },
+            { value: GOOEY_HOVER_MODES.both, label: 'Both' },
+          ]}
+        />
+        <button
+          type="button"
+          className="mt-3 text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
+          onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
+        >
+          Open Motion settings
+        </button>
+      </WeeModalFieldCard>
+
+      <WeeSettingsCollapsibleSection
+        icon={Activity}
+        title="Idle micro-motions"
+        description="Which one-shot tile delights can play when idle."
+        defaultOpen={false}
+      >
+        <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
+          <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
+            Auto-fade, attract mode, and intensity live under Motion → Idle experience.
+          </Text>
+          <button
+            type="button"
+            className="mt-2 text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
+            onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
+          >
+            Open Motion → Idle experience
+          </button>
+        </WeeModalFieldCard>
+
+        <div className="mt-3 space-y-4">
+          <div className="w-full min-w-0">
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+              Animation types
+            </WeeSectionEyebrow>
+            <SettingsMultiToggleChips
+              items={IDLE_TYPE_ITEMS}
+              selectedValues={idleSelected}
+              onToggle={handleIdleAnimationTypeToggle}
+              ariaLabel="Idle animation types"
+            />
+          </div>
+          <div className="w-full min-w-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
+            <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+              Animation interval: {settings.idleAnimationInterval ?? 8} seconds
+            </Text>
+            <Slider
+              value={settings.idleAnimationInterval ?? 8}
+              min={2}
+              max={20}
+              step={1}
+              onChange={handleIdleAnimationIntervalChange}
+            />
+          </div>
+        </div>
+      </WeeSettingsCollapsibleSection>
+    </div>
+  );
+
+  const renderKenBurnsPanel = () => (
+    <div className="flex flex-col gap-4">
+      <SettingsToggleFieldCard
+        hoverAccent="none"
+        titleClassName={TOGGLE_TITLE}
+        title="Ken Burns effect"
+        desc="Add cinematic zoom and pan to still channel images."
+        checked={settings.kenBurnsEnabled ?? false}
+        onChange={handleKenBurnsEnabledChange}
+        revealKeepMounted={false}
+      >
+        <div className="w-full min-w-0 space-y-4">
+          <div>
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+              Trigger mode
+            </WeeSectionEyebrow>
+            <WeeSegmentedControl
+              ariaLabel="Ken Burns trigger mode"
+              value={settings.kenBurnsMode ?? 'hover'}
+              onChange={handleKenBurnsModeChange}
+              options={KEN_BURNS_MODE_OPTIONS}
+              size="sm"
+              className="w-full min-w-0 justify-start sm:inline-flex sm:w-auto"
+            />
+          </div>
+
+          <div className="space-y-3 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
+            <WeeDescriptionToggleRow
+              description="Apply Ken Burns to animated GIFs too (in addition to still images)."
+            >
+              <WToggle
+                checked={settings.kenBurnsForGifs ?? false}
+                onChange={handleKenBurnsForGifsChange}
+                label="Ken Burns for GIFs"
+              />
+            </WeeDescriptionToggleRow>
+            <WeeDescriptionToggleRow
+              description="Apply Ken Burns to MP4 channel videos too (in addition to still images)."
+            >
+              <WToggle
+                checked={settings.kenBurnsForVideos ?? false}
+                onChange={handleKenBurnsForVideosChange}
+                label="Ken Burns for videos"
+              />
+            </WeeDescriptionToggleRow>
+          </div>
+
+          <div>
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+              Scale
+            </WeeSectionEyebrow>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
+                  Hover scale: {settings.kenBurnsHoverScale ?? 1.1}
+                </Text>
+                <Slider
+                  value={settings.kenBurnsHoverScale ?? 1.1}
+                  min={1.0}
+                  max={1.5}
+                  step={0.05}
+                  onChange={handleKenBurnsHoverScaleChange}
+                />
+              </div>
+              <div>
+                <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
+                  Autoplay scale: {settings.kenBurnsAutoplayScale ?? 1.15}
+                </Text>
+                <Slider
+                  value={settings.kenBurnsAutoplayScale ?? 1.15}
+                  min={1.0}
+                  max={1.5}
+                  step={0.05}
+                  onChange={handleKenBurnsAutoplayScaleChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+              Duration
+            </WeeSectionEyebrow>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
+                  Hover duration: {settings.kenBurnsHoverDuration ?? 8000}ms
+                </Text>
+                <Slider
+                  value={settings.kenBurnsHoverDuration ?? 8000}
+                  min={2000}
+                  max={15000}
+                  step={500}
+                  onChange={handleKenBurnsHoverDurationChange}
+                />
+              </div>
+              <div>
+                <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
+                  Autoplay duration: {settings.kenBurnsAutoplayDuration ?? 12000}ms
+                </Text>
+                <Slider
+                  value={settings.kenBurnsAutoplayDuration ?? 12000}
+                  min={5000}
+                  max={20000}
+                  step={500}
+                  onChange={handleKenBurnsAutoplayDurationChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+              Advanced
+            </WeeSectionEyebrow>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div>
+                <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
+                  Crossfade duration: {settings.kenBurnsCrossfadeDuration ?? 1000}ms
+                </Text>
+                <Slider
+                  value={settings.kenBurnsCrossfadeDuration ?? 1000}
+                  min={500}
+                  max={3000}
+                  step={100}
+                  onChange={handleKenBurnsCrossfadeDurationChange}
+                />
+              </div>
+              <div>
+                <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+                  Easing
+                </WeeSectionEyebrow>
+                <WeeSegmentedControl
+                  ariaLabel="Ken Burns easing"
+                  value={settings.kenBurnsEasing ?? 'ease-out'}
+                  onChange={handleKenBurnsEasingChange}
+                  options={KEN_BURNS_EASING_OPTIONS}
+                  size="sm"
+                  wrap
+                  className="w-full min-w-0 justify-start"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingsToggleFieldCard>
+    </div>
+  );
+
+  const renderPanel = () => {
+    switch (activeSubTab) {
+      case 'board':
+        return renderBoardPanel();
+      case 'widgets':
+        return renderWidgetsPanel();
+      case 'tile-style':
+        return renderTileStylePanel();
+      case 'ken-burns':
+        return renderKenBurnsPanel();
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
       <SettingsTabPageHeader
         title="Channel & layout"
-        subtitle="Set Home or Focus grid size, place widgets, and tune how tiles look and move"
+        subtitle="Size the Home or Focus grid, place widgets, and tune how tiles look"
+        className="mb-6"
       />
 
-      <div className="flex flex-col gap-5">
-        <WeeSettingsCollapsibleSection
-          icon={LayoutGrid}
-          title="Board studio"
-          description="Set grid size here. Reorder, resize tiles, and punch holes in Edit Home."
-          defaultOpen
-        >
-          <div className="flex flex-col gap-2">
-            <WeeSectionEyebrow className="block" trackingClassName="tracking-[0.14em]">
-              Grid size
-            </WeeSectionEyebrow>
-            <h2 className="m-0 text-xl font-black tracking-tight text-[hsl(var(--text-primary))] md:text-2xl">
-              {boardLabel} · {layout.columns}×{layout.rows}×{stripLayout.totalPages}
-            </h2>
-            <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-              {totalChannels} slots · classic {WII_LAYOUT_PRESET.columns}×{WII_LAYOUT_PRESET.rows}×
-              {WII_LAYOUT_PRESET.totalPages}
-              {pageLayout.hasPageOverride ? ' · this page has a custom size' : ''}
-            </Text>
-            <div className="mt-2 max-w-sm">
-              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                Board
-              </WeeSectionEyebrow>
-              <WeeSegmentedControl
-                ariaLabel="Channel board to edit"
-                value={layoutSpaceKey}
-                onChange={(key) => setBoardPickerKey(key)}
-                options={[
-                  { value: 'home', label: 'Home' },
-                  { value: 'workspaces', label: 'Focus' },
-                ]}
-                size="sm"
-              />
-            </div>
-            {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
-              <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                You&apos;re in a Hub — pick Home or Focus above to choose which grid to edit.
-              </Text>
-            ) : null}
-          </div>
+      <WeeDockSettingsSubtabs
+        tabs={LAYOUT_SUB_TABS}
+        value={activeSubTab}
+        onChange={setActiveSubTab}
+        ariaLabel="Channel and layout sections"
+        layoutId="weeChannelsLayoutSubtabActive"
+      />
 
-          <ChannelBoardLivePreview
-            layout={{
-              columns: layout.columns,
-              rows: layout.rows,
-            }}
-            slotMeta={slotMeta}
-            slots={currentData.slots}
-            configuredChannels={currentData.configuredChannels}
-            pageSlotIndices={pageSlotIndices}
-            punchHoleMode={punchHoleMode}
-            onToggleSlot={handleToggleSlotHidden}
-            safePreviewPage={safePreviewPage}
-            totalPages={stripLayout.totalPages}
-            onPreviewPage={setPreviewPage}
-            currentPage={currentPage}
-            wallpaperUrl={wallpaperPreviewUrl || null}
-          />
-
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)] px-4 py-3">
-            <div className="min-w-0 max-w-md">
-              <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                Advanced · This page only
-              </WeeSectionEyebrow>
-              <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-                Columns/rows apply to preview page {safePreviewPage + 1} only. Pages &amp; peek stay
-                board-wide. The live strip still uses the board maximum so scrolling stays stable.
-              </Text>
-            </div>
-            <WToggle
-              checked={pageOnlyLayout}
-              onChange={setPageOnlyLayout}
-              label="This page only"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <LayoutStepper
-              label="Columns"
-              value={layout.columns}
-              min={CHANNEL_LAYOUT_LIMITS.columns.min}
-              max={CHANNEL_LAYOUT_LIMITS.columns.max}
-              onChange={(v) => handleLayoutFieldChange('columns', v)}
-              ariaLabel="columns"
-            />
-            <LayoutStepper
-              label="Rows"
-              value={layout.rows}
-              min={CHANNEL_LAYOUT_LIMITS.rows.min}
-              max={CHANNEL_LAYOUT_LIMITS.rows.max}
-              onChange={(v) => handleLayoutFieldChange('rows', v)}
-              ariaLabel="rows"
-            />
-            <LayoutStepper
-              label="Pages"
-              value={stripLayout.totalPages}
-              min={CHANNEL_LAYOUT_LIMITS.totalPages.min}
-              max={CHANNEL_LAYOUT_LIMITS.totalPages.max}
-              onChange={(v) => handleLayoutFieldChange('totalPages', v)}
-              ariaLabel="pages"
-            />
-            <LayoutStepper
-              label="Peek %"
-              value={stripLayout.peekPercent}
-              min={CHANNEL_LAYOUT_LIMITS.peekPercent.min}
-              max={CHANNEL_LAYOUT_LIMITS.peekPercent.max}
-              onChange={(v) => handleLayoutFieldChange('peekPercent', v)}
-              ariaLabel="next-page peek percent"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <WeeButton type="button" variant="secondary" onClick={handleResetToClassic}>
-              Reset to classic
-            </WeeButton>
-            {pageLayout.hasPageOverride ? (
-              <WeeButton type="button" variant="secondary" onClick={handleClearPageOverride}>
-                Clear this page&apos;s size
-              </WeeButton>
-            ) : null}
-          </div>
-
-          {layoutStatus ? (
-            <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]" role="status">
-              {layoutStatus}
-            </Text>
-          ) : (
-            <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-              Shrinking keeps channels that still fit; extras are cleared. Growing adds empty slots.
-              Peek % is how much of the next page shows at the strip edge. Home and Focus sizes are
-              independent.
-            </Text>
-          )}
-
-          <div className="flex flex-col gap-4 rounded-[1.75rem] border-2 border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--surface-wii-tint)/0.5)] p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 max-w-xl">
-                <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                  {isFocusBoard ? 'Open Focus' : 'Edit on the board'}
-                </WeeSectionEyebrow>
-                <Text variant="body" className="!m-0 !font-black !text-[hsl(var(--text-primary))]">
-                  {isFocusBoard
-                    ? 'Arrange tiles on Focus'
-                    : 'Reorder, resize widgets, and punch holes'}
-                </Text>
-                <Text variant="desc" className="!mt-2 !mb-0 text-[hsl(var(--text-secondary))]">
-                  {isFocusBoard
-                    ? 'Edit Home is Home-primary for Live Board Studio. Open Focus to arrange that grid in place; punch holes in the preview above.'
-                    : 'Closes settings and edits the grid in place — does not change columns, rows, or pages.'}
-                </Text>
-              </div>
-              <WeeButton
-                type="button"
-                variant="primary"
-                className="shrink-0"
-                onClick={isFocusBoard ? handleOpenFocusBoard : handleArrangeOnHome}
-              >
-                {isFocusBoard ? 'Open Focus' : 'Edit Home'}
-              </WeeButton>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
-              <div>
-                <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                  Punch holes
-                </WeeSectionEyebrow>
-                <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-                  {isFocusBoard
-                    ? 'Edit holes in the live grid above for Focus.'
-                    : 'Prefer Edit Home for punching — or edit holes in the preview above.'}
-                </Text>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {!isFocusBoard ? (
-                  <WeeButton
-                    type="button"
-                    variant="secondary"
-                    className="shrink-0"
-                    onClick={handlePunchOnHome}
-                  >
-                    Punch on Home
-                  </WeeButton>
-                ) : null}
-                <WeeButton
-                  type="button"
-                  variant={punchHoleMode ? 'primary' : 'secondary'}
-                  className="shrink-0"
-                  aria-pressed={punchHoleMode}
-                  onClick={() => setPunchHoleMode((v) => !v)}
-                >
-                  {punchHoleMode ? 'Done editing' : 'Edit in preview'}
-                </WeeButton>
-              </div>
-            </div>
-          </div>
-
-          <HomeBoardSwitcher />
-
-          <div className="flex flex-col gap-3 rounded-[1.75rem] border-2 border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--surface-wii-tint)/0.45)] p-5 md:flex-row md:items-start md:gap-4">
-            <Info className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--primary))]" aria-hidden />
-            <div className="min-w-0">
-              <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
-                Reorder feel lives under{' '}
-                <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}>
-                  Motion
-                </WeeHelpLinkButton>
-                . Sounds:{' '}
-                <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SOUNDS)}>
-                  Sounds
-                </WeeHelpLinkButton>
-                .
-              </Text>
-            </div>
-          </div>
-        </WeeSettingsCollapsibleSection>
-
-        <WeeSettingsCollapsibleSection
-          icon={Sparkles}
-          title="Widgets"
-          description="Floating overlays and Home-board widgets — what they are and how to use them."
-          defaultOpen
-        >
-          <SettingsToggleFieldCard
-            hoverAccent="none"
-            titleClassName={TOGGLE_TITLE}
-            title="Spotify widget"
-            desc="Floating mini-player. Connect Spotify under Music, Steam & Widgets for account access."
-            checked={Boolean(floatingWidgets?.spotify?.visible)}
-            onChange={(next) => handleToggleFloatingWidget('spotify', next)}
-          />
-          <SettingsToggleFieldCard
-            hoverAccent="none"
-            titleClassName={TOGGLE_TITLE}
-            title="System Info widget"
-            desc="Floating CPU, memory, and system meters. Drag to reposition."
-            checked={Boolean(floatingWidgets?.systemInfo?.visible)}
-            onChange={(next) => handleToggleFloatingWidget('systemInfo', next)}
-          />
-          <SettingsToggleFieldCard
-            hoverAccent="none"
-            titleClassName={TOGGLE_TITLE}
-            title="Admin panel widget"
-            desc="Floating Quick Access menu for Windows tools. You can also pin Quick Access on Home."
-            checked={Boolean(floatingWidgets?.adminPanel?.visible)}
-            onChange={(next) => handleToggleFloatingWidget('adminPanel', next)}
-          />
-
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-dashed border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.4)] p-4">
-            <div className="min-w-0 max-w-md">
-              <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                Widgets on the board
-              </WeeSectionEyebrow>
-              <WeeHelpParagraph className="!normal-case !tracking-[0.04em]">
-                Board widgets float on wallpaper by default (Clear). Use Glass for a light frost,
-                or Basic for a solid card — place and restyle them in Edit Home.
-              </WeeHelpParagraph>
-            </div>
-            <WeeButton
-              type="button"
-              variant="secondary"
-              className="shrink-0"
-              onClick={handleArrangeOnHome}
-            >
-              Edit Home
-            </WeeButton>
-          </div>
-
-          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-            Spotify login &amp; detailed widget options live under{' '}
-            <WeeHelpLinkButton
-              type="button"
-              className="!mt-0 inline"
-              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS, { integrationsSubTab: 'music' })}
-            >
-              Music, Steam &amp; Widgets
-            </WeeHelpLinkButton>
-            .
-          </Text>
-        </WeeSettingsCollapsibleSection>
-
-        <WeeSettingsCollapsibleSection
-          icon={Monitor}
-          title="Visibility & playback"
-          description="Empty-slot look, animated art, and hover physics."
-          defaultOpen={false}
-        >
-          <div className="flex flex-col gap-3">
-            <SettingsToggleFieldCard
-              hoverAccent="none"
-              titleClassName={TOGGLE_TITLE}
-              title="Adaptive empty slots"
-              desc="Empty channel slots blend into your wallpaper for a cohesive look."
-              checked={settings.adaptiveEmptyChannels ?? true}
-              onChange={handleAdaptiveEmptyChannelsChange}
-            />
-            <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
-              <WeeSectionEyebrow className="mb-3 block" trackingClassName="tracking-[0.14em]">
-                Live adaptive preview
-              </WeeSectionEyebrow>
-              <div
-                className="flex h-16 w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-[hsl(var(--border-primary)/0.5)] px-4 shadow-inner transition-colors duration-200"
-                style={adaptivePreviewStyle}
-                aria-hidden="true"
-              >
-                <span className="h-10 w-10 rounded-xl border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary)/0.55)] shadow-[var(--shadow-sm)]" />
-                <span className="-ml-2 h-10 w-10 rotate-6 rounded-xl border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary)/0.55)] shadow-[var(--shadow-sm)]" />
-              </div>
-            </WeeModalFieldCard>
-          </div>
-
-          <SettingsToggleFieldCard
-            hoverAccent="none"
-            titleClassName={TOGGLE_TITLE}
-            title="Hover-only animations"
-            desc="Animated channel art (GIFs/MP4s) plays only while you hover when this is on."
-            checked={settings.animatedOnHover ?? false}
-            onChange={handleAnimatedOnHoverChange}
-          />
-
-          <SettingsToggleFieldCard
-            hoverAccent="none"
-            titleClassName={TOGGLE_TITLE}
-            title="Focus & recede"
-            desc="Hovering a tile lightly dims neighbors (filled tiles only). Softened to avoid flicker while scrubbing across the board."
-            checked={settings.focusRecedeEnabled ?? true}
-            onChange={handleFocusRecedeChange}
-          />
-
-          <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
-            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-              Tile hover physics
-            </WeeSectionEyebrow>
-            <Text variant="caption" className="!mb-3 block text-[hsl(var(--text-tertiary))]">
-              Space-pill gooey hover on channel tiles. Bounce strength is under Motion → Gooey physics.
-            </Text>
-            <WeeSegmentedControl
-              ariaLabel="Channel tile hover physics mode"
-              value={gooeyPrefs.channelHoverMode ?? GOOEY_HOVER_MODES.both}
-              onChange={handleChannelHoverModeChange}
-              options={[
-                { value: GOOEY_HOVER_MODES.squash, label: 'Squash' },
-                { value: GOOEY_HOVER_MODES.glow, label: 'Glow' },
-                { value: GOOEY_HOVER_MODES.both, label: 'Both' },
-              ]}
-            />
-            <button
-              type="button"
-              className="mt-3 text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
-              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
-            >
-              Open Motion settings
-            </button>
-          </WeeModalFieldCard>
-
-        </WeeSettingsCollapsibleSection>
-
-        <WeeSettingsCollapsibleSection
-          icon={Activity}
-          title="Idle motion (advanced)"
-          description="Fine-grained micro-delight types. Mode, delays & intensity live in Motion."
-          defaultOpen={false}
-        >
-          <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
-            <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-              Auto-fade, attract mode, and intensity are controlled from one place now.
-            </Text>
-            <button
-              type="button"
-              className="mt-2 text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
-              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
-            >
-              Open Motion → Idle experience
-            </button>
-          </WeeModalFieldCard>
-
-          <div className="mt-3 space-y-4">
-            <div className="w-full min-w-0">
-              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                Animation types
-              </WeeSectionEyebrow>
-              <SettingsMultiToggleChips
-                items={IDLE_TYPE_ITEMS}
-                selectedValues={idleSelected}
-                onToggle={handleIdleAnimationTypeToggle}
-                ariaLabel="Idle animation types"
-              />
-            </div>
-            <div className="w-full min-w-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
-              <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-                Animation interval: {settings.idleAnimationInterval ?? 8} seconds
-              </Text>
-              <Slider
-                value={settings.idleAnimationInterval ?? 8}
-                min={2}
-                max={20}
-                step={1}
-                onChange={handleIdleAnimationIntervalChange}
-              />
-            </div>
-          </div>
-        </WeeSettingsCollapsibleSection>
-
-        <WeeSettingsCollapsibleSection
-          icon={Aperture}
-          title="Ken Burns"
-          description="Cinematic zoom and pan on channel images."
-          defaultOpen={false}
-        >
-          <SettingsToggleFieldCard
-            hoverAccent="none"
-            titleClassName={TOGGLE_TITLE}
-            title="Ken Burns effect"
-            desc="Add cinematic zoom and pan to still channel images."
-            checked={settings.kenBurnsEnabled ?? false}
-            onChange={handleKenBurnsEnabledChange}
-            revealKeepMounted={false}
+      <div className="mt-6 min-h-[min(50vh,420px)]">
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={activeSubTab}
+            role="tabpanel"
+            aria-labelledby={`dock-subtab-${activeSubTab}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={tabTransition}
           >
-                <div className="w-full min-w-0 space-y-4">
-                  <div>
-                    <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                      Trigger mode
-                    </WeeSectionEyebrow>
-                    <WeeSegmentedControl
-                      ariaLabel="Ken Burns trigger mode"
-                      value={settings.kenBurnsMode ?? 'hover'}
-                      onChange={handleKenBurnsModeChange}
-                      options={KEN_BURNS_MODE_OPTIONS}
-                      size="sm"
-                      className="w-full min-w-0 justify-start sm:inline-flex sm:w-auto"
-                    />
-                  </div>
-
-                  <div className="space-y-3 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
-                    <WeeDescriptionToggleRow
-                      description="Apply Ken Burns to animated GIFs too (in addition to still images)."
-                    >
-                      <WToggle
-                        checked={settings.kenBurnsForGifs ?? false}
-                        onChange={handleKenBurnsForGifsChange}
-                        label="Ken Burns for GIFs"
-                      />
-                    </WeeDescriptionToggleRow>
-                    <WeeDescriptionToggleRow
-                      description="Apply Ken Burns to MP4 channel videos too (in addition to still images)."
-                    >
-                      <WToggle
-                        checked={settings.kenBurnsForVideos ?? false}
-                        onChange={handleKenBurnsForVideosChange}
-                        label="Ken Burns for videos"
-                      />
-                    </WeeDescriptionToggleRow>
-                  </div>
-
-                  <div>
-                    <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                      Scale
-                    </WeeSectionEyebrow>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div>
-                        <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
-                          Hover scale: {settings.kenBurnsHoverScale ?? 1.1}
-                        </Text>
-                        <Slider
-                          value={settings.kenBurnsHoverScale ?? 1.1}
-                          min={1.0}
-                          max={1.5}
-                          step={0.05}
-                          onChange={handleKenBurnsHoverScaleChange}
-                        />
-                      </div>
-                      <div>
-                        <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
-                          Autoplay scale: {settings.kenBurnsAutoplayScale ?? 1.15}
-                        </Text>
-                        <Slider
-                          value={settings.kenBurnsAutoplayScale ?? 1.15}
-                          min={1.0}
-                          max={1.5}
-                          step={0.05}
-                          onChange={handleKenBurnsAutoplayScaleChange}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                      Duration
-                    </WeeSectionEyebrow>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div>
-                        <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
-                          Hover duration: {settings.kenBurnsHoverDuration ?? 8000}ms
-                        </Text>
-                        <Slider
-                          value={settings.kenBurnsHoverDuration ?? 8000}
-                          min={2000}
-                          max={15000}
-                          step={500}
-                          onChange={handleKenBurnsHoverDurationChange}
-                        />
-                      </div>
-                      <div>
-                        <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
-                          Autoplay duration: {settings.kenBurnsAutoplayDuration ?? 12000}ms
-                        </Text>
-                        <Slider
-                          value={settings.kenBurnsAutoplayDuration ?? 12000}
-                          min={5000}
-                          max={20000}
-                          step={500}
-                          onChange={handleKenBurnsAutoplayDurationChange}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                      Advanced
-                    </WeeSectionEyebrow>
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                      <div>
-                        <Text variant="caption" className="mb-1 block text-[hsl(var(--text-tertiary))]">
-                          Crossfade duration: {settings.kenBurnsCrossfadeDuration ?? 1000}ms
-                        </Text>
-                        <Slider
-                          value={settings.kenBurnsCrossfadeDuration ?? 1000}
-                          min={500}
-                          max={3000}
-                          step={100}
-                          onChange={handleKenBurnsCrossfadeDurationChange}
-                        />
-                      </div>
-                      <div>
-                        <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                          Easing
-                        </WeeSectionEyebrow>
-                        <WeeSegmentedControl
-                          ariaLabel="Ken Burns easing"
-                          value={settings.kenBurnsEasing ?? 'ease-out'}
-                          onChange={handleKenBurnsEasingChange}
-                          options={KEN_BURNS_EASING_OPTIONS}
-                          size="sm"
-                          wrap
-                          className="w-full min-w-0 justify-start"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-          </SettingsToggleFieldCard>
-        </WeeSettingsCollapsibleSection>
+            {renderPanel()}
+          </m.div>
+        </AnimatePresence>
       </div>
 
       <footer className="mt-10 rounded-[2rem] border-2 border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-5 py-4 md:px-6">

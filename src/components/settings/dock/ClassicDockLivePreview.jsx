@@ -52,7 +52,6 @@ function ClassicDockLivePreview({ sticky = true }) {
           dockSettings={dock}
           buttonConfigs={buttonConfigs}
           accessoryButtonConfig={{}}
-          particleSettings={{}}
         />
       </div>
     </SettingsLivePreviewFrame>

@@ -1,8 +1,9 @@
 export const createFloatingWidgetManager = (getStore) => ({
   showSpotifyWidget() {
     const store = getStore();
+    // Archived floating Spotify widget — keep state dark.
     store.actions.setFloatingWidgetsState({
-      spotify: { ...store.floatingWidgets.spotify, visible: true },
+      spotify: { ...store.floatingWidgets.spotify, visible: false },
     });
   },
   hideSpotifyWidget() {
@@ -19,8 +20,9 @@ export const createFloatingWidgetManager = (getStore) => ({
   },
   showSystemInfoWidget() {
     const store = getStore();
+    // Archived System Info widget — keep state dark.
     store.actions.setFloatingWidgetsState({
-      systemInfo: { ...store.floatingWidgets.systemInfo, visible: true },
+      systemInfo: { ...store.floatingWidgets.systemInfo, visible: false },
     });
   },
   hideSystemInfoWidget() {
@@ -73,9 +75,8 @@ export const createFloatingWidgetManager = (getStore) => ({
   },
   toggleSystemInfoWidget() {
     const store = getStore();
-    const isVisible = store.floatingWidgets.systemInfo.visible;
     store.actions.setFloatingWidgetsState({
-      systemInfo: { ...store.floatingWidgets.systemInfo, visible: !isVisible },
+      systemInfo: { ...store.floatingWidgets.systemInfo, visible: false },
     });
   },
   toggleAdminPanelWidget() {

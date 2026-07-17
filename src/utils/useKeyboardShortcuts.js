@@ -70,18 +70,6 @@ const useKeyboardShortcuts = () => {
       openSettingsToTab(tab || 'general');
     };
 
-    window.toggleSpotifyWidget = () => {
-      const state = getState();
-      const current = state.floatingWidgets.spotify;
-      setFloatingWidgetsState?.({ spotify: { ...current, visible: !current.visible } });
-    };
-
-    window.toggleSystemInfoWidget = () => {
-      const state = getState();
-      const current = state.floatingWidgets.systemInfo;
-      setFloatingWidgetsState?.({ systemInfo: { ...current, visible: !current.visible } });
-    };
-
     window.toggleAdminPanelWidget = () => {
       const state = getState();
       const current = state.floatingWidgets.adminPanel;
@@ -212,8 +200,6 @@ const useKeyboardShortcuts = () => {
     return () => {
       delete window.handleGlobalShortcut;
       delete window.openSettingsModal;
-      delete window.toggleSpotifyWidget;
-      delete window.toggleSystemInfoWidget;
       delete window.toggleAdminPanelWidget;
       delete window.togglePerformanceMonitor;
       delete window.nextPage;

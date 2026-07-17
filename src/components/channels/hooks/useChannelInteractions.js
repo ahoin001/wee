@@ -175,12 +175,12 @@ export function useChannelInteractions({
     if (effectiveConfig?.isApiChannel && effectiveConfig?.apiConfig?.selectedApi) {
       await playChannelClick();
       if (effectiveConfig.apiConfig.selectedApi === 'spotify') {
-        if (window.api?.ui?.showSpotifyWidget) {
-          window.api.ui.showSpotifyWidget();
-        } else {
-          const { actions } = useConsolidatedAppStore.getState();
-          actions.setFloatingWidgetsState({ spotify: { visible: true } });
-        }
+        const { actions } = useConsolidatedAppStore.getState();
+        actions.setUIState({
+          showSettingsModal: true,
+          settingsActiveTab: 'api-integrations',
+          integrationsSubTab: 'music',
+        });
         recordRecentLaunchHint();
       }
       return;

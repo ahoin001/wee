@@ -23,7 +23,7 @@ import {
   isRibbonChromeGlassSoftMode,
   RIBBON_NEON_COLOR_MODE_OPTIONS,
 } from '../../dock/ribbon/ribbonChromeEffectMeta';
-import { openSettingsToDockSubtab, openSettingsToTab, SETTINGS_TAB_ID } from '../../../utils/settingsNavigation';
+import { openSettingsToTab, SETTINGS_TAB_ID } from '../../../utils/settingsNavigation';
 
 const TOGGLE_TITLE =
   '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
@@ -345,7 +345,7 @@ function RibbonDockPanel({
       <WeeSettingsCollapsibleSection
         icon={Sparkles}
         title="Ribbon Dock Effects"
-        description="Surface FX on the ribbon body (not ambient particles)."
+        description="Surface FX on the ribbon body — sparkle, frost, neon race, and more."
         defaultOpen={false}
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
@@ -444,14 +444,6 @@ function RibbonDockPanel({
                 />
               </div>
             </WeeRevealWhen>
-
-            <WeeHelpParagraph className="!mb-0 !normal-case !tracking-[0.04em]">
-              Ambient dock particles (Classic + Ribbon) live under{' '}
-              <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToDockSubtab('animations')}>
-                Dock → Animations
-              </WeeHelpLinkButton>
-              .
-            </WeeHelpParagraph>
           </div>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
