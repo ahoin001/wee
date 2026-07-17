@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784297086.342312,
-    "ast_hash": "c334be65ca0c5dbd726287878ccf0d68",
+    "mtime": 1784299586.1717472,
+    "ast_hash": "f09545cd59036edbef7693ed929ab353",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/UnifiedDockSettingsTab.jsx": {
-    "mtime": 1784295166.3298192,
-    "ast_hash": "741a0babff32b61e6265c8cf5794b6d9",
+    "mtime": 1784299853.7645986,
+    "ast_hash": "ea970bddb4842f11dd7c606db6cfc1be",
     "semantic_hash": ""
   },
   "src/components/settings/UpdatesSettingsTab.jsx": {
@@ -760,8 +760,8 @@
     "semantic_hash": "bc56fd97e8acbbfd62f61a7de3601fcc"
   },
   "src/components/settings/dock/RibbonDockPanel.jsx": {
-    "mtime": 1784294978.9192777,
-    "ast_hash": "64e8d1c8a11d288fa423f68f3b4d8ce8",
+    "mtime": 1784299851.1212323,
+    "ast_hash": "6d393afec5eafbd9420ee3201c7184e2",
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
@@ -1925,13 +1925,13 @@
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/RibbonChromeEffects.jsx": {
-    "mtime": 1784209491.6379056,
-    "ast_hash": "589718eefde0baec7eea2b8925b02769",
+    "mtime": 1784299839.2596648,
+    "ast_hash": "c043a3936b03ee45998c3980d3c3d856",
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/ribbonChromeEffectMeta.js": {
-    "mtime": 1784209400.1275191,
-    "ast_hash": "2a6d4c9e82f0d1de6667ba4b02200cd0",
+    "mtime": 1784299786.61762,
+    "ast_hash": "cb8e5e49c1ecaacb87f02401826088a1",
     "semantic_hash": ""
   },
   "src/components/dock/ribbon/ribbonSilhouette.js": {

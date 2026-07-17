@@ -21,6 +21,7 @@ import {
   getRibbonChromeEffectMeta,
   getRibbonChromeEffectOptions,
   isRibbonChromeGlassSoftMode,
+  normalizeRibbonChromeEffectId,
   RIBBON_NEON_COLOR_MODE_OPTIONS,
 } from '../../dock/ribbon/ribbonChromeEffectMeta';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../../utils/settingsNavigation';
@@ -199,7 +200,7 @@ function RibbonDockPanel({
   const gBlur = ribbon?.glassBlur ?? 2.5;
   const gBorder = ribbon?.glassBorderOpacity ?? 0.5;
   const gShine = ribbon?.glassShineOpacity ?? 0.7;
-  const chromeEffect = ribbon?.chromeEffect ?? 'none';
+  const chromeEffect = normalizeRibbonChromeEffectId(ribbon?.chromeEffect);
   const chromeIntensity = ribbon?.chromeEffectIntensity ?? 0.55;
   const chromeSpeed = ribbon?.chromeEffectSpeed ?? 1;
   const chromeGlowStrength = ribbon?.chromeEffectGlowStrength ?? 0.6;
@@ -345,7 +346,7 @@ function RibbonDockPanel({
       <WeeSettingsCollapsibleSection
         icon={Sparkles}
         title="Ribbon Dock Effects"
-        description="Surface FX on the ribbon body — sparkle, frost, neon race, and more."
+        description="Surface FX on the ribbon body — sparkle, aurora, neon race, and more."
         defaultOpen={false}
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
@@ -433,6 +434,19 @@ function RibbonDockPanel({
                       ariaLabel="Neon race glow strength"
                     />
                   </div>
+                </WeeRevealWhen>
+                <WeeRevealWhen when={chromeEffect === 'aurora'}>
+                  <ScaleRow
+                    label="Band richness"
+                    hint="How many layered curtains and how rich the wash."
+                    valueDisplay={`${Math.round(chromeGlowStrength * 100)}%`}
+                    value={chromeGlowStrength}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onChange={onChromeEffectGlowStrengthChange}
+                    ariaLabel="Aurora band richness"
+                  />
                 </WeeRevealWhen>
                 <SettingsToggleFieldCard
                   hoverAccent="none"

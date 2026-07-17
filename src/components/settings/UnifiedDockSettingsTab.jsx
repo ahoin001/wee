@@ -16,7 +16,10 @@ import DockTypePanel from './dock/DockTypePanel';
 import ClassicDockPanel from './dock/ClassicDockPanel';
 import RibbonDockPanel from './dock/RibbonDockPanel';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import { getRibbonChromeEffectDefaults } from '../dock/ribbon/ribbonChromeEffectMeta';
+import {
+  getRibbonChromeEffectDefaults,
+  normalizeRibbonChromeEffectId,
+} from '../dock/ribbon/ribbonChromeEffectMeta';
 import './surfaceStyles.css';
 
 const DOCK_SUB_TABS = [
@@ -267,23 +270,28 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
   const handleChromeEffectChange = useCallback(
     (value) => {
+      const mode = normalizeRibbonChromeEffectId(value);
       const glass = Boolean(ribbon?.glassWiiRibbon);
-      const defaults = getRibbonChromeEffectDefaults(value, { glass });
+      const defaults = getRibbonChromeEffectDefaults(mode, { glass });
       const next = {
-        chromeEffect: value,
+        chromeEffect: mode,
         chromeEffectIntensity: defaults.intensity,
         chromeEffectSpeed: defaults.speed,
       };
-      if (value === 'neonTrace') {
+      if (mode === 'neonTrace' || mode === 'aurora') {
         next.chromeEffectGlowStrength = defaults.glowStrength;
+      }
+      if (mode === 'neonTrace') {
         next.chromeEffectNeonColorMode = defaults.neonColorMode;
       }
       setRibbonState(next);
-      saveSetting('ribbon', 'chromeEffect', value);
+      saveSetting('ribbon', 'chromeEffect', mode);
       saveSetting('ribbon', 'chromeEffectIntensity', defaults.intensity);
       saveSetting('ribbon', 'chromeEffectSpeed', defaults.speed);
-      if (value === 'neonTrace') {
+      if (mode === 'neonTrace' || mode === 'aurora') {
         saveSetting('ribbon', 'chromeEffectGlowStrength', defaults.glowStrength);
+      }
+      if (mode === 'neonTrace') {
         saveSetting('ribbon', 'chromeEffectNeonColorMode', defaults.neonColorMode);
       }
     },

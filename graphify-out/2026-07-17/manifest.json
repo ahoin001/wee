@@ -1515,8 +1515,8 @@
     "semantic_hash": ""
   },
   "src/utils/store/settingsPersistenceContract.js": {
-    "mtime": 1784297747.8950243,
-    "ast_hash": "53b0365249502751c00a7a55c32f8879",
+    "mtime": 1784299163.0578601,
+    "ast_hash": "07b0c1f6f6492845fdee3a46e3720fec",
     "semantic_hash": ""
   },
   "src/utils/store/storeContracts.ts": {
@@ -1550,8 +1550,8 @@
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784297745.4644952,
-    "ast_hash": "d3660b845e05c828fcaceed3028dac6a",
+    "mtime": 1784299182.455883,
+    "ast_hash": "834dc4217d6a176fab2f168d74ddef6a",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -1950,8 +1950,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/slotKindRegistry.js": {
-    "mtime": 1784298837.9189825,
-    "ast_hash": "64e53b6210e2bc51baf8b719db9c6599",
+    "mtime": 1784299109.162335,
+    "ast_hash": "80a9a78cfad4ebd9187ef7a962939603",
     "semantic_hash": ""
   },
   "src/hooks/useWallpaperAmbientColor.js": {
@@ -2130,8 +2130,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784294921.5327787,
-    "ast_hash": "499a26f68057684fd3937a965b578370",
+    "mtime": 1784299153.1846068,
+    "ast_hash": "3adeabdd052de2a26d93973673fb74e2",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2360,8 +2360,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetSettingsPanel.jsx": {
-    "mtime": 1784297756.8363478,
-    "ast_hash": "71ce4649f194fb9b2b9f7c7bf429d270",
+    "mtime": 1784299172.5399828,
+    "ast_hash": "fc44b9256956de53c92d404e258e7c1b",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesShelf.jsx": {
@@ -2497,6 +2497,11 @@
   "src/utils/homeClockWidgetPrefs.js": {
     "mtime": 1784297738.5920415,
     "ast_hash": "eafaa5fb1cb3b2a13b3b83df40f928b3",
+    "semantic_hash": ""
+  },
+  "src/utils/homeNowPlayingWidgetPrefs.js": {
+    "mtime": 1784299109.680718,
+    "ast_hash": "4a07a0a1ce3ece5af161d16afd061b17",
     "semantic_hash": ""
   }
 }

@@ -13,7 +13,6 @@ export const RIBBON_CHROME_EFFECTS = [
   'edgeEmber',
   'scanline',
   'sparkle',
-  'frost',
   'spectrum',
   'musicBand',
 ];
@@ -25,7 +24,8 @@ export const RIBBON_CHROME_GLASS_SOFT_MODES = [
   'aurora',
   'ripple',
   'scanline',
-  'frost',
+  'edgeEmber',
+  'sparkle',
   'musicBand',
 ];
 
@@ -90,26 +90,28 @@ const META_BY_ID = {
   aurora: {
     id: 'aurora',
     label: 'Aurora',
-    description: 'Slow drifting color bands — living field, not a short ping-pong.',
-    defaultIntensity: 0.65,
+    description: 'Drifting color curtains across the ribbon — living field, not a short ping-pong.',
+    defaultIntensity: 0.72,
     defaultSpeed: 0.85,
-    defaultIntensityGlass: 0.8,
+    defaultIntensityGlass: 0.85,
     defaultSpeedGlass: 0.9,
+    defaultGlowStrength: 0.65,
   },
   ripple: {
     id: 'ripple',
     label: 'Ripple',
-    description: 'Soft caustic pools that slowly breathe.',
-    defaultIntensity: 0.55,
+    description: 'Soft expanding caustics across the ribbon face.',
+    defaultIntensity: 0.6,
     defaultSpeed: 0.7,
-    defaultIntensityGlass: 0.72,
+    defaultIntensityGlass: 0.75,
   },
   edgeEmber: {
     id: 'edgeEmber',
     label: 'Edge ember',
-    description: 'Warm ember glow pooled toward the ribbon edge.',
-    defaultIntensity: 0.55,
+    description: 'Warm embers drift along the ribbon edge.',
+    defaultIntensity: 0.6,
     defaultSpeed: 0.8,
+    defaultIntensityGlass: 0.75,
   },
   scanline: {
     id: 'scanline',
@@ -123,17 +125,9 @@ const META_BY_ID = {
     id: 'sparkle',
     label: 'Sparkle',
     description: 'Soft light motes rising from the bow — continuous fairy-particle field.',
-    defaultIntensity: 0.45,
+    defaultIntensity: 0.55,
     defaultSpeed: 0.75,
-  },
-  frost: {
-    id: 'frost',
-    label: 'Frost',
-    description: 'Soft ice veil with a cool crystalline rim.',
-    defaultIntensity: 0.6,
-    defaultSpeed: 0.75,
-    defaultIntensityGlass: 0.78,
-    defaultSpeedGlass: 0.8,
+    defaultIntensityGlass: 0.7,
   },
   spectrum: {
     id: 'spectrum',
@@ -162,11 +156,22 @@ export const RIBBON_CHROME_HOVER_DAMPEN = 0.55;
 export const RIBBON_CHROME_GLASS_INTENSITY_MULT = 1.4;
 
 /**
+ * Coerce unknown / removed effect ids (e.g. legacy `frost`) to `none`.
+ * @param {unknown} id
+ * @returns {string}
+ */
+export function normalizeRibbonChromeEffectId(id) {
+  const raw = typeof id === 'string' ? id : 'none';
+  return RIBBON_CHROME_EFFECTS.includes(raw) ? raw : 'none';
+}
+
+/**
  * @param {string} [id]
  * @returns {RibbonChromeEffectMeta}
  */
 export function getRibbonChromeEffectMeta(id) {
-  return META_BY_ID[id] || META_BY_ID.none;
+  const normalized = normalizeRibbonChromeEffectId(id);
+  return META_BY_ID[normalized] || META_BY_ID.none;
 }
 
 /** Default neon bloom when unset (0–1). */
@@ -199,7 +204,7 @@ export function getRibbonChromeEffectDefaults(id, { glass = false } = {}) {
 }
 
 export function isRibbonChromeGlassSoftMode(id) {
-  return RIBBON_CHROME_GLASS_SOFT_MODES.includes(id);
+  return RIBBON_CHROME_GLASS_SOFT_MODES.includes(normalizeRibbonChromeEffectId(id));
 }
 
 /** Options for pickers (includes None). */
