@@ -2,7 +2,20 @@ import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { WALLPAPER_OVERLAY_COLORS } from '../../design/wallpaperAmbientPalettes.js';
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 
-const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, wind = 0.02, gravity = 0.1 }) => {
+/**
+ * @param {'fullscreen' | 'embedded'} [mode]
+ *   fullscreen — fixed viewport canvas (app chrome)
+ *   embedded — absolute fill of a positioned parent (Surfaces live preview)
+ */
+const WallpaperOverlay = ({
+  effect,
+  enabled = false,
+  intensity = 50,
+  speed = 1,
+  wind = 0.02,
+  gravity = 0.1,
+  mode = 'fullscreen',
+}) => {
   const [overlayEngineReady, setOverlayEngineReady] = useState(false);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
@@ -18,6 +31,11 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
   useEffect(() => {
     if (!enabled) {
       setOverlayEngineReady(false);
+      return undefined;
+    }
+    // Embedded Surfaces preview should feel instant; app chrome can defer.
+    if (mode === 'embedded') {
+      setOverlayEngineReady(true);
       return undefined;
     }
     let cancelled = false;
@@ -38,7 +56,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
       if (usedIdleCallback) window.cancelIdleCallback(idleId);
       else window.clearTimeout(idleId);
     };
-  }, [enabled]);
+  }, [enabled, mode]);
 
   const engineActive = enabled && overlayEngineReady;
 
@@ -279,7 +297,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
     initializeParticles();
   }, [initializeParticles]);
 
-  // Optimized canvas resize handling
+  // Optimized canvas resize handling (window + parent size for embedded preview)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -289,30 +307,35 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         const rect = canvas.getBoundingClientRect();
+        if (rect.width < 2 || rect.height < 2) return;
         const devicePixelRatio = window.devicePixelRatio || 1;
         canvasSizeRef.current = { width: rect.width, height: rect.height };
-        
-        // Set canvas size accounting for device pixel ratio
+
         canvas.width = rect.width * devicePixelRatio;
         canvas.height = rect.height * devicePixelRatio;
-        
-        // Scale context to match device pixel ratio
+
         const ctx = canvas.getContext('2d');
         ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-        
-        // Reinitialize particles after resize
+
         initializeParticles();
-      }, 100); // Debounce resize events
+      }, 80);
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas, { passive: true });
 
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(resizeCanvas);
+      ro.observe(canvas.parentElement || canvas);
+    }
+
     return () => {
       clearTimeout(resizeTimeout);
       window.removeEventListener('resize', resizeCanvas);
+      ro?.disconnect?.();
     };
-  }, [initializeParticles]);
+  }, [initializeParticles, mode]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -334,18 +357,31 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
     return null;
   }
 
+  const embedded = mode === 'embedded';
+
   return (
     <canvas
       ref={canvasRef}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 1000
-      }}
+      style={
+        embedded
+          ? {
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 4,
+            }
+          : {
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 1000,
+            }
+      }
     />
   );
 };

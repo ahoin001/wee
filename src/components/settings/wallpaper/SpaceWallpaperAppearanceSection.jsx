@@ -1,6 +1,5 @@
 import React from 'react';
 import { AnimatePresence, m } from 'framer-motion';
-import { SlidersHorizontal } from 'lucide-react';
 import WToggle from '../../../ui/WToggle';
 import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
@@ -10,7 +9,6 @@ import {
   WeeModalFieldCard,
   WeeRevealWhen,
   WeeSegmentedControl,
-  WeeSettingsCollapsibleSection,
   WeeSpaceRailPillButton,
 } from '../../../ui/wee';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
@@ -52,6 +50,10 @@ function SpaceWallpaperAppearanceSection({
   /** @type {Array<{ pageIndex: number, url: string|null }>|undefined} */
   pageMapEntries,
   onSelectBoardPage,
+  /** When false, scope lives in the Surfaces context strip. */
+  showScopeControl = true,
+  /** When false, page targeting chips live in the Surfaces context strip. */
+  showPageChipPicker = true,
 }) {
   const mediaHubEnabled = useConsolidatedAppStore((s) => s.spaces.mediaHubEnabled === true);
   const spaceOptions = SPACE_WALLPAPER_OPTIONS.filter(
@@ -63,11 +65,12 @@ function SpaceWallpaperAppearanceSection({
       <SettingsWeeSection eyebrow="Apply">
         <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
           <Text variant="h3" className="mb-1 playful-hero-text">
-            Apply to this space
+            Pin wallpaper
           </Text>
           <Text variant="desc" className="mb-4">
-            Scope and source for {selectedSpaceLabel}. Watch the live scene update as you change
-            settings.
+            {supportsPerPageWallpaper && selectedWallpaperScope === 'perPage'
+              ? `Apply the library selection to ${selectedSpaceLabel} · page ${selectedBoardCurrentPage + 1}. Tone below updates the live scene instantly.`
+              : `Source and reset for ${selectedSpaceLabel}. Tone below updates the live scene instantly.`}
           </Text>
 
           {showGlobalOpacity ? (
@@ -130,7 +133,7 @@ function SpaceWallpaperAppearanceSection({
                 Configuring {selectedSpaceLabel}
               </p>
 
-              {supportsPerPageWallpaper ? (
+              {supportsPerPageWallpaper && showScopeControl ? (
                 <div className="mb-4 flex flex-wrap items-center gap-3">
                   <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
                     Scope
@@ -159,46 +162,48 @@ function SpaceWallpaperAppearanceSection({
 
               <WeeRevealWhen when={supportsPerPageWallpaper && selectedWallpaperScope === 'perPage'}>
                 <div className="mb-4 rounded-xl border border-[hsl(var(--border-primary)/0.6)] bg-[hsl(var(--surface-secondary)/0.55)] p-3">
-                  <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))]">
-                    Page map
-                  </div>
-                  {Array.isArray(pageMapEntries) && pageMapEntries.length > 0 ? (
-                    <div className="mb-3 flex flex-wrap gap-1.5">
-                      {pageMapEntries.map((entry) => {
-                        const filled = Boolean(entry.url);
-                        const isCurrent = entry.pageIndex === selectedBoardCurrentPage;
-                        return (
-                          <button
-                            key={entry.pageIndex}
-                            type="button"
-                            title={
-                              filled
-                                ? `Page ${entry.pageIndex + 1} · custom wallpaper`
-                                : `Page ${entry.pageIndex + 1} · empty (falls back — no crossfade vs neighbors sharing fallback)`
-                            }
-                            onClick={() => onSelectBoardPage?.(entry.pageIndex)}
-                            className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] transition-colors ${
-                              isCurrent
-                                ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--text-primary))]'
-                                : filled
-                                  ? 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.8)] text-[hsl(var(--text-primary))]'
-                                  : 'border-dashed border-[hsl(var(--border-primary)/0.45)] bg-transparent text-[hsl(var(--text-tertiary))]'
-                            }`}
-                          >
-                            {entry.pageIndex + 1}
-                            {filled ? '' : ' · empty'}
-                          </button>
-                        );
-                      })}
-                    </div>
+                  {showPageChipPicker && Array.isArray(pageMapEntries) && pageMapEntries.length > 0 ? (
+                    <>
+                      <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))]">
+                        Page map
+                      </div>
+                      <div className="mb-3 flex flex-wrap gap-1.5">
+                        {pageMapEntries.map((entry) => {
+                          const filled = Boolean(entry.url);
+                          const isCurrent = entry.pageIndex === selectedBoardCurrentPage;
+                          return (
+                            <button
+                              key={entry.pageIndex}
+                              type="button"
+                              title={
+                                filled
+                                  ? `Page ${entry.pageIndex + 1} · custom wallpaper`
+                                  : `Page ${entry.pageIndex + 1} · empty (falls back — no crossfade vs neighbors sharing fallback)`
+                              }
+                              onClick={() => onSelectBoardPage?.(entry.pageIndex)}
+                              className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] transition-colors ${
+                                isCurrent
+                                  ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--text-primary))]'
+                                  : filled
+                                    ? 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.8)] text-[hsl(var(--text-primary))]'
+                                    : 'border-dashed border-[hsl(var(--border-primary)/0.45)] bg-transparent text-[hsl(var(--text-tertiary))]'
+                              }`}
+                            >
+                              {entry.pageIndex + 1}
+                              {filled ? '' : ' · empty'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : null}
                   <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))]">
                     Page {selectedBoardCurrentPage + 1}
                   </div>
                   <div className="mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
-                    Select a page chip to target it, then apply a library asset (or the current
-                    desktop wallpaper). Empty pages share the fallback look — flips between them
-                    skip the crossfade.
+                    {showPageChipPicker
+                      ? 'Select a page chip to target it, then apply a library asset (or the current desktop wallpaper). Empty pages share the fallback look — flips between them skip the crossfade.'
+                      : 'Target a page from the strip above, then apply a library asset (or the current desktop wallpaper). Empty pages share the fallback look.'}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <WeeButton
@@ -308,16 +313,14 @@ function SpaceWallpaperAppearanceSection({
         </WeeModalFieldCard>
       </SettingsWeeSection>
 
-      <WeeSettingsCollapsibleSection
-        icon={SlidersHorizontal}
-        title="Tone"
-        description="Blur, brightness, and saturation for this space"
-        defaultOpen={false}
-      >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-5">
-          <p className="settings-wee-help !mb-4">
-            Tone stays per space. Watch the live scene — you do not need to leave Settings.
-          </p>
+      <SettingsWeeSection eyebrow="Tone">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <Text variant="h3" className="mb-1 playful-hero-text">
+            Wallpaper tone
+          </Text>
+          <Text variant="desc" className="mb-4">
+            Blur, brightness, and saturation for {selectedSpaceLabel} — live in the scene above.
+          </Text>
           <div className="settings-wee-slider-row">
             <label className="settings-wee-slider-row__label" htmlFor="wallpaper-space-blur-range">
               Blur
@@ -397,7 +400,7 @@ function SpaceWallpaperAppearanceSection({
             1.00 = natural color; lower approaches grayscale; above 1 boosts vividness.
           </p>
         </WeeModalFieldCard>
-      </WeeSettingsCollapsibleSection>
+      </SettingsWeeSection>
     </>
   );
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { Heart, Loader2, Trash2, Upload } from 'lucide-react';
 import Text from '../../../ui/Text';
@@ -24,7 +24,9 @@ function WallpaperLibrarySection({
   onSelectLibraryWallpaper,
   deleting,
   handleDelete,
+  applyScopeLabel = null,
 }) {
+  const [pendingDeleteUrl, setPendingDeleteUrl] = useState(null);
   const usingDefaultSelection = isHomeSpace
     ? !effectiveActiveWallpaperUrl
     : selectedSpaceUsesGlobalWallpaper;
@@ -32,6 +34,9 @@ function WallpaperLibrarySection({
   const defaultWallpaperHint = isHomeSpace
     ? (usingDefaultSelection ? 'Currently active' : 'Click to clear wallpaper')
     : (usingDefaultSelection ? 'Currently active for this space' : 'Click to stop using a space override');
+  const scopeLabel = applyScopeLabel || selectedSpaceLabel;
+  const pendingDeleteName =
+    wallpapers.find((w) => w.url === pendingDeleteUrl)?.name || 'this wallpaper';
 
   return (
     <SettingsWeeSection eyebrow="Library">
@@ -42,8 +47,8 @@ function WallpaperLibrarySection({
               Pick wallpaper
             </Text>
             <Text variant="desc" className="!mb-0">
-              Pick a tile to preview it in the live scene, then set it for {selectedSpaceLabel}. Heart
-              tiles for Home cycling.
+              Pick a tile to preview it above, then Apply for{' '}
+              {applyScopeLabel || selectedSpaceLabel}. Hearts feed Home cycling (Atmosphere).
             </Text>
           </div>
           <WeeButton
@@ -130,8 +135,8 @@ function WallpaperLibrarySection({
                     onClick={() => handleSetCurrent(selectedWallpaper)}
                   >
                     {effectiveActiveWallpaperUrl === selectedWallpaper.url
-                      ? `On ${selectedSpaceLabel}`
-                      : `Set for ${selectedSpaceLabel}`}
+                      ? `On ${scopeLabel}`
+                      : `Apply to ${scopeLabel}`}
                   </WeeButton>
                   <WeeButton
                     type="button"
@@ -223,7 +228,7 @@ function WallpaperLibrarySection({
                     disabled={deleting[wallpaper.url]}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(wallpaper.url);
+                      setPendingDeleteUrl(wallpaper.url);
                     }}
                   >
                     {deleting[wallpaper.url] ? (
@@ -240,6 +245,37 @@ function WallpaperLibrarySection({
             );
           })}
         </div>
+
+        {pendingDeleteUrl ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[hsl(var(--state-error)/0.35)] bg-[hsl(var(--state-error)/0.08)] px-3 py-2.5">
+            <Text variant="caption" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
+              Remove “{pendingDeleteName}” from your library?
+            </Text>
+            <div className="flex flex-wrap gap-2">
+              <WeeButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setPendingDeleteUrl(null)}
+              >
+                Cancel
+              </WeeButton>
+              <WeeButton
+                type="button"
+                variant="danger"
+                size="sm"
+                disabled={Boolean(deleting[pendingDeleteUrl])}
+                onClick={() => {
+                  const url = pendingDeleteUrl;
+                  setPendingDeleteUrl(null);
+                  handleDelete(url);
+                }}
+              >
+                {deleting[pendingDeleteUrl] ? 'Removing…' : 'Remove'}
+              </WeeButton>
+            </div>
+          </div>
+        ) : null}
       </WeeModalFieldCard>
     </SettingsWeeSection>
   );

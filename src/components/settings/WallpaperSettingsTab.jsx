@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Image, Sparkles } from 'lucide-react';
 import { useWeeMotion } from '../../design/weeMotion';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
@@ -32,7 +31,6 @@ import {
   WeeHelpLinkButton,
   WeeModalFieldCard,
   WeeSegmentedControl,
-  WeeSettingsCollapsibleSection,
   WeeSpaceRailPillButton,
 } from '../../ui/wee';
 
@@ -47,10 +45,24 @@ import {
 import './settings-wee-panels.css';
 
 const SURFACES_SEGMENTS = [
-  { value: 'wallpaper', label: 'Wallpaper', title: 'Library, apply, and tone' },
-  { value: 'ribbon', label: 'Ribbon', title: 'Scoped dock look and wallpaper match' },
-  { value: 'effects', label: 'Effects', title: 'Home cycling and particle overlays' },
+  { value: 'library', label: 'Library', title: 'Upload, pick, apply, and delete wallpapers' },
+  { value: 'look', label: 'Look', title: 'Pin wallpaper and tune blur, brightness, saturation' },
+  { value: 'atmosphere', label: 'Atmosphere', title: 'Home cycling and particle overlays' },
+  { value: 'chrome', label: 'Chrome', title: 'Ribbon scope and wallpaper color match' },
 ];
+
+/** Map older segment ids if any persisted UI state leaks through. */
+function normalizeSurfacesSegment(value, isHomeSpace) {
+  const legacy = {
+    wallpaper: 'library',
+    effects: 'atmosphere',
+    ribbon: 'chrome',
+  };
+  const next = legacy[value] || value;
+  if (!isHomeSpace && next === 'atmosphere') return 'library';
+  if (SURFACES_SEGMENTS.some((s) => s.value === next)) return next;
+  return 'library';
+}
 
 const api = window.api?.wallpapers || {};
 const selectFile = window.api?.selectWallpaperFile;
@@ -1028,7 +1040,8 @@ const WallpaperSettingsTab = React.memo(() => {
   const controller = useWallpaperSettingsController();
   const reduceMotion = useReducedMotion();
   const { tabTransition } = useWeeMotion();
-  const [surfacesSegment, setSurfacesSegment] = useState('wallpaper');
+  const [surfacesSegment, setSurfacesSegment] = useState('library');
+  const [applyPulse, setApplyPulse] = useState(false);
   const mediaHubEnabled = useConsolidatedAppStore((s) => s.spaces.mediaHubEnabled === true);
   const spaceWallpaperOptions = SPACE_WALLPAPER_OPTIONS.filter(
     (space) => mediaHubEnabled || space.id !== 'mediahub'
@@ -1125,17 +1138,31 @@ const WallpaperSettingsTab = React.memo(() => {
     (typeof selectedWallpaper?.url === 'string' && selectedWallpaper.url) ||
     effectiveActiveWallpaperUrl ||
     null;
-  const activeSurfacesSegment =
-    surfacesSegment === 'effects' && !isHomeSpace ? 'wallpaper' : surfacesSegment;
-  const contextPageBit = supportsPerPageWallpaper
-    ? ` · page ${selectedBoardCurrentPage + 1}`
-    : '';
+  const activeSurfacesSegment = normalizeSurfacesSegment(surfacesSegment, isHomeSpace);
+  const perPageMode =
+    supportsPerPageWallpaper && selectedWallpaperScope === 'perPage';
+  const applyScopeLabel = perPageMode
+    ? `${selectedSpaceLabel} · page ${selectedBoardCurrentPage + 1}`
+    : selectedSpaceLabel;
 
   useEffect(() => {
-    if (!isHomeSpace && surfacesSegment === 'effects') {
-      setSurfacesSegment('wallpaper');
-    }
+    const normalized = normalizeSurfacesSegment(surfacesSegment, isHomeSpace);
+    if (normalized !== surfacesSegment) setSurfacesSegment(normalized);
   }, [isHomeSpace, surfacesSegment]);
+
+  const triggerApplyPulse = useCallback(() => {
+    if (reduceMotion) return;
+    setApplyPulse(true);
+    window.setTimeout(() => setApplyPulse(false), 700);
+  }, [reduceMotion]);
+
+  const handleSetCurrentWithPulse = useCallback(
+    async (w) => {
+      await handleSetCurrent(w);
+      triggerApplyPulse();
+    },
+    [handleSetCurrent, triggerApplyPulse]
+  );
 
   if (loading && !hasLoadedOnce) {
     return (
@@ -1158,21 +1185,28 @@ const WallpaperSettingsTab = React.memo(() => {
     libraryPreviewUrl !== effectiveActiveWallpaperUrl;
 
   const sceneCaption = (() => {
-    const where = `${selectedSpaceLabel}${contextPageBit}`;
-    if (activeSurfacesSegment === 'ribbon') {
-      return `Editing ribbon on ${where} — wallpaper dimmed so dock chrome can shine.`;
+    const where = applyScopeLabel;
+    if (activeSurfacesSegment === 'chrome') {
+      return `Chrome on ${where} — wallpaper dimmed so the ribbon can shine.`;
     }
-    if (activeSurfacesSegment === 'effects') {
-      return `Editing Home effects for ${where} — cycling & overlays apply to this scene.`;
+    if (activeSurfacesSegment === 'atmosphere') {
+      return `Atmosphere on ${where} — particles and cycling play in this scene.`;
     }
-    return `Editing wallpaper on ${where} — tone and scope update this scene live.`;
+    if (activeSurfacesSegment === 'look') {
+      return `Look for ${where} — tone sliders update this scene live.`;
+    }
+    return `Library for ${where} — pick a tile to preview, then Apply.`;
   })();
+
+  const segmentOptions = isHomeSpace
+    ? SURFACES_SEGMENTS
+    : SURFACES_SEGMENTS.filter((opt) => opt.value !== 'atmosphere');
 
   return (
     <div className="settings-wee-tab-root settings-wee-tab-root--studio pb-12">
       <SettingsTabPageHeader
         title="Surfaces"
-        subtitle="Wallpaper, ribbon, and looks — preview the whole scene as you edit"
+        subtitle="Preview-first studio — pick art, tune the look, then add atmosphere"
       />
 
       {message.text ? (
@@ -1213,6 +1247,32 @@ const WallpaperSettingsTab = React.memo(() => {
           {supportsPerPageWallpaper ? (
             <div className="settings-wee-studio-context-group">
               <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                Scope
+              </span>
+              <WeeSegmentedControl
+                size="sm"
+                ariaLabel="Wallpaper edit scope"
+                layoutId="surfacesContextWallpaperScope"
+                value={selectedWallpaperScope}
+                onChange={handleSelectedWallpaperScopeChange}
+                options={[
+                  {
+                    value: 'space',
+                    label: 'Entire space',
+                    title: 'One wallpaper for this whole space',
+                  },
+                  {
+                    value: 'perPage',
+                    label: 'This page',
+                    title: 'Different wallpaper per Home/Focus page',
+                  },
+                ]}
+              />
+            </div>
+          ) : null}
+          {perPageMode ? (
+            <div className="settings-wee-studio-context-group">
+              <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
                 Page
               </span>
               {(pageMapEntries || []).map((entry) => {
@@ -1242,25 +1302,11 @@ const WallpaperSettingsTab = React.memo(() => {
               })}
             </div>
           ) : null}
-          <div className="settings-wee-studio-segments min-w-0">
-            <WeeSegmentedControl
-              size="sm"
-              ariaLabel="Surfaces section"
-              layoutId="surfacesSettingsSegment"
-              value={activeSurfacesSegment}
-              onChange={setSurfacesSegment}
-              options={
-                isHomeSpace
-                  ? SURFACES_SEGMENTS
-                  : SURFACES_SEGMENTS.filter((opt) => opt.value !== 'effects')
-              }
-            />
-          </div>
         </div>
       </div>
 
       <div className="settings-wee-studio-body">
-        <aside className="settings-wee-studio-preview" aria-label="Surfaces live scene">
+        <div className="settings-wee-studio-preview settings-wee-studio-preview--hero" aria-label="Surfaces live scene">
           <SurfacesScenePreview
             wallpaperUrl={sceneUrl}
             opacity={wallpaperOpacity}
@@ -1276,257 +1322,283 @@ const WallpaperSettingsTab = React.memo(() => {
             configuredChannels={sceneBoardPreview?.configuredChannels}
             slotMeta={sceneBoardPreview?.slotMeta}
             ribbonLook={sceneRibbonLook}
+            overlayEnabled={isHomeSpace && overlayEnabled}
+            overlayEffect={overlayEffect}
+            overlayIntensity={overlayIntensity}
+            overlaySpeed={overlaySpeed}
+            overlayWind={overlayWind}
+            overlayGravity={overlayGravity}
+            applyPulse={applyPulse}
           />
-        </aside>
+        </div>
+
+        <div className="settings-wee-studio-tabs">
+          <WeeSegmentedControl
+            size="sm"
+            ariaLabel="Surfaces section"
+            layoutId="surfacesSettingsSegment"
+            value={activeSurfacesSegment}
+            onChange={setSurfacesSegment}
+            options={segmentOptions}
+          />
+        </div>
 
         <div className="settings-wee-studio-controls">
-          {activeSurfacesSegment === 'wallpaper' ? (
-            <>
-              <WallpaperLibrarySection
-                selectedSpaceLabel={selectedSpaceLabel}
-                isHomeSpace={isHomeSpace}
-                selectedSpaceUsesGlobalWallpaper={selectedSpaceUsesGlobalWallpaper}
-                uploading={uploading}
-                handleUpload={handleUpload}
-                effectiveActiveWallpaperUrl={effectiveActiveWallpaperUrl}
-                handleRemoveWallpaper={handleRemoveWallpaper}
-                selectedWallpaper={selectedWallpaper}
-                reduceMotion={reduceMotion}
-                tabTransition={tabTransition}
-                likedWallpapers={likedWallpapers}
-                handleLike={handleLike}
-                handleSetCurrent={handleSetCurrent}
-                wallpapers={wallpapers}
-                onSelectLibraryWallpaper={handleSelectLibraryWallpaper}
-                deleting={deleting}
-                handleDelete={handleDelete}
-              />
+          <AnimatePresence mode="wait" initial={false}>
+            <m.div
+              key={activeSurfacesSegment}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+              transition={tabTransition}
+              className="flex flex-col gap-4"
+            >
+              {activeSurfacesSegment === 'library' ? (
+                <WallpaperLibrarySection
+                  selectedSpaceLabel={selectedSpaceLabel}
+                  applyScopeLabel={applyScopeLabel}
+                  isHomeSpace={isHomeSpace}
+                  selectedSpaceUsesGlobalWallpaper={selectedSpaceUsesGlobalWallpaper}
+                  uploading={uploading}
+                  handleUpload={handleUpload}
+                  effectiveActiveWallpaperUrl={effectiveActiveWallpaperUrl}
+                  handleRemoveWallpaper={handleRemoveWallpaper}
+                  selectedWallpaper={selectedWallpaper}
+                  reduceMotion={reduceMotion}
+                  tabTransition={tabTransition}
+                  likedWallpapers={likedWallpapers}
+                  handleLike={handleLike}
+                  handleSetCurrent={handleSetCurrentWithPulse}
+                  wallpapers={wallpapers}
+                  onSelectLibraryWallpaper={handleSelectLibraryWallpaper}
+                  deleting={deleting}
+                  handleDelete={handleDelete}
+                />
+              ) : null}
 
-              <SpaceWallpaperAppearanceSection
-                wallpaperOpacity={wallpaperOpacity}
-                handleWallpaperOpacityChange={handleWallpaperOpacityChange}
-                selectedSpaceId={selectedSpaceId}
-                setSelectedSpaceId={setSelectedSpaceId}
-                reduceMotion={reduceMotion}
-                tabTransition={tabTransition}
-                selectedSpaceLabel={selectedSpaceLabel}
-                selectedSpaceUsesGlobalWallpaper={selectedSpaceUsesGlobalWallpaper}
-                handleSelectedSpaceUseGlobalWallpaperChange={
-                  handleSelectedSpaceUseGlobalWallpaperChange
-                }
-                selectedWallpaper={selectedWallpaper}
-                handleSelectedSpaceWallpaperOverride={handleSelectedSpaceWallpaperOverride}
-                selectedSpaceWallpaperEntry={selectedSpaceWallpaperEntry}
-                selectedSpaceWallpaperUrl={selectedSpaceWallpaperUrl}
-                selectedSpaceBlur={selectedSpaceBlur}
-                handleSelectedSpaceBlurChange={handleSelectedSpaceBlurChange}
-                selectedSpaceBrightness={selectedSpaceBrightness}
-                handleSelectedSpaceBrightnessChange={handleSelectedSpaceBrightnessChange}
-                selectedSpaceSaturate={selectedSpaceSaturate}
-                handleSelectedSpaceSaturateChange={handleSelectedSpaceSaturateChange}
-                handleResetSelectedSpaceAppearance={handleResetSelectedSpaceAppearance}
-                showSpaceSelector={false}
-                showGlobalOpacity={isHomeSpace}
-                showWallpaperSourceSection={!isHomeSpace}
-                supportsPerPageWallpaper={supportsPerPageWallpaper}
-                selectedWallpaperScope={selectedWallpaperScope}
-                onWallpaperScopeChange={handleSelectedWallpaperScopeChange}
-                selectedBoardCurrentPage={selectedBoardCurrentPage}
-                selectedPageWallpaperUrl={selectedPageWallpaperUrl}
-                onApplyWallpaperToCurrentPage={() =>
-                  handleApplyWallpaperToCurrentPage(applyPageWallpaperUrl)
-                }
-                onClearCurrentPageWallpaper={handleClearCurrentPageWallpaper}
-                canApplyPageWallpaper={Boolean(applyPageWallpaperUrl)}
-                pageMapEntries={pageMapEntries}
-                onSelectBoardPage={handleSelectSettingsTargetPage}
-              />
-            </>
-          ) : null}
+              {activeSurfacesSegment === 'look' ? (
+                <SpaceWallpaperAppearanceSection
+                  wallpaperOpacity={wallpaperOpacity}
+                  handleWallpaperOpacityChange={handleWallpaperOpacityChange}
+                  selectedSpaceId={selectedSpaceId}
+                  setSelectedSpaceId={setSelectedSpaceId}
+                  reduceMotion={reduceMotion}
+                  tabTransition={tabTransition}
+                  selectedSpaceLabel={selectedSpaceLabel}
+                  selectedSpaceUsesGlobalWallpaper={selectedSpaceUsesGlobalWallpaper}
+                  handleSelectedSpaceUseGlobalWallpaperChange={
+                    handleSelectedSpaceUseGlobalWallpaperChange
+                  }
+                  selectedWallpaper={selectedWallpaper}
+                  handleSelectedSpaceWallpaperOverride={handleSelectedSpaceWallpaperOverride}
+                  selectedSpaceWallpaperEntry={selectedSpaceWallpaperEntry}
+                  selectedSpaceWallpaperUrl={selectedSpaceWallpaperUrl}
+                  selectedSpaceBlur={selectedSpaceBlur}
+                  handleSelectedSpaceBlurChange={handleSelectedSpaceBlurChange}
+                  selectedSpaceBrightness={selectedSpaceBrightness}
+                  handleSelectedSpaceBrightnessChange={handleSelectedSpaceBrightnessChange}
+                  selectedSpaceSaturate={selectedSpaceSaturate}
+                  handleSelectedSpaceSaturateChange={handleSelectedSpaceSaturateChange}
+                  handleResetSelectedSpaceAppearance={handleResetSelectedSpaceAppearance}
+                  showSpaceSelector={false}
+                  showGlobalOpacity={isHomeSpace}
+                  showWallpaperSourceSection={!isHomeSpace}
+                  supportsPerPageWallpaper={supportsPerPageWallpaper}
+                  selectedWallpaperScope={selectedWallpaperScope}
+                  onWallpaperScopeChange={handleSelectedWallpaperScopeChange}
+                  selectedBoardCurrentPage={selectedBoardCurrentPage}
+                  selectedPageWallpaperUrl={selectedPageWallpaperUrl}
+                  onApplyWallpaperToCurrentPage={() => {
+                    handleApplyWallpaperToCurrentPage(applyPageWallpaperUrl);
+                    triggerApplyPulse();
+                  }}
+                  onClearCurrentPageWallpaper={handleClearCurrentPageWallpaper}
+                  canApplyPageWallpaper={Boolean(applyPageWallpaperUrl)}
+                  pageMapEntries={pageMapEntries}
+                  onSelectBoardPage={handleSelectSettingsTargetPage}
+                  showScopeControl={false}
+                  showPageChipPicker={false}
+                />
+              ) : null}
 
-          {activeSurfacesSegment === 'ribbon' ? (
-            <>
-              <SettingsWeeSection eyebrow="Ribbon look">
-                <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-                  <Text variant="h3" className="mb-1 playful-hero-text">
-                    Ribbon by space &amp; page
-                  </Text>
-                  <Text variant="desc" className="mb-4">
-                    Color and glass for the Wii ribbon on {selectedSpaceLabel}. Buttons stay global
-                    — tune chrome in Dock.
-                  </Text>
-
-                  <div className="mb-4 flex flex-wrap items-center gap-3">
-                    <span
-                      className="h-8 w-8 rounded-full border border-[hsl(var(--border-primary)/0.5)] shadow-[var(--shadow-sm)]"
-                      style={{ background: ribbon?.ribbonColor || 'hsl(var(--primary))' }}
-                      title="Current ribbon color"
-                      aria-hidden
-                    />
-                    <span
-                      className="h-8 w-8 rounded-full border border-[hsl(var(--border-primary)/0.5)] shadow-[var(--shadow-sm)]"
-                      style={{ background: ribbon?.ribbonGlowColor || 'hsl(var(--primary))' }}
-                      title="Current ribbon glow"
-                      aria-hidden
-                    />
-                    <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.DOCK)}>
-                      Edit ribbon colors in Dock
-                    </WeeHelpLinkButton>
-                  </div>
-
-                  {supportsPerPageWallpaper ? (
-                    <div className="mb-4 flex flex-wrap items-center gap-3">
-                      <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                        Scope
-                      </span>
-                      <WeeSegmentedControl
-                        size="sm"
-                        ariaLabel="Ribbon look scope"
-                        layoutId="surfacesRibbonScope"
-                        value={ribbonScope}
-                        onChange={handleRibbonScopeChange}
-                        options={[
-                          {
-                            value: 'space',
-                            label: 'Space',
-                            title: 'One ribbon look for this space',
-                          },
-                          {
-                            value: 'perPage',
-                            label: 'Per page',
-                            title: 'Different ribbon look per Home/Focus page',
-                          },
-                        ]}
-                      />
-                    </div>
-                  ) : null}
-
-                  <div className="flex flex-wrap gap-2">
-                    <WeeButton
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      onClick={handleSaveRibbonForSpace}
-                    >
-                      Save current look for {selectedSpaceLabel}
-                    </WeeButton>
-                    {supportsPerPageWallpaper && ribbonScope === 'perPage' ? (
-                      <>
-                        <WeeButton
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleApplyRibbonToCurrentPage}
-                        >
-                          Apply to page {selectedBoardCurrentPage + 1}
-                        </WeeButton>
-                        <WeeButton
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleClearCurrentPageRibbon}
-                        >
-                          Clear page look
-                        </WeeButton>
-                      </>
-                    ) : null}
-                  </div>
-                  <p className="settings-wee-help !mb-0 mt-3">
-                    {supportsPerPageWallpaper && ribbonScope === 'perPage'
-                      ? pageRibbonLook
-                        ? `Page ${selectedBoardCurrentPage + 1} has a custom ribbon look.`
-                        : `Page ${selectedBoardCurrentPage + 1} uses the space ribbon look until you apply one.`
-                      : 'Space-level ribbon look. Page flips keep the same colors.'}
+              {activeSurfacesSegment === 'atmosphere' && isHomeSpace ? (
+                <div className="flex flex-col gap-4">
+                  <p className="settings-wee-help !mb-0 px-1">
+                    Cycling and particles are Home-only — watch them play in the live scene above.
                   </p>
-                </WeeModalFieldCard>
-              </SettingsWeeSection>
+                  <SettingsWeeSection eyebrow="Cycling">
+                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+                      <WallpaperCyclingSection
+                        cycling={cycling}
+                        handleCyclingChange={handleCyclingChange}
+                        cycleInterval={cycleInterval}
+                        handleCycleIntervalChange={handleCycleIntervalChange}
+                        cycleAnimation={cycleAnimation}
+                        handleCycleAnimationChange={handleCycleAnimationChange}
+                        slideRandomDirection={slideRandomDirection}
+                        handleSlideRandomDirectionChange={handleSlideRandomDirectionChange}
+                        slideDirection={slideDirection}
+                        handleSlideDirectionChange={handleSlideDirectionChange}
+                        slideDuration={slideDuration}
+                        handleSlideDurationChange={handleSlideDurationChange}
+                        slideEasing={slideEasing}
+                        handleSlideEasingChange={handleSlideEasingChange}
+                        crossfadeDuration={crossfadeDuration}
+                        handleCrossfadeDurationChange={handleCrossfadeDurationChange}
+                        crossfadeEasing={crossfadeEasing}
+                        handleCrossfadeEasingChange={handleCrossfadeEasingChange}
+                      />
+                    </WeeModalFieldCard>
+                  </SettingsWeeSection>
 
-              <SettingsWeeSection eyebrow="Match wallpaper">
-                <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
+                  <SettingsWeeSection eyebrow="Overlay">
+                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+                      <WallpaperOverlaySection
+                        overlayEnabled={overlayEnabled}
+                        handleOverlayEnabledChange={handleOverlayEnabledChange}
+                        overlayEffect={overlayEffect}
+                        handleOverlayEffectChange={handleOverlayEffectChange}
+                        overlayIntensity={overlayIntensity}
+                        handleOverlayIntensityChange={handleOverlayIntensityChange}
+                        overlaySpeed={overlaySpeed}
+                        handleOverlaySpeedChange={handleOverlaySpeedChange}
+                        overlayWind={overlayWind}
+                        handleOverlayWindChange={handleOverlayWindChange}
+                        overlayGravity={overlayGravity}
+                        handleOverlayGravityChange={handleOverlayGravityChange}
+                      />
+                    </WeeModalFieldCard>
+                  </SettingsWeeSection>
+                </div>
+              ) : null}
+
+              {activeSurfacesSegment === 'chrome' ? (
+                <>
+                  <SettingsWeeSection eyebrow="Ribbon look">
+                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
                       <Text variant="h3" className="mb-1 playful-hero-text">
-                        Paint ribbon from wallpaper
+                        Ribbon by space &amp; page
                       </Text>
-                      <Text variant="desc" className="!m-0">
-                        Live accents from the wallpaper on screen. Turning this off keeps the last
-                        painted ribbon colors. Spotify Match still wins while it&apos;s on.
+                      <Text variant="desc" className="mb-4">
+                        Color and glass for the Wii ribbon on {selectedSpaceLabel}. Buttons stay
+                        global — tune chrome in Dock.
                       </Text>
-                    </div>
-                    <WToggle
-                      checked={wallpaperMatchEnabled}
-                      onChange={handleWallpaperMatchChange}
-                      disableLabelClick
-                      title="Toggle match wallpaper colors to ribbon"
-                    />
-                  </div>
-                  <div className="mt-3">
-                    <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.DOCK)}>
-                      Edit ribbon accents in Dock
-                    </WeeHelpLinkButton>
-                  </div>
-                </WeeModalFieldCard>
-              </SettingsWeeSection>
-            </>
-          ) : null}
 
-          {activeSurfacesSegment === 'effects' && isHomeSpace ? (
-            <div className="flex flex-col gap-4">
-              <p className="settings-wee-help !mb-0 px-1">
-                Cycling and particle overlays are Home-only. Focus and hubs use the wallpaper you
-                set under Wallpaper.
-              </p>
-              <WeeSettingsCollapsibleSection
-                icon={Image}
-                title="Liked-wallpaper cycling"
-                description="Rotate through liked wallpapers on a timer"
-                defaultOpen={false}
-              >
-                <WallpaperCyclingSection
-                  cycling={cycling}
-                  handleCyclingChange={handleCyclingChange}
-                  cycleInterval={cycleInterval}
-                  handleCycleIntervalChange={handleCycleIntervalChange}
-                  cycleAnimation={cycleAnimation}
-                  handleCycleAnimationChange={handleCycleAnimationChange}
-                  slideRandomDirection={slideRandomDirection}
-                  handleSlideRandomDirectionChange={handleSlideRandomDirectionChange}
-                  slideDirection={slideDirection}
-                  handleSlideDirectionChange={handleSlideDirectionChange}
-                  slideDuration={slideDuration}
-                  handleSlideDurationChange={handleSlideDurationChange}
-                  slideEasing={slideEasing}
-                  handleSlideEasingChange={handleSlideEasingChange}
-                  crossfadeDuration={crossfadeDuration}
-                  handleCrossfadeDurationChange={handleCrossfadeDurationChange}
-                  crossfadeEasing={crossfadeEasing}
-                  handleCrossfadeEasingChange={handleCrossfadeEasingChange}
-                />
-              </WeeSettingsCollapsibleSection>
+                      <div className="mb-4 flex flex-wrap items-center gap-3">
+                        <span
+                          className="h-8 w-8 rounded-full border border-[hsl(var(--border-primary)/0.5)] shadow-[var(--shadow-sm)]"
+                          style={{ background: ribbon?.ribbonColor || 'hsl(var(--primary))' }}
+                          title="Current ribbon color"
+                          aria-hidden
+                        />
+                        <span
+                          className="h-8 w-8 rounded-full border border-[hsl(var(--border-primary)/0.5)] shadow-[var(--shadow-sm)]"
+                          style={{ background: ribbon?.ribbonGlowColor || 'hsl(var(--primary))' }}
+                          title="Current ribbon glow"
+                          aria-hidden
+                        />
+                        <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.DOCK)}>
+                          Edit ribbon colors in Dock
+                        </WeeHelpLinkButton>
+                      </div>
 
-              <WeeSettingsCollapsibleSection
-                icon={Sparkles}
-                title="Particle overlay"
-                description="Optional snow, rain, leaves, and more above the wallpaper"
-                defaultOpen={false}
-              >
-                <WallpaperOverlaySection
-                  overlayEnabled={overlayEnabled}
-                  handleOverlayEnabledChange={handleOverlayEnabledChange}
-                  overlayEffect={overlayEffect}
-                  handleOverlayEffectChange={handleOverlayEffectChange}
-                  overlayIntensity={overlayIntensity}
-                  handleOverlayIntensityChange={handleOverlayIntensityChange}
-                  overlaySpeed={overlaySpeed}
-                  handleOverlaySpeedChange={handleOverlaySpeedChange}
-                  overlayWind={overlayWind}
-                  handleOverlayWindChange={handleOverlayWindChange}
-                  overlayGravity={overlayGravity}
-                  handleOverlayGravityChange={handleOverlayGravityChange}
-                />
-              </WeeSettingsCollapsibleSection>
-            </div>
-          ) : null}
+                      {supportsPerPageWallpaper ? (
+                        <div className="mb-4 flex flex-wrap items-center gap-3">
+                          <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                            Scope
+                          </span>
+                          <WeeSegmentedControl
+                            size="sm"
+                            ariaLabel="Ribbon look scope"
+                            layoutId="surfacesRibbonScope"
+                            value={ribbonScope}
+                            onChange={handleRibbonScopeChange}
+                            options={[
+                              {
+                                value: 'space',
+                                label: 'Space',
+                                title: 'One ribbon look for this space',
+                              },
+                              {
+                                value: 'perPage',
+                                label: 'Per page',
+                                title: 'Different ribbon look per Home/Focus page',
+                              },
+                            ]}
+                          />
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-wrap gap-2">
+                        <WeeButton
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={handleSaveRibbonForSpace}
+                        >
+                          Save current look for {selectedSpaceLabel}
+                        </WeeButton>
+                        {supportsPerPageWallpaper && ribbonScope === 'perPage' ? (
+                          <>
+                            <WeeButton
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={handleApplyRibbonToCurrentPage}
+                            >
+                              Apply to page {selectedBoardCurrentPage + 1}
+                            </WeeButton>
+                            <WeeButton
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={handleClearCurrentPageRibbon}
+                            >
+                              Clear page look
+                            </WeeButton>
+                          </>
+                        ) : null}
+                      </div>
+                      <p className="settings-wee-help !mb-0 mt-3">
+                        {supportsPerPageWallpaper && ribbonScope === 'perPage'
+                          ? pageRibbonLook
+                            ? `Page ${selectedBoardCurrentPage + 1} has a custom ribbon look.`
+                            : `Page ${selectedBoardCurrentPage + 1} uses the space ribbon look until you apply one.`
+                          : 'Space-level ribbon look. Page flips keep the same colors.'}
+                      </p>
+                    </WeeModalFieldCard>
+                  </SettingsWeeSection>
+
+                  <SettingsWeeSection eyebrow="Match wallpaper">
+                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <Text variant="h3" className="mb-1 playful-hero-text">
+                            Paint ribbon from wallpaper
+                          </Text>
+                          <Text variant="desc" className="!m-0">
+                            Live accents from the wallpaper on screen. Turning this off keeps the
+                            last painted ribbon colors. Spotify Match still wins while it&apos;s on.
+                          </Text>
+                        </div>
+                        <WToggle
+                          checked={wallpaperMatchEnabled}
+                          onChange={handleWallpaperMatchChange}
+                          disableLabelClick
+                          title="Toggle match wallpaper colors to ribbon"
+                        />
+                      </div>
+                      <div className="mt-3">
+                        <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.DOCK)}>
+                          Edit ribbon accents in Dock
+                        </WeeHelpLinkButton>
+                      </div>
+                    </WeeModalFieldCard>
+                  </SettingsWeeSection>
+                </>
+              ) : null}
+            </m.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

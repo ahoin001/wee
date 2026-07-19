@@ -13,35 +13,21 @@
   margin-top: 1.5rem;
 }
 
-/* Surfaces studio — full shell width + two-pane body */
+/* Surfaces studio — full shell width; preview-above / tabs-below */
 .settings-wee-tab-root--studio {
   max-width: none;
 }
 
 .settings-wee-studio-body {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
-  align-items: start;
-}
-
-@media (min-width: 960px) {
-  .settings-wee-studio-body {
-    grid-template-columns: minmax(22rem, 2.4fr) minmax(0, 3fr);
-    gap: 1.5rem;
-  }
+  align-items: stretch;
 }
 
 .settings-wee-studio-preview {
   position: relative;
-}
-
-@media (min-width: 960px) {
-  .settings-wee-studio-preview {
-    position: sticky;
-    top: 0.5rem;
-    z-index: 10;
-  }
+  width: 100%;
 }
 
 .settings-wee-studio-controls {
@@ -88,8 +74,14 @@
   min-width: 0;
 }
 
-.settings-wee-sticky-step-bar--studio .settings-wee-studio-segments {
-  margin-left: auto;
+.settings-wee-studio-tabs {
+  display: flex;
+  justify-content: stretch;
+}
+
+.settings-wee-studio-tabs > * {
+  width: 100%;
+  max-width: none;
 }
 
 .settings-wee-intro {
