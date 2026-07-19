@@ -67,53 +67,6 @@
   }
 }
 
-/* Wide dock-morph layout: use more horizontal space when the window is wide (see fixed dock on the right). */
-.aura-hub-stage--dock-morph {
-  --hub-column-max: min(100%, min(97vw, 1920px));
-  /* Tighter gap under overlay hero (padding already reserves hero height). */
-  --hub-hero-below-gap: clamp(0.45rem, 1vw, 0.75rem);
-  --hub-dock-lane-gap: 40px;
-  /* Cap game grid columns (5) so width doesn’t thrash when the morph column squeezes during scroll */
-  --hub-game-grid-gap: clamp(1rem, 2.4vw, 1.45rem);
-}
-
-@media (max-width: 1600px) {
-  .aura-hub-stage--dock-morph {
-    --hub-column-max: min(100%, min(95vw, 1680px));
-  }
-}
-
-@media (max-width: 1280px) {
-  .aura-hub-stage--dock-morph {
-    --hub-column-max: min(100%, min(94vw, 1420px));
-  }
-}
-
-/*
- * Wide screens: hub column is centered with max-width (--hub-column-max). Viewport-fixed chrome
- * (Space Rail, compact hero) used to sit at left:1rem / right:1rem — too far on ultrawide.
- * Inset matches half of (100vw − column cap) so rails sit just outside the content column with breathing room.
- * (--hub-chrome-align-inset must mirror the min(vw, px) terms in --hub-column-max for each breakpoint.)
- */
-.app-container:has(.aura-hub-stage--dock-morph) {
-  --hub-chrome-align-inset: max(0px, calc((100vw - min(97vw, 1920px)) / 2));
-  --hub-chrome-edge-pad: clamp(0.65rem, 1.1vw, 1.1rem);
-}
-
-@media (max-width: 1600px) {
-  .app-container:has(.aura-hub-stage--dock-morph) {
-    --hub-chrome-align-inset: max(0px, calc((100vw - min(95vw, 1680px)) / 2));
-  }
-}
-
-@media (max-width: 1280px) {
-  .app-container:has(.aura-hub-stage--dock-morph) {
-    --hub-chrome-align-inset: max(0px, calc((100vw - min(94vw, 1420px)) / 2));
-  }
-}
-
-/* Space rail: not tied to hub column — fixed left gutter in App.css so it keeps its own lane. */
-
 /* Column: hero overlays top; scroll lives in main with top padding (hub-design pattern) */
 .aura-hub-column {
   position: relative;
@@ -125,144 +78,6 @@
   width: 100%;
   max-width: var(--hub-column-max);
   margin-inline: auto;
-}
-
-/* Wide layout: scroll-morph hero docks into a right-hand lane (library max-width squeezes). */
-.aura-hub-column--dock-morph {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  max-width: var(--hub-column-max);
-  margin-inline: auto;
-}
-
-/* Library left, dock lane right; dock card top-aligned beside collections + library. */
-.aura-hub-morph-stack {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  flex-wrap: nowrap;
-  gap: var(--hub-dock-lane-gap, 40px);
-  width: 100%;
-  min-height: 0;
-}
-
-/*
- * Compact hero: fixed to viewport, vertically centered — inset uses --hub-chrome-align-inset when
- * .app-container:has(.aura-hub-stage--dock-morph) so the card aligns with Space Rail (see block above).
- * Out of flex flow; library width still respects Framer gridMaxWidth so tiles don’t sit under the card.
- */
-.aura-hub-dock-rail {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  position: fixed;
-  right: calc(
-    var(--hub-chrome-align-inset, 0px) + var(--hub-chrome-edge-pad, 1rem) +
-      max(0px, env(safe-area-inset-right, 0px))
-  );
-  top: 50%;
-  transform: translateY(-50%);
-  overflow: hidden;
-  z-index: 2100;
-  pointer-events: none;
-  max-width: min(
-    calc(100vw - 2 * (var(--hub-chrome-align-inset, 0px) + var(--hub-chrome-edge-pad, 1rem))),
-    calc(var(--hub-dock-lane-gap, 40px) + 420px)
-  );
-}
-
-.aura-hub-dock-rail .aura-hub-hero-sticky-wrap {
-  pointer-events: auto;
-}
-
-.aura-hub-hero-sticky-wrap {
-  position: relative;
-  flex-shrink: 0;
-  transform-origin: right center;
-  pointer-events: none;
-}
-
-.aura-hub-hero-sticky-wrap .aura-hub-hero-shell--morph {
-  pointer-events: auto;
-}
-
-.aura-hub-hero-shell--morph {
-  position: relative;
-  height: 0;
-  width: 100%;
-  overflow: hidden;
-  border-radius: 1.5rem;
-  border: 3px solid hsl(var(--border-primary) / 0.38);
-  box-shadow: var(--playful-shadow-elevated), var(--playful-inner-glow);
-  background: hsl(var(--surface-primary) / 0.2);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aura-hub-hero-shell--morph {
-    transition: none;
-  }
-}
-
-.aura-hub-hero-shell--morph .aura-hub-hero {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-  min-height: 0;
-}
-
-/* Dimmed “wallpaper” in dock card: stronger scrim + darker art so UI reads clearly. */
-.aura-hub-hero-shell--morph .aura-hub-hero__media-layer--base {
-  filter: saturate(1.05) brightness(0.48);
-}
-
-.aura-hub-hero-shell--morph .aura-hub-hero__media-layer--overlay {
-  filter: saturate(1.05) brightness(0.48);
-}
-
-.aura-hub-hero-shell--morph .aura-hub-hero__media-stack::after {
-  background: linear-gradient(
-    to top,
-    hsl(var(--color-pure-black) / 0.88) 0%,
-    hsl(var(--color-pure-black) / 0.42) 42%,
-    hsl(var(--color-pure-black) / 0.14) 100%
-  );
-  opacity: 1;
-}
-
-.aura-hub-content--dock-morph {
-  box-sizing: border-box;
-  position: relative;
-  z-index: 6;
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  overflow-y: auto;
-  overflow-anchor: none;
-  /* Match legacy .aura-hub-content: reserve space under overlay hero + collections scroll. */
-  padding: calc(var(--hub-hero-expanded) + var(--hub-hero-below-gap)) clamp(1rem, 3.2vw, 2.25rem)
-    calc(clamp(4.5rem, 9vw, 7.5rem) + var(--hub-dock-inset, 0px));
-  scrollbar-width: none;
-  scroll-snap-type: none;
-  background: transparent;
-  box-shadow: none;
-  scroll-padding-top: calc(var(--hub-hero-expanded) + 10px);
-}
-
-.aura-hub-content--dock-morph::-webkit-scrollbar {
-  display: none;
-}
-
-.aura-hub-morph-main {
-  flex: 1 1 auto;
-  margin-left: 0;
-  margin-right: 0;
-  min-width: 0;
-}
-
-.aura-hub-stage--dock-morph #game-hub-collections,
-.aura-hub-stage--dock-morph #game-hub-library {
-  scroll-margin-top: calc(var(--hub-hero-expanded) + 12px);
 }
 
 /* Backdrop off: no frosted panel — tiles float over the app wallpaper only */
@@ -283,12 +98,6 @@
   left: 0;
   right: 0;
   z-index: 10;
-  pointer-events: none;
-}
-
-/* Dock-morph banner: wrapper stays non-interactive so scrolled collection stacks beneath receive clicks; .aura-hub-hero__content / .aura-hub-rail opt in. */
-.aura-hub-hero-wrap--dock-overlay {
-  z-index: 11;
   pointer-events: none;
 }
 
@@ -470,20 +279,6 @@
   );
 }
 
-/* Backdrop on: keep dock-morph back card wallpaper treatment aligned with backdrop-off wallpaper. */
-.aura-hub-space:not(.aura-hub-space--floating) .aura-hub-hero-shell--morph .aura-hub-hero__media-layer--base,
-.aura-hub-space:not(.aura-hub-space--floating) .aura-hub-hero-shell--morph .aura-hub-hero__media-layer--overlay {
-  filter: saturate(var(--aura-hub-wallpaper-saturation)) brightness(var(--aura-hub-wallpaper-brightness));
-}
-
-.aura-hub-space:not(.aura-hub-space--floating) .aura-hub-hero-shell--morph .aura-hub-hero__media-stack::after {
-  background: linear-gradient(
-    to top,
-    hsl(0 0% 0% / var(--aura-hub-wallpaper-scrim-bottom)) 0%,
-    transparent var(--aura-hub-wallpaper-scrim-top-stop)
-  );
-}
-
 /* Typography block: no glass — spacing only; legibility comes from ::after dimming */
 .aura-hub-hero__title-panel {
   display: inline-block;
@@ -644,170 +439,6 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.5rem clamp(1.15rem, 3.5vw, 2rem) 1.35rem clamp(1.15rem, 3.5vw, 2rem);
-}
-
-/* Dock morph: cross-fade banner vs docked info (scroll-linked opacity from Framer). */
-.aura-hub-hero--morph .aura-hub-hero__content {
-  display: block;
-  padding: 0;
-  min-height: 0;
-}
-
-.aura-hub-hero__banner-layer,
-.aura-hub-hero__dock-layer {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: clamp(0.85rem, 2.2vw, 1.35rem) clamp(1rem, 3vw, 1.5rem) clamp(1rem, 2.5vw, 1.35rem);
-  pointer-events: none;
-}
-
-.aura-hub-hero__banner-layer .aura-hub-hero__meta-tilt,
-.aura-hub-hero__dock-layer .aura-hub-hero__dock-inner {
-  pointer-events: auto;
-}
-
-.aura-hub-hero__dock-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  min-height: 0;
-  width: 100%;
-}
-
-.aura-hub-hero__dock-head {
-  margin-bottom: 0.15rem;
-}
-
-.aura-hub-hero__dock-eyebrow {
-  margin: 0 0 0.35rem;
-  opacity: 0.85;
-}
-
-.aura-hub-hero__dock-title {
-  margin: 0;
-  font-size: clamp(1rem, 2.8vw, 1.35rem);
-  font-weight: 900;
-  font-style: italic;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  text-transform: uppercase;
-  color: hsl(var(--text-primary));
-  text-shadow:
-    0 1px 0 hsl(var(--color-pure-black) / 0.25),
-    0 2px 14px hsl(var(--color-pure-black) / 0.55);
-}
-
-.aura-hub-hero__dock-stats {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.aura-hub-hero__dock-stat {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-  padding: 0.45rem 0.55rem;
-  border-radius: 0.85rem;
-  border: 2px solid hsl(var(--border-primary) / 0.55);
-  background: hsl(var(--surface-primary) / 0.82);
-  box-shadow: var(--playful-inner-glow);
-}
-
-.aura-hub-hero__dock-stat-label {
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: hsl(var(--text-secondary));
-}
-
-.aura-hub-hero__dock-stat-value {
-  font-size: 0.78rem;
-  font-weight: 700;
-  font-style: italic;
-  color: hsl(var(--text-primary));
-  text-align: right;
-}
-
-.aura-hub-hero__dock-empty {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: hsl(var(--color-pure-white) / 0.82);
-}
-
-.aura-hub-hero__dock-launch {
-  width: 100%;
-  margin-top: 0.25rem;
-}
-
-/* Compact morph dock: align title + stats with expanded hero (white type, same stat “glass” chips). */
-.aura-hub-hero-shell--morph .aura-hub-hero__dock-title {
-  margin: 0;
-  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
-  font-weight: 900;
-  font-style: normal;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
-  color: hsl(var(--color-pure-white));
-  text-shadow:
-    0 1px 0 hsl(0 0% 100% / 0.12),
-    0 3px 22px hsl(0 0% 0% / 0.72),
-    0 0 32px hsl(var(--wii-blue) / 0.2);
-}
-
-.aura-hub-hero-shell--morph .aura-hub-hero__dock-eyebrow {
-  margin: 0 0 0.35rem;
-  opacity: 1;
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: hsl(0 0% 100% / 0.55);
-}
-
-.aura-hub-hero-shell--morph .aura-hub-hero__dock-stat {
-  padding: 0.35rem 0.55rem 0.4rem;
-  border-radius: 0.55rem;
-  border: 1px solid hsl(0 0% 100% / 0.14);
-  background: hsl(0 0% 0% / 0.22);
-  box-shadow: none;
-}
-
-.aura-hub-hero-shell--morph .aura-hub-hero__dock-stat-label {
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: hsl(0 0% 100% / 0.55);
-}
-
-.aura-hub-hero-shell--morph .aura-hub-hero__dock-stat-value {
-  font-size: 0.82rem;
-  font-weight: 700;
-  font-style: normal;
-  letter-spacing: 0.02em;
-  color: hsl(0 0% 100% / 0.96);
-  text-shadow: 0 1px 8px hsl(0 0% 0% / 0.45);
-}
-
-.aura-hub-hero-shell--morph .aura-hub-hero__dock-empty {
-  color: hsl(0 0% 100% / 0.88);
-  text-shadow: 0 1px 10px hsl(0 0% 0% / 0.55);
-}
-
-.aura-hub-hero--morph .aura-hub-rail {
-  z-index: 15;
 }
 
 .aura-hub-btn {
@@ -1208,8 +839,16 @@
   }
 }
 
+/* Settle first — breathe only after fly handoff so open choreography stays confident. */
 .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__cards .aura-hub-stack__item:last-child {
   border-color: hsl(var(--wii-blue));
+  transform: scale(1.04);
+}
+
+.aura-hub-space--effects
+  .aura-hub-stack--active.aura-hub-stack--settled
+  .aura-hub-stack__cards
+  .aura-hub-stack__item:last-child {
   animation: aura-hub-stack-breathe 2.4s ease-in-out infinite;
 }
 
@@ -1227,7 +866,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__cards .aura-hub-stack__item:last-child {
+  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__cards .aura-hub-stack__item:last-child,
+  .aura-hub-space--effects
+    .aura-hub-stack--active.aura-hub-stack--settled
+    .aura-hub-stack__cards
+    .aura-hub-stack__item:last-child {
     animation: none;
     transform: none;
     border-color: hsl(var(--wii-blue));
@@ -1343,37 +986,9 @@
   contain-intrinsic-size: 320px 400px;
 }
 
-/* Dock-morph: max 5 columns — stable min track when morph column width changes */
-.aura-hub-stage--dock-morph .aura-hub-grid {
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(
-      min(
-        100%,
-        max(210px, calc((100% - 4 * var(--hub-game-grid-gap)) / 5))
-      ),
-      1fr
-    )
-  );
-  gap: var(--hub-game-grid-gap);
-}
-
 @media (max-height: 700px) {
   .aura-hub-grid {
     grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
-  }
-
-  .aura-hub-stage--dock-morph .aura-hub-grid {
-    grid-template-columns: repeat(
-      auto-fill,
-      minmax(
-        min(
-          100%,
-          max(188px, calc((100% - 4 * var(--hub-game-grid-gap)) / 5))
-        ),
-        1fr
-      )
-    );
   }
 }
 
@@ -1383,7 +998,8 @@
   z-index: 10050;
   pointer-events: none;
   box-sizing: border-box;
-  border-radius: 0.85rem;
+  /* Match stack cards at takeoff; shelf cards use 0.85rem — difference is negligible at settle */
+  border-radius: 0.8rem;
   border: none;
   overflow: hidden;
   background-color: transparent;

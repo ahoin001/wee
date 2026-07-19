@@ -34,6 +34,7 @@ import {
   removeHomeWidgetFromSpaceData,
   setHomeSlotSpanInSpaceData,
   setHomeSlotSurfaceInSpaceData,
+  setHomeSlotTextColorInSpaceData,
   setHomeSlotWidgetPatchInSpaceData,
   syncSpaceDataFromLegacyMaps,
 } from './homeGridSlots';
@@ -748,8 +749,6 @@ useConsolidatedAppStore = create(
             showHubBackdrop: false,
             /** When true, Game Hub lists/collections show Steam titles only (Epic still launchable elsewhere). */
             hubSteamOnlyGames: true,
-            /** Wide layout: scroll-linked hero dock rail + library squeeze. Off = simple column + compact hero on scroll. */
-            hubDockScrollMorphEnabled: true,
             effectsEnabled: true,
             activeCollectionId: null,
             favoriteGameIds: [],
@@ -1217,6 +1216,18 @@ useConsolidatedAppStore = create(
             const nextSurface = normalizeHomeWidgetSurface(surface);
             const apply = (channelsData) =>
               setHomeSlotSurfaceInSpaceData(channelsData, index, nextSurface);
+            if (key === 'workspaces') {
+              return { channels: patchFocusChannelSpace(state, apply) };
+            }
+            return { channels: patchHomeChannelSpace(state, key, apply) };
+          }),
+
+          setHomeSlotTextColorForSpace: (spaceKey, channelIndex, textColor) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const index = channelIndex | 0;
+            if (index < 0) return state;
+            const apply = (channelsData) =>
+              setHomeSlotTextColorInSpaceData(channelsData, index, textColor);
             if (key === 'workspaces') {
               return { channels: patchFocusChannelSpace(state, apply) };
             }
@@ -2205,7 +2216,6 @@ useConsolidatedAppStore = create(
                 launchingGameId: null,
                 showHubBackdrop: false,
                 hubSteamOnlyGames: true,
-                hubDockScrollMorphEnabled: true,
                 effectsEnabled: true,
                 activeCollectionId: null,
                 favoriteGameIds: [],

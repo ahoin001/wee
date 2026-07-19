@@ -4,11 +4,13 @@ import useAnimationActivity from '../../hooks/useAnimationActivity';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 const SpotifyGradientOverlay = () => {
-  const { extractedColors, immersiveMode, isPlaying } = useConsolidatedAppStore(
+  const { extractedColors, immersiveMode, isPlaying, spotifyMatchEnabled } = useConsolidatedAppStore(
     useShallow((state) => ({
       extractedColors: state.spotify.extractedColors,
       immersiveMode: state.spotify.immersiveMode,
       isPlaying: Boolean(state.nowPlaying?.isPlaying ?? state.spotify.isPlaying),
+      // Album wash rides on Now Playing Color Match — never paint while match is off.
+      spotifyMatchEnabled: Boolean(state.ui.spotifyMatchEnabled),
     }))
   );
   const canvasRef = useRef(null);
@@ -39,7 +41,12 @@ const SpotifyGradientOverlay = () => {
 
   // Create gradient overlay canvas (capped — full-screen PNGs OOM / throw in Electron).
   const createGradientOverlay = useMemo(() => {
-    if (!immersiveMode.liveGradientWallpaper || !immersiveMode.overlayMode || !extractedColors) {
+    if (
+      !spotifyMatchEnabled ||
+      !immersiveMode.liveGradientWallpaper ||
+      !immersiveMode.overlayMode ||
+      !extractedColors
+    ) {
       return null;
     }
 
@@ -147,6 +154,7 @@ const SpotifyGradientOverlay = () => {
       return null;
     }
   }, [
+    spotifyMatchEnabled,
     immersiveMode.liveGradientWallpaper,
     immersiveMode.overlayMode,
     extractedColors,
@@ -197,7 +205,7 @@ const SpotifyGradientOverlay = () => {
     };
   }, [createGradientOverlay, immersiveMode.liveGradientWallpaper, immersiveMode.overlayMode, shouldAnimate, frameIntervalMs]);
 
-  if (!immersiveMode.liveGradientWallpaper || !immersiveMode.overlayMode) {
+  if (!spotifyMatchEnabled || !immersiveMode.liveGradientWallpaper || !immersiveMode.overlayMode) {
     return null;
   }
 

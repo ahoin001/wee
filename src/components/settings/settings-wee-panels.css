@@ -13,9 +13,9 @@
   margin-top: 1.5rem;
 }
 
-/* Surfaces studio — wider canvas + two-pane body */
+/* Surfaces studio — full shell width + two-pane body */
 .settings-wee-tab-root--studio {
-  max-width: 72rem;
+  max-width: none;
 }
 
 .settings-wee-studio-body {
@@ -27,7 +27,7 @@
 
 @media (min-width: 960px) {
   .settings-wee-studio-body {
-    grid-template-columns: minmax(17.5rem, 2fr) minmax(0, 3fr);
+    grid-template-columns: minmax(22rem, 2.4fr) minmax(0, 3fr);
     gap: 1.5rem;
   }
 }

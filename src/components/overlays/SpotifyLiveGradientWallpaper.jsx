@@ -6,11 +6,13 @@ import useAnimationActivity from '../../hooks/useAnimationActivity';
 import { logError, logWarn } from '../../utils/logger';
 
 const SpotifyLiveGradientWallpaper = () => {
-  const { extractedColors, immersiveMode, isPlaying } = useConsolidatedAppStore(
+  const { extractedColors, immersiveMode, isPlaying, spotifyMatchEnabled } = useConsolidatedAppStore(
     useShallow((state) => ({
       extractedColors: state.spotify.extractedColors,
       immersiveMode: state.spotify.immersiveMode,
       isPlaying: Boolean(state.nowPlaying?.isPlaying ?? state.spotify.isPlaying),
+      // Album wash rides on Now Playing Color Match — never swap wallpapers while match is off.
+      spotifyMatchEnabled: Boolean(state.ui.spotifyMatchEnabled),
     }))
   );
   const lastWallpaperUrl = useRef(null);
@@ -42,7 +44,7 @@ const SpotifyLiveGradientWallpaper = () => {
 
     // Create gradient overlay as a data URL
   const createGradientOverlay = useMemo(() => {
-    if (!immersiveMode.liveGradientWallpaper || !extractedColors || !shouldAnimate) {
+    if (!spotifyMatchEnabled || !immersiveMode.liveGradientWallpaper || !extractedColors || !shouldAnimate) {
       return null;
     }
     // Overlay wash is painted by SpotifyGradientOverlay — skip huge PNG generation.
@@ -162,6 +164,7 @@ const SpotifyLiveGradientWallpaper = () => {
       return null;
     }
   }, [
+    spotifyMatchEnabled,
     immersiveMode.liveGradientWallpaper,
     immersiveMode.overlayMode,
     extractedColors,

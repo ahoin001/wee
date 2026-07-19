@@ -291,10 +291,11 @@
 
 /* Base cursor styles */
 #wii-custom-cursor {
+  /* Follow live accent (wallpaper / Now Playing / ribbon) — not static brand blue/cyan */
   --cursor-primary: hsl(var(--wii-blue));
-  --cursor-primary-rgb: var(--accent-blue-rgb);
-  --cursor-dark: rgb(var(--accent-cyan-rgb));
-  --cursor-dark-rgb: var(--accent-cyan-rgb);
+  --cursor-primary-rgb: var(--primary-rgb);
+  --cursor-dark: hsl(var(--wii-blue));
+  --cursor-dark-rgb: var(--primary-rgb);
   position: fixed;
   width: 32px;
   height: 32px;

@@ -5,6 +5,7 @@ import {
   COLLECTION_EXPANSION_MS,
   COLLECTION_FLY_PHASE_MS,
   SHELF_PHYSICS_EASE,
+  flyOutBlockingMs,
   runFlyInAnimations,
   runFlyOutAnimations,
 } from '../game-hub/collectionFlyAnimations';
@@ -67,6 +68,7 @@ export default function MediaHubLocalShelfSection({
   const expansionRef = useRef(null);
   const stackButtonRefs = useRef({});
   const flyGeneration = useRef(0);
+  const flyAbortRef = useRef(null);
   const uiLockedRef = useRef(false);
   const shelfClosingRef = useRef(false);
   const closePromiseRef = useRef(null);
@@ -148,6 +150,21 @@ export default function MediaHubLocalShelfSection({
     return sectionRef.current ?? document.querySelector('.media-hub-space') ?? document.body;
   }, []);
 
+  const ensureExpansionInView = useCallback(
+    (behavior = 'auto') => {
+      const container = hubScrollContainerRef?.current;
+      const region = expansionRef.current;
+      if (!container || !region) return;
+      maybeScrollHubExpansionIntoView(container, region, {
+        bottomInset: readHubDockInsetPx(region),
+        topReserve: readHubScrollTopReservePx(region),
+        minVisibleRatio: 0.42,
+        behavior,
+      });
+    },
+    [hubScrollContainerRef]
+  );
+
   const onSetCollection = useCallback((id) => {
     setActiveCollectionId(id);
   }, []);
@@ -167,6 +184,10 @@ export default function MediaHubLocalShelfSection({
       const toRect = stackArea?.getBoundingClientRect();
 
       flyGeneration.current += 1;
+      flyAbortRef.current?.abort();
+      flyAbortRef.current = null;
+      setFlyInProgress(false);
+      setFlyHandoff(false);
       const session = ++closeSessionRef.current;
 
       const finishClear = () => {
@@ -182,7 +203,10 @@ export default function MediaHubLocalShelfSection({
         return;
       }
 
-      const shelfWaitMs = COLLECTION_EXPANSION_MS + 48;
+      const shelfWaitMs = Math.max(
+        COLLECTION_EXPANSION_MS + 48,
+        flyOutBlockingMs(closeGames.length)
+      );
 
       if (!flyAllowed) {
         flushSync(() => {
@@ -196,6 +220,7 @@ export default function MediaHubLocalShelfSection({
       }
 
       const fromRects = closeGames.map((_, i) => gridSlotRefs.current[i]?.getBoundingClientRect?.() || null);
+      const closeController = new AbortController();
 
       flushSync(() => {
         setCardsRevealed(false);
@@ -203,11 +228,20 @@ export default function MediaHubLocalShelfSection({
       });
 
       await Promise.all([
-        runFlyOutAnimations({ games: closeGames, fromRects, toRect, getFlyLayerParent }),
+        runFlyOutAnimations({
+          games: closeGames,
+          fromRects,
+          toRect,
+          getFlyLayerParent,
+          signal: closeController.signal,
+        }),
         waitMs(shelfWaitMs),
       ]);
 
-      if (session !== closeSessionRef.current) return;
+      if (session !== closeSessionRef.current) {
+        closeController.abort();
+        return;
+      }
       finishClear();
     };
 
@@ -255,6 +289,10 @@ export default function MediaHubLocalShelfSection({
     }
 
     const myGen = ++flyGeneration.current;
+    flyAbortRef.current?.abort();
+    const controller = new AbortController();
+    flyAbortRef.current = controller;
+
     setFlyInProgress(true);
     setFlyHandoff(false);
     preloadGameArt(games);
@@ -262,8 +300,9 @@ export default function MediaHubLocalShelfSection({
     let cancelled = false;
 
     (async () => {
+      ensureExpansionInView('auto');
       await nextFrame();
-      if (cancelled || myGen !== flyGeneration.current) {
+      if (cancelled || myGen !== flyGeneration.current || controller.signal.aborted) {
         setFlyInProgress(false);
         setFlyHandoff(false);
         return;
@@ -281,12 +320,13 @@ export default function MediaHubLocalShelfSection({
         return;
       }
 
-      const { didFly } = await runFlyInAnimations({
+      const { didFly, aborted } = await runFlyInAnimations({
         games,
         fromRect,
         getToRect: (i) => gridSlotRefs.current[i]?.getBoundingClientRect?.() || null,
         prepareHandoff: prepareCollectionHandoff,
         getFlyLayerParent,
+        signal: controller.signal,
         onHandoffStart: () => {
           flushSync(() => {
             setFlyHandoff(true);
@@ -294,53 +334,27 @@ export default function MediaHubLocalShelfSection({
         },
       });
 
-      if (!cancelled && myGen === flyGeneration.current) {
+      if (!cancelled && myGen === flyGeneration.current && !aborted) {
         setFlyInProgress(false);
         setFlyHandoff(false);
-        if (!didFly) setCardsRevealed(true);
+        setCardsRevealed(true);
+        if (didFly) ensureExpansionInView('auto');
       }
     })();
 
     return () => {
       cancelled = true;
+      controller.abort();
+      if (flyAbortRef.current === controller) flyAbortRef.current = null;
     };
-  }, [activeCollectionId, flyAllowed, gameSignature, getFlyLayerParent, prepareCollectionHandoff]);
-
-  useLayoutEffect(() => {
-    if (!activeCollectionId || !hubScrollContainerRef?.current) return undefined;
-
-    let cancelled = false;
-
-    const run = () => {
-      if (cancelled) return;
-      const container = hubScrollContainerRef.current;
-      const region = expansionRef.current;
-      if (!container || !region) return;
-      const reduced =
-        typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      maybeScrollHubExpansionIntoView(container, region, {
-        bottomInset: readHubDockInsetPx(region),
-        topReserve: readHubScrollTopReservePx(region),
-        minVisibleRatio: 0.42,
-        behavior: reduced ? 'auto' : 'smooth',
-      });
-    };
-
-    const id0 = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!cancelled) run();
-      });
-    });
-    const t = window.setTimeout(() => {
-      if (!cancelled) requestAnimationFrame(run);
-    }, COLLECTION_EXPANSION_MS + 60);
-
-    return () => {
-      cancelled = true;
-      window.cancelAnimationFrame(id0);
-      window.clearTimeout(t);
-    };
-  }, [activeCollectionId, hubScrollContainerRef]);
+  }, [
+    activeCollectionId,
+    ensureExpansionInView,
+    flyAllowed,
+    gameSignature,
+    getFlyLayerParent,
+    prepareCollectionHandoff,
+  ]);
 
   const flushPendingOpen = useCallback(() => {
     const pid = pendingOpenCollectionIdRef.current;
@@ -438,7 +452,9 @@ export default function MediaHubLocalShelfSection({
               ref={assignStackRef(collection.id)}
               role="button"
               tabIndex={0}
-              className={`aura-hub-stack ${isActive ? 'aura-hub-stack--active' : ''}`}
+              className={`aura-hub-stack${isActive ? ' aura-hub-stack--active' : ''}${
+                isActive && !flyInProgress && !shelfClosing ? ' aura-hub-stack--settled' : ''
+              }`}
               onClick={(e) => handleStackClick(e, collection)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {

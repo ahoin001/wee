@@ -14,7 +14,6 @@ import {
   PanelsTopLeft,
   RefreshCw,
   Settings,
-  Sparkles,
   Square,
   StretchHorizontal,
   Waves,
@@ -27,7 +26,6 @@ import {
   defaultAtmosphereLookName,
   saveCurrentAtmosphereLookPreset,
 } from '../../utils/presets/saveCurrentAtmosphereLookPreset';
-import { resolveEffectiveAccent } from '../../utils/theme/resolveEffectiveAccent';
 import { DEFAULT_AMBIENT_COLOR } from '../../utils/theme/extractImagePalette';
 import { DEFAULT_RIBBON_GLOW_HEX, DEFAULT_RIBBON_SURFACE_HEX } from '../../design/runtimeColorStrings';
 import { syncActiveSpaceAppearanceCapture } from '../../utils/appearance/spaceAppearance';
@@ -35,7 +33,7 @@ import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import WToggle from '../../ui/WToggle';
 import WeeButton from '../../ui/wee/WeeButton';
-import { WeeSettingsDisclosure } from '../../ui/wee';
+import { WeeMorphStack, WeeRevealWhen, WeeSettingsDisclosure } from '../../ui/wee';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 import './SettingsActionMenu.css';
 
@@ -79,16 +77,20 @@ QuickToggleRow.propTypes = {
   onToggle: PropTypes.func.isRequired,
 };
 
+/** Action row sharing the QuickToggleRow card vocabulary (icon well + uppercase italic label). */
 function ActionButtonRow({ label, icon: Icon, onClick, badge = false }) {
   return (
-    <WeeButton
+    <button
       type="button"
-      variant="secondary"
-      className="w-full justify-start gap-3 !normal-case !tracking-normal"
       onClick={onClick}
+      className="flex w-full cursor-pointer items-center gap-3 rounded-[var(--wee-radius-rail-item)] border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] p-4 text-left transition-colors hover:border-[hsl(var(--primary)/0.35)] hover:bg-[hsl(var(--state-hover)/0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary))]"
     >
-      {Icon ? <Icon size={18} strokeWidth={2.2} className="shrink-0 text-[hsl(var(--text-secondary))]" aria-hidden /> : null}
-      <span className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-semibold">
+      {Icon ? (
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--wee-surface-well))] text-[hsl(var(--wee-text-rail-muted))]">
+          <Icon size={20} strokeWidth={2.2} aria-hidden />
+        </span>
+      ) : null}
+      <span className="flex min-w-0 flex-1 items-center gap-2 text-[11px] font-black uppercase italic tracking-wide text-[hsl(var(--wee-text-header))]">
         {label}
         {badge ? (
           <span
@@ -97,7 +99,7 @@ function ActionButtonRow({ label, icon: Icon, onClick, badge = false }) {
           />
         ) : null}
       </span>
-    </WeeButton>
+    </button>
   );
 }
 
@@ -122,10 +124,8 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
     liveGradientWallpaper,
     canSaveAtmosphereLook,
     dynamicRibbonColorEnabled,
-    ribbonGlowColor,
     ribbonColor,
     ambientPalette,
-    spotifyColors,
     immersiveMode,
   } = useConsolidatedAppStore(
     useShallow((state) => {
@@ -147,10 +147,8 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
         canSaveAtmosphereLook:
           Boolean(extracted) || wallpaperOn || spotifyOn || liveWash,
         dynamicRibbonColorEnabled: Boolean(state.ribbon?.dynamicRibbonColorEnabled),
-        ribbonGlowColor: state.ribbon?.ribbonGlowColor ?? null,
         ribbonColor: state.ribbon?.ribbonColor ?? null,
         ambientPalette: state.ui?.ambientColor?.palette ?? null,
-        spotifyColors: state.spotify?.extractedColors ?? null,
         immersiveMode: state.spotify?.immersiveMode || null,
       };
     })
@@ -162,35 +160,6 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
   const { backdropTransition, modalTransition } = useWeeMotion();
   const [atmosphereStatus, setAtmosphereStatus] = React.useState('');
   const [savingLook, setSavingLook] = React.useState(false);
-
-  const effectiveAccent = React.useMemo(
-    () =>
-      resolveEffectiveAccent({
-        wallpaperMatchEnabled,
-        ambientPalette,
-        spotifyMatchEnabled,
-        spotifyColors,
-        dynamicRibbonColorEnabled,
-        ribbonGlowColor,
-      }),
-    [
-      wallpaperMatchEnabled,
-      ambientPalette,
-      spotifyMatchEnabled,
-      spotifyColors,
-      dynamicRibbonColorEnabled,
-      ribbonGlowColor,
-    ]
-  );
-
-  const accentSourceLabel =
-    effectiveAccent.source === 'spotify'
-      ? 'Now Playing'
-      : effectiveAccent.source === 'wallpaper'
-        ? 'Wallpaper'
-        : effectiveAccent.source === 'manual'
-          ? 'Ribbon glow'
-          : 'Default blue';
 
   useEffect(() => {
     if (useCustomCursor) {
@@ -293,13 +262,26 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
       ? liveColorMatchUiPatch('spotify')
       : { spotifyMatchEnabled: false };
     setUIState(uiPatch);
+    // Album wash rides on Now Playing match — turning match off turns the wash off too.
+    if (!next && liveGradientWallpaper) {
+      setSpotifyState({
+        immersiveMode: { ...(immersiveMode || {}), liveGradientWallpaper: false },
+      });
+    }
     await saveUnifiedSettingsSnapshot({ ui: uiPatch });
     setAtmosphereStatus(
       next
         ? 'Now Playing Color Match on — Wallpaper match turned off'
         : 'Now Playing Color Match off'
     );
-  }, [ensureDynamicChromeOn, setUIState, spotifyMatchEnabled]);
+  }, [
+    ensureDynamicChromeOn,
+    immersiveMode,
+    liveGradientWallpaper,
+    setSpotifyState,
+    setUIState,
+    spotifyMatchEnabled,
+  ]);
 
   const toggleLiveGradientWash = useCallback(() => {
     const next = !liveGradientWallpaper;
@@ -318,35 +300,9 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
     );
   }, [immersiveMode, liveGradientWallpaper, setSpotifyState]);
 
-  const toggleDynamicChrome = useCallback(async () => {
-    const next = !dynamicRibbonColorEnabled;
-    if (
-      !next &&
-      (wallpaperMatchEnabled || spotifyMatchEnabled)
-    ) {
-      setAtmosphereStatus(
-        'Keep Dynamic chrome on while live match is on — it covers the gap when sampling pauses'
-      );
-      return;
-    }
-    setRibbonState({ dynamicRibbonColorEnabled: next });
-    await saveUnifiedSettingsSnapshot({ ribbon: { dynamicRibbonColorEnabled: next } });
-    setAtmosphereStatus(
-      next
-        ? 'Dynamic chrome on — ribbon glow drives accents when no live match'
-        : 'Dynamic chrome off — brand blue when no live match'
-    );
-  }, [
-    dynamicRibbonColorEnabled,
-    setRibbonState,
-    spotifyMatchEnabled,
-    wallpaperMatchEnabled,
-  ]);
-
   const lockAtmosphereLook = useCallback(async () => {
-    const primary = ambientPalette?.primary || effectiveAccent.hex;
     const surface = ambientPalette?.surfaceHint || ribbonColor || DEFAULT_RIBBON_SURFACE_HEX;
-    const glow = ambientPalette?.accent || primary || DEFAULT_RIBBON_GLOW_HEX;
+    const glow = ambientPalette?.accent || ambientPalette?.primary || DEFAULT_RIBBON_GLOW_HEX;
 
     setRibbonState({
       ribbonColor: surface,
@@ -374,7 +330,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
       ...(synced ? { appearanceBySpace: { [synced.spaceId]: synced.appearance } } : {}),
     });
     setAtmosphereStatus('Locked colors to ribbon — live match off');
-  }, [ambientPalette, effectiveAccent.hex, ribbonColor, setRibbonState, setUIState]);
+  }, [ambientPalette, ribbonColor, setRibbonState, setUIState]);
 
   const openDockColors = useCallback(() => {
     openSettingsToTab(SETTINGS_TAB_ID.DOCK);
@@ -495,54 +451,33 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
             <div className="wee-modal-scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-8 py-6 md:px-10">
               <WeeSettingsDisclosure
                 title="Colors & accents"
-                description="One live match at a time — wallpaper or Now Playing — plus wash and chrome"
+                description="One live match at a time — wallpaper or Now Playing"
                 defaultOpen
                 className="!mb-0"
               >
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-3 rounded-[var(--wee-radius-rail-item)] border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] px-4 py-3">
-                    <span
-                      className="h-9 w-9 shrink-0 rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] shadow-[var(--shadow-sm)]"
-                      style={{ backgroundColor: effectiveAccent.hex }}
-                      aria-hidden
-                    />
-                    <div className="min-w-0">
-                      <p className="m-0 text-[10px] font-black uppercase tracking-[0.14em] text-[hsl(var(--wee-text-rail-muted))]">
-                        Effective accent
-                      </p>
-                      <p className="m-0 font-mono text-[12px] font-semibold text-[hsl(var(--text-primary))]">
-                        {effectiveAccent.hex.toUpperCase()} · {accentSourceLabel}
-                      </p>
-                      <p className="m-0 mt-0.5 text-[10px] text-[hsl(var(--text-tertiary))]">
-                        Drives ribbon chrome and UI primary
-                      </p>
-                    </div>
-                  </div>
-
                   <QuickToggleRow
                     label="Wallpaper Color Match"
                     icon={Image}
                     active={wallpaperMatchEnabled}
                     onToggle={toggleWallpaperMatch}
                   />
-                  <QuickToggleRow
-                    label="Now Playing Color Match"
-                    icon={Palette}
-                    active={spotifyMatchEnabled}
-                    onToggle={toggleSpotifyMatch}
-                  />
-                  <QuickToggleRow
-                    label="Album wallpaper wash"
-                    icon={Waves}
-                    active={liveGradientWallpaper}
-                    onToggle={toggleLiveGradientWash}
-                  />
-                  <QuickToggleRow
-                    label="Dynamic chrome accents"
-                    icon={Sparkles}
-                    active={dynamicRibbonColorEnabled}
-                    onToggle={toggleDynamicChrome}
-                  />
+                  <WeeMorphStack open={spotifyMatchEnabled} gapOpen="gap-3">
+                    <QuickToggleRow
+                      label="Now Playing Color Match"
+                      icon={Palette}
+                      active={spotifyMatchEnabled}
+                      onToggle={toggleSpotifyMatch}
+                    />
+                    <WeeRevealWhen when={spotifyMatchEnabled}>
+                      <QuickToggleRow
+                        label="Album wallpaper wash"
+                        icon={Waves}
+                        active={liveGradientWallpaper}
+                        onToggle={toggleLiveGradientWash}
+                      />
+                    </WeeRevealWhen>
+                  </WeeMorphStack>
                   {(wallpaperMatchEnabled || spotifyMatchEnabled) && ambientPalette ? (
                     <ActionButtonRow
                       label="Lock these colors"
@@ -568,8 +503,8 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
                     </p>
                   ) : (
                     <p className="m-0 text-[11px] text-[hsl(var(--text-tertiary))]">
-                      Ribbon &amp; accents: Now Playing → Wallpaper → Ribbon glow (dynamic chrome) →
-                      Default. Album wash and media widgets use track colors separately. Picking a
+                      Ribbon &amp; accents follow Now Playing, then Wallpaper, then your ribbon
+                      colors. Album wash and media widgets use track colors separately. Picking a
                       ribbon color in Dock turns live match off.
                     </p>
                   )}
@@ -596,19 +531,19 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
 
               <WeeSettingsDisclosure
                 title="Navigation"
-                description="Scroll wheel on Home and spaces"
+                description="Mouse wheel shortcuts on Home and spaces"
                 defaultOpen={false}
                 className="!mb-0"
               >
                 <div className="flex flex-col gap-3">
                   <QuickToggleRow
-                    label="Scroll wheel switches spaces"
+                    label="Mouse wheel switches spaces"
                     icon={PanelsTopLeft}
                     active={wheelSwitchSpaces}
                     onToggle={toggleWheelSwitchSpaces}
                   />
                   <QuickToggleRow
-                    label="Tilt wheel for pages"
+                    label="Tilt mouse wheel for pages"
                     icon={StretchHorizontal}
                     active={wheelHomePageTilt}
                     onToggle={toggleWheelHomePageTilt}

@@ -16,12 +16,13 @@ import {
   normalizeRibbonScope,
   pickRibbonLook,
   resolveLiveMatchRibbonOverlay,
+  resolveRibbonPaintTarget,
 } from '../../utils/appearance/resolveEffectiveRibbonLook';
 import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAccent';
 import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { getSecondaryChannelSpaceData } from '../../utils/channelSpaces';
-import { resolveLayout } from '../../utils/channelLayoutSystem';
+import { resolveLayout, resolveLayoutForPage } from '../../utils/channelLayoutSystem';
 import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
@@ -87,6 +88,8 @@ function useWallpaperSettingsController() {
   const [activeWallpaper, setActiveWallpaper] = useState(null);
   const [likedWallpapers, setLikedWallpapers] = useState([]);
   const [selectedWallpaper, setSelectedWallpaper] = useState(null);
+  /** Library pick shown in the live scene until Apply / space-page change. */
+  const [libraryPreviewUrl, setLibraryPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -138,12 +141,17 @@ function useWallpaperSettingsController() {
   useEffect(() => {
     // When switching space pills, seed target from that board's live page.
     setSettingsTargetPage(Math.max(0, Math.min(totalPages - 1, liveBoardPage)));
+    setLibraryPreviewUrl(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only reseed on space change
   }, [selectedSpaceId]);
 
   useEffect(() => {
     setSettingsTargetPage((prev) => Math.max(0, Math.min(totalPages - 1, prev)));
   }, [totalPages]);
+
+  useEffect(() => {
+    setLibraryPreviewUrl(null);
+  }, [settingsTargetPage]);
 
   const selectedBoardCurrentPage = settingsTargetPage;
   const selectedPageWallpaperUrl = (() => {
@@ -177,6 +185,94 @@ function useWallpaperSettingsController() {
     wallpaperEntryUrlKey,
     currentPage: selectedBoardCurrentPage,
   });
+
+  /** Real board schematic for home/Focus pages — hubs omit the channel layer. */
+  const sceneBoardPreview = useMemo(() => {
+    const empty = {
+      layout: null,
+      pageSlotIndices: [],
+      slots: [],
+      configuredChannels: {},
+      slotMeta: {},
+    };
+    if (selectedSpaceId !== 'home' && selectedSpaceId !== 'workspaces') {
+      return empty;
+    }
+    const data =
+      selectedSpaceId === 'workspaces'
+        ? getSecondaryChannelSpaceData(channels)
+        : channels?.dataBySpace?.home;
+    if (!data || typeof data !== 'object') return empty;
+
+    const stripLayout = resolveLayout(data);
+    const pageLayout = resolveLayoutForPage(data, selectedBoardCurrentPage);
+    const start = selectedBoardCurrentPage * stripLayout.channelsPerPage;
+    let pageSlotIndices;
+    if (
+      pageLayout.columns !== stripLayout.columns ||
+      pageLayout.rows !== stripLayout.rows
+    ) {
+      const indices = [];
+      for (let r = 0; r < pageLayout.rows; r += 1) {
+        for (let c = 0; c < pageLayout.columns; c += 1) {
+          const idxInPage = r * stripLayout.columns + c;
+          if (idxInPage >= stripLayout.channelsPerPage) continue;
+          const abs = start + idxInPage;
+          if (abs < stripLayout.totalChannels) indices.push(abs);
+        }
+      }
+      pageSlotIndices = indices;
+    } else {
+      pageSlotIndices = Array.from(
+        { length: stripLayout.channelsPerPage },
+        (_, i) => start + i
+      ).filter((i) => i < stripLayout.totalChannels);
+    }
+
+    return {
+      layout: { columns: pageLayout.columns, rows: pageLayout.rows },
+      pageSlotIndices,
+      slots: Array.isArray(data.slots) ? data.slots : [],
+      configuredChannels:
+        data.configuredChannels && typeof data.configuredChannels === 'object'
+          ? data.configuredChannels
+          : {},
+      slotMeta: data.slotMeta && typeof data.slotMeta === 'object' ? data.slotMeta : {},
+    };
+  }, [channels, selectedBoardCurrentPage, selectedSpaceId]);
+
+  const sceneRibbonLook = useMemo(() => {
+    const paintWallpaperUrl =
+      (typeof libraryPreviewUrl === 'string' && libraryPreviewUrl) ||
+      effectiveActiveWallpaperUrl ||
+      null;
+    const { look } = resolveRibbonPaintTarget({
+      liveRibbon: ribbon,
+      spaceRibbon: selectedSpaceRibbon,
+      currentPage: selectedBoardCurrentPage,
+      supportsPerPage: supportsPerPageWallpaper,
+      wallpaperMatchEnabled,
+      wallpaperUrl: paintWallpaperUrl,
+      ambientPalette: ambientColor?.palette ?? null,
+      ambientCachedForUrl: ambientColor?.cachedForUrl ?? null,
+      spotifyMatchEnabled,
+      spotifyColors,
+    });
+    return look;
+  }, [
+    ambientColor?.cachedForUrl,
+    ambientColor?.palette,
+    effectiveActiveWallpaperUrl,
+    libraryPreviewUrl,
+    ribbon,
+    selectedBoardCurrentPage,
+    selectedSpaceRibbon,
+    spotifyColors,
+    spotifyMatchEnabled,
+    supportsPerPageWallpaper,
+    wallpaperMatchEnabled,
+  ]);
+
   const selectedSpaceLabel =
     SPACE_WALLPAPER_OPTIONS.find((space) => space.id === selectedSpaceId)?.label || 'Space';
   const selectedSpaceBrightness =
@@ -330,6 +426,12 @@ function useWallpaperSettingsController() {
     setSettingsTargetPage(Math.max(0, Math.min(totalPages - 1, page)));
   }, [totalPages]);
 
+  const handleSelectLibraryWallpaper = useCallback((wallpaper) => {
+    setSelectedWallpaper(wallpaper);
+    const url = typeof wallpaper?.url === 'string' ? wallpaper.url : null;
+    setLibraryPreviewUrl(url);
+  }, []);
+
   const handleApplyWallpaperToCurrentPage = useCallback(
     (url) => {
       const page = selectedBoardCurrentPage;
@@ -344,11 +446,13 @@ function useWallpaperSettingsController() {
           wallpaperScope: 'perPage',
           wallpaperByPage: nextByPage,
         });
+        setLibraryPreviewUrl(null);
         return;
       }
       delete nextByPage[page];
       delete nextByPage[String(page)];
       updateSpaceWallpaperAppearance(selectedSpaceId, { wallpaperByPage: nextByPage });
+      setLibraryPreviewUrl(null);
     },
     [
       selectedBoardCurrentPage,
@@ -754,6 +858,7 @@ function useWallpaperSettingsController() {
         useGlobalWallpaper: false,
         spaceWallpaperUrl: w?.url || null,
       });
+      setLibraryPreviewUrl(null);
       setMessage({ type: 'success', text: `${selectedSpaceLabel} wallpaper updated.` });
       return;
     }
@@ -764,7 +869,8 @@ function useWallpaperSettingsController() {
       } else {
         setActiveWallpaper(w);
         setSelectedWallpaper(w);
-        
+        setLibraryPreviewUrl(null);
+
         // Immediately update the consolidated store with the new current wallpaper
         setWallpaperState({
           current: w,
@@ -773,7 +879,7 @@ function useWallpaperSettingsController() {
           useGlobalWallpaper: true,
           spaceWallpaperUrl: null,
         });
-        
+
         setMessage({ type: 'success', text: 'Wallpaper set as current.' });
       }
     } catch (err) {
@@ -788,6 +894,7 @@ function useWallpaperSettingsController() {
         useGlobalWallpaper: true,
         spaceWallpaperUrl: null,
       });
+      setLibraryPreviewUrl(null);
       setMessage({ type: 'success', text: `${selectedSpaceLabel} now uses Home wallpaper.` });
       return;
     }
@@ -798,7 +905,8 @@ function useWallpaperSettingsController() {
       } else {
         setActiveWallpaper(null);
         setSelectedWallpaper(null);
-        
+        setLibraryPreviewUrl(null);
+
         // Immediately update the consolidated store to clear the current wallpaper
         setWallpaperState({
           current: null,
@@ -807,7 +915,7 @@ function useWallpaperSettingsController() {
           useGlobalWallpaper: true,
           spaceWallpaperUrl: null,
         });
-        
+
         setMessage({ type: 'success', text: 'Wallpaper removed. Back to default background.' });
       }
     } catch (err) {
@@ -841,6 +949,10 @@ function useWallpaperSettingsController() {
     handleSetCurrent,
     wallpapers,
     setSelectedWallpaper,
+    handleSelectLibraryWallpaper,
+    libraryPreviewUrl,
+    sceneBoardPreview,
+    sceneRibbonLook,
     deleting,
     handleDelete,
     wallpaperOpacity,
@@ -935,6 +1047,10 @@ const WallpaperSettingsTab = React.memo(() => {
     handleSetCurrent,
     wallpapers,
     setSelectedWallpaper,
+    handleSelectLibraryWallpaper,
+    libraryPreviewUrl,
+    sceneBoardPreview,
+    sceneRibbonLook,
     deleting,
     handleDelete,
     wallpaperOpacity,
@@ -1032,10 +1148,14 @@ const WallpaperSettingsTab = React.memo(() => {
   }
 
   const sceneUrl =
-    (typeof selectedWallpaper?.url === 'string' && selectedWallpaper.url) ||
+    (typeof libraryPreviewUrl === 'string' && libraryPreviewUrl) ||
     (typeof effectiveActiveWallpaperUrl === 'string' && effectiveActiveWallpaperUrl) ||
     (typeof selectedSpaceWallpaperUrl === 'string' && selectedSpaceWallpaperUrl) ||
     null;
+  const previewingLibrary =
+    typeof libraryPreviewUrl === 'string' &&
+    libraryPreviewUrl.length > 0 &&
+    libraryPreviewUrl !== effectiveActiveWallpaperUrl;
 
   const sceneCaption = (() => {
     const where = `${selectedSpaceLabel}${contextPageBit}`;
@@ -1149,6 +1269,13 @@ const WallpaperSettingsTab = React.memo(() => {
             saturate={selectedSpaceSaturate}
             activeSegment={activeSurfacesSegment}
             caption={sceneCaption}
+            previewingLibrary={previewingLibrary}
+            layout={sceneBoardPreview?.layout}
+            pageSlotIndices={sceneBoardPreview?.pageSlotIndices}
+            slots={sceneBoardPreview?.slots}
+            configuredChannels={sceneBoardPreview?.configuredChannels}
+            slotMeta={sceneBoardPreview?.slotMeta}
+            ribbonLook={sceneRibbonLook}
           />
         </aside>
 
@@ -1170,7 +1297,7 @@ const WallpaperSettingsTab = React.memo(() => {
                 handleLike={handleLike}
                 handleSetCurrent={handleSetCurrent}
                 wallpapers={wallpapers}
-                setSelectedWallpaper={setSelectedWallpaper}
+                onSelectLibraryWallpaper={handleSelectLibraryWallpaper}
                 deleting={deleting}
                 handleDelete={handleDelete}
               />

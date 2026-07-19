@@ -3,12 +3,14 @@ import {
   HOME_WIDGET_SURFACES,
   DEFAULT_HOME_WIDGET_SURFACE,
   normalizeHomeWidgetSurface,
+  normalizeHomeWidgetTextColor,
 } from './homeWidgetSurface';
 
 export {
   HOME_WIDGET_SURFACES,
   DEFAULT_HOME_WIDGET_SURFACE,
   normalizeHomeWidgetSurface,
+  normalizeHomeWidgetTextColor,
 };
 
 export const SLOT_KIND_CHANNEL = 'channel';
@@ -51,6 +53,7 @@ export function createHomeWidgetSlot(kindId, span = {}) {
     colSpan: span.colSpan ?? 1,
     rowSpan: span.rowSpan ?? 1,
     surface: normalizeHomeWidgetSurface(span.surface),
+    textColor: normalizeHomeWidgetTextColor(span.textColor),
     channel: null,
     widget: {
       widgetId: kindId,
@@ -87,6 +90,7 @@ export function normalizeHomeGridSlot(slot) {
     return {
       ...slot,
       surface: normalizeHomeWidgetSurface(slot.surface),
+      textColor: normalizeHomeWidgetTextColor(slot.textColor),
       hidden: Boolean(slot.hidden),
       colSpan: Math.max(1, Number(slot.colSpan) || 1),
       rowSpan: Math.max(1, Number(slot.rowSpan) || 1),
@@ -505,6 +509,27 @@ export function setHomeSlotSurfaceInSpaceData(spaceData, channelIndex, surface) 
   slots[index] = {
     ...slots[index],
     surface: normalizeHomeWidgetSurface(surface),
+  };
+  const legacy = projectSlotsToLegacyMaps(slots);
+  return { ...input, slots, ...legacy };
+}
+
+/**
+ * Update widget text color (hex | null = auto) on a non-channel slot.
+ * @param {Record<string, unknown>} spaceData
+ * @param {number} channelIndex
+ * @param {string | null} textColor
+ */
+export function setHomeSlotTextColorInSpaceData(spaceData, channelIndex, textColor) {
+  const input = spaceData && typeof spaceData === 'object' ? spaceData : {};
+  const slots = Array.isArray(input.slots) ? [...input.slots] : [];
+  const index = channelIndex | 0;
+  if (index < 0 || index >= slots.length || !slots[index]) return input;
+  if (!isNonChannelSlot(slots[index])) return input;
+
+  slots[index] = {
+    ...slots[index],
+    textColor: normalizeHomeWidgetTextColor(textColor),
   };
   const legacy = projectSlotsToLegacyMaps(slots);
   return { ...input, slots, ...legacy };

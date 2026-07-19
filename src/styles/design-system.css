@@ -14,6 +14,8 @@
   --primary: var(--wii-blue);
   --primary-hover: var(--wii-blue-hover);
   --primary-active: var(--wii-blue-active);
+  /** Space-separated RGB for `rgb(var(--primary-rgb) / a)` — synced by applyPrimaryAccentFromHex */
+  --primary-rgb: 0 153 255;
   
   /* Light Mode Backgrounds */
   --bg-primary: 0 0% 100%;
@@ -444,12 +446,13 @@
   --wee-launch-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 
   /* Game / Media Hub collection shelf expand (shared hub domain clock) */
-  --hub-collection-expand-duration: 700ms;
+  --hub-collection-expand-duration: 640ms;
   --hub-collection-expand-duration-reduced: 120ms;
-  --hub-collection-expand-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --hub-collection-fly-duration: 600ms;
+  /* Soft spring — enough lift without overshoot fighting FLIP destinations */
+  --hub-collection-expand-ease: cubic-bezier(0.22, 1.18, 0.36, 1);
+  --hub-collection-fly-duration: 560ms;
   --hub-collection-fly-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --hub-collection-stagger-ms: 40ms;
+  --hub-collection-stagger-ms: 36ms;
   --hub-collection-gap-open: 1.15rem;
 }
 
@@ -844,6 +847,25 @@
   box-shadow:
     0 8px 22px hsl(var(--color-pure-black) / 0.28),
     inset 0 1px 0 hsl(var(--color-pure-white) / calc(0.12 + (var(--hwg-shine, 0.35) * 0.25)));
+}
+
+/**
+ * Widget text color contract — widget copy reads --hw-text-* (default: theme
+ * tokens). A per-tile custom color (`slots[].textColor` → `--hw-text` on the
+ * shell) remaps all levels with graded alpha so hierarchy survives recoloring.
+ */
+.home-widget-shell {
+  --hw-text-primary: hsl(var(--text-primary));
+  --hw-text-secondary: hsl(var(--text-secondary));
+  --hw-text-tertiary: hsl(var(--text-tertiary));
+  --hw-text-accent: hsl(var(--primary));
+}
+
+.home-widget-shell[data-widget-text='custom'] {
+  --hw-text-primary: var(--hw-text);
+  --hw-text-secondary: color-mix(in srgb, var(--hw-text) 84%, transparent);
+  --hw-text-tertiary: color-mix(in srgb, var(--hw-text) 62%, transparent);
+  --hw-text-accent: var(--hw-text);
 }
 
 /**

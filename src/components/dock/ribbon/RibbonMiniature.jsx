@@ -7,6 +7,7 @@ import RibbonAccessories from './RibbonAccessories';
 import WiiStyleButton from '../WiiStyleButton';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import { hexAlpha } from '../../../utils/colorHex';
+import { pickRibbonLook } from '../../../utils/appearance/resolveEffectiveRibbonLook';
 import { CSS_WII_BLUE, DEFAULT_TIME_COLOR_HEX } from '../../../design/runtimeColorStrings.js';
 import {
   RIBBON_VIEWBOX_WIDTH,
@@ -118,11 +119,12 @@ MiniButtonContent.propTypes = {
  * 1:1 non-interactive miniature of the Wii ribbon — renders the real chrome layers
  * (RibbonChrome, RibbonChromeEffects, WiiStyleButton, time pill) at native 1440×240
  * and scales the stage to fit its container. Store-driven so previews stay live.
+ * Optional `lookOverride` merges RIBBON_LOOK_KEYS (space/page paint) over live ribbon.
  */
-function RibbonMiniature({ className = '' }) {
+function RibbonMiniature({ className = '', lookOverride = null }) {
   const [hostRef, hostWidth] = useHostWidth();
 
-  const ribbon = useConsolidatedAppStore(
+  const liveRibbon = useConsolidatedAppStore(
     useShallow((state) => ({
       ribbonColor: state.ribbon.ribbonColor,
       ribbonGlowColor: state.ribbon.ribbonGlowColor,
@@ -142,6 +144,11 @@ function RibbonMiniature({ className = '' }) {
       ribbonButtonConfigs: state.ribbon.ribbonButtonConfigs,
     }))
   );
+  const ribbon = useMemo(() => {
+    const override = pickRibbonLook(lookOverride);
+    if (!override || Object.keys(override).length === 0) return liveRibbon;
+    return { ...liveRibbon, ...override };
+  }, [liveRibbon, lookOverride]);
   const time = useConsolidatedAppStore(
     useShallow((state) => ({
       color: state.time.color,
@@ -320,6 +327,11 @@ function RibbonMiniature({ className = '' }) {
 
 RibbonMiniature.propTypes = {
   className: PropTypes.string,
+  lookOverride: PropTypes.object,
+};
+
+RibbonMiniature.defaultProps = {
+  lookOverride: null,
 };
 
 export default React.memo(RibbonMiniature);

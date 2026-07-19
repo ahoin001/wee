@@ -78,6 +78,7 @@ function WeatherSlot({
   return (
     <HomeWidgetShell
       surface={surface}
+      textColor={slot?.textColor}
       selected={selected}
       className={`relative overflow-hidden ${shellPadClass}`}
       onClick={handleActivate}
@@ -103,11 +104,11 @@ function WeatherSlot({
               aria-hidden
             />
           </div>
-          <span className="max-w-[12rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+          <span className="max-w-[12rem] text-[10px] font-black uppercase tracking-[0.12em] text-[var(--hw-text-secondary)]">
             {emptyMessage}
           </span>
           {status === 'denied' && !isCompact ? (
-            <span className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+            <span className="flex items-center gap-1 text-[9px] font-bold text-[var(--hw-text-tertiary)]">
               <MapPin size={10} aria-hidden />
               OS location needed
             </span>
@@ -118,7 +119,7 @@ function WeatherSlot({
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[hsl(var(--border-primary)/0.3)] bg-[hsl(var(--surface-elevated)/0.6)] text-xl leading-none shadow-[var(--shadow-soft)]">
             <span aria-hidden>{current.emoji}</span>
           </div>
-          <span className="home-widget-float-type text-base font-black tabular-nums leading-none text-[hsl(var(--text-primary))]">
+          <span className="home-widget-float-type text-base font-black tabular-nums leading-none text-[var(--hw-text-primary)]">
             {formatTemp(current.temperature)}
           </span>
         </div>
@@ -127,7 +128,7 @@ function WeatherSlot({
           {showHeader ? (
             <div className="flex items-center justify-between gap-1 px-0.5">
               <span className={`truncate ${kickerClass}`}>Weather</span>
-              <CloudSun size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
+              <CloudSun size={12} strokeWidth={2.5} className="shrink-0 text-[var(--hw-text-tertiary)]" aria-hidden />
             </div>
           ) : null}
 
@@ -150,17 +151,17 @@ function WeatherSlot({
               </div>
               <div className={`min-w-0 ${isWide && !isTall ? 'text-left' : isTall ? 'text-center' : 'text-left'}`}>
                 <div
-                  className={`home-widget-float-type font-black tabular-nums leading-none text-[hsl(var(--text-primary))] ${
+                  className={`home-widget-float-type font-black tabular-nums leading-none text-[var(--hw-text-primary)] ${
                     isTall || density === 'roomy' ? 'text-4xl' : 'text-3xl'
                   }`}
                 >
                   {formatTemp(current.temperature)}
                 </div>
-                <div className="mt-0.5 truncate text-[11px] font-bold text-[hsl(var(--text-secondary))]">
+                <div className="mt-0.5 truncate text-[11px] font-bold text-[var(--hw-text-secondary)]">
                   {current.label}
                 </div>
                 {locationSource === 'fallback' ? (
-                  <div className="mt-0.5 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+                  <div className="mt-0.5 text-[9px] font-bold text-[var(--hw-text-tertiary)]">
                     Approx. location
                   </div>
                 ) : null}
@@ -174,14 +175,14 @@ function WeatherSlot({
                 }`}
               >
                 {Number.isFinite(current.humidity) ? (
-                  <div className="home-widget-float-chip inline-flex items-center gap-1 rounded-full border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.55)] px-2 py-1 text-[9px] font-bold text-[hsl(var(--text-secondary))]">
-                    <Droplets size={10} strokeWidth={2.5} className="text-[hsl(var(--primary))]" aria-hidden />
+                  <div className="home-widget-float-chip inline-flex items-center gap-1 rounded-full border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.55)] px-2 py-1 text-[9px] font-bold text-[var(--hw-text-secondary)]">
+                    <Droplets size={10} strokeWidth={2.5} className="text-[var(--hw-text-accent)]" aria-hidden />
                     {Math.round(current.humidity)}%
                   </div>
                 ) : null}
                 {Number.isFinite(current.windSpeed) ? (
-                  <div className="home-widget-float-chip inline-flex items-center gap-1 rounded-full border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.55)] px-2 py-1 text-[9px] font-bold text-[hsl(var(--text-secondary))]">
-                    <Wind size={10} strokeWidth={2.5} className="text-[hsl(var(--primary))]" aria-hidden />
+                  <div className="home-widget-float-chip inline-flex items-center gap-1 rounded-full border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.55)] px-2 py-1 text-[9px] font-bold text-[var(--hw-text-secondary)]">
+                    <Wind size={10} strokeWidth={2.5} className="text-[var(--hw-text-accent)]" aria-hidden />
                     {formatHomeWeatherWind(current.windSpeed, tempUnit)}
                   </div>
                 ) : null}
@@ -199,12 +200,12 @@ function WeatherSlot({
                       {day.emoji}
                     </span>
                     <div className="min-w-0">
-                      <div className="truncate text-[9px] font-black uppercase tracking-wider text-[hsl(var(--text-tertiary))]">
+                      <div className="truncate text-[9px] font-black uppercase tracking-wider text-[var(--hw-text-tertiary)]">
                         {new Date(`${day.date}T12:00:00`).toLocaleDateString('en-US', {
                           weekday: 'short',
                         })}
                       </div>
-                      <div className="text-[10px] font-bold tabular-nums text-[hsl(var(--text-primary))]">
+                      <div className="text-[10px] font-bold tabular-nums text-[var(--hw-text-primary)]">
                         {formatTemp(day.tempMax, { includeUnit: false })}
                         {' / '}
                         {formatTemp(day.tempMin, { includeUnit: false })}

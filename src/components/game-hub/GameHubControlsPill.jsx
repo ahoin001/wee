@@ -3,7 +3,6 @@
  * Same clock as space rail / side nav: WeeGlassPill + createWeeSideNavPeekVariants.
  */
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { AnimatePresence, m } from 'framer-motion';
 import { SlidersHorizontal } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
@@ -24,9 +23,7 @@ const MotionDiv = m.div;
 const COMPACT_SIZE = 56;
 const EXPANDED_WIDTH = 272;
 /** Title + 3 toggle rows + steam link + padding (border-box via Framer width/height). */
-const EXPANDED_HEIGHT_BASE = 252;
-/** Extra row when dock morph toggle is shown. */
-const EXPANDED_HEIGHT_DOCK_ROW = 48;
+const EXPANDED_HEIGHT = 252;
 
 function HubControlRow({ title, description, children }) {
   return (
@@ -49,13 +46,7 @@ function HubControlRow({ title, description, children }) {
   );
 }
 
-HubControlRow.propTypes = {
-  title: PropTypes.string.isRequired,
-  description: PropTypes.node,
-  children: PropTypes.node.isRequired,
-};
-
-function GameHubControlsPill({ showDockMorphToggle = false }) {
+function GameHubControlsPill() {
   const rootRef = useRef(null);
   const [hovered, setHovered] = useState(false);
   const [focusWithin, setFocusWithin] = useState(false);
@@ -72,14 +63,12 @@ function GameHubControlsPill({ showDockMorphToggle = false }) {
   const reducedMotion = Boolean(osReduced || !gooey?.enabled);
 
   const revealed = hovered || focusWithin;
-  const expandedHeight =
-    EXPANDED_HEIGHT_BASE + (showDockMorphToggle ? EXPANDED_HEIGHT_DOCK_ROW : 0);
 
   const peekVariants = useMemo(() => {
     const base = createWeeSideNavPeekVariants(null, {
       compactSize: COMPACT_SIZE,
       expandedWidth: EXPANDED_WIDTH,
-      expandedHeight,
+      expandedHeight: EXPANDED_HEIGHT,
       pillClose,
       pillOpen,
       reducedMotion,
@@ -94,12 +83,11 @@ function GameHubControlsPill({ showDockMorphToggle = false }) {
         borderRadius: 22,
       },
     };
-  }, [expandedHeight, pillClose, pillOpen, reducedMotion]);
+  }, [pillClose, pillOpen, reducedMotion]);
 
   const showHubBackdrop = ui.showHubBackdrop ?? false;
   const hubSteamOnlyGames = ui.hubSteamOnlyGames ?? true;
   const effectsEnabled = ui.effectsEnabled ?? true;
-  const hubDockScrollMorphEnabled = ui.hubDockScrollMorphEnabled ?? true;
 
   const onHoverEnter = useCallback(() => setHovered(true), []);
   const onHoverLeave = useCallback(() => setHovered(false), []);
@@ -194,20 +182,6 @@ function GameHubControlsPill({ showDockMorphToggle = false }) {
                       aria-label="Enhanced effects and animations"
                     />
                   </HubControlRow>
-
-                  {showDockMorphToggle ? (
-                    <HubControlRow title="Dock morph" description="Scroll-linked rail">
-                      <WToggle
-                        checked={hubDockScrollMorphEnabled}
-                        onChange={(checked) =>
-                          setGameHubState({ ui: { hubDockScrollMorphEnabled: checked } })
-                        }
-                        disableLabelClick
-                        aria-label="Dock morph"
-                        title="Scroll-linked dock rail and library width. Off uses a simpler layout."
-                      />
-                    </HubControlRow>
-                  ) : null}
                 </div>
 
                 <WeeHelpLinkButton
@@ -229,13 +203,5 @@ function GameHubControlsPill({ showDockMorphToggle = false }) {
     </div>
   );
 }
-
-GameHubControlsPill.propTypes = {
-  showDockMorphToggle: PropTypes.bool,
-};
-
-GameHubControlsPill.defaultProps = {
-  showDockMorphToggle: false,
-};
 
 export default React.memo(GameHubControlsPill);

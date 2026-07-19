@@ -286,7 +286,6 @@ Do not invent parallel type scales in feature CSS.
 ### Heroes / hub spaces
 
 - Entrance uses hub intents (`hubEntrance`, `homeEntrance`, revisit gooey) — extend `weeMotion`, do not fork.
-- Scroll-linked morph amplitudes: `HUB_MORPH` in `playfulMotion.js`.
 - Hero should feel like one composition with wallpaper/ambient accent, not a card stack.
 
 ### Animations (decision tree)

@@ -211,6 +211,7 @@ function AdminQuickAccessSlot({
     <>
       <HomeWidgetShell
         surface={surface}
+        textColor={slot?.textColor}
         selected={selected}
         className={layout.shellPadClass}
         onClick={handleTileActivate}
@@ -238,7 +239,7 @@ function AdminQuickAccessSlot({
               className="text-[hsl(var(--primary))]"
               aria-hidden
             />
-            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--hw-text-secondary)]">
               Add actions
             </span>
           </m.button>
@@ -259,7 +260,7 @@ function AdminQuickAccessSlot({
               className="text-[hsl(var(--primary))]"
               aria-hidden
             />
-            <span className="text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
+            <span className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]">
               Quick
             </span>
           </m.button>

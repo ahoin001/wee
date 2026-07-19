@@ -60,8 +60,8 @@ export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1) {
 
   const kickerClass =
     density === 'roomy'
-      ? 'text-[10px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]'
-      : 'text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]';
+      ? 'text-[10px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]'
+      : 'text-[9px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]';
 
   const titleClass =
     density === 'compact'
@@ -76,8 +76,8 @@ export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1) {
 
   const bodyClass =
     density === 'roomy'
-      ? 'text-[11px] font-bold text-[hsl(var(--text-secondary))]'
-      : 'text-[10px] font-bold text-[hsl(var(--text-secondary))]';
+      ? 'text-[11px] font-bold text-[var(--hw-text-secondary)]'
+      : 'text-[10px] font-bold text-[var(--hw-text-secondary)]';
 
   const iconPx = density === 'compact' ? 22 : density === 'roomy' ? 28 : 24;
 

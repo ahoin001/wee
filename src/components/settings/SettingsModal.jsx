@@ -306,7 +306,7 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
       onClose={onClose}
       headerTitle="Settings"
       rail={rail}
-      maxWidth="min(1400px, 95vw)"
+      maxWidth="min(1680px, 96vw)"
       showRail
       stableHeight
       panelClassName="min-h-0"

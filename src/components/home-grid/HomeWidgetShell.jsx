@@ -5,6 +5,7 @@ import { WeeGlassPill } from '../../ui/wee';
 import {
   DEFAULT_HOME_WIDGET_SURFACE,
   normalizeHomeWidgetSurface,
+  normalizeHomeWidgetTextColor,
 } from '../../utils/homeWidgetSurface';
 import {
   homeWidgetGlassCssVars,
@@ -23,6 +24,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
   {
     surface = DEFAULT_HOME_WIDGET_SURFACE,
     brandTone = null,
+    textColor = null,
     selected = false,
     className = '',
     children,
@@ -35,6 +37,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
 ) {
   const mode = normalizeHomeWidgetSurface(surface);
   const steamBasic = brandTone === 'steam' && mode === 'basic';
+  const customTextColor = normalizeHomeWidgetTextColor(textColor);
   const { glassRaw, lowPowerMode } = useConsolidatedAppStore(
     useShallow((state) => ({
       glassRaw: state.ui?.homeWidgetGlass,
@@ -50,6 +53,12 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
     () => homeWidgetGlassCssVars(normalizeHomeWidgetGlass(glassRaw), { lowPower: lowPowerMode }),
     [glassRaw, lowPowerMode]
   );
+
+  const textVars = useMemo(
+    () => (customTextColor ? { '--hw-text': customTextColor } : undefined),
+    [customTextColor]
+  );
+  const textAttr = customTextColor ? 'custom' : undefined;
 
   const selectedRing = selected
     ? 'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--surface-primary)/0)]'
@@ -68,7 +77,9 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
         role={role}
         aria-label={ariaLabel}
         onClick={onClick}
+        style={textVars}
         data-home-widget-surface="clear"
+        data-widget-text={textAttr}
         className={[
           'home-widget-shell',
           'home-widget-shell--clear',
@@ -93,8 +104,9 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
         role={role}
         aria-label={ariaLabel}
         onClick={onClick}
-        style={glassVars}
+        style={textVars ? { ...glassVars, ...textVars } : glassVars}
         data-home-widget-surface="glass"
+        data-widget-text={textAttr}
         className={[
           'home-widget-shell',
           'home-widget-shell--glass',
@@ -121,7 +133,9 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
       role={role}
       aria-label={ariaLabel}
       onClick={onClick}
+      style={textVars}
       data-home-widget-surface="basic"
+      data-widget-text={textAttr}
       data-home-widget-brand={steamBasic ? 'steam' : undefined}
       className={[
         'home-widget-shell',
@@ -145,6 +159,8 @@ HomeWidgetShell.displayName = 'HomeWidgetShell';
 HomeWidgetShell.propTypes = {
   surface: PropTypes.oneOf(['basic', 'glass', 'clear']),
   brandTone: PropTypes.oneOf(['steam']),
+  /** Optional per-tile text color (#rrggbb) — flows to `--hw-text-*` for children. */
+  textColor: PropTypes.string,
   selected: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node,

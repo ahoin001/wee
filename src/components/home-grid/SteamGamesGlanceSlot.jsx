@@ -210,6 +210,7 @@ function SteamGamesGlanceSlot({
     <HomeWidgetShell
       surface={surface}
       brandTone="steam"
+      textColor={slot?.textColor}
       selected={selected}
       className={layout.shellPadClass}
       onClick={handleActivate}
@@ -235,7 +236,7 @@ function SteamGamesGlanceSlot({
             className="text-[hsl(var(--primary))]"
             aria-hidden
           />
-          <span className="max-w-[14rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+          <span className="max-w-[14rem] text-[10px] font-black uppercase tracking-[0.12em] text-[var(--hw-text-secondary)]">
             {emptyHint}
           </span>
         </button>

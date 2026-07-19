@@ -8,6 +8,8 @@ import { useShallow } from 'zustand/react/shallow';
 import {
   WeeButton,
   WeeModalShell,
+  WeeMorphStack,
+  WeeRevealWhen,
   WeeSegmentedControl,
   WeeSlider,
   WeeToggle,
@@ -222,9 +224,14 @@ function NowPlayingWidgetSettings() {
       );
       if (enabled) {
         actions.setRibbonState({ dynamicRibbonColorEnabled: true });
+      } else if (immersiveMode?.liveGradientWallpaper) {
+        // Album wash rides on Now Playing match — turning match off turns the wash off too.
+        actions.setSpotifyState({
+          immersiveMode: { ...immersiveMode, liveGradientWallpaper: false },
+        });
       }
     },
-    [actions]
+    [actions, immersiveMode]
   );
 
   const handleWallpaper = useCallback(
@@ -353,37 +360,41 @@ function NowPlayingWidgetSettings() {
           />
         </div>
 
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
-          <div className="min-w-0">
-            <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
-              Match ribbon &amp; chrome
-            </p>
-            <p className="m-0 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-              Tint dock ribbon from the playing track
-            </p>
+        <WeeMorphStack open={spotifyMatchEnabled} gapOpen="gap-2">
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
+            <div className="min-w-0">
+              <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
+                Match ribbon &amp; chrome
+              </p>
+              <p className="m-0 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+                Tint dock ribbon from the playing track
+              </p>
+            </div>
+            <WeeToggle
+              checked={spotifyMatchEnabled}
+              onChange={handleRibbon}
+              title="Match ribbon & chrome to album art"
+            />
           </div>
-          <WeeToggle
-            checked={spotifyMatchEnabled}
-            onChange={handleRibbon}
-            title="Match ribbon & chrome to album art"
-          />
-        </div>
 
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
-          <div className="min-w-0">
-            <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
-              Wallpaper color wash
-            </p>
-            <p className="m-0 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-              Soft album gradient over your wallpaper
-            </p>
-          </div>
-          <WeeToggle
-            checked={liveGradientWallpaper}
-            onChange={handleWallpaper}
-            title="Wallpaper color wash from album art"
-          />
-        </div>
+          <WeeRevealWhen when={spotifyMatchEnabled}>
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
+              <div className="min-w-0">
+                <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
+                  Wallpaper color wash
+                </p>
+                <p className="m-0 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+                  Soft album gradient over your wallpaper
+                </p>
+              </div>
+              <WeeToggle
+                checked={liveGradientWallpaper}
+                onChange={handleWallpaper}
+                title="Wallpaper color wash from album art"
+              />
+            </div>
+          </WeeRevealWhen>
+        </WeeMorphStack>
       </div>
 
       {showLivePalette ? (

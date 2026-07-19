@@ -613,45 +613,6 @@ export function createHomeChannelEntranceBandVariants(tier, reducedMotion) {
 }
 
 /**
- * Game Hub dock morph: library column follows the dock lane — subtle horizontal nudge + fade after delay
- * (dock rail keeps scroll-linked opacity; no duplicate Y on the whole column band).
- */
-export function createGameHubMorphLibraryFollowVariants(tier, reducedMotion) {
-  if (reducedMotion) {
-    return {
-      hidden: { opacity: 0 },
-      show: { opacity: 1, transition: { duration: 0.14 } },
-    };
-  }
-  const isFull = isFirstVisitTier(tier);
-  const revisitSpring = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
-  if (isFull) {
-    return {
-      hidden: { opacity: 0.82, x: -14 },
-      show: {
-        opacity: 1,
-        x: 0,
-        transition: {
-          ...WEE_SPRINGS.hubSpaceEntranceFull,
-          delay: 0.16,
-        },
-      },
-    };
-  }
-  return {
-    hidden: { opacity: 0.9, x: -9 },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        ...revisitSpring,
-        delay: 0.08,
-      },
-    },
-  };
-}
-
-/**
  * Media Hub shell/header controls: slightly slower than generic hub bands so toolbar controls
  * do not outpace the list/body reveal.
  */

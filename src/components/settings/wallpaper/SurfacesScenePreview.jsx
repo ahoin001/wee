@@ -1,10 +1,14 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { EyeOff } from 'lucide-react';
 import SettingsLivePreviewFrame from '../SettingsLivePreviewFrame';
 import RibbonMiniature from '../../dock/ribbon/RibbonMiniature';
+import { resolvePreviewSlotLabel } from '../ChannelBoardLivePreview';
+import { isSlotHidden } from '../../../utils/channelLayoutSystem';
 
 /**
- * Composed Surfaces studio canvas — wallpaper + sample channels + live ribbon.
+ * Composed Surfaces studio canvas — page-resolved wallpaper, real board schematic,
+ * and live ribbon (with optional space/page look override).
  * Active segment dims non-focused layers so the user knows what they are editing.
  */
 function SurfacesScenePreview({
@@ -15,6 +19,13 @@ function SurfacesScenePreview({
   saturate = 1,
   activeSegment = 'wallpaper',
   caption,
+  layout = null,
+  pageSlotIndices = null,
+  slots = null,
+  configuredChannels = null,
+  slotMeta = null,
+  ribbonLook = null,
+  previewingLibrary = false,
 }) {
   const layerStyle = useMemo(() => {
     const op = Math.min(1, Math.max(0, Number(opacity) || 0));
@@ -36,23 +47,52 @@ function SurfacesScenePreview({
     ? 'ring-2 ring-[hsl(var(--primary)/0.55)] ring-offset-2 ring-offset-[hsl(var(--surface-tertiary)/0.55)]'
     : '';
 
+  const cols = Math.max(1, Number(layout?.columns) || 0);
+  const rows = Math.max(1, Number(layout?.rows) || 0);
+  const indices = Array.isArray(pageSlotIndices) ? pageSlotIndices : [];
+  const showBoard = cols > 0 && rows > 0 && indices.length > 0;
+
+  const labelsByIndex = useMemo(() => {
+    const map = {};
+    const list = Array.isArray(slots) ? slots : [];
+    const configs =
+      configuredChannels && typeof configuredChannels === 'object' ? configuredChannels : {};
+    const slotIndices = Array.isArray(pageSlotIndices) ? pageSlotIndices : [];
+    for (const slotIndex of slotIndices) {
+      map[slotIndex] = resolvePreviewSlotLabel(list[slotIndex], configs, slotIndex);
+    }
+    return map;
+  }, [configuredChannels, pageSlotIndices, slots]);
+
+  const frameCaption = previewingLibrary ? (
+    <span>
+      Previewing library selection — Apply to pin.
+      {caption ? (
+        <>
+          {' '}
+          <span className="text-[hsl(var(--text-tertiary))]">· {caption}</span>
+        </>
+      ) : null}
+    </span>
+  ) : (
+    caption
+  );
+
   return (
     <SettingsLivePreviewFrame
       eyebrow="Live scene"
-      caption={caption}
+      caption={frameCaption}
       sticky={false}
-      minHeightClassName="min-h-[11rem]"
+      minHeightClassName="min-h-[16rem]"
       canvasClassName="!p-0"
       className="!mb-0"
     >
       <div
-        className="pointer-events-none relative h-44 w-full overflow-hidden md:h-52"
+        className="pointer-events-none relative h-56 w-full overflow-hidden md:h-64"
         aria-hidden
       >
         <div className="absolute inset-0 bg-[hsl(var(--surface-secondary))]" />
-        <div
-          className={`absolute inset-0 transition-opacity duration-300 ${wallpaperDim}`}
-        >
+        <div className={`absolute inset-0 transition-opacity duration-300 ${wallpaperDim}`}>
           {wallpaperUrl ? (
             <img
               src={wallpaperUrl}
@@ -70,23 +110,44 @@ function SurfacesScenePreview({
           )}
         </div>
 
-        <div
-          className={`absolute inset-x-3 top-3 bottom-14 grid grid-cols-4 gap-2 transition-opacity duration-300 ${channelsDim}`}
-        >
-          {[0, 1, 2].map((i) => (
+        {showBoard ? (
+          <div
+            className={`absolute inset-x-3 top-3 bottom-[4.75rem] transition-opacity duration-300 md:inset-x-4 md:top-4 ${channelsDim}`}
+          >
             <div
-              key={i}
-              className="rounded-xl border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary)/0.88)] shadow-[var(--shadow-sm)] backdrop-blur-[2px]"
-            />
-          ))}
-          <div className="rounded-xl border-2 border-dashed border-[hsl(var(--border-secondary)/0.55)] bg-transparent" />
-        </div>
+              className="mx-auto grid h-full w-full max-w-xl gap-1.5 md:gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+              }}
+            >
+              {indices.map((slotIndex) => {
+                const hidden = isSlotHidden(slotMeta, slotIndex);
+                const label = labelsByIndex[slotIndex];
+                return (
+                  <div
+                    key={`scene-slot-${slotIndex}`}
+                    className={`relative flex min-h-0 items-center justify-center overflow-hidden rounded-lg border-2 px-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide md:rounded-xl md:text-[9px] ${
+                      hidden
+                        ? 'border-dashed border-[hsl(var(--border-secondary)/0.7)] bg-transparent text-[hsl(var(--text-tertiary))]'
+                        : 'border-[hsl(var(--border-primary)/0.5)] bg-[hsl(var(--surface-primary)/0.9)] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)] backdrop-blur-[2px]'
+                    }`}
+                  >
+                    {hidden ? (
+                      <EyeOff size={12} aria-hidden />
+                    ) : (
+                      <span className="line-clamp-2 text-center">{label || slotIndex + 1}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
-        <div
-          className={`absolute inset-x-0 bottom-0 transition-opacity duration-300 ${ribbonDim}`}
-        >
+        <div className={`absolute inset-x-0 bottom-0 transition-opacity duration-300 ${ribbonDim}`}>
           <div className={`rounded-b-[1.5rem] ${ribbonRing}`.trim()}>
-            <RibbonMiniature />
+            <RibbonMiniature lookOverride={ribbonLook} />
           </div>
         </div>
       </div>
@@ -102,6 +163,27 @@ SurfacesScenePreview.propTypes = {
   saturate: PropTypes.number,
   activeSegment: PropTypes.oneOf(['wallpaper', 'ribbon', 'effects']),
   caption: PropTypes.node,
+  layout: PropTypes.shape({
+    columns: PropTypes.number,
+    rows: PropTypes.number,
+  }),
+  pageSlotIndices: PropTypes.arrayOf(PropTypes.number),
+  slots: PropTypes.array,
+  configuredChannels: PropTypes.object,
+  slotMeta: PropTypes.object,
+  ribbonLook: PropTypes.object,
+  previewingLibrary: PropTypes.bool,
+};
+
+SurfacesScenePreview.defaultProps = {
+  wallpaperUrl: null,
+  layout: null,
+  pageSlotIndices: null,
+  slots: null,
+  configuredChannels: null,
+  slotMeta: null,
+  ribbonLook: null,
+  previewingLibrary: false,
 };
 
 export default React.memo(SurfacesScenePreview);

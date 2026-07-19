@@ -1,8 +1,7 @@
 import React from 'react';
 import { AnimatePresence, m } from 'framer-motion';
-import { Heart, Loader2, Trash2 } from 'lucide-react';
+import { Heart, Loader2, Trash2, Upload } from 'lucide-react';
 import Text from '../../../ui/Text';
-import Button from '../../../ui/WButton';
 import SettingsWeeSection from '../SettingsWeeSection';
 import { WeeButton, WeeModalFieldCard } from '../../../ui/wee';
 import { WALLPAPER_CHECKERBOARD_BG } from '../../../design/runtimeColorStrings.js';
@@ -22,7 +21,7 @@ function WallpaperLibrarySection({
   handleLike,
   handleSetCurrent,
   wallpapers,
-  setSelectedWallpaper,
+  onSelectLibraryWallpaper,
   deleting,
   handleDelete,
 }) {
@@ -37,31 +36,30 @@ function WallpaperLibrarySection({
   return (
     <SettingsWeeSection eyebrow="Library">
       <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-        <Text variant="h3" className="mb-1 playful-hero-text">
-          Add to library
-        </Text>
-        <Text variant="desc" className="mb-5">
-          From your computer — JPG, PNG, GIF, MP4, WEBM, and other supported formats.
-        </Text>
-        <Button
-          variant="primary"
-          onClick={handleUpload}
-          disabled={uploading}
-          className="settings-wee-primary-pill"
-        >
-          {uploading ? 'Uploading…' : 'Upload wallpaper'}
-        </Button>
-      </WeeModalFieldCard>
+        <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <Text variant="h3" className="mb-1 playful-hero-text">
+              Pick wallpaper
+            </Text>
+            <Text variant="desc" className="!mb-0">
+              Pick a tile to preview it in the live scene, then set it for {selectedSpaceLabel}. Heart
+              tiles for Home cycling.
+            </Text>
+          </div>
+          <WeeButton
+            type="button"
+            variant="secondary"
+            className="!inline-flex !shrink-0 !items-center !gap-2 !px-3.5 !py-2.5"
+            onClick={handleUpload}
+            disabled={uploading}
+            title="Upload wallpaper from your computer"
+          >
+            <Upload size={14} strokeWidth={2.5} aria-hidden />
+            {uploading ? 'Uploading…' : 'Upload'}
+          </WeeButton>
+        </div>
 
-      <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-        <Text variant="h3" className="mb-1 playful-hero-text">
-          2. Pick wallpaper
-        </Text>
-        <Text variant="desc" className="mb-5">
-          Pick a tile, preview it, then set it for {selectedSpaceLabel}. You can still like it for Home cycling or
-          heart it for cycling.
-        </Text>
-        <div className="mb-5 flex justify-center py-1">
+        <div className="mb-5 mt-5 flex justify-center py-1">
           <button
             type="button"
             className={`settings-wee-default-wallpaper min-w-[220px] max-w-full text-left ${
@@ -162,11 +160,11 @@ function WallpaperLibrarySection({
           ) : null}
         </AnimatePresence>
 
-        <p className="settings-wee-subhead !mb-3 !mt-1">Library</p>
+        <p className="settings-wee-subhead !mb-3 !mt-1">Saved</p>
         <div className="settings-wee-wallpaper-picker-grid">
           {wallpapers.length === 0 ? (
             <Text variant="help" className="col-span-full text-center">
-              No saved wallpapers yet.
+              No saved wallpapers yet. Upload one to get started.
             </Text>
           ) : null}
           {wallpapers.map((wallpaper, idx) => {
@@ -186,11 +184,11 @@ function WallpaperLibrarySection({
                   .filter(Boolean)
                   .join(' ')}
                 aria-label={`Select wallpaper ${wallpaper.name}`}
-                onClick={() => setSelectedWallpaper(wallpaper)}
+                onClick={() => onSelectLibraryWallpaper(wallpaper)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    setSelectedWallpaper(wallpaper);
+                    onSelectLibraryWallpaper(wallpaper);
                   }
                 }}
               >

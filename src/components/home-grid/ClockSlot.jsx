@@ -5,7 +5,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import HomeWidgetShell from './HomeWidgetShell';
-import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
+import {
+  normalizeHomeWidgetSurface,
+  normalizeHomeWidgetTextColor,
+} from '../../utils/homeWidgetSurface';
 import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import { useTimeColor, useTimeFont } from '../../utils/useConsolidatedAppHooks';
 import { DEFAULT_TIME_COLOR_HEX } from '../../design/runtimeColorStrings';
@@ -68,7 +71,12 @@ function ClockSlot({
     timeFont === 'digital'
       ? 'DigitalDisplayRegular-ODEO, monospace'
       : "'Orbitron', sans-serif";
-  const color = looks.color || timeColor || DEFAULT_TIME_COLOR_HEX;
+  // Per-tile Looks text color wins; then Clock widget pref; then ribbon Time color.
+  const color =
+    normalizeHomeWidgetTextColor(slot?.textColor) ||
+    looks.color ||
+    timeColor ||
+    DEFAULT_TIME_COLOR_HEX;
 
   const timeSizeClass = layout.isCompact
     ? 'text-xl'

@@ -37,7 +37,7 @@ function RecentLaunchButton({ entry, onLaunch, size = 'md', showLabel = false })
         event.stopPropagation();
         onLaunch(entry);
       }}
-      className={`home-widget-float-tile flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] text-[hsl(var(--text-primary))] shadow-[var(--shadow-sm)] transition-transform hover:scale-105 active:scale-95 ${
+      className={`home-widget-float-tile flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] text-[var(--hw-text-primary)] shadow-[var(--shadow-sm)] transition-transform hover:scale-105 active:scale-95 ${
         showLabel ? 'w-full p-1.5' : ''
       }`}
     >
@@ -49,7 +49,7 @@ function RecentLaunchButton({ entry, onLaunch, size = 'md', showLabel = false })
         )}
       </span>
       {showLabel ? (
-        <span className="w-full truncate text-center text-[8px] font-black uppercase tracking-[0.06em] text-[hsl(var(--text-secondary))]">
+        <span className="w-full truncate text-center text-[8px] font-black uppercase tracking-[0.06em] text-[var(--hw-text-secondary)]">
           {entry.label}
         </span>
       ) : null}
@@ -154,6 +154,7 @@ function RecentlyUsedSlot({
   return (
     <HomeWidgetShell
       surface={surface}
+      textColor={slot?.textColor}
       selected={selected}
       className={layout.shellPadClass}
       onClick={handleTileActivate}
@@ -167,7 +168,7 @@ function RecentlyUsedSlot({
             className="text-[hsl(var(--primary))]"
             aria-hidden
           />
-          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--hw-text-secondary)]">
             {isCompact ? 'Recents' : 'Launch a channel to fill this'}
           </span>
         </div>
@@ -190,7 +191,7 @@ function RecentlyUsedSlot({
           ) : (
             <History size={26} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
           )}
-          <span className="max-w-full truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
+          <span className="max-w-full truncate text-[9px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]">
             {visible[0].label}
           </span>
         </button>
@@ -199,7 +200,7 @@ function RecentlyUsedSlot({
           {layout.showHeader ? (
             <div className="flex items-center justify-between gap-1 px-0.5">
               <span className={`truncate ${layout.kickerClass}`}>Recently Used</span>
-              <History size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
+              <History size={12} strokeWidth={2.5} className="shrink-0 text-[var(--hw-text-tertiary)]" aria-hidden />
             </div>
           ) : null}
           <div className="flex min-h-0 flex-1 items-center justify-start gap-1.5 overflow-hidden">
@@ -219,7 +220,7 @@ function RecentlyUsedSlot({
           {layout.showHeader ? (
             <div className="flex items-center justify-between gap-1 px-0.5">
               <span className={`truncate ${layout.kickerClass}`}>Recently Used</span>
-              <History size={12} strokeWidth={2.5} className="shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
+              <History size={12} strokeWidth={2.5} className="shrink-0 text-[var(--hw-text-tertiary)]" aria-hidden />
             </div>
           ) : null}
           <div

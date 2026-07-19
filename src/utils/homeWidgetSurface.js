@@ -1,6 +1,6 @@
 /**
- * Per-widget board surface mode.
- * Persisted on `slots[].surface` (Home grid SSOT).
+ * Per-widget board look: surface mode + optional text color.
+ * Persisted on `slots[].surface` / `slots[].textColor` (Home grid SSOT).
  *
  * - `clear` — floating default: no plate; wallpaper shows through (lock-screen / low-blur time-pill)
  * - `glass` — same floating content + shared light frost/tint (`ui.homeWidgetGlass`)
@@ -20,6 +20,18 @@ export function normalizeHomeWidgetSurface(value) {
   if (value === 'glass') return 'glass';
   if (value === 'basic') return 'basic';
   return DEFAULT_HOME_WIDGET_SURFACE;
+}
+
+/**
+ * Optional per-tile widget text color. `null` → theme tokens (auto).
+ * Hex required by `<input type="color">`; flows into `--hw-text` on the shell.
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+export function normalizeHomeWidgetTextColor(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : null;
 }
 
 function isNonChannelSlotLike(slot) {

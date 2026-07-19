@@ -117,6 +117,9 @@ const PaginatedChannelsInner = React.memo(() => {
   const setHomeSlotSurfaceForSpace = useConsolidatedAppStore(
     (s) => s.actions.setHomeSlotSurfaceForSpace
   );
+  const setHomeSlotTextColorForSpace = useConsolidatedAppStore(
+    (s) => s.actions.setHomeSlotTextColorForSpace
+  );
   const setHomeSlotWidgetForSpace = useConsolidatedAppStore(
     (s) => s.actions.setHomeSlotWidgetForSpace
   );
@@ -565,6 +568,14 @@ const PaginatedChannelsInner = React.memo(() => {
       setHomeSlotSurfaceForSpace(channelSpaceKey, homeBoardSelectedSlotIndex, surface);
     },
     [homeBoardSelectedSlotIndex, setHomeSlotSurfaceForSpace, channelSpaceKey]
+  );
+
+  const handleSetTextColor = useCallback(
+    (textColor) => {
+      if (homeBoardSelectedSlotIndex == null) return;
+      setHomeSlotTextColorForSpace(channelSpaceKey, homeBoardSelectedSlotIndex, textColor);
+    },
+    [homeBoardSelectedSlotIndex, setHomeSlotTextColorForSpace, channelSpaceKey]
   );
 
   const handleSetListenApp = useCallback(
@@ -1506,6 +1517,7 @@ const PaginatedChannelsInner = React.memo(() => {
             onRemoveWidget={handleRemoveWidget}
             onSetSizePreset={handleSetSizePreset}
             onSetSurface={handleSetSurface}
+            onSetTextColor={handleSetTextColor}
             onSetListenApp={handleSetListenApp}
             blockedPresetIds={blockedSizePresetIds}
             pickerOpen={arrangePickerOpen}

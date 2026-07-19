@@ -53,7 +53,7 @@ function friendStatusLabel(friend) {
 function FriendSectionLabel({ children, spanGrid = false }) {
   return (
     <p
-      className={`m-0 px-0.5 pt-1 text-[8px] font-black uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))] first:pt-0 ${
+      className={`m-0 px-0.5 pt-1 text-[8px] font-black uppercase tracking-[0.18em] text-[var(--hw-text-tertiary)] first:pt-0 ${
         spanGrid ? 'col-span-2' : ''
       }`}
     >
@@ -152,7 +152,7 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
 
       <div className="min-w-0 flex-1 pr-1">
         <div
-          className={`truncate font-extrabold tracking-wide text-[hsl(var(--text-primary))] ${nameClass}`}
+          className={`truncate font-extrabold tracking-wide text-[var(--hw-text-primary)] ${nameClass}`}
         >
           {friend.personaName}
         </div>
@@ -160,13 +160,13 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
           {friend.gameName ? (
             <>
               <span className="text-[hsl(var(--state-success))]">Playing</span>
-              <span className="text-[hsl(var(--text-tertiary))]"> · </span>
-              <span className="text-[hsl(var(--text-secondary))]">{friend.gameName}</span>
+              <span className="text-[var(--hw-text-tertiary)]"> · </span>
+              <span className="text-[var(--hw-text-secondary)]">{friend.gameName}</span>
             </>
           ) : (
             <span
               className={
-                online ? 'text-[hsl(var(--text-secondary))]' : 'text-[hsl(var(--text-tertiary))]'
+                online ? 'text-[var(--hw-text-secondary)]' : 'text-[var(--hw-text-tertiary)]'
               }
             >
               {statusOnly || 'Online'}
@@ -445,6 +445,7 @@ function SteamFriendsSlot({
     <HomeWidgetShell
       surface={surface}
       brandTone="steam"
+      textColor={slot?.textColor}
       selected={selected}
       className={layout.shellPadClass}
       onClick={handleActivate}
@@ -477,11 +478,11 @@ function SteamFriendsSlot({
           ) : (
             <Users size={layout.iconPx} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
           )}
-          <span className="max-w-[16rem] text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+          <span className="max-w-[16rem] text-[10px] font-black uppercase tracking-[0.12em] text-[var(--hw-text-secondary)]">
             {emptyHint}
           </span>
           {isPrivateFriends ? (
-            <span className="max-w-[16rem] text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+            <span className="max-w-[16rem] text-[9px] font-bold text-[var(--hw-text-tertiary)]">
               Tap to open Steam privacy settings
             </span>
           ) : null}
@@ -490,7 +491,7 @@ function SteamFriendsSlot({
         <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
           <SteamWidgetHeading title="Friends" icon={Users} compact={rowSpan <= 1} />
           {layout.density !== 'compact' ? (
-            <p className="-mt-0.5 mb-0 px-0.5 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+            <p className="-mt-0.5 mb-0 px-0.5 text-[9px] font-bold text-[var(--hw-text-tertiary)]">
               {onlineCount} online
               {friendsList.length > onlineCount
                 ? ` · ${friendsList.length - onlineCount} offline`

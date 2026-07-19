@@ -46,20 +46,20 @@ function SteamCoverDetailPanel({ name, playLabel, footer, density = 'cozy' }) {
       >
         {footer ? <div className="mb-1 min-w-0">{footer}</div> : null}
         {name ? (
-          <div className={`truncate text-[hsl(var(--text-primary))] [text-shadow:0_1px_2px_hsl(var(--surface-primary)/0.55)] ${titleClass}`}>
+          <div className={`truncate text-[var(--hw-text-primary)] [text-shadow:0_1px_2px_hsl(var(--surface-primary)/0.55)] ${titleClass}`}>
             {name}
           </div>
         ) : null}
         {playLabel ? (
           <div
-            className={`inline-flex max-w-full items-center gap-1 rounded-full border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-primary)/0.55)] font-black tabular-nums tracking-wide text-[hsl(var(--text-primary))] ${chipClass} ${
+            className={`inline-flex max-w-full items-center gap-1 rounded-full border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-primary)/0.55)] font-black tabular-nums tracking-wide text-[var(--hw-text-primary)] ${chipClass} ${
               name ? 'mt-1' : ''
             }`}
           >
             <Clock
               size={density === 'compact' ? 8 : 9}
               strokeWidth={2.75}
-              className="shrink-0 text-[hsl(var(--primary))]"
+              className="shrink-0 text-[var(--hw-text-accent)]"
               aria-hidden
             />
             <span className="truncate">{playLabel}</span>

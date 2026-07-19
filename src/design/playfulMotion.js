@@ -54,16 +54,6 @@ export const PLAYFUL_AMPLITUDE = {
   sideNavIdlePeekPx: 14,
 };
 
-/** Game Hub: scroll-linked hero → dock lane (see hub-game-micro.html pattern). */
-export const HUB_MORPH = {
-  /** Scroll (px) before morph progress begins — overlay hero matches legacy until here. */
-  scrollHandoffPx: 108,
-  /** Scroll distance (px) from handoff to fully docked. */
-  scrollRangePx: 380,
-  dockWidthPx: 400,
-  dockGapPx: 40,
-};
-
 export const PLAYFUL_VARIANTS = {
   press: {
     scale: PLAYFUL_AMPLITUDE.pressScale,
