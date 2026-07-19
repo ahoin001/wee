@@ -39,8 +39,28 @@ class AudioManager {
     this._bgmGeneration = 0;
     /** Bumped on every preview start/stop so ended callbacks stay scoped to the active preview. */
     this._previewGeneration = 0;
+    /** True while exclusive preview is ducking BGM. */
+    this._previewDuckActive = false;
     /** @type {((this: HTMLAudioElement, ev: Event) => void) | null} */
     this._bgmEndedHandler = null;
+  }
+
+  _disposeAudioElement(audio) {
+    if (!audio) return;
+    try {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.src = '';
+      audio.load();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  _releasePreviewDuck() {
+    if (!this._previewDuckActive) return;
+    this._previewDuckActive = false;
+    this._releaseDuck();
   }
 
   _ensureBackgroundAudio() {
@@ -206,16 +226,19 @@ class AudioManager {
       this._stealOldestActive();
     }
 
+    let audio = null;
+    let ducked = false;
     try {
       const template = this.getTemplate(url);
       await waitForAudioReady(template);
 
-      const audio = /** @type {HTMLAudioElement} */ (template.cloneNode(true));
+      audio = /** @type {HTMLAudioElement} */ (template.cloneNode(true));
       audio.volume = volume;
       audio.loop = loop;
       audio.currentTime = 0;
 
       this._applyDuck();
+      ducked = true;
       this.activeSounds.add(audio);
 
       const cleanup = () => {
@@ -229,7 +252,8 @@ class AudioManager {
       this._claimMediaSession('Sound');
     } catch (error) {
       console.error('Error playing sound:', error);
-      this._releaseDuck();
+      if (audio) this.activeSounds.delete(audio);
+      if (ducked) this._releaseDuck();
     }
   }
 
@@ -417,12 +441,18 @@ class AudioManager {
       audio.preload = 'auto';
       audio.src = url;
       audio.loop = false;
-      audio.volume = volume;
+      audio.volume = Math.max(0, Math.min(1, Number(volume) || 0));
       await waitForAudioReady(audio);
-      if (generation !== this._previewGeneration) return;
+      if (generation !== this._previewGeneration) {
+        this._disposeAudioElement(audio);
+        return;
+      }
+      this._applyDuck();
+      this._previewDuckActive = true;
       await audio.play();
       if (generation !== this._previewGeneration) {
-        audio.pause();
+        this._disposeAudioElement(audio);
+        this._releasePreviewDuck();
         return;
       }
       this.previewAudio = audio;
@@ -430,6 +460,7 @@ class AudioManager {
         'ended',
         () => {
           if (this.previewAudio === audio) this.previewAudio = null;
+          this._releasePreviewDuck();
           // Only notify if this preview was not superseded by stop/replace.
           if (generation === this._previewGeneration) {
             onEnded?.();
@@ -438,6 +469,7 @@ class AudioManager {
         { once: true }
       );
     } catch (error) {
+      this._releasePreviewDuck();
       console.error('[AudioManager] Failed to play preview:', error);
       throw error;
     }
@@ -445,10 +477,15 @@ class AudioManager {
 
   stopPreview() {
     this._previewGeneration += 1;
+    this._releasePreviewDuck();
     if (!this.previewAudio) return;
-    this.previewAudio.pause();
-    this.previewAudio.currentTime = 0;
+    this._disposeAudioElement(this.previewAudio);
     this.previewAudio = null;
+  }
+
+  setPreviewVolume(volume) {
+    if (!this.previewAudio) return;
+    this.previewAudio.volume = Math.max(0, Math.min(1, Number(volume) || 0));
   }
 
   async resumeBackgroundMusic(targetVolume = 0.4) {

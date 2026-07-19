@@ -108,7 +108,7 @@ function ChannelModal({
   const rescanInstalledApps = () => fetchInstalledApps?.(true);
 
   const {
-    setHoverSound,
+    hydrateFromSaved,
     hoverSoundName,
     hoverSoundUrl,
     hoverSoundVolume,
@@ -142,7 +142,7 @@ function ChannelModal({
     setPathError,
     setShowError,
     setMedia,
-    setHoverSound,
+    hydrateHoverSound: hydrateFromSaved,
     setAsAdmin,
     installedAppsLength: installedApps?.length || 0,
     uwpAppsLength: uwpApps?.length || 0,

@@ -7,9 +7,11 @@ import {
   playChannelClick,
   playChannelHover,
   playPreview,
+  setPreviewVolume,
   stopPreview,
   stopSfx,
 } from '../../utils/soundPlayback';
+import { findEnabledSound } from '../../utils/soundLibraryCache';
 import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
@@ -37,8 +39,13 @@ const SOUND_CATEGORY_ICONS = {
 const SOUND_CATEGORY_DESCRIPTIONS = {
   backgroundMusic: 'Continuous background audio — playlist, loop, and library.',
   channelClick: 'One-shot when you activate a channel tile.',
-  channelHover: 'Optional hover feedback — can add overhead with many channels.',
+  channelHover: 'Hover feedback for tiles — pick an Active track below (master mute is separate).',
 };
+
+function isCancelSelectionError(message) {
+  const text = String(message || '').toLowerCase();
+  return text.includes('no file selected') || text.includes('cancel');
+}
 
 /**
  * Sound Settings Tab - Complete sound management interface
@@ -153,49 +160,58 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   // Handle file upload
   const handleUploadClick = useCallback(async (category) => {
     try {
-      console.log('[SoundsSettingsTab] Starting upload for category:', category);
-      setUploading(prev => ({ ...prev, [category]: true }));
-      showMessage('info', 'Selecting sound file...');
+      setUploading((prev) => ({ ...prev, [category]: true }));
 
       const fileResult = await selectSoundFile();
-      console.log('[SoundsSettingsTab] File selection result:', fileResult);
-      
       if (!fileResult.success) {
+        if (fileResult.cancelled || isCancelSelectionError(fileResult.error)) {
+          return;
+        }
         throw new Error(fileResult.error || 'File selection failed');
       }
-      
+
       const { file } = fileResult;
-      console.log('[SoundsSettingsTab] Selected file:', file);
-      
-      // Generate name from filename
       const name = file.name.replace(/\.[^/.]+$/, '');
-      console.log('[SoundsSettingsTab] Generated name:', name);
-      
-      showMessage('info', 'Uploading sound...');
-      console.log('[SoundsSettingsTab] Adding sound to library...');
-      
+
       const addResult = await addSound(category, file, name);
-      console.log('[SoundsSettingsTab] Add sound result:', addResult);
-      
       if (!addResult.success) {
         throw new Error(addResult.error || 'Failed to add sound');
       }
-      
-      showMessage('success', 'Sound uploaded successfully!');
-      console.log('[SoundsSettingsTab] Sound uploaded successfully');
-      
-      // Reload the sound library to get the updated state
-      console.log('[SoundsSettingsTab] Reloading sound library...');
-      await loadSoundLibrary();
-      console.log('[SoundsSettingsTab] Sound library reloaded');
-      
+
+      const newSound = addResult.sound;
+      // Hover/click: make the upload the Active track so users hear it immediately.
+      if (newSound?.id && (category === 'channelHover' || category === 'channelClick')) {
+        const siblings = getSoundsByCategory(category);
+        for (const s of siblings) {
+          if (s.id !== newSound.id && s.enabled) {
+            await updateSound(category, s.id, { enabled: false });
+          }
+        }
+        await updateSound(category, newSound.id, { enabled: true });
+        const volume = newSound.volume ?? 0.5;
+        if (category === 'channelHover') {
+          updateChannelHoverSound(true, volume);
+        } else {
+          updateChannelClickSound(true, volume);
+        }
+      }
+
+      showMessage('success', 'Sound uploaded');
     } catch (err) {
       console.error('[SoundsSettingsTab] Upload error:', err);
       showMessage('error', err.message || 'Failed to upload sound');
     } finally {
-      setUploading(prev => ({ ...prev, [category]: false }));
+      setUploading((prev) => ({ ...prev, [category]: false }));
     }
-  }, [selectSoundFile, addSound, loadSoundLibrary, showMessage]);
+  }, [
+    selectSoundFile,
+    addSound,
+    getSoundsByCategory,
+    updateSound,
+    updateChannelHoverSound,
+    updateChannelClickSound,
+    showMessage,
+  ]);
 
   // Handle sound deletion
   const handleDeleteSound = useCallback(async (category, soundId) => {
@@ -232,11 +248,11 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   const handleToggleSound = useCallback(async (category, soundId) => {
     try {
       const sounds = getSoundsByCategory(category);
-      const sound = sounds.find(s => s.id === soundId);
-      
+      const sound = sounds.find((s) => s.id === soundId);
+
       if (!sound) return;
 
-      // For non-playlist categories, disable all others first
+      // For non-playlist categories, disable all others first (radio Active track)
       if (category !== 'backgroundMusic' || !soundSettings.backgroundMusicPlaylistMode) {
         for (const s of sounds) {
           if (s.id !== soundId && s.enabled) {
@@ -245,66 +261,74 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
         }
       }
 
-      // Toggle the selected sound
       await updateSound(category, soundId, { enabled: !sound.enabled });
-      
-      // Update sound manager settings
+
+      // Sync prefs from cache (not stale React state). Never flip master off when clearing a track.
       if (category === 'channelClick') {
-        const enabledSound = getEnabledSoundsByCategory(category)[0];
-        updateChannelClickSound(!!enabledSound, enabledSound?.volume ?? 0.5);
+        const enabledSound = findEnabledSound('channelClick');
+        if (enabledSound) {
+          updateChannelClickSound(true, enabledSound.volume ?? 0.5);
+        }
       } else if (category === 'channelHover') {
-        const enabledSound = getEnabledSoundsByCategory(category)[0];
-        updateChannelHoverSound(!!enabledSound, enabledSound?.volume ?? 0.5);
+        const enabledSound = findEnabledSound('channelHover');
+        if (enabledSound) {
+          updateChannelHoverSound(true, enabledSound.volume ?? 0.5);
+        }
       } else if (category === 'backgroundMusic') {
-        // Update background music when background music settings change
         updateBackgroundMusic();
       }
-
-      showMessage('success', `Sound ${sound.enabled ? 'disabled' : 'enabled'} successfully`);
     } catch (err) {
       showMessage('error', err.message || 'Failed to toggle sound');
     }
-  }, [getSoundsByCategory, getEnabledSoundsByCategory, soundSettings.backgroundMusicPlaylistMode, updateSound, updateChannelClickSound, updateChannelHoverSound, updateBackgroundMusic, showMessage]);
+  }, [
+    getSoundsByCategory,
+    soundSettings.backgroundMusicPlaylistMode,
+    updateSound,
+    updateChannelClickSound,
+    updateChannelHoverSound,
+    updateBackgroundMusic,
+    showMessage,
+  ]);
 
   // Handle volume change
-  const handleVolumeChange = useCallback(async (category, soundId, volume) => {
-    try {
-      await updateSound(category, soundId, { volume });
-      
-      // Update sound manager settings
-      if (category === 'channelClick') {
-        const enabledSound = getEnabledSoundsByCategory(category)[0];
-        updateChannelClickSound(!!enabledSound, enabledSound?.volume ?? volume);
-      } else if (category === 'channelHover') {
-        const enabledSound = getEnabledSoundsByCategory(category)[0];
-        updateChannelHoverSound(!!enabledSound, enabledSound?.volume ?? volume);
-      } else if (category === 'backgroundMusic') {
-        // Update background music when background music volume changes
-        updateBackgroundMusic();
-      }
+  const handleVolumeChange = useCallback(
+    async (category, soundId, volume) => {
+      try {
+        await updateSound(category, soundId, { volume });
 
-      // Keep preview volume in sync when actively testing this row.
-      if (testing[soundId]) {
-        const sounds = getSoundsByCategory(category);
-        const s = sounds.find((x) => x.id === soundId);
-        if (s?.url) {
-          void playPreview(s.url, volume, {
-            onEnded: () => {
-              setTesting((prev) => (prev[soundId] ? {} : prev));
-            },
-          });
+        const enabledSound = findEnabledSound(category);
+        if (category === 'channelClick' && enabledSound?.id === soundId) {
+          updateChannelClickSound(soundPrefs?.channelClickEnabled !== false, volume);
+        } else if (category === 'channelHover' && enabledSound?.id === soundId) {
+          updateChannelHoverSound(soundPrefs?.channelHoverEnabled !== false, volume);
+        } else if (category === 'backgroundMusic') {
+          updateBackgroundMusic();
         }
+
+        // Live preview volume — no restart
+        if (testing[soundId]) {
+          setPreviewVolume(volume);
+        }
+      } catch (err) {
+        showMessage('error', err.message || 'Failed to update volume');
       }
-    } catch (err) {
-      showMessage('error', err.message || 'Failed to update volume');
-    }
-  }, [updateSound, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, updateBackgroundMusic, showMessage, testing, getSoundsByCategory]);
+    },
+    [
+      updateSound,
+      updateChannelClickSound,
+      updateChannelHoverSound,
+      updateBackgroundMusic,
+      showMessage,
+      testing,
+      soundPrefs?.channelClickEnabled,
+      soundPrefs?.channelHoverEnabled,
+    ]
+  );
 
   // Handle like toggle
   const handleToggleLike = useCallback(async (soundId) => {
     try {
       await toggleLike(soundId);
-      showMessage('success', 'Like status updated');
     } catch (err) {
       showMessage('error', err.message || 'Failed to update like status');
     }
@@ -408,23 +432,33 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
     setDragOverItem(null);
   }, []);
 
-  // Test channel click sound
+  // Test channel click sound (production SFX path)
   const handleTestChannelClick = useCallback(async () => {
-    try {
-      await playChannelClick();
-      showMessage('success', 'Channel click sound played');
-    } catch (_err) {
-      showMessage('error', 'No channel click sound enabled');
+    stopPreview();
+    setTesting({});
+    const result = await playChannelClick();
+    if (!result?.played) {
+      showMessage(
+        'info',
+        result?.reason === 'disabled'
+          ? 'Turn on click sounds above to test.'
+          : 'Enable an Active click track below to test.'
+      );
     }
   }, [showMessage]);
 
-  // Test channel hover sound
+  // Test channel hover sound (production SFX path)
   const handleTestChannelHover = useCallback(async () => {
-    try {
-      await playChannelHover();
-      showMessage('success', 'Channel hover sound played');
-    } catch (_err) {
-      showMessage('error', 'No channel hover sound enabled');
+    stopPreview();
+    setTesting({});
+    const result = await playChannelHover();
+    if (!result?.played) {
+      showMessage(
+        'info',
+        result?.reason === 'disabled'
+          ? 'Turn on hover sounds above to test.'
+          : 'Enable an Active hover track below to test.'
+      );
     }
   }, [showMessage]);
 
@@ -567,7 +601,14 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                   <p className="sound-panel-wee__title">Channel click</p>
                 </div>
                 <WeeDescriptionToggleRow
-                  description={<span className="sound-toggle-row__label">Enable click sounds</span>}
+                  description={
+                    <div>
+                      <span className="sound-toggle-row__label">Enable click sounds</span>
+                      <p className="sound-toggle-row__hint">
+                        Master mute for click SFX. Pick one Active track in the library below.
+                      </p>
+                    </div>
+                  }
                 >
                   <WToggle
                     checked={soundPrefs?.channelClickEnabled ?? true}
@@ -576,6 +617,15 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                   />
                 </WeeDescriptionToggleRow>
               </div>
+              <WeeRevealWhen
+                when={(soundPrefs?.channelClickEnabled ?? true) && enabledSounds.length === 0}
+              >
+                <div className="sound-callout sound-callout--warn-music mt-3">
+                  <div className="sound-callout--warn-music-body">
+                    No active click track — enable one below to hear clicks on the board.
+                  </div>
+                </div>
+              </WeeRevealWhen>
             </div>
           )}
 
@@ -587,7 +637,15 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                   <p className="sound-panel-wee__title">Channel hover</p>
                 </div>
                 <WeeDescriptionToggleRow
-                  description={<span className="sound-toggle-row__label">Enable hover sounds</span>}
+                  description={
+                    <div>
+                      <span className="sound-toggle-row__label">Enable hover sounds</span>
+                      <p className="sound-toggle-row__hint">
+                        Master mute for all hover SFX, including per-channel custom sounds. Pick one
+                        Active track below for the global default.
+                      </p>
+                    </div>
+                  }
                 >
                   <WToggle
                     checked={soundPrefs?.channelHoverEnabled ?? true}
@@ -596,6 +654,16 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                   />
                 </WeeDescriptionToggleRow>
               </div>
+              <WeeRevealWhen
+                when={(soundPrefs?.channelHoverEnabled ?? true) && enabledSounds.length === 0}
+              >
+                <div className="sound-callout sound-callout--warn-music mt-3">
+                  <div className="sound-callout--warn-music-body">
+                    No active hover track — enable one below to hear hover on the board. Per-channel
+                    customs still need this master on.
+                  </div>
+                </div>
+              </WeeRevealWhen>
             </div>
           )}
 
@@ -683,6 +751,10 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                     <div className="sound-item-gooey__name-block">
                       <span className="sound-item-gooey__name">{sound.name}</span>
                       <div className="sound-item-gooey__badges">
+                        {sound.enabled &&
+                        (category.key === 'channelHover' || category.key === 'channelClick') ? (
+                          <span className="sound-badge-wee">Active</span>
+                        ) : null}
                         {sound.isDefault ? <span className="sound-badge-wee">Default</span> : null}
                       </div>
                     </div>

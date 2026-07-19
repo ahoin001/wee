@@ -12,7 +12,7 @@ export const useChannelModalInitialization = ({
   setPathError,
   setShowError,
   setMedia,
-  setHoverSound,
+  hydrateHoverSound,
   setAsAdmin,
   installedAppsLength,
   uwpAppsLength,
@@ -37,7 +37,7 @@ export const useChannelModalInitialization = ({
     setPathError('');
     setShowError(false);
     setMedia(null);
-    setHoverSound(null);
+    hydrateHoverSound?.(null);
     setAsAdmin(false);
 
     const existingChannel = configuredChannels[channelId];
@@ -45,7 +45,7 @@ export const useChannelModalInitialization = ({
 
     setPath(existingChannel.path || '');
     setMedia(existingChannel.media || null);
-    setHoverSound(existingChannel.hoverSound || null);
+    hydrateHoverSound?.(existingChannel.hoverSound || null);
     setAsAdmin(existingChannel.asAdmin ?? false);
   }, [
     isOpen,
@@ -55,7 +55,7 @@ export const useChannelModalInitialization = ({
     setPathError,
     setShowError,
     setMedia,
-    setHoverSound,
+    hydrateHoverSound,
     setAsAdmin,
   ]);
 

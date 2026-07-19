@@ -74,7 +74,7 @@ function registerSoundHandlers({
         }
         return { success: true, file: { path: filePath, name: filename, size: fileSize } };
       }
-      return { success: false, error: 'No file selected' };
+      return { success: false, cancelled: true, error: 'No file selected' };
     } catch (error) {
       return { success: false, error: `Failed to open file dialog: ${error.message}\n\nPlease try again or restart the application.` };
     }
@@ -92,16 +92,19 @@ function registerSoundHandlers({
       if (stats?.size > 10 * 1024 * 1024) return { success: false, error: 'File is too large. Maximum size is 10MB.' };
       if (!name || name.trim().length === 0) return { success: false, error: 'Sound name cannot be empty' };
       if (name.length > 50) return { success: false, error: 'Sound name is too long. Maximum length is 50 characters.' };
+      const trimmedName = name.trim();
+      const library = await loadSoundLibrary();
+      if (!library[soundType]) library[soundType] = [];
+      const existingSound = library[soundType].find((s) => s.name.toLowerCase() === trimmedName.toLowerCase());
+      if (existingSound) {
+        return { success: false, error: `A sound with the name "${trimmedName}" already exists in ${soundType}` };
+      }
       const timestamp = Date.now();
       const filename = `user-${soundType}-${timestamp}${fileExtension}`;
       await fsPromises.mkdir(userSoundsPath, { recursive: true });
       const targetPath = await copyFileToUserDirectory(file.path, userSoundsPath, filename);
       const soundId = `user-${soundType}-${timestamp}`;
-      const newSound = { id: soundId, name: name.trim(), filename, url: `userdata://sounds/${filename}`, volume: 0.5, enabled: false, isDefault: false };
-      const library = await loadSoundLibrary();
-      if (!library[soundType]) library[soundType] = [];
-      const existingSound = library[soundType].find((s) => s.name.toLowerCase() === name.toLowerCase());
-      if (existingSound) return { success: false, error: `A sound with the name "${name}" already exists in ${soundType}` };
+      const newSound = { id: soundId, name: trimmedName, filename, url: `userdata://sounds/${filename}`, volume: 0.5, enabled: false, isDefault: false };
       library[soundType].push(newSound);
       try {
         await writeJson(savedSoundsPath, library);

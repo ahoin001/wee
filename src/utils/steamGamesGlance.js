@@ -1,5 +1,6 @@
 /**
  * Shared helpers for Steam home-grid glance tiles (recent / most played).
+ * Hidden titles share Game Hub SSOT: `gameHub.ui.hiddenGameIds` (`steam-{appId}`).
  */
 
 /** Steam library portrait (2∶3) — same asset Game Hub shelves use. */
@@ -13,12 +14,35 @@ export const STEAM_CDN_HEADER = (appId) =>
 /** @deprecated Use STEAM_CDN_LIBRARY_COVER — kept for call-site compatibility. */
 export const STEAM_CDN_CAPSULE = STEAM_CDN_LIBRARY_COVER;
 
+/** Canonical Game Hub id for a Steam app (matches hub `normalizeSteamGame`). */
+export function steamHubGameIdFromAppId(appId) {
+  return `steam-${String(appId ?? '')}`;
+}
+
 /**
- * @param {unknown[]} games
+ * Drop titles the user hid in Game Hub. Filter before sort/slice so capacity stays full.
+ * @param {unknown[]} games — enrichment rows with `appId`
+ * @param {unknown} [hiddenGameIds] — `gameHub.ui.hiddenGameIds`
  * @returns {object[]}
  */
-export function sortRecentSteamGames(games) {
-  return [...(games || [])]
+export function excludeHiddenSteamGames(games, hiddenGameIds) {
+  const list = Array.isArray(games) ? games : [];
+  if (!Array.isArray(hiddenGameIds) || hiddenGameIds.length === 0) return list;
+  const hidden = new Set(hiddenGameIds.map(String).filter(Boolean));
+  if (hidden.size === 0) return list;
+  return list.filter((g) => {
+    if (!g?.appId) return false;
+    return !hidden.has(steamHubGameIdFromAppId(g.appId));
+  });
+}
+
+/**
+ * @param {unknown[]} games
+ * @param {unknown} [hiddenGameIds]
+ * @returns {object[]}
+ */
+export function sortRecentSteamGames(games, hiddenGameIds) {
+  return excludeHiddenSteamGames(games, hiddenGameIds)
     .filter((g) => g?.appId)
     .sort((a, b) => {
       const recentA = Number(a.playtimeRecent || 0);
@@ -31,10 +55,11 @@ export function sortRecentSteamGames(games) {
 
 /**
  * @param {unknown[]} games
+ * @param {unknown} [hiddenGameIds]
  * @returns {object[]}
  */
-export function sortMostPlayedSteamGames(games) {
-  return [...(games || [])]
+export function sortMostPlayedSteamGames(games, hiddenGameIds) {
+  return excludeHiddenSteamGames(games, hiddenGameIds)
     .filter((g) => g?.appId && Number(g.playtimeForever || 0) > 0)
     .sort((a, b) => {
       const pt = Number(b.playtimeForever || 0) - Number(a.playtimeForever || 0);

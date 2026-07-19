@@ -21,18 +21,32 @@ export async function ensureSoundRuntimeReady() {
   return audioManager;
 }
 
+/**
+ * @returns {Promise<{ played: boolean, reason?: 'disabled' | 'no-track' }>}
+ */
 export async function playChannelClick() {
   const sounds = getSoundsSettings();
-  if (!sounds.channelClickEnabled) return;
+  if (!sounds.channelClickEnabled) {
+    return { played: false, reason: 'disabled' };
+  }
   await ensureSoundRuntimeReady();
   const enabled = findEnabledSound('channelClick');
-  if (!enabled?.url) return;
+  if (!enabled?.url) {
+    return { played: false, reason: 'no-track' };
+  }
   await audioManager.playSound(enabled.url, enabled.volume ?? sounds.channelClickVolume ?? 0.5);
+  return { played: true };
 }
 
+/**
+ * @param {{ url: string, volume?: number } | null} [customHoverSound]
+ * @returns {Promise<{ played: boolean, reason?: 'disabled' | 'no-track' }>}
+ */
 export async function playChannelHover(customHoverSound = null) {
   const sounds = getSoundsSettings();
-  if (!sounds.channelHoverEnabled) return;
+  if (!sounds.channelHoverEnabled) {
+    return { played: false, reason: 'disabled' };
+  }
   await ensureSoundRuntimeReady();
 
   if (customHoverSound?.url) {
@@ -40,12 +54,15 @@ export async function playChannelHover(customHoverSound = null) {
       customHoverSound.url,
       customHoverSound.volume ?? sounds.channelHoverVolume ?? 0.5
     );
-    return;
+    return { played: true };
   }
 
   const enabled = findEnabledSound('channelHover');
-  if (!enabled?.url) return;
+  if (!enabled?.url) {
+    return { played: false, reason: 'no-track' };
+  }
   await audioManager.playSound(enabled.url, enabled.volume ?? sounds.channelHoverVolume ?? 0.5);
+  return { played: true };
 }
 
 export function stopSfx({ fadeMs = 120 } = {}) {
@@ -66,6 +83,11 @@ export async function playPreview(url, volume = 0.5, options = {}) {
 
 export function stopPreview() {
   audioManager.stopPreview();
+}
+
+/** Adjust exclusive preview volume without restarting playback. */
+export function setPreviewVolume(volume) {
+  audioManager.setPreviewVolume(volume);
 }
 
 export async function startBackgroundMusicFromSettings() {

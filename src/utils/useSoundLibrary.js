@@ -49,29 +49,19 @@ export const useSoundLibrary = () => {
   const addSound = useCallback(async (soundType, file, name) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      console.log('[useSoundLibrary] Adding sound:', { soundType, name, file });
-      
       if (!window.api?.sounds?.add) {
         throw new Error('Sounds API not available');
       }
-      
-      console.log('[useSoundLibrary] Calling sounds API add...');
+
       const result = await window.api.sounds.add({ soundType, file, name });
-      console.log('[useSoundLibrary] Add result:', result);
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to add sound');
       }
-      
-      console.log('[useSoundLibrary] Sound added successfully:', result);
-      
-      // Reload the library to get the updated state
-      console.log('[useSoundLibrary] Reloading library after add...');
+
       await loadSoundLibrary();
-      console.log('[useSoundLibrary] Library reloaded after add');
-      
       return result;
     } catch (err) {
       console.error('[useSoundLibrary] Failed to add sound:', err);
@@ -133,11 +123,9 @@ export const useSoundLibrary = () => {
         throw new Error(result.error || 'Failed to update sound');
       }
       
-      console.log('[useSoundLibrary] Sound updated successfully:', result);
-      
       // Reload the library to get the updated state
       await loadSoundLibrary();
-      
+
       return result;
     } catch (err) {
       console.error('[useSoundLibrary] Failed to update sound:', err);
@@ -152,25 +140,20 @@ export const useSoundLibrary = () => {
   const toggleLike = useCallback(async (soundId) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      console.log('[useSoundLibrary] Toggling like for sound:', soundId);
-      
       if (!window.api?.sounds?.toggleLike) {
         throw new Error('Sounds API not available');
       }
-      
+
       const result = await window.api.sounds.toggleLike({ soundId });
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to toggle like');
       }
-      
-      console.log('[useSoundLibrary] Like toggled successfully:', result);
-      
-      // Reload the library to get the updated state
+
       await loadSoundLibrary();
-      
+
       return result;
     } catch (err) {
       console.error('[useSoundLibrary] Failed to toggle like:', err);
@@ -181,23 +164,14 @@ export const useSoundLibrary = () => {
     }
   }, [loadSoundLibrary]);
 
-  // Select a sound file using the file picker
+  // Select a sound file using the file picker (cancel returns { success: false, cancelled: true })
   const selectSoundFile = useCallback(async () => {
     try {
-      console.log('[useSoundLibrary] Opening file picker...');
-      
       if (!window.api?.sounds?.selectFile) {
         throw new Error('Sounds API not available');
       }
-      
-      const result = await window.api.sounds.selectFile();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'File selection cancelled');
-      }
-      
-      console.log('[useSoundLibrary] File selected:', result);
-      return result;
+
+      return await window.api.sounds.selectFile();
     } catch (err) {
       console.error('[useSoundLibrary] Failed to select file:', err);
       setError(err.message);

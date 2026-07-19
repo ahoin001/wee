@@ -8,12 +8,15 @@ import WButton from '../../../ui/WButton';
 import WToggle from '../../../ui/WToggle';
 import {
   WeeDescriptionToggleRow,
+  WeeHelpLinkButton,
   WeeModalFieldCard,
   WeePressSurface,
   WeeSectionEyebrow,
   WeeSettingsCollapsibleSection,
 } from '../../../ui/wee';
 import { createWeeTransition } from '../../../design/weeMotion';
+import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
+import { openSettingsToTab, SETTINGS_TAB_ID } from '../../../utils/settingsNavigation';
 
 /**
  * Per-channel Behavior tab — only tile-specific options:
@@ -44,9 +47,27 @@ function ChannelModalBehaviorTab({
   const channelHoverSounds = getSoundsByCategory('channelHover') || [];
   const reduceMotion = useReducedMotion();
   const hoverBodyTransition = createWeeTransition('tab', { reducedMotion: !!reduceMotion });
+  const globalHoverEnabled = useConsolidatedAppStore(
+    (s) => s.sounds?.channelHoverEnabled !== false
+  );
 
   const renderHoverSoundSection = () => (
     <div className="channel-stack-16">
+      {!globalHoverEnabled ? (
+        <div className="channel-surface-block">
+          <Text variant="p" className="!m-0 !font-semibold">
+            Hover sounds are muted globally
+          </Text>
+          <Text variant="help" className="!mb-2 !mt-1">
+            Custom sounds for this channel stay saved, but won&apos;t play until hover SFX are
+            enabled in Sounds.
+          </Text>
+          <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SOUNDS)}>
+            Open Sounds settings
+          </WeeHelpLinkButton>
+        </div>
+      ) : null}
+
       {hoverSoundEnabled && hoverSoundUrl && (
         <div className="channel-surface-block">
           <div className="channel-header-row">
@@ -54,7 +75,7 @@ function ChannelModalBehaviorTab({
               Selected Sound: {hoverSoundName}
             </Text>
             <WButton variant="tertiary" size="sm" onClick={clearHoverSoundSelection}>
-              Clear
+              Use global default
             </WButton>
           </div>
 
@@ -138,7 +159,8 @@ function ChannelModalBehaviorTab({
       </div>
 
       <Text variant="help" className="channel-help-sm">
-        Sound fades out on leave or click. Library uploads are shared and can be reused across channels.
+        Overrides the global hover track for this tile only. Still needs Sounds → Enable hover
+        sounds. Uploads are shared across channels. Fades out on leave or click.
       </Text>
     </div>
   );
@@ -200,7 +222,7 @@ function ChannelModalBehaviorTab({
           key={`hover-sound-${channelId}`}
           icon={Volume2}
           title="Custom hover sound"
-          description="Play a sound from your library when hovering over this channel — expand to enable and configure."
+          description="Override the global hover sound for this tile — expand to pick or upload."
           defaultOpen={hoverSoundEnabled}
           className="w-full"
         >

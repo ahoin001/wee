@@ -28,6 +28,7 @@ import {
 
 /** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
 const EMPTY_ENRICHED_GAMES = Object.freeze([]);
+const EMPTY_HIDDEN_GAME_IDS = Object.freeze([]);
 
 const VARIANT_META = {
   recent: {
@@ -60,11 +61,21 @@ function SteamGamesGlanceSlot({
   onArrangeSelect,
 }) {
   const meta = VARIANT_META[variant] || VARIANT_META.recent;
-  const { enrichedGames, steamId, apiKeyConfigured, apiEnabled, lastSyncedAt, homeSteamWidgetRaw } =
-    useConsolidatedAppStore(
+  const {
+    enrichedGames,
+    hiddenGameIds,
+    steamId,
+    apiKeyConfigured,
+    apiEnabled,
+    lastSyncedAt,
+    homeSteamWidgetRaw,
+  } = useConsolidatedAppStore(
       useShallow((state) => ({
         // Never allocate || [] / normalize() inside useShallow — new refs → React #185.
         enrichedGames: state.gameHub?.library?.enrichedGames,
+        hiddenGameIds: Array.isArray(state.gameHub?.ui?.hiddenGameIds)
+          ? state.gameHub.ui.hiddenGameIds
+          : EMPTY_HIDDEN_GAME_IDS,
         steamId: state.gameHub?.profile?.steamId || '',
         apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
         apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
@@ -107,8 +118,8 @@ function SteamGamesGlanceSlot({
   const coverDensity = layout.density === 'roomy' ? 'cozy' : 'compact';
 
   const games = useMemo(
-    () => meta.sort(enrichedList).slice(0, capacity),
-    [enrichedList, capacity, meta]
+    () => meta.sort(enrichedList, hiddenGameIds).slice(0, capacity),
+    [enrichedList, hiddenGameIds, capacity, meta]
   );
 
   useEffect(() => {
