@@ -15,7 +15,7 @@ import {
 import { normalizeNowPlayingExperience, toggleSpotifyTakeover } from './spotifyTakeover';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { clearAllCacheDomains, listCacheDomains, refreshCacheDomain } from './cacheRegistry';
-import { MEDIA_HUB_ARCHIVED } from './channelSpaces';
+import { CHANNEL_SPACE_LABELS, MEDIA_HUB_ARCHIVED } from './channelSpaces';
 // Side effect: ensures cache domains are registered before the palette builds refresh commands.
 import './cacheDomains';
 
@@ -30,12 +30,24 @@ export const COMMAND_GROUPS = Object.freeze([
 ]);
 
 const SPACE_DESTINATIONS = [
-  { id: 'home', label: 'Home', icon: '🏠', keywords: ['board', 'channels'] },
-  { id: 'workspaces', label: 'Focus', icon: '🎯', keywords: ['focus', 'second board'] },
+  { id: 'home', label: CHANNEL_SPACE_LABELS.home, icon: '🏠', keywords: ['board', 'channels'] },
+  {
+    id: 'workspaces',
+    label: CHANNEL_SPACE_LABELS.workspaces,
+    icon: '🎯',
+    keywords: ['focus', 'second board', 'second home'],
+  },
   ...(MEDIA_HUB_ARCHIVED
     ? []
-    : [{ id: 'mediahub', label: 'Media Hub', icon: '🎬', keywords: ['movies', 'video'] }]),
-  { id: 'gamehub', label: 'Game Hub', icon: '🎮', keywords: ['games', 'steam'] },
+    : [
+        {
+          id: 'mediahub',
+          label: CHANNEL_SPACE_LABELS.mediahub,
+          icon: '🎬',
+          keywords: ['movies', 'video'],
+        },
+      ]),
+  { id: 'gamehub', label: CHANNEL_SPACE_LABELS.gamehub, icon: '🎮', keywords: ['games', 'steam'] },
 ];
 
 /** Shortcut actions that make sense as palette commands (skip page nav / palette itself). */

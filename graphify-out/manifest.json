@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784428657.8202186,
-    "ast_hash": "a47bad1f51a7301fc30445fe261891df",
+    "mtime": 1784430765.2128613,
+    "ast_hash": "e5cdcbe9e0d54081901fa7f686e43d57",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -580,7 +580,7 @@
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyGradientOverlay.jsx": {
-    "mtime": 1784426698.0941107,
+    "mtime": 1784430707.80819,
     "ast_hash": "29c77dab8bba848257ff3d3d1d8aef57",
     "semantic_hash": ""
   },
@@ -590,7 +590,7 @@
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyLiveGradientWallpaper.jsx": {
-    "mtime": 1784426698.0941107,
+    "mtime": 1784430707.80819,
     "ast_hash": "8f9260d91f3eca821896277879c265e9",
     "semantic_hash": ""
   },
@@ -615,8 +615,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
-    "mtime": 1784425083.1664565,
-    "ast_hash": "f35e0d70249bf383f2231efb99217921",
+    "mtime": 1784432389.4564714,
+    "ast_hash": "189a6500c13fdd7b3dc638efa5eaef34",
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
@@ -655,8 +655,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/PresetsSettingsTab.jsx": {
-    "mtime": 1784428562.364763,
-    "ast_hash": "e514e0bf93cb738fa7550536876cdde1",
+    "mtime": 1784432392.9728396,
+    "ast_hash": "f00c4154dc2a318cebed81c65cc3ca72",
     "semantic_hash": ""
   },
   "src/components/settings/SaveButton.jsx": {
@@ -665,7 +665,7 @@
     "semantic_hash": "6ed44d296190bb07216729c421f2b473"
   },
   "src/components/settings/SettingsActionMenu.jsx": {
-    "mtime": 1784426698.095633,
+    "mtime": 1784430707.80819,
     "ast_hash": "86b0d647e8e310916ee11443210f5c46",
     "semantic_hash": ""
   },
@@ -730,8 +730,8 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1784430069.1133583,
-    "ast_hash": "f7f59cf2eaa7c589e721f9910af919fd",
+    "mtime": 1784432402.9956002,
+    "ast_hash": "b0e45536d134d5f0291eefbff4699c65",
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockPanel.jsx": {
@@ -750,8 +750,8 @@
     "semantic_hash": "bc56fd97e8acbbfd62f61a7de3601fcc"
   },
   "src/components/settings/dock/RibbonDockPanel.jsx": {
-    "mtime": 1784424883.3355494,
-    "ast_hash": "3db7724d1857abf9e4f3508ca736b456",
+    "mtime": 1784432389.959253,
+    "ast_hash": "69cd8e34bf3925dd69f56358d019ded2",
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
@@ -765,8 +765,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/presets/PresetsSaveCurrentCard.jsx": {
-    "mtime": 1784428577.0687013,
-    "ast_hash": "97e5164ff361d64b09b13e3c646f1552",
+    "mtime": 1784432390.1889017,
+    "ast_hash": "545b18ca3c4e3c8e085b98bafee1458c",
     "semantic_hash": ""
   },
   "src/components/settings/presets/PresetsSavedListCard.jsx": {
@@ -775,8 +775,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SpaceWallpaperAppearanceSection.jsx": {
-    "mtime": 1784429982.0729096,
-    "ast_hash": "bfe21f4edd1c5c3a0c4a0525727bdab1",
+    "mtime": 1784432390.8365479,
+    "ast_hash": "22da6a5a7490533d7a60b51aff18f4f0",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperCyclingSection.jsx": {
@@ -795,13 +795,13 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/wallpaperSettingsConstants.js": {
-    "mtime": 1784228075.9169483,
-    "ast_hash": "b8ad717916179a685ab55ef9e53edbf9",
+    "mtime": 1784432380.4662964,
+    "ast_hash": "bf181fb8d2b7818a2d29221f57cff91b",
     "semantic_hash": ""
   },
   "src/components/spaces/WeeGooeySpacePill.jsx": {
-    "mtime": 1784424933.6851716,
-    "ast_hash": "133c6ae87631c58eef47bbc4241fb6d4",
+    "mtime": 1784432383.607027,
+    "ast_hash": "594f1ea7a907ec341526e3daca424e4e",
     "semantic_hash": ""
   },
   "src/components/spaces/index.js": {
@@ -1290,8 +1290,8 @@
     "semantic_hash": "337177928ec75e7f42c27682e6426e0b"
   },
   "src/utils/channelSpaces.js": {
-    "mtime": 1784424837.618138,
-    "ast_hash": "6f48dbad038fd525ac31649abb106024",
+    "mtime": 1784432323.9363222,
+    "ast_hash": "54af8c48c07353f26d722cc822e07a30",
     "semantic_hash": ""
   },
   "src/utils/colorHex.js": {
@@ -2065,8 +2065,8 @@
     "semantic_hash": ""
   },
   "src/utils/commandCatalog.js": {
-    "mtime": 1784240597.2574837,
-    "ast_hash": "a51d3053511f5fb973c2cfcabdcd752a",
+    "mtime": 1784432385.6138844,
+    "ast_hash": "70236baf5cad0bc33f060463cd999f4d",
     "semantic_hash": ""
   },
   "src/utils/settingsRegistry.js": {
@@ -2320,7 +2320,7 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetSettingsPanel.jsx": {
-    "mtime": 1784426698.0925672,
+    "mtime": 1784430707.80819,
     "ast_hash": "c10d414e4533d915f299b2f4e3dc3e3f",
     "semantic_hash": ""
   },

@@ -51,15 +51,21 @@ const SURFACES_SEGMENTS = [
   { value: 'chrome', label: 'Chrome', title: 'Ribbon scope and wallpaper color match' },
 ];
 
+const SURFACES_TAB_TIPS = Object.freeze({
+  library: 'Pick a tile to preview on the canvas · Apply pins to the space/page in the toolbar.',
+  look: 'Tone updates the canvas live · Page pin/clear appears when scope is This page.',
+  atmosphere: 'Cycling and particles are Home-only · Watch them play on the canvas.',
+  chrome: 'Match paints the ribbon from wallpaper · Edit exact colors in Dock.',
+});
+
 /** Map older segment ids if any persisted UI state leaks through. */
-function normalizeSurfacesSegment(value, isHomeSpace) {
+function normalizeSurfacesSegment(value) {
   const legacy = {
     wallpaper: 'library',
     effects: 'atmosphere',
     ribbon: 'chrome',
   };
   const next = legacy[value] || value;
-  if (!isHomeSpace && next === 'atmosphere') return 'library';
   if (SURFACES_SEGMENTS.some((s) => s.value === next)) return next;
   return 'library';
 }
@@ -198,7 +204,7 @@ function useWallpaperSettingsController() {
     currentPage: selectedBoardCurrentPage,
   });
 
-  /** Real board schematic for home/Focus pages — hubs omit the channel layer. */
+  /** Real board schematic for Home / Second Home pages — hubs omit the channel layer. */
   const sceneBoardPreview = useMemo(() => {
     const empty = {
       layout: null,
@@ -1138,17 +1144,18 @@ const WallpaperSettingsTab = React.memo(() => {
     (typeof selectedWallpaper?.url === 'string' && selectedWallpaper.url) ||
     effectiveActiveWallpaperUrl ||
     null;
-  const activeSurfacesSegment = normalizeSurfacesSegment(surfacesSegment, isHomeSpace);
+  const activeSurfacesSegment = normalizeSurfacesSegment(surfacesSegment);
   const perPageMode =
     supportsPerPageWallpaper && selectedWallpaperScope === 'perPage';
   const applyScopeLabel = perPageMode
     ? `${selectedSpaceLabel} · page ${selectedBoardCurrentPage + 1}`
     : selectedSpaceLabel;
+  const inspectorTip = SURFACES_TAB_TIPS[activeSurfacesSegment] || SURFACES_TAB_TIPS.library;
 
   useEffect(() => {
-    const normalized = normalizeSurfacesSegment(surfacesSegment, isHomeSpace);
+    const normalized = normalizeSurfacesSegment(surfacesSegment);
     if (normalized !== surfacesSegment) setSurfacesSegment(normalized);
-  }, [isHomeSpace, surfacesSegment]);
+  }, [surfacesSegment]);
 
   const triggerApplyPulse = useCallback(() => {
     if (reduceMotion) return;
@@ -1198,15 +1205,11 @@ const WallpaperSettingsTab = React.memo(() => {
     return `Library for ${where} — pick a tile to preview, then Apply.`;
   })();
 
-  const segmentOptions = isHomeSpace
-    ? SURFACES_SEGMENTS
-    : SURFACES_SEGMENTS.filter((opt) => opt.value !== 'atmosphere');
-
   return (
     <div className="settings-wee-tab-root settings-wee-tab-root--studio pb-12">
       <SettingsTabPageHeader
         title="Surfaces"
-        subtitle="Preview-first studio — pick art, tune the look, then add atmosphere"
+        subtitle="Canvas studio — art on the left, toolkit on the right"
       />
 
       {message.text ? (
@@ -1264,7 +1267,7 @@ const WallpaperSettingsTab = React.memo(() => {
                   {
                     value: 'perPage',
                     label: 'This page',
-                    title: 'Different wallpaper per Home/Focus page',
+                    title: 'Different wallpaper per Home / Second Home page',
                   },
                 ]}
               />
@@ -1332,18 +1335,20 @@ const WallpaperSettingsTab = React.memo(() => {
           />
         </div>
 
-        <div className="settings-wee-studio-tabs">
-          <WeeSegmentedControl
-            size="sm"
-            ariaLabel="Surfaces section"
-            layoutId="surfacesSettingsSegment"
-            value={activeSurfacesSegment}
-            onChange={setSurfacesSegment}
-            options={segmentOptions}
-          />
-        </div>
+        <aside className="settings-wee-studio-inspector" aria-label="Surfaces inspector">
+          <div className="settings-wee-studio-inspector__tabs">
+            <WeeSegmentedControl
+              size="sm"
+              ariaLabel="Surfaces section"
+              layoutId="surfacesSettingsSegment"
+              value={activeSurfacesSegment}
+              onChange={setSurfacesSegment}
+              options={SURFACES_SEGMENTS}
+            />
+          </div>
+          <p className="settings-wee-studio-inspector__tip">{inspectorTip}</p>
 
-        <div className="settings-wee-studio-controls">
+          <div className="settings-wee-studio-inspector__scroll settings-wee-studio-controls">
           <AnimatePresence mode="wait" initial={false}>
             <m.div
               key={activeSurfacesSegment}
@@ -1421,11 +1426,9 @@ const WallpaperSettingsTab = React.memo(() => {
                 />
               ) : null}
 
-              {activeSurfacesSegment === 'atmosphere' && isHomeSpace ? (
+              {activeSurfacesSegment === 'atmosphere' ? (
+                isHomeSpace ? (
                 <div className="flex flex-col gap-4">
-                  <p className="settings-wee-help !mb-0 px-1">
-                    Cycling and particles are Home-only — watch them play in the live scene above.
-                  </p>
                   <SettingsWeeSection eyebrow="Cycling">
                     <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
                       <WallpaperCyclingSection
@@ -1470,6 +1473,17 @@ const WallpaperSettingsTab = React.memo(() => {
                     </WeeModalFieldCard>
                   </SettingsWeeSection>
                 </div>
+                ) : (
+                  <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+                    <Text variant="h3" className="mb-1 playful-hero-text">
+                      Atmosphere is Home-only
+                    </Text>
+                    <Text variant="desc" className="!m-0">
+                      Switch the toolbar to Home to edit wallpaper cycling and particle overlays.
+                      Other spaces use their pinned look without Atmosphere.
+                    </Text>
+                  </WeeModalFieldCard>
+                )
               ) : null}
 
               {activeSurfacesSegment === 'chrome' ? (
@@ -1522,7 +1536,7 @@ const WallpaperSettingsTab = React.memo(() => {
                               {
                                 value: 'perPage',
                                 label: 'Per page',
-                                title: 'Different ribbon look per Home/Focus page',
+                                title: 'Different ribbon look per Home / Second Home page',
                               },
                             ]}
                           />
@@ -1599,7 +1613,8 @@ const WallpaperSettingsTab = React.memo(() => {
               ) : null}
             </m.div>
           </AnimatePresence>
-        </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

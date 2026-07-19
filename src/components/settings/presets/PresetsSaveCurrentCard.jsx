@@ -39,7 +39,7 @@ const PresetsSaveCurrentCard = React.memo(
       </div>
 
       <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-        Saves atmosphere across spaces and pages. Your Home and Focus boards are never replaced.
+        Saves atmosphere across spaces and pages. Your Home and Second Home boards are never replaced.
       </Text>
 
       <div className="flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.55)] px-4 py-3">

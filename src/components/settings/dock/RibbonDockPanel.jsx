@@ -211,7 +211,7 @@ function RibbonDockPanel({
     <div className="flex flex-col gap-5">
       <RibbonLivePreview sticky={false} />
       <WeeHelpParagraph>
-        Scope ribbon colors per Home/Focus page in{' '}
+        Scope ribbon colors per Home / Second Home page in{' '}
         <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.WALLPAPER)}>
           Surfaces
         </WeeHelpLinkButton>

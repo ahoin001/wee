@@ -13,13 +13,33 @@ import { migrateSpaceDataToSlots } from './homeGridSlots';
 /**
  * Channel grid data is scoped per shell space:
  * - `dataBySpace.home` is the live Home board.
- * - `dataBySpace.workspaces` is the live Focus board.
+ * - `dataBySpace.workspaces` is the live Second Home board (stable id `workspaces`).
  * - `slots[]` is the widget-ready SSOT; configuredChannels/channelConfigs/slotMeta are projections.
  */
 
 export const CHANNEL_SPACE_KEYS = ['home', 'workspaces'];
 
-/** Vertical shell rail order: Home → Focus (workspaces) → Game Hub. */
+/**
+ * User-facing space names. Store / rail ids stay `home` | `workspaces` | hubs.
+ * @type {Readonly<Record<string, string>>}
+ */
+export const CHANNEL_SPACE_LABELS = Object.freeze({
+  home: 'Home',
+  workspaces: 'Second Home',
+  gamehub: 'Game Hub',
+  mediahub: 'Media Hub',
+});
+
+/**
+ * @param {string} [spaceId]
+ * @returns {string}
+ */
+export function getChannelSpaceLabel(spaceId) {
+  if (!spaceId) return 'Space';
+  return CHANNEL_SPACE_LABELS[spaceId] || spaceId;
+}
+
+/** Vertical shell rail order: Home → Second Home (workspaces) → Game Hub. */
 export const DEFAULT_SHELL_SPACE_ORDER = ['home', 'workspaces', 'gamehub'];
 
 /**

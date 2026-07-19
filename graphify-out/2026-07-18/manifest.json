@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784428388.5649107,
-    "ast_hash": "aff6b96aa3df48a9dfc085403c35446e",
+    "mtime": 1784428657.8202186,
+    "ast_hash": "a47bad1f51a7301fc30445fe261891df",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -595,9 +595,9 @@
     "semantic_hash": ""
   },
   "src/components/overlays/WallpaperOverlay.jsx": {
-    "mtime": 1776549705.651814,
-    "ast_hash": "dc3571c87c3f72e3c1ab0073823a5731",
-    "semantic_hash": "dc3571c87c3f72e3c1ab0073823a5731"
+    "mtime": 1784429923.1635058,
+    "ast_hash": "9643871a9340bea109d3db2b42b2c760",
+    "semantic_hash": ""
   },
   "src/components/overlays/index.js": {
     "mtime": 1776091196.1196735,
@@ -730,8 +730,8 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1784426977.6399388,
-    "ast_hash": "33a04c1f54ae29a580d7e13c7fb95330",
+    "mtime": 1784430069.1133583,
+    "ast_hash": "f7f59cf2eaa7c589e721f9910af919fd",
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockPanel.jsx": {
@@ -775,8 +775,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SpaceWallpaperAppearanceSection.jsx": {
-    "mtime": 1784424049.0182796,
-    "ast_hash": "81c11841c331a8609b5ec5578cea887a",
+    "mtime": 1784429982.0729096,
+    "ast_hash": "bfe21f4edd1c5c3a0c4a0525727bdab1",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperCyclingSection.jsx": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperLibrarySection.jsx": {
-    "mtime": 1784426883.1537218,
-    "ast_hash": "1ce67a1779e38572fc2a627839e9a974",
+    "mtime": 1784429997.4023058,
+    "ast_hash": "4cf897330eb7bd818a616cd87ca3d9cc",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperOverlaySection.jsx": {
@@ -2470,8 +2470,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SurfacesScenePreview.jsx": {
-    "mtime": 1784426934.6218824,
-    "ast_hash": "7e13d5ea7480cadbade475af3b00b1f8",
+    "mtime": 1784429954.7621446,
+    "ast_hash": "1fb37855c0941b1a35d4be899870e34a",
     "semantic_hash": ""
   },
   "src/components/settings/MotionToggleRow.jsx": {

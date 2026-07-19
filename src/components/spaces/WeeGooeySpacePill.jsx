@@ -20,6 +20,7 @@ import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
 import { Clapperboard, Focus, Gamepad2, Home, PenLine, Pin, PinOff, Wand2 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
+  CHANNEL_SPACE_LABELS,
   DEFAULT_SHELL_SPACE_ORDER,
   normalizeShellSpaceOrder,
   resolveActiveChannelSpaceKey,
@@ -43,10 +44,10 @@ import {
 const MotionDiv = m.div;
 
 const SPACE_META = {
-  home: { label: 'Home', Icon: Home },
-  workspaces: { label: 'Focus', Icon: Focus },
-  mediahub: { label: 'Media', Icon: Clapperboard },
-  gamehub: { label: 'Games', Icon: Gamepad2 },
+  home: { label: CHANNEL_SPACE_LABELS.home, Icon: Home },
+  workspaces: { label: CHANNEL_SPACE_LABELS.workspaces, Icon: Focus },
+  mediahub: { label: CHANNEL_SPACE_LABELS.mediahub, Icon: Clapperboard },
+  gamehub: { label: CHANNEL_SPACE_LABELS.gamehub, Icon: Gamepad2 },
 };
 
 /**
@@ -437,14 +438,14 @@ export default function WeeGooeySpacePill() {
     setHovered(false);
   };
 
-  /** Live Board Studio on the current channel board (Home/Focus stay put; hubs jump to Home). */
+  /** Live Board Studio on the current channel board (Home/Second Home stay put; hubs jump to Home). */
   const handleEditBoard = () => {
     enterHomeBoardArrange({ closeSettings: true });
     setHovered(false);
   };
   const editBoardLabel =
     activeSpaceId === 'workspaces'
-      ? 'Edit board — arrange Focus tiles and widgets'
+      ? 'Edit board — arrange Second Home tiles and widgets'
       : activeSpaceId === 'home'
         ? 'Edit board — arrange Home tiles and widgets'
         : 'Edit Home — arrange tiles and widgets';

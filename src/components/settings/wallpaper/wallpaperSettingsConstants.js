@@ -1,3 +1,5 @@
+import { CHANNEL_SPACE_LABELS } from '../../../utils/channelSpaces';
+
 export const WALLPAPER_ANIMATIONS = [
   { value: 'fade', label: 'Crossfade - Smooth, elegant transition (Recommended)' },
   { value: 'slide', label: 'Slide - Directional slide transition' },
@@ -37,8 +39,8 @@ export const OVERLAY_EFFECT_OPTIONS = [
 ];
 
 export const SPACE_WALLPAPER_OPTIONS = [
-  { id: 'home', label: 'Home' },
-  { id: 'workspaces', label: 'Focus' },
-  { id: 'gamehub', label: 'Game Hub' },
-  { id: 'mediahub', label: 'Media Hub' },
+  { id: 'home', label: CHANNEL_SPACE_LABELS.home },
+  { id: 'workspaces', label: CHANNEL_SPACE_LABELS.workspaces },
+  { id: 'gamehub', label: CHANNEL_SPACE_LABELS.gamehub },
+  { id: 'mediahub', label: CHANNEL_SPACE_LABELS.mediahub },
 ];

@@ -153,7 +153,7 @@ function SpaceWallpaperAppearanceSection({
                       {
                         value: 'perPage',
                         label: 'Per page',
-                        title: 'Different wallpaper per Home/Focus page',
+                        title: 'Different wallpaper per Home / Second Home page',
                       },
                     ]}
                   />

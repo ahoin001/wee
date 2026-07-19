@@ -30,7 +30,9 @@ import {
   WII_STRIP_PEEK_PERCENT,
 } from '../../utils/channelLayoutSystem';
 import {
+  CHANNEL_SPACE_LABELS,
   getChannelDataSlice,
+  getChannelSpaceLabel,
   resolveActiveChannelSpaceKey,
 } from '../../utils/channelSpaces';
 import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
@@ -164,7 +166,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   const activeChannelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
   const layoutSpaceKey = boardPickerKey || activeChannelSpaceKey;
   const isFocusBoard = layoutSpaceKey === 'workspaces';
-  const boardLabel = isFocusBoard ? 'Focus' : 'Home';
+  const boardLabel = getChannelSpaceLabel(layoutSpaceKey);
 
   useEffect(() => {
     const data = getChannelDataSlice(
@@ -437,8 +439,8 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               value={layoutSpaceKey}
               onChange={(key) => setBoardPickerKey(key)}
               options={[
-                { value: 'home', label: 'Home' },
-                { value: 'workspaces', label: 'Focus' },
+                { value: 'home', label: CHANNEL_SPACE_LABELS.home },
+                { value: 'workspaces', label: CHANNEL_SPACE_LABELS.workspaces },
               ]}
               size="sm"
             />
@@ -447,7 +449,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
 
         {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
           <Text variant="caption" className="!mt-2 !mb-0 text-[hsl(var(--text-tertiary))]">
-            You&apos;re in a Hub — pick Home or Focus above to choose which grid to edit.
+            You&apos;re in a Hub — pick Home or Second Home above to choose which grid to edit.
           </Text>
         ) : null}
 
@@ -537,7 +539,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             className="shrink-0"
             onClick={isFocusBoard ? handleOpenFocusBoard : handleArrangeOnHome}
           >
-            {isFocusBoard ? 'Open Focus' : 'Edit Home'}
+            {isFocusBoard ? 'Open Second Home' : 'Edit Home'}
           </WeeButton>
         </div>
 
@@ -941,7 +943,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
       <SettingsTabPageHeader
         title="Channel & layout"
-        subtitle="Size the Home or Focus grid, punch wallpaper holes, and tune how channels look and move"
+        subtitle="Size the Home or Second Home grid, punch wallpaper holes, and tune how channels look and move"
         className="mb-6"
       />
 

@@ -95,7 +95,7 @@ const PresetsSettingsTab = React.memo(() => {
     custom_image_name: null,
     selectedPreset: null,
   });
-  /** New Looks are always visual-only (shareable). Boards live on Home / Focus spaces. */
+  /** New Looks are always visual-only (shareable). Boards live on Home / Second Home spaces. */
   const selectedCaptureScope = PRESET_SCOPE_VISUAL;
   const [updateScopeDialog, setUpdateScopeDialog] = useState(null);
   const [updateScopeModalOpen, setUpdateScopeModalOpen] = useState(false);
