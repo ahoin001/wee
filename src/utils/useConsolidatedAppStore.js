@@ -737,6 +737,8 @@ useConsolidatedAppStore = create(
             effectsEnabled: true,
             activeCollectionId: null,
             favoriteGameIds: [],
+            /** Steam hub game ids (`steam-{appId}`) excluded from Game Hub UI; metadata preserved. */
+            hiddenGameIds: [],
             hubShelfOrderMode: 'custom',
             collectionShelfOrder: null,
             hubLibrarySort: 'default',
@@ -1851,6 +1853,50 @@ useConsolidatedAppStore = create(
             };
           }),
 
+          hideGameHubGame: (gameId) => set((state) => {
+            const id = String(gameId || '').trim();
+            if (!id) return state;
+            const prev = Array.isArray(state.gameHub.ui.hiddenGameIds)
+              ? state.gameHub.ui.hiddenGameIds.map(String)
+              : [];
+            if (prev.includes(id)) return state;
+            return {
+              gameHub: {
+                ...state.gameHub,
+                ui: { ...state.gameHub.ui, hiddenGameIds: [...prev, id] },
+              },
+            };
+          }),
+
+          unhideGameHubGame: (gameId) => set((state) => {
+            const id = String(gameId || '').trim();
+            if (!id) return state;
+            const prev = Array.isArray(state.gameHub.ui.hiddenGameIds)
+              ? state.gameHub.ui.hiddenGameIds.map(String)
+              : [];
+            if (!prev.includes(id)) return state;
+            return {
+              gameHub: {
+                ...state.gameHub,
+                ui: {
+                  ...state.gameHub.ui,
+                  hiddenGameIds: prev.filter((entry) => entry !== id),
+                },
+              },
+            };
+          }),
+
+          unhideAllGameHubGames: () => set((state) => {
+            const prev = state.gameHub.ui.hiddenGameIds;
+            if (!Array.isArray(prev) || prev.length === 0) return state;
+            return {
+              gameHub: {
+                ...state.gameHub,
+                ui: { ...state.gameHub.ui, hiddenGameIds: [] },
+              },
+            };
+          }),
+
           createWeeCollection: (label) => set((state) => {
             const id =
               typeof crypto !== 'undefined' && crypto.randomUUID
@@ -2201,6 +2247,7 @@ useConsolidatedAppStore = create(
                 effectsEnabled: true,
                 activeCollectionId: null,
                 favoriteGameIds: [],
+                hiddenGameIds: [],
                 hubShelfOrderMode: 'custom',
                 collectionShelfOrder: null,
                 hubLibrarySort: 'default',

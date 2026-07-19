@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784434095.2573383,
-    "ast_hash": "36459a89cc5b8c24fcf478b4b653b1bc",
+    "mtime": 1784436217.5218763,
+    "ast_hash": "b55cdb065ef4f1cd334e86e4d2bef80d",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -370,8 +370,8 @@
     "semantic_hash": "d721030a8daff33cc4c742dc5891fef4"
   },
   "src/components/game-hub/GameCardContextMenu.jsx": {
-    "mtime": 1784223390.2712107,
-    "ast_hash": "0be6e38f2c4f13ab3f1996e9e9ac0c08",
+    "mtime": 1784490400.0818515,
+    "ast_hash": "7836962bca12ae3e181d5a7be8fca1e1",
     "semantic_hash": ""
   },
   "src/components/game-hub/GameHubGameArtPanel.jsx": {
@@ -405,8 +405,8 @@
     "semantic_hash": "c21f7566834f5fb136784a4dc3fb65b3"
   },
   "src/components/game-hub/GameHubSpace.jsx": {
-    "mtime": 1784434287.160435,
-    "ast_hash": "af5e1f54cda08760ba7fc60400fbce42",
+    "mtime": 1784490394.50601,
+    "ast_hash": "0906a15ab76698cae53d1bebb4b6e030",
     "semantic_hash": ""
   },
   "src/components/game-hub/GameHubTileDialogsProvider.jsx": {
@@ -425,9 +425,9 @@
     "semantic_hash": "471434b24d7b63f17e3371e5c406dcf7"
   },
   "src/components/game-hub/hubData.js": {
-    "mtime": 1776473602.6421635,
-    "ast_hash": "3003e91b22b77fe8948dd8975fd5f970",
-    "semantic_hash": "3003e91b22b77fe8948dd8975fd5f970"
+    "mtime": 1784490430.286906,
+    "ast_hash": "5adcd5860e62ae5cfb5df1e57111240a",
+    "semantic_hash": ""
   },
   "src/components/game-hub/hubScrollUtils.js": {
     "mtime": 1784434400.7773144,
@@ -665,7 +665,7 @@
     "semantic_hash": "6ed44d296190bb07216729c421f2b473"
   },
   "src/components/settings/SettingsActionMenu.jsx": {
-    "mtime": 1784430707.80819,
+    "mtime": 1784488698.1219814,
     "ast_hash": "86b0d647e8e310916ee11443210f5c46",
     "semantic_hash": ""
   },
@@ -730,7 +730,7 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1784435900.422038,
+    "mtime": 1784488698.1219814,
     "ast_hash": "98ad10875c47db6b2d31a59c941fb1d7",
     "semantic_hash": ""
   },
@@ -775,22 +775,22 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SpaceWallpaperAppearanceSection.jsx": {
-    "mtime": 1784435715.1672623,
+    "mtime": 1784488698.1219814,
     "ast_hash": "38a7ea5ee320ce5bc61547f9c2760508",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperCyclingSection.jsx": {
-    "mtime": 1784435755.8550375,
+    "mtime": 1784488698.1219814,
     "ast_hash": "f4f4b7a1e53bba3111b137ef230211e4",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperLibrarySection.jsx": {
-    "mtime": 1784435817.075245,
+    "mtime": 1784488698.1219814,
     "ast_hash": "3b74a06ab4b4999da41b44eca54a5e70",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperOverlaySection.jsx": {
-    "mtime": 1784435791.6698647,
+    "mtime": 1784488698.1219814,
     "ast_hash": "bb219d08deb968627aa696b0ca3fefa3",
     "semantic_hash": ""
   },
@@ -1510,8 +1510,8 @@
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784434356.369593,
-    "ast_hash": "33d1cce7142988270d851aaf0d5189e3",
+    "mtime": 1784490379.6780527,
+    "ast_hash": "dfd30226d57e02a05c1d17d00551f24d",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -2365,8 +2365,8 @@
     "semantic_hash": ""
   },
   "src/components/game-hub/GameHubControlsPill.jsx": {
-    "mtime": 1784427321.7141805,
-    "ast_hash": "e0144798bfba4041ed072234b9f76e27",
+    "mtime": 1784490417.5362008,
+    "ast_hash": "fbd060e1a509ac1e4e780ebd418ff7d9",
     "semantic_hash": ""
   },
   "src/utils/theme/wallpaperAmbientPaletteCache.js": {
@@ -2422,6 +2422,11 @@
   "src/ui/wee/WeeSliderValue.jsx": {
     "mtime": 1784433776.2418323,
     "ast_hash": "962725f5b6b241965a5a9f1021ff167d",
+    "semantic_hash": ""
+  },
+  "src/components/game-hub/GameHubHiddenGamesDialog.jsx": {
+    "mtime": 1784490408.729957,
+    "ast_hash": "c2afd5a7d26efea713f3aac284041c61",
     "semantic_hash": ""
   }
 }

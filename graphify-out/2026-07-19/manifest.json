@@ -730,8 +730,8 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1784433883.1113958,
-    "ast_hash": "634d2d54d39c5a82aaf5ac2621949680",
+    "mtime": 1784435900.422038,
+    "ast_hash": "98ad10875c47db6b2d31a59c941fb1d7",
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockPanel.jsx": {
@@ -775,23 +775,23 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SpaceWallpaperAppearanceSection.jsx": {
-    "mtime": 1784433881.737546,
-    "ast_hash": "1c3b29dbde5223f9ff7f0fc4d9920f7c",
+    "mtime": 1784435715.1672623,
+    "ast_hash": "38a7ea5ee320ce5bc61547f9c2760508",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperCyclingSection.jsx": {
-    "mtime": 1784433842.4191444,
-    "ast_hash": "62a00b2b437581d5f4ffe2cf55a505a1",
+    "mtime": 1784435755.8550375,
+    "ast_hash": "f4f4b7a1e53bba3111b137ef230211e4",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperLibrarySection.jsx": {
-    "mtime": 1784433810.1486568,
-    "ast_hash": "e65a08afc149c724f5346e09bdf52101",
+    "mtime": 1784435817.075245,
+    "ast_hash": "3b74a06ab4b4999da41b44eca54a5e70",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperOverlaySection.jsx": {
-    "mtime": 1784433835.8049812,
-    "ast_hash": "318830f354dc78e4dfefa498757701a3",
+    "mtime": 1784435791.6698647,
+    "ast_hash": "bb219d08deb968627aa696b0ca3fefa3",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/wallpaperSettingsConstants.js": {
@@ -2410,8 +2410,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SurfacesScenePreview.jsx": {
-    "mtime": 1784433796.9782586,
-    "ast_hash": "5e998334cd8622ce056445fc3a9a21c4",
+    "mtime": 1784434995.6144347,
+    "ast_hash": "0518683a80ff66ce358d1900d1eecc06",
     "semantic_hash": ""
   },
   "src/components/settings/MotionToggleRow.jsx": {

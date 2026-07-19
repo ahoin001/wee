@@ -27,6 +27,7 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
     favoriteGameIds,
     weeCollections,
     toggleGameHubFavorite,
+    hideGameHubGame,
     addGameToWeeCollection,
     removeGameFromWeeCollection,
     setGameHubCustomArt,
@@ -40,6 +41,7 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
         ? state.gameHub.library.weeCollections
         : EMPTY_WEE_COLLECTIONS,
       toggleGameHubFavorite: state.actions.toggleGameHubFavorite,
+      hideGameHubGame: state.actions.hideGameHubGame,
       addGameToWeeCollection: state.actions.addGameToWeeCollection,
       removeGameFromWeeCollection: state.actions.removeGameFromWeeCollection,
       setGameHubCustomArt: state.actions.setGameHubCustomArt,
@@ -133,6 +135,17 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
                 </ContextMenu.SubContent>
               </ContextMenu.Portal>
             </ContextMenu.Sub>
+            {game?.source === 'steam' && game?.id ? (
+              <>
+                <ContextMenu.Separator className="aura-hub-context-menu__separator" />
+                <ContextMenu.Item
+                  className="aura-hub-context-menu__item"
+                  onSelect={() => hideGameHubGame(game.id)}
+                >
+                  Hide from Game Hub
+                </ContextMenu.Item>
+              </>
+            ) : null}
           </ContextMenu.Content>
         </ContextMenu.Portal>
       </ContextMenu.Root>

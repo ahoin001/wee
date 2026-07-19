@@ -349,12 +349,14 @@ export default function GameHubSpace() {
   const weeMeta = useMemo(
     () => ({
       favoriteGameIds: gameHub.ui?.favoriteGameIds || [],
+      hiddenGameIds: gameHub.ui?.hiddenGameIds || [],
       weeCollections: gameHub.library?.weeCollections || [],
       lastLaunchedAt: gameHub.library?.lastLaunchedAt || {},
       customArtByGameId: gameHub.ui?.customArtByGameId || {},
     }),
     [
       gameHub.ui?.favoriteGameIds,
+      gameHub.ui?.hiddenGameIds,
       gameHub.library?.weeCollections,
       gameHub.library?.lastLaunchedAt,
       gameHub.ui?.customArtByGameId,
@@ -438,6 +440,23 @@ export default function GameHubSpace() {
       },
     };
   }, [hubData, hubSteamOnlyGames]);
+
+  /** Clear selection / open shelf when hide (or filter) removes their visible target. */
+  useEffect(() => {
+    const patch = {};
+    if (selectedGameId && !hubDataView.installed.some((g) => g.id === selectedGameId)) {
+      patch.selectedGameId = null;
+    }
+    if (activeCollectionId) {
+      const open = hubDataView.collections.items.find((c) => c.id === activeCollectionId);
+      if (!open || (Array.isArray(open.games) && open.games.length === 0)) {
+        patch.activeCollectionId = null;
+      }
+    }
+    if (Object.keys(patch).length > 0) {
+      setGameHubState({ ui: patch });
+    }
+  }, [activeCollectionId, hubDataView.collections.items, hubDataView.installed, selectedGameId, setGameHubState]);
 
   const displayCollections = useMemo(() => {
     const raw = hubDataView.collections.items;
@@ -743,7 +762,7 @@ export default function GameHubSpace() {
         ) : null}
 
         <m.div className="aura-hub-stage-toolbar" variants={hubBandVariants}>
-          <GameHubControlsPill />
+          <GameHubControlsPill hiddenGames={hubData.hiddenGames || []} />
         </m.div>
 
         <m.div className="aura-hub-column" variants={hubBandVariants}>

@@ -276,15 +276,25 @@ export function formatDiskSize(game) {
 /**
  * @param {object} opts
  * @param {object} [opts.clientLibrary] — from steam:getClientLibraryMetadata: { ok, favoritesAppIds, appIdToTags } (tags only)
- * @param {object} [opts.weeMeta] — { favoriteGameIds, weeCollections, lastLaunchedAt }
+ * @param {object} [opts.weeMeta] — { favoriteGameIds, hiddenGameIds, weeCollections, lastLaunchedAt, customArtByGameId }
  */
 export function buildHubData({ steamGames, epicGames, enrichmentMap, clientLibrary, weeMeta }) {
   const mergedSteam = mergeSteamGamesWithEnrichment(steamGames, enrichmentMap);
   const normalizedSteam = mergedSteam.map((game) => normalizeSteamGame(game, enrichmentMap));
   const normalizedEpic = (epicGames || []).map(normalizeEpicGame);
   const customArtByGameId = weeMeta?.customArtByGameId || {};
-  const installedRaw = [...normalizedSteam, ...normalizedEpic];
-  const installed = installedRaw.map((g) => applyCustomArtOverrides(g, customArtByGameId));
+  const catalogRaw = [...normalizedSteam, ...normalizedEpic];
+  const catalog = catalogRaw.map((g) => applyCustomArtOverrides(g, customArtByGameId));
+
+  const hiddenIdSet = new Set(
+    (Array.isArray(weeMeta?.hiddenGameIds) ? weeMeta.hiddenGameIds : []).map(String).filter(Boolean)
+  );
+  const hiddenGames = catalog
+    .filter((g) => g.source === 'steam' && hiddenIdSet.has(g.id))
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
+  /** Visible hub catalog — every shelf/hero/library derivation uses this set. */
+  const installed = catalog.filter((g) => !hiddenIdSet.has(g.id));
+  const visibleSteam = installed.filter((g) => g.source === 'steam');
 
   const favoriteGameIds = weeMeta?.favoriteGameIds || [];
   const lastLaunchedAt = weeMeta?.lastLaunchedAt || {};
@@ -304,10 +314,11 @@ export function buildHubData({ steamGames, epicGames, enrichmentMap, clientLibra
     )
     .slice(0, MAX_RAIL_FAVORITES);
 
-  const collections = buildDynamicCollections(installed, normalizedSteam, clientLibrary, weeMeta);
+  const collections = buildDynamicCollections(installed, visibleSteam, clientLibrary, weeMeta);
 
   return {
     installed,
+    hiddenGames,
     favoritesOnly,
     railGames,
     collections,
