@@ -16,15 +16,23 @@ function WeeSettingsCollapsibleSection({
   title,
   description,
   defaultOpen = false,
+  open: openControlled,
+  onOpenChange,
   children,
   className = '',
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [openUncontrolled, setOpenUncontrolled] = useState(defaultOpen);
+  const isControlled = openControlled !== undefined;
+  const open = isControlled ? Boolean(openControlled) : openUncontrolled;
   const reduceMotion = useReducedMotion();
   const headingId = useId();
   const panelId = useId();
 
-  const toggle = useCallback(() => setOpen((o) => !o), []);
+  const toggle = useCallback(() => {
+    const next = !open;
+    if (!isControlled) setOpenUncontrolled(next);
+    onOpenChange?.(next);
+  }, [isControlled, onOpenChange, open]);
 
   const pressSpring = createWeeTransition('press', { reducedMotion: reduceMotion });
 
@@ -110,6 +118,8 @@ WeeSettingsCollapsibleSection.propTypes = {
   title: PropTypes.string.isRequired,
   description: PropTypes.string,
   defaultOpen: PropTypes.bool,
+  open: PropTypes.bool,
+  onOpenChange: PropTypes.func,
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
 };
@@ -118,6 +128,8 @@ WeeSettingsCollapsibleSection.defaultProps = {
   icon: null,
   description: null,
   defaultOpen: false,
+  open: undefined,
+  onOpenChange: undefined,
   className: '',
 };
 

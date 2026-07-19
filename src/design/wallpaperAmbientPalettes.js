@@ -9,4 +9,5 @@ export const WALLPAPER_OVERLAY_COLORS = {
   fireflies: ['#ffff00', '#ffd700', '#ffa500'],
   dust: ['#d2b48c', '#deb887', '#f5deb3'],
   fire: ['#ff4500', '#ff6347', '#ff7f50', '#ff8c00', '#ffa500'],
+  sakura: ['#ffc4d6', '#ffb7c5', '#ffd9e3', '#f8a5bb'],
 };

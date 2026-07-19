@@ -5,7 +5,12 @@ import WInput from '../../../ui/WInput';
 import Slider from '../../../ui/Slider';
 import SettingsWeeSection from '../SettingsWeeSection';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
-import { WeeMorphStack, WeeRevealWhen, WeeSpaceRailPillButton } from '../../../ui/wee';
+import {
+  WeeMorphStack,
+  WeeRevealWhen,
+  WeeSliderValue,
+  WeeSpaceRailPillButton,
+} from '../../../ui/wee';
 import { requestWallpaperCycleManual } from '../../../utils/wallpaperCyclingBridge';
 import {
   EASING_OPTIONS,
@@ -214,7 +219,16 @@ function WallpaperCyclingSection({
                       hideValue
                     />
                   </div>
-                  <span className="settings-wee-slider-row__value">{slideDuration}s</span>
+                  <WeeSliderValue
+                    value={slideDuration}
+                    min={0.3}
+                    max={2}
+                    step={0.1}
+                    onChange={handleSlideDurationChange}
+                    format={(v) => String(v)}
+                    suffix="s"
+                    aria-label="Slide duration value"
+                  />
                 </div>
 
                 <div className="settings-wee-slider-row">
@@ -247,7 +261,16 @@ function WallpaperCyclingSection({
                       hideValue
                     />
                   </div>
-                  <span className="settings-wee-slider-row__value">{crossfadeDuration}s</span>
+                  <WeeSliderValue
+                    value={crossfadeDuration}
+                    min={0.3}
+                    max={2}
+                    step={0.1}
+                    onChange={handleCrossfadeDurationChange}
+                    format={(v) => String(v)}
+                    suffix="s"
+                    aria-label="Crossfade duration value"
+                  />
                 </div>
 
                 <div className="settings-wee-slider-row">

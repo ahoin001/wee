@@ -11,7 +11,7 @@ import { createWeeTransition } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 const MENU_MIN_WIDTH_PX = 176;
-const MENU_ESTIMATE_HEIGHT_PX = 220;
+const MENU_ESTIMATE_HEIGHT_PX = 200;
 const VIEWPORT_PAD_PX = 8;
 
 function computeMenuPosition(anchorRect) {
@@ -59,7 +59,6 @@ const PresetListItem = React.forwardRef(function PresetListItem(
     hasCommunityUpdate,
     onApplyCommunityUpdate,
     onShare,
-    onExport,
     style,
     dataIndex,
   },
@@ -125,7 +124,7 @@ const PresetListItem = React.forwardRef(function PresetListItem(
           onUpdate(presetKey);
         }}
       >
-        {justUpdated === presetKey ? 'Updated!' : 'Update from current'}
+        {justUpdated === presetKey ? 'Updated!' : 'Update with current look'}
       </button>
       {preset.shareable !== false && onShare ? (
         <button
@@ -138,19 +137,6 @@ const PresetListItem = React.forwardRef(function PresetListItem(
           }}
         >
           Share…
-        </button>
-      ) : null}
-      {onExport ? (
-        <button
-          type="button"
-          className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))]"
-          onClick={(e) => {
-            e.stopPropagation();
-            setMenuOpen(false);
-            onExport(preset);
-          }}
-        >
-          Export file…
         </button>
       ) : null}
       <button
@@ -386,7 +372,6 @@ PresetListItem.propTypes = {
   hasCommunityUpdate: PropTypes.bool,
   onApplyCommunityUpdate: PropTypes.func,
   onShare: PropTypes.func,
-  onExport: PropTypes.func,
   style: PropTypes.object,
   dataIndex: PropTypes.number,
 };
@@ -395,7 +380,6 @@ PresetListItem.defaultProps = {
   hasCommunityUpdate: false,
   onApplyCommunityUpdate: null,
   onShare: null,
-  onExport: null,
   justApplied: null,
 };
 

@@ -204,6 +204,7 @@ const selectPersistedUi = (ui = {}) => ({
   /* One-time Home coach marks */
   homeArrangeHintSeen: ui.homeArrangeHintSeen ?? false,
   homeBoardWidgetCoachDismissed: ui.homeBoardWidgetCoachDismissed ?? false,
+  presetHideBoardHintDismissed: ui.presetHideBoardHintDismissed ?? false,
   /* Command palette: open state stays transient; only recents persist */
   commandPaletteRecent: Array.isArray(ui.commandPaletteRecent) ? ui.commandPaletteRecent.slice(0, 8) : [],
   systemMediaEnabled: ui.systemMediaEnabled !== false,

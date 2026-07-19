@@ -17,7 +17,7 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { buildPresetDataFromStore } from '../../utils/presets/buildPresetSnapshot';
 import { applyPresetData } from '../../utils/presets/applyPresetData';
 import { normalizePresetRecord, sanitizePresetCollection, toVisualOnlyPreset } from '../../utils/presets/presetThemeData';
-import { exportPresetToFile, parsePresetFile, WEE_PRESET_FILE_EXTENSION } from '../../utils/presets/presetFileTransfer';
+import { parsePresetFile, WEE_PRESET_FILE_EXTENSION } from '../../utils/presets/presetFileTransfer';
 import { SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
 import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
@@ -53,7 +53,7 @@ const PRESET_UPDATE_SCOPE_OPTIONS = [
   {
     value: PRESET_SCOPE_VISUAL,
     title: 'Look only',
-    subtitle: 'Colors, wallpaper, dock & chrome. Shareable and exportable.',
+    subtitle: 'Colors, wallpaper, dock & chrome. Shareable.',
     Icon: Palette,
   },
 ];
@@ -64,9 +64,11 @@ const PresetsSettingsTab = React.memo(() => {
       presets: state.presets,
     }))
   );
-  const { setPresets } = useConsolidatedAppStore(
+  const { setPresets, setUIState, hideBoardHintDismissed } = useConsolidatedAppStore(
     useShallow((state) => ({
       setPresets: state.actions.setPresets,
+      setUIState: state.actions.setUIState,
+      hideBoardHintDismissed: Boolean(state.ui.presetHideBoardHintDismissed),
     }))
   );
 
@@ -108,6 +110,8 @@ const PresetsSettingsTab = React.memo(() => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const importFileInputRef = useRef(null);
   const saveSectionRef = useRef(null);
+  const communitySectionRef = useRef(null);
+  const [communitySectionOpen, setCommunitySectionOpen] = useState(false);
   const mf = useMotionFeedback();
   const noticeTransition = createWeeTransition('pillOpen', {
     reducedMotion: !mf.channelReorderSlotMotion,
@@ -551,19 +555,6 @@ const PresetsSettingsTab = React.memo(() => {
     }
   };
 
-  const handleExportPresetFile = useCallback((preset) => {
-    const result = exportPresetToFile(preset);
-    if (result.ok) {
-      setCaptureNotice({
-        type: 'success',
-        text: `Exported “${preset?.name || 'look'}” as a visual-only ${WEE_PRESET_FILE_EXTENSION} file.`,
-      });
-    } else {
-      setCaptureNotice({ type: 'warning', text: result.error || 'Export failed.' });
-    }
-    setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2600);
-  }, []);
-
   const handleImportFilePick = useCallback(() => {
     importFileInputRef.current?.click();
   }, []);
@@ -609,7 +600,7 @@ const PresetsSettingsTab = React.memo(() => {
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2600);
   }, [importPreview, hasPresetName, setPresets, savePresetsToBackend]);
 
-  const handleSharePreset = (preset) => {
+  const handleSharePreset = useCallback((preset) => {
     setUploadFormData({
       name: preset.name || '',
       description: '',
@@ -621,7 +612,11 @@ const PresetsSettingsTab = React.memo(() => {
     });
     setCommunityMode('share');
     setUploadMessage({ type: '', text: '' });
-  };
+    setCommunitySectionOpen(true);
+    requestAnimationFrame(() => {
+      communitySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
 
   const handleUpload = async () => {
     if (!uploadFormData.selectedPreset) {
@@ -854,6 +849,8 @@ const PresetsSettingsTab = React.memo(() => {
             isSaving={isSavingPreset}
             hideBoardScreenshot={hideBoardScreenshot}
             onHideBoardScreenshotChange={setHideBoardScreenshot}
+            hideBoardHintDismissed={hideBoardHintDismissed}
+            onDismissHideBoardHint={() => setUIState({ presetHideBoardHintDismissed: true })}
           />
         </WeeSettingsCollapsibleSection>
       </div>
@@ -891,7 +888,6 @@ const PresetsSettingsTab = React.memo(() => {
           onKeyPress={handleKeyPress}
           onApplyCommunityUpdate={handleApplyCommunityUpdate}
           onShare={handleSharePreset}
-          onExport={handleExportPresetFile}
           onImportFile={handleImportFilePick}
           onFocusSaveSection={() => saveSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
@@ -906,11 +902,13 @@ const PresetsSettingsTab = React.memo(() => {
         />
       </WeeSettingsCollapsibleSection>
 
+      <div ref={communitySectionRef}>
       <WeeSettingsCollapsibleSection
         icon={Users}
         title="Community"
         description="Browse shared presets or upload yours (wallpaper + colors included)."
-        defaultOpen={false}
+        open={communitySectionOpen}
+        onOpenChange={setCommunitySectionOpen}
       >
         <PresetsCommunityCard
           communityMode={communityMode}
@@ -944,6 +942,7 @@ const PresetsSettingsTab = React.memo(() => {
           }}
         />
       </WeeSettingsCollapsibleSection>
+      </div>
 
       {updateScopeModalMounted ? (
         <WeeModalShell
@@ -1041,9 +1040,12 @@ const PresetsSettingsTab = React.memo(() => {
                 <p className="m-0 font-semibold text-[hsl(var(--text-primary))]">
                   Hide board in refreshed screenshot
                 </p>
-                <p className="m-0 mt-1 text-xs text-[hsl(var(--text-tertiary))]">
-                  Off shows real tiles. On captures wallpaper and chrome only.
-                </p>
+                {!hideBoardHintDismissed ? (
+                  <p className="m-0 mt-1 text-xs text-[hsl(var(--text-tertiary))]">
+                    When a preset is saved, channels are shown in the screenshot. If you want a clean
+                    thumbnail without channels, toggle this on.
+                  </p>
+                ) : null}
               </div>
               <WToggle
                 checked={updateHideBoardScreenshot}

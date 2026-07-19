@@ -1,8 +1,12 @@
 import React from 'react';
+import { X } from 'lucide-react';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
 import WInput from '../../../ui/WInput';
 import WToggle from '../../../ui/WToggle';
+
+const HIDE_BOARD_HINT =
+  'When a preset is saved, channels are shown in the screenshot. If you want a clean thumbnail without channels, toggle this on.';
 
 /** "Save current as Look" form — visual-only (shareable). */
 const PresetsSaveCurrentCard = React.memo(
@@ -15,6 +19,8 @@ const PresetsSaveCurrentCard = React.memo(
     isSaving = false,
     hideBoardScreenshot = false,
     onHideBoardScreenshotChange,
+    hideBoardHintDismissed = false,
+    onDismissHideBoardHint,
   }) => (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
@@ -47,9 +53,23 @@ const PresetsSaveCurrentCard = React.memo(
           <Text variant="body" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
             Hide board in screenshot
           </Text>
-          <Text variant="caption" className="!m-0 mt-1 block text-[hsl(var(--text-tertiary))]">
-            Off shows your real tiles. On captures wallpaper and chrome with no ghost tiles.
-          </Text>
+          {!hideBoardHintDismissed ? (
+            <div className="mt-1 flex items-start gap-2">
+              <Text variant="caption" className="!m-0 min-w-0 flex-1 block text-[hsl(var(--text-tertiary))]">
+                {HIDE_BOARD_HINT}
+              </Text>
+              {onDismissHideBoardHint ? (
+                <button
+                  type="button"
+                  onClick={onDismissHideBoardHint}
+                  aria-label="Dismiss hide board tip"
+                  className="mt-0.5 shrink-0 rounded-full p-1 text-[hsl(var(--text-tertiary))] transition-colors hover:bg-[hsl(var(--state-hover))] hover:text-[hsl(var(--text-primary))]"
+                >
+                  <X size={13} strokeWidth={2.5} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <WToggle
           checked={hideBoardScreenshot}

@@ -53,7 +53,7 @@ function SurfacesScenePreview({
 
   const focusWallpaper =
     activeSegment === 'library' || activeSegment === 'look' || activeSegment === 'atmosphere';
-  const focusRibbon = activeSegment === 'chrome';
+  const focusRibbon = activeSegment === 'ribbon' || activeSegment === 'chrome';
   const focusAtmosphere = activeSegment === 'atmosphere';
   const wallpaperDim = focusRibbon ? 'opacity-55' : 'opacity-100';
   const channelsDim = focusRibbon ? 'opacity-40' : focusAtmosphere ? 'opacity-50' : 'opacity-100';

@@ -230,6 +230,8 @@ useConsolidatedAppStore = create(
           homeArrangeHintSeen: false,
           /** One-time Edit Home widget coach (tap tile → Add widget) — true once dismissed or first widget placed. Persisted. */
           homeBoardWidgetCoachDismissed: false,
+          /** One-time “hide board in screenshot” help under Save Look — true once dismissed. Persisted. */
+          presetHideBoardHintDismissed: false,
           /** When true, Windows SMTC sessions feed the shared Now Playing slice. Persisted. */
           systemMediaEnabled: true,
           /** Ctrl+Space command palette. Transient — not persisted. */

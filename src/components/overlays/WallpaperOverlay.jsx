@@ -100,7 +100,14 @@ const WallpaperOverlay = ({
       shape: 'fire',
       flicker: true,
       upward: true
-    }
+    },
+    sakura: {
+      particleCount: 25,
+      particleSize: { min: 6, max: 12 },
+      colors: WALLPAPER_OVERLAY_COLORS.sakura,
+      shape: 'petal',
+      sway: true,
+    },
   }), []);
 
   // Object pool for particles to reduce garbage collection
@@ -158,9 +165,13 @@ const WallpaperOverlay = ({
       particle.color = config.colors[Math.floor(Math.random() * config.colors.length)];
       particle.opacity = Math.random() * 0.5 + 0.5;
       particle.rotation = Math.random() * Math.PI * 2;
-      particle.rotationSpeed = (Math.random() - 0.5) * 0.02;
+      particle.rotationSpeed =
+        config.shape === 'petal'
+          ? (Math.random() - 0.5) * 0.06
+          : (Math.random() - 0.5) * 0.02;
       particle.flickerPhase = Math.random() * Math.PI * 2;
-      
+      particle.swayPhase = Math.random() * Math.PI * 2;
+
       newParticles.push(particle);
     }
 
@@ -200,13 +211,18 @@ const WallpaperOverlay = ({
       const particle = particles[i];
       
       // Apply physics with delta time scaling
-      particle.vy += gravity * timeScale;
+      const fallGravity = config.shape === 'petal' ? gravity * 0.45 : gravity;
+      particle.vy += fallGravity * timeScale;
       particle.vx += wind * timeScale;
-      
+      if (config.sway) {
+        particle.swayPhase = (particle.swayPhase || 0) + 0.04 * timeScale;
+        particle.vx += Math.sin(particle.swayPhase) * 0.015 * timeScale;
+      }
+
       // Cap velocities to prevent infinite acceleration
       particle.vx = Math.max(-2, Math.min(2, particle.vx));
       particle.vy = Math.max(-2, Math.min(2, particle.vy));
-      
+
       // Update position
       particle.x += particle.vx * speed * timeScale;
       particle.y += particle.vy * speed * timeScale;
@@ -260,6 +276,14 @@ const WallpaperOverlay = ({
         ctx.quadraticCurveTo(particle.size * 0.1, particle.size * 0.3, 0, particle.size);
         ctx.quadraticCurveTo(-particle.size * 0.1, particle.size * 0.3, -particle.size * 0.3, 0);
         ctx.quadraticCurveTo(-particle.size * 0.5, -particle.size * 0.5, 0, -particle.size);
+        ctx.fill();
+      } else if (config.shape === 'petal') {
+        const s = particle.size;
+        ctx.beginPath();
+        ctx.moveTo(0, -s * 0.15);
+        ctx.quadraticCurveTo(s * 0.7, -s * 0.55, s * 0.15, s * 0.75);
+        ctx.quadraticCurveTo(0, s * 0.35, -s * 0.15, s * 0.75);
+        ctx.quadraticCurveTo(-s * 0.7, -s * 0.55, 0, -s * 0.15);
         ctx.fill();
       }
 

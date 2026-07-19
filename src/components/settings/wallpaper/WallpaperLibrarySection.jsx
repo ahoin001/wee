@@ -19,7 +19,6 @@ function WallpaperLibrarySection({
   tabTransition,
   likedWallpapers,
   handleLike,
-  handleSetCurrent,
   wallpapers,
   onSelectLibraryWallpaper,
   deleting,
@@ -47,7 +46,7 @@ function WallpaperLibrarySection({
               Pick wallpaper
             </Text>
             <Text variant="desc" className="!mb-0">
-              Pick a tile to preview it above, then Apply for{' '}
+              Pick a tile to preview on the canvas. Use Apply in the toolbar for{' '}
               {applyScopeLabel || selectedSpaceLabel}. Hearts feed Home cycling (Atmosphere).
             </Text>
           </div>
@@ -127,17 +126,6 @@ function WallpaperLibrarySection({
                   <div className="settings-wee-wallpaper-hero__name">{selectedWallpaper.name}</div>
                 </div>
                 <div className="settings-wee-wallpaper-hero__actions">
-                  <WeeButton
-                    type="button"
-                    variant="primary"
-                    className="!px-4 !py-2.5 sm:!px-5 sm:!py-3"
-                    disabled={effectiveActiveWallpaperUrl === selectedWallpaper.url}
-                    onClick={() => handleSetCurrent(selectedWallpaper)}
-                  >
-                    {effectiveActiveWallpaperUrl === selectedWallpaper.url
-                      ? `On ${scopeLabel}`
-                      : `Apply to ${scopeLabel}`}
-                  </WeeButton>
                   <WeeButton
                     type="button"
                     variant="secondary"

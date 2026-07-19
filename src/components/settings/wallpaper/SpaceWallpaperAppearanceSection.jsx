@@ -9,6 +9,7 @@ import {
   WeeModalFieldCard,
   WeeRevealWhen,
   WeeSegmentedControl,
+  WeeSliderValue,
   WeeSpaceRailPillButton,
 } from '../../../ui/wee';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
@@ -44,9 +45,7 @@ function SpaceWallpaperAppearanceSection({
   onWallpaperScopeChange,
   selectedBoardCurrentPage = 0,
   selectedPageWallpaperUrl = null,
-  onApplyWallpaperToCurrentPage,
   onClearCurrentPageWallpaper,
-  canApplyPageWallpaper = false,
   /** @type {Array<{ pageIndex: number, url: string|null }>|undefined} */
   pageMapEntries,
   onSelectBoardPage,
@@ -62,15 +61,15 @@ function SpaceWallpaperAppearanceSection({
 
   return (
     <>
-      <SettingsWeeSection eyebrow="Apply">
+      <SettingsWeeSection eyebrow="Source">
         <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
           <Text variant="h3" className="mb-1 playful-hero-text">
-            Pin wallpaper
+            Wallpaper source
           </Text>
           <Text variant="desc" className="mb-4">
             {supportsPerPageWallpaper && selectedWallpaperScope === 'perPage'
-              ? `Apply the library selection to ${selectedSpaceLabel} · page ${selectedBoardCurrentPage + 1}. Tone below updates the live scene instantly.`
-              : `Source and reset for ${selectedSpaceLabel}. Tone below updates the live scene instantly.`}
+              ? `Source and clear for ${selectedSpaceLabel} · page ${selectedBoardCurrentPage + 1}. Use Apply in the toolbar to pin a library tile. Tone below updates the live scene instantly.`
+              : `Source and reset for ${selectedSpaceLabel}. Use Apply in the toolbar to pin a library tile. Tone below updates the live scene instantly.`}
           </Text>
 
           {showGlobalOpacity ? (
@@ -93,9 +92,16 @@ function SpaceWallpaperAppearanceSection({
                     hideValue
                   />
                 </div>
-                <span className="settings-wee-slider-row__value">
-                  {Math.round(wallpaperOpacity * 100)}%
-                </span>
+                <WeeSliderValue
+                  value={wallpaperOpacity}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={handleWallpaperOpacityChange}
+                  format={(v) => String(Math.round(v * 100))}
+                  suffix="%"
+                  aria-label="Wallpaper opacity value"
+                />
               </div>
               <p className="settings-wee-help mb-5 pl-[156px] max-md:pl-0">
                 100% = fully opaque image; lower values let more of the default background show
@@ -202,19 +208,10 @@ function SpaceWallpaperAppearanceSection({
                   </div>
                   <div className="mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
                     {showPageChipPicker
-                      ? 'Select a page chip to target it, then apply a library asset (or the current desktop wallpaper). Empty pages share the fallback look — flips between them skip the crossfade.'
-                      : 'Target a page from the strip above, then apply a library asset (or the current desktop wallpaper). Empty pages share the fallback look.'}
+                      ? 'Select a page chip to target it, then use Apply in the toolbar. Empty pages share the fallback look — flips between them skip the crossfade.'
+                      : 'Target a page from the strip above, then use Apply in the toolbar. Empty pages share the fallback look.'}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <WeeButton
-                      type="button"
-                      variant="secondary"
-                      className="!px-3 !py-2"
-                      disabled={!canApplyPageWallpaper}
-                      onClick={() => onApplyWallpaperToCurrentPage?.()}
-                    >
-                      Apply to this page
-                    </WeeButton>
                     <WeeButton
                       type="button"
                       variant="secondary"
@@ -293,8 +290,8 @@ function SpaceWallpaperAppearanceSection({
               ) : (
                 <p className="mb-0 text-[13px] leading-relaxed text-[hsl(var(--text-secondary))]">
                   Home always uses the active desktop wallpaper from the library (unless you enable
-                  per-page wallpapers). Choose a tile and use &quot;Set for Home&quot; — Game Hub
-                  and Media Hub can use their own overrides when selected.
+                  per-page wallpapers). Choose a tile and use Apply in the toolbar — Game Hub and
+                  Media Hub can use their own overrides when selected.
                 </p>
               )}
 
@@ -338,7 +335,16 @@ function SpaceWallpaperAppearanceSection({
                 hideValue
               />
             </div>
-            <span className="settings-wee-slider-row__value">{selectedSpaceBlur.toFixed(1)}px</span>
+            <WeeSliderValue
+              value={selectedSpaceBlur}
+              min={0}
+              max={24}
+              step={0.5}
+              onChange={handleSelectedSpaceBlurChange}
+              format={(v) => v.toFixed(1)}
+              suffix="px"
+              aria-label="Wallpaper blur value"
+            />
           </div>
           <p className="settings-wee-help mb-3 pl-[156px] max-md:pl-0">
             Softens the wallpaper behind channels and widgets. 0 = sharp.
@@ -364,9 +370,16 @@ function SpaceWallpaperAppearanceSection({
                 hideValue
               />
             </div>
-            <span className="settings-wee-slider-row__value">
-              {selectedSpaceBrightness.toFixed(2)}×
-            </span>
+            <WeeSliderValue
+              value={selectedSpaceBrightness}
+              min={0.45}
+              max={1.2}
+              step={0.01}
+              onChange={handleSelectedSpaceBrightnessChange}
+              format={(v) => v.toFixed(2)}
+              suffix="×"
+              aria-label="Wallpaper brightness value"
+            />
           </div>
           <p className="settings-wee-help mb-3 pl-[156px] max-md:pl-0">
             1.00 = unchanged. Lower values dim the wallpaper and improve card readability.
@@ -392,9 +405,16 @@ function SpaceWallpaperAppearanceSection({
                 hideValue
               />
             </div>
-            <span className="settings-wee-slider-row__value">
-              {selectedSpaceSaturate.toFixed(2)}×
-            </span>
+            <WeeSliderValue
+              value={selectedSpaceSaturate}
+              min={0}
+              max={1.5}
+              step={0.02}
+              onChange={handleSelectedSpaceSaturateChange}
+              format={(v) => v.toFixed(2)}
+              suffix="×"
+              aria-label="Wallpaper saturation value"
+            />
           </div>
           <p className="settings-wee-help !mb-0 pl-[156px] max-md:pl-0">
             1.00 = natural color; lower approaches grayscale; above 1 boosts vividness.

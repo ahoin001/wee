@@ -595,8 +595,8 @@
     "semantic_hash": ""
   },
   "src/components/overlays/WallpaperOverlay.jsx": {
-    "mtime": 1784433789.5574372,
-    "ast_hash": "81d90557a6c96458f75c80c53be1528f",
+    "mtime": 1784429923.1635058,
+    "ast_hash": "9643871a9340bea109d3db2b42b2c760",
     "semantic_hash": ""
   },
   "src/components/overlays/index.js": {
@@ -730,8 +730,8 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1784433883.1113958,
-    "ast_hash": "634d2d54d39c5a82aaf5ac2621949680",
+    "mtime": 1784432402.9956002,
+    "ast_hash": "b0e45536d134d5f0291eefbff4699c65",
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockPanel.jsx": {
@@ -775,28 +775,28 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SpaceWallpaperAppearanceSection.jsx": {
-    "mtime": 1784433881.737546,
-    "ast_hash": "1c3b29dbde5223f9ff7f0fc4d9920f7c",
+    "mtime": 1784432390.8365479,
+    "ast_hash": "22da6a5a7490533d7a60b51aff18f4f0",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperCyclingSection.jsx": {
-    "mtime": 1784433842.4191444,
-    "ast_hash": "62a00b2b437581d5f4ffe2cf55a505a1",
+    "mtime": 1784424924.5359912,
+    "ast_hash": "829353b253419e75fb02e734e92e1a3c",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperLibrarySection.jsx": {
-    "mtime": 1784433810.1486568,
-    "ast_hash": "e65a08afc149c724f5346e09bdf52101",
+    "mtime": 1784429997.4023058,
+    "ast_hash": "4cf897330eb7bd818a616cd87ca3d9cc",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperOverlaySection.jsx": {
-    "mtime": 1784433835.8049812,
-    "ast_hash": "318830f354dc78e4dfefa498757701a3",
+    "mtime": 1784424927.021901,
+    "ast_hash": "c2a5e865b746e50d6d92733c75ccb83b",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/wallpaperSettingsConstants.js": {
-    "mtime": 1784433780.9192295,
-    "ast_hash": "692dd300391c307e383b5f450603c91f",
+    "mtime": 1784432380.4662964,
+    "ast_hash": "bf181fb8d2b7818a2d29221f57cff91b",
     "semantic_hash": ""
   },
   "src/components/spaces/WeeGooeySpacePill.jsx": {
@@ -910,9 +910,9 @@
     "semantic_hash": "747222bf309057b0c29c913b702264cb"
   },
   "src/design/wallpaperAmbientPalettes.js": {
-    "mtime": 1784433779.7489674,
-    "ast_hash": "1d07127761cde0e4df2ad78107e9de4c",
-    "semantic_hash": ""
+    "mtime": 1776040130.8708427,
+    "ast_hash": "a1dab0bba5741b70e801a0bec54062ec",
+    "semantic_hash": "a1dab0bba5741b70e801a0bec54062ec"
   },
   "src/design/weeMotion.js": {
     "mtime": 1784427344.6948988,
@@ -1215,8 +1215,8 @@
     "semantic_hash": "6682d42d377aafaf0bbd79d797f21358"
   },
   "src/ui/wee/index.js": {
-    "mtime": 1784433776.6620195,
-    "ast_hash": "76026fd758eb6d6d28c8ac66eb438dfe",
+    "mtime": 1784219484.6091557,
+    "ast_hash": "ca78ad28d37f34dddc1da4bb3df88789",
     "semantic_hash": ""
   },
   "src/utils/AudioManager.js": {
@@ -2470,18 +2470,13 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SurfacesScenePreview.jsx": {
-    "mtime": 1784433796.9782586,
-    "ast_hash": "5e998334cd8622ce056445fc3a9a21c4",
+    "mtime": 1784429954.7621446,
+    "ast_hash": "1fb37855c0941b1a35d4be899870e34a",
     "semantic_hash": ""
   },
   "src/components/settings/MotionToggleRow.jsx": {
     "mtime": 1784424820.269868,
     "ast_hash": "a874f6a257f6d5850e10993a5b21a26e",
-    "semantic_hash": ""
-  },
-  "src/ui/wee/WeeSliderValue.jsx": {
-    "mtime": 1784433776.2418323,
-    "ast_hash": "962725f5b6b241965a5a9f1021ff167d",
     "semantic_hash": ""
   }
 }

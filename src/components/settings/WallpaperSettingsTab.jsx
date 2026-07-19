@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { useWeeMotion } from '../../design/weeMotion';
@@ -46,28 +46,39 @@ import './settings-wee-panels.css';
 
 const SURFACES_SEGMENTS = [
   { value: 'library', label: 'Library', title: 'Upload, pick, apply, and delete wallpapers' },
-  { value: 'look', label: 'Look', title: 'Pin wallpaper and tune blur, brightness, saturation' },
+  { value: 'look', label: 'Look', title: 'Source wallpaper and tune blur, brightness, saturation' },
   { value: 'atmosphere', label: 'Atmosphere', title: 'Home cycling and particle overlays' },
-  { value: 'chrome', label: 'Chrome', title: 'Ribbon scope and wallpaper color match' },
+  { value: 'ribbon', label: 'Ribbon', title: 'Ribbon scope and wallpaper color match' },
 ];
 
 const SURFACES_TAB_TIPS = Object.freeze({
-  library: 'Pick a tile to preview on the canvas · Apply pins to the space/page in the toolbar.',
-  look: 'Tone updates the canvas live · Page pin/clear appears when scope is This page.',
+  library: 'Pick a tile to preview · Apply in the toolbar pins it to the space/page.',
+  look: 'Tone updates the canvas live · Clear page wallpaper when scope is This page.',
   atmosphere: 'Cycling and particles are Home-only · Watch them play on the canvas.',
-  chrome: 'Match paints the ribbon from wallpaper · Edit exact colors in Dock.',
+  ribbon: 'Match paints the ribbon from wallpaper · Edit exact colors in Dock.',
 });
+
+const SURFACES_INSPECTOR_W_DEFAULT = 26;
+const SURFACES_INSPECTOR_W_MIN = 22;
+const SURFACES_INSPECTOR_W_MAX = 36;
+const SURFACES_CANVAS_MIN_PX = 22 * 16;
 
 /** Map older segment ids if any persisted UI state leaks through. */
 function normalizeSurfacesSegment(value) {
   const legacy = {
     wallpaper: 'library',
     effects: 'atmosphere',
-    ribbon: 'chrome',
+    chrome: 'ribbon',
   };
   const next = legacy[value] || value;
   if (SURFACES_SEGMENTS.some((s) => s.value === next)) return next;
   return 'library';
+}
+
+function remToPx(rem) {
+  if (typeof window === 'undefined') return rem * 16;
+  const root = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return rem * (Number.isFinite(root) && root > 0 ? root : 16);
 }
 
 const api = window.api?.wallpapers || {};
@@ -1048,6 +1059,9 @@ const WallpaperSettingsTab = React.memo(() => {
   const { tabTransition } = useWeeMotion();
   const [surfacesSegment, setSurfacesSegment] = useState('library');
   const [applyPulse, setApplyPulse] = useState(false);
+  const [inspectorWidthRem, setInspectorWidthRem] = useState(SURFACES_INSPECTOR_W_DEFAULT);
+  const studioBodyRef = useRef(null);
+  const inspectorDragRef = useRef(null);
   const mediaHubEnabled = useConsolidatedAppStore((s) => s.spaces.mediaHubEnabled === true);
   const spaceWallpaperOptions = SPACE_WALLPAPER_OPTIONS.filter(
     (space) => mediaHubEnabled || space.id !== 'mediahub'
@@ -1171,6 +1185,76 @@ const WallpaperSettingsTab = React.memo(() => {
     [handleSetCurrent, triggerApplyPulse]
   );
 
+  const handleToolbarApply = useCallback(async () => {
+    if (perPageMode) {
+      if (!applyPageWallpaperUrl) return;
+      handleApplyWallpaperToCurrentPage(applyPageWallpaperUrl);
+      triggerApplyPulse();
+      return;
+    }
+    if (!selectedWallpaper?.url) return;
+    await handleSetCurrentWithPulse(selectedWallpaper);
+  }, [
+    applyPageWallpaperUrl,
+    handleApplyWallpaperToCurrentPage,
+    handleSetCurrentWithPulse,
+    perPageMode,
+    selectedWallpaper,
+    triggerApplyPulse,
+  ]);
+
+  const clampInspectorWidthRem = useCallback((nextRem, bodyWidthPx) => {
+    let rem = Math.min(SURFACES_INSPECTOR_W_MAX, Math.max(SURFACES_INSPECTOR_W_MIN, nextRem));
+    if (Number.isFinite(bodyWidthPx) && bodyWidthPx > 0) {
+      const grabberPx = 14;
+      const maxByCanvas = (bodyWidthPx - grabberPx - SURFACES_CANVAS_MIN_PX) / remToPx(1);
+      if (Number.isFinite(maxByCanvas)) {
+        rem = Math.min(rem, Math.max(SURFACES_INSPECTOR_W_MIN, maxByCanvas));
+      }
+    }
+    return Math.round(rem * 10) / 10;
+  }, []);
+
+  const handleInspectorGrabberPointerDown = useCallback(
+    (event) => {
+      if (event.button != null && event.button !== 0) return;
+      event.preventDefault();
+      const body = studioBodyRef.current;
+      const startX = event.clientX;
+      const startRem = inspectorWidthRem;
+      const bodyWidth = body?.getBoundingClientRect?.()?.width || 0;
+      inspectorDragRef.current = { startX, startRem, bodyWidth };
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      event.currentTarget.dataset.dragging = 'true';
+    },
+    [inspectorWidthRem]
+  );
+
+  const handleInspectorGrabberPointerMove = useCallback(
+    (event) => {
+      const drag = inspectorDragRef.current;
+      if (!drag) return;
+      const deltaPx = drag.startX - event.clientX;
+      const nextRem = drag.startRem + deltaPx / remToPx(1);
+      setInspectorWidthRem(clampInspectorWidthRem(nextRem, drag.bodyWidth));
+    },
+    [clampInspectorWidthRem]
+  );
+
+  const handleInspectorGrabberPointerUp = useCallback((event) => {
+    inspectorDragRef.current = null;
+    event.currentTarget.dataset.dragging = 'false';
+    try {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    } catch {
+      /* already released */
+    }
+  }, []);
+
+  const handleInspectorGrabberDoubleClick = useCallback(() => {
+    setInspectorWidthRem(SURFACES_INSPECTOR_W_DEFAULT);
+  }, []);
+
   if (loading && !hasLoadedOnce) {
     return (
       <div className="flex min-h-[12rem] items-center justify-center p-8">
@@ -1193,8 +1277,8 @@ const WallpaperSettingsTab = React.memo(() => {
 
   const sceneCaption = (() => {
     const where = applyScopeLabel;
-    if (activeSurfacesSegment === 'chrome') {
-      return `Chrome on ${where} — wallpaper dimmed so the ribbon can shine.`;
+    if (activeSurfacesSegment === 'ribbon') {
+      return `Ribbon on ${where} — wallpaper dimmed so the ribbon can shine.`;
     }
     if (activeSurfacesSegment === 'atmosphere') {
       return `Atmosphere on ${where} — particles and cycling play in this scene.`;
@@ -1202,8 +1286,20 @@ const WallpaperSettingsTab = React.memo(() => {
     if (activeSurfacesSegment === 'look') {
       return `Look for ${where} — tone sliders update this scene live.`;
     }
-    return `Library for ${where} — pick a tile to preview, then Apply.`;
+    return `Library for ${where} — pick a tile to preview, then Apply in the toolbar.`;
   })();
+
+  const toolbarApplyDisabled = perPageMode
+    ? !applyPageWallpaperUrl
+    : !selectedWallpaper?.url ||
+      (effectiveActiveWallpaperUrl === selectedWallpaper?.url && !previewingLibrary);
+  const toolbarApplyLabel = perPageMode
+    ? `Apply to page ${selectedBoardCurrentPage + 1}`
+    : !selectedWallpaper?.url
+      ? 'Apply'
+      : effectiveActiveWallpaperUrl === selectedWallpaper.url && !previewingLibrary
+        ? `On ${selectedSpaceLabel}`
+        : `Apply to ${selectedSpaceLabel}`;
 
   return (
     <div className="settings-wee-tab-root settings-wee-tab-root--studio pb-12">
@@ -1305,10 +1401,30 @@ const WallpaperSettingsTab = React.memo(() => {
               })}
             </div>
           ) : null}
+          <div className="settings-wee-studio-context-group settings-wee-studio-context-group--apply">
+            <WeeButton
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={toolbarApplyDisabled}
+              onClick={handleToolbarApply}
+              title={
+                perPageMode
+                  ? 'Pin the selected (or current) wallpaper to this page'
+                  : 'Pin the selected library wallpaper to this space'
+              }
+            >
+              {toolbarApplyLabel}
+            </WeeButton>
+          </div>
         </div>
       </div>
 
-      <div className="settings-wee-studio-body">
+      <div
+        ref={studioBodyRef}
+        className="settings-wee-studio-body"
+        style={{ '--surfaces-inspector-w': `${inspectorWidthRem}rem` }}
+      >
         <div className="settings-wee-studio-preview settings-wee-studio-preview--hero" aria-label="Surfaces live scene">
           <SurfacesScenePreview
             wallpaperUrl={sceneUrl}
@@ -1334,6 +1450,20 @@ const WallpaperSettingsTab = React.memo(() => {
             applyPulse={applyPulse}
           />
         </div>
+
+        <button
+          type="button"
+          className="settings-wee-studio-grabber"
+          aria-label="Resize inspector panel"
+          title="Drag to resize · double-click to reset"
+          onPointerDown={handleInspectorGrabberPointerDown}
+          onPointerMove={handleInspectorGrabberPointerMove}
+          onPointerUp={handleInspectorGrabberPointerUp}
+          onPointerCancel={handleInspectorGrabberPointerUp}
+          onDoubleClick={handleInspectorGrabberDoubleClick}
+        >
+          <span className="settings-wee-studio-grabber__bar" aria-hidden />
+        </button>
 
         <aside className="settings-wee-studio-inspector" aria-label="Surfaces inspector">
           <div className="settings-wee-studio-inspector__tabs">
@@ -1373,7 +1503,6 @@ const WallpaperSettingsTab = React.memo(() => {
                   tabTransition={tabTransition}
                   likedWallpapers={likedWallpapers}
                   handleLike={handleLike}
-                  handleSetCurrent={handleSetCurrentWithPulse}
                   wallpapers={wallpapers}
                   onSelectLibraryWallpaper={handleSelectLibraryWallpaper}
                   deleting={deleting}
@@ -1413,12 +1542,7 @@ const WallpaperSettingsTab = React.memo(() => {
                   onWallpaperScopeChange={handleSelectedWallpaperScopeChange}
                   selectedBoardCurrentPage={selectedBoardCurrentPage}
                   selectedPageWallpaperUrl={selectedPageWallpaperUrl}
-                  onApplyWallpaperToCurrentPage={() => {
-                    handleApplyWallpaperToCurrentPage(applyPageWallpaperUrl);
-                    triggerApplyPulse();
-                  }}
                   onClearCurrentPageWallpaper={handleClearCurrentPageWallpaper}
-                  canApplyPageWallpaper={Boolean(applyPageWallpaperUrl)}
                   pageMapEntries={pageMapEntries}
                   onSelectBoardPage={handleSelectSettingsTargetPage}
                   showScopeControl={false}
@@ -1486,7 +1610,7 @@ const WallpaperSettingsTab = React.memo(() => {
                 )
               ) : null}
 
-              {activeSurfacesSegment === 'chrome' ? (
+              {activeSurfacesSegment === 'ribbon' ? (
                 <>
                   <SettingsWeeSection eyebrow="Ribbon look">
                     <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
@@ -1495,7 +1619,7 @@ const WallpaperSettingsTab = React.memo(() => {
                       </Text>
                       <Text variant="desc" className="mb-4">
                         Color and glass for the Wii ribbon on {selectedSpaceLabel}. Buttons stay
-                        global — tune chrome in Dock.
+                        global — tune colors in Dock.
                       </Text>
 
                       <div className="mb-4 flex flex-wrap items-center gap-3">

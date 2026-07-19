@@ -33,6 +33,7 @@ export const OVERLAY_EFFECT_OPTIONS = [
   { value: 'snow', label: '❄️ Snow' },
   { value: 'rain', label: '🌧️ Rain' },
   { value: 'leaves', label: '🍃 Leaves' },
+  { value: 'sakura', label: '🌸 Sakura' },
   { value: 'fireflies', label: '✨ Fireflies' },
   { value: 'dust', label: '💨 Dust' },
   { value: 'fire', label: '🔥 Fire' },

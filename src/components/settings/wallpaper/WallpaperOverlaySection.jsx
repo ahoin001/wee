@@ -3,6 +3,7 @@ import WSelect from '../../../ui/WSelect';
 import Slider from '../../../ui/Slider';
 import SettingsWeeSection from '../SettingsWeeSection';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
+import { WeeSliderValue } from '../../../ui/wee';
 import { OVERLAY_EFFECT_OPTIONS } from './wallpaperSettingsConstants';
 
 function WallpaperOverlaySection({
@@ -24,7 +25,7 @@ function WallpaperOverlaySection({
       <SettingsToggleFieldCard
         hoverAccent="discovery"
         title="Particle overlay"
-        desc="Optional snow, rain, leaves, fireflies, dust, or fire — drawn above the wallpaper, under the UI."
+        desc="Optional snow, rain, leaves, sakura, fireflies, dust, or fire — drawn above the wallpaper, under the UI."
         checked={overlayEnabled}
         onChange={handleOverlayEnabledChange}
       >
@@ -61,7 +62,16 @@ function WallpaperOverlaySection({
                 hideValue
               />
             </div>
-            <span className="settings-wee-slider-row__value">{overlayIntensity}%</span>
+            <WeeSliderValue
+              value={overlayIntensity}
+              min={10}
+              max={100}
+              step={5}
+              onChange={handleOverlayIntensityChange}
+              format={(v) => String(v)}
+              suffix="%"
+              aria-label="Overlay intensity value"
+            />
           </div>
           <div className="settings-wee-slider-row">
             <label className="settings-wee-slider-row__label" htmlFor="wallpaper-overlay-speed">
@@ -80,7 +90,16 @@ function WallpaperOverlaySection({
                 hideValue
               />
             </div>
-            <span className="settings-wee-slider-row__value">{overlaySpeed}x</span>
+            <WeeSliderValue
+              value={overlaySpeed}
+              min={0.1}
+              max={3}
+              step={0.05}
+              onChange={handleOverlaySpeedChange}
+              format={(v) => String(v)}
+              suffix="x"
+              aria-label="Overlay speed value"
+            />
           </div>
           <div className="settings-wee-slider-row">
             <label className="settings-wee-slider-row__label" htmlFor="wallpaper-overlay-wind">
@@ -99,7 +118,15 @@ function WallpaperOverlaySection({
                 hideValue
               />
             </div>
-            <span className="settings-wee-slider-row__value">{overlayWind.toFixed(3)}</span>
+            <WeeSliderValue
+              value={overlayWind}
+              min={-0.1}
+              max={0.1}
+              step={0.005}
+              onChange={handleOverlayWindChange}
+              format={(v) => v.toFixed(3)}
+              aria-label="Overlay wind value"
+            />
           </div>
           <div className="settings-wee-slider-row">
             <label className="settings-wee-slider-row__label" htmlFor="wallpaper-overlay-gravity">
@@ -118,7 +145,15 @@ function WallpaperOverlaySection({
                 hideValue
               />
             </div>
-            <span className="settings-wee-slider-row__value">{overlayGravity.toFixed(2)}</span>
+            <WeeSliderValue
+              value={overlayGravity}
+              min={-0.2}
+              max={0.5}
+              step={0.01}
+              onChange={handleOverlayGravityChange}
+              format={(v) => v.toFixed(2)}
+              aria-label="Overlay gravity value"
+            />
           </div>
           <p className="settings-wee-help !mb-0 mt-1">
             Heavier overlays cost more GPU — lower intensity on laptops or when many channels are visible.

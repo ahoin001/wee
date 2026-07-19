@@ -36,7 +36,6 @@ const PresetsSavedListCard = React.memo(
     onKeyPress,
     onApplyCommunityUpdate,
     onShare,
-    onExport,
     onImportFile,
     onFocusSaveSection,
   }) => {
@@ -111,7 +110,6 @@ const PresetsSavedListCard = React.memo(
         hasCommunityUpdate: Boolean(communityUpdateMap[preset.id || preset.name]?.hasUpdate),
         onApplyCommunityUpdate,
         onShare,
-        onExport,
       };
     };
 
