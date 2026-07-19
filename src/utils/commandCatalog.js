@@ -188,10 +188,10 @@ export function buildCommandCatalog(state, handlers = {}) {
     });
   });
 
-  // —— Now Playing takeover (gated on preference + connection) ——
+  // —— Now Playing takeover (player-agnostic; Windows system media is canonical) ——
   if (
     normalizeNowPlayingExperience(state?.spotify?.nowPlayingExperience) !== 'off' &&
-    state?.spotify?.isConnected
+    Boolean(state?.nowPlaying?.trackName || state?.nowPlaying?.albumArtUrl)
   ) {
     const takeoverOn = Boolean(state?.ui?.spotifyTakeoverActive);
     commands.push({

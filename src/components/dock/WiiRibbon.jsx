@@ -86,18 +86,16 @@ const WiiRibbonComponent = ({
   
   const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
   
-  // Spotify — one shallow subscription; use track *name* primitive so progress/metadata churn does not re-render the ribbon.
+  // Now Playing Color Match — one shallow subscription; use track *name* primitive so
+  // progress/metadata churn does not re-render the ribbon.
   const { spotifyExtractedColors, spotifyAlbumArtUrl, spotifyTrackName, spotifyMatchEnabled } =
     useConsolidatedAppStore(
-      useShallow((state) => {
-        const track = state.spotify.currentTrack;
-        return {
-          spotifyExtractedColors: state.spotify.extractedColors,
-          spotifyAlbumArtUrl: track?.album?.images?.[0]?.url ?? null,
-          spotifyTrackName: track?.name ?? null,
-          spotifyMatchEnabled: state.ui.spotifyMatchEnabled,
-        };
-      })
+      useShallow((state) => ({
+        spotifyExtractedColors: state.spotify.extractedColors,
+        spotifyAlbumArtUrl: state.nowPlaying?.albumArtUrl || null,
+        spotifyTrackName: state.nowPlaying?.trackName || null,
+        spotifyMatchEnabled: state.ui.spotifyMatchEnabled,
+      }))
     );
   const [spotifyColors, setSpotifyColors] = useState(null);
   /** Spotify chrome (icons, time, match chip) — gated by Match only, not dynamic chrome. */

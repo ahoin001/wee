@@ -197,14 +197,14 @@ function SteamGamesGlanceSlot({
   );
 
   const emptyHint = !steamId
-    ? 'Set Steam ID in Music, Steam & Widgets'
+    ? 'Set Steam ID in Now Playing, Steam & Widgets'
     : !apiEnabled
-      ? 'Enable Steam Web API in Music, Steam & Widgets'
+      ? 'Enable Steam Web API in Now Playing, Steam & Widgets'
       : !apiKeyConfigured && !lastSyncedAt
-        ? 'Add Steam API key in Music, Steam & Widgets'
+        ? 'Add Steam API key in Now Playing, Steam & Widgets'
         : lastSyncedAt
           ? meta.emptyNoData
-          : 'Sync Steam from Music, Steam & Widgets';
+          : 'Sync Steam from Now Playing, Steam & Widgets';
 
   return (
     <HomeWidgetShell

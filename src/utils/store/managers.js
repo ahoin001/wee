@@ -921,12 +921,6 @@ export const createStoreManagers = (getStore) => {
         throw error;
       }
     },
-    updateSpotifySettings(settings) {
-      const store = getStore();
-      store.actions.setSpotifyState({
-        settings: { ...store.spotify.settings, ...settings },
-      });
-    },
   };
 
   const iconManager = {

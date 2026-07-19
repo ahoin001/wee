@@ -178,7 +178,6 @@ const selectPersistedUi = (ui = {}) => ({
   showPresetsButton: ui.showPresetsButton ?? false,
   startOnBoot: ui.startOnBoot ?? false,
   settingsShortcut: ui.settingsShortcut ?? '',
-  spotifyWidgetShortcut: ui.spotifyWidgetShortcut ?? '',
   systemInfoWidgetShortcut: ui.systemInfoWidgetShortcut ?? '',
   adminPanelWidgetShortcut: ui.adminPanelWidgetShortcut ?? '',
   performanceMonitorShortcut: ui.performanceMonitorShortcut ?? '',
@@ -216,22 +215,30 @@ const selectPersistedUi = (ui = {}) => ({
 });
 
 /** Strip modal / loading chrome — prefs only. Side peeks are always Wee. */
-const selectPersistedNavigation = (navigation = {}) => {
+export const sanitizePersistedNavigation = (navigation = {}) => {
   if (!isPlainObject(navigation)) return {};
   const next = omitKeys(navigation, ['showNavigationModal', 'loading', 'error']);
+  const isRetiredSpotifyButton = (button) =>
+    button?.id === 'spotify' || button?.action === 'toggle-spotify';
+  if (Array.isArray(next.defaultButtons)) {
+    next.defaultButtons = next.defaultButtons.filter((button) => !isRetiredSpotifyButton(button));
+  }
+  if (Array.isArray(next.customButtons)) {
+    next.customButtons = next.customButtons.filter((button) => !isRetiredSpotifyButton(button));
+  }
+  if (Array.isArray(next.buttonOrder)) {
+    next.buttonOrder = next.buttonOrder.filter((id) => id !== 'spotify');
+  }
   next.sideNavStyle = 'wee';
   return next;
 };
 
 /** Strip live telemetry; keep positions, visibility, and configs.
- * Force archived floating widgets off so old saves cannot remount them.
+ * Remove retired Spotify widget data and force archived System Info off.
  */
 const selectPersistedFloatingWidgets = (floatingWidgets = {}) => {
   if (!isPlainObject(floatingWidgets)) return {};
-  const next = { ...floatingWidgets };
-  if (isPlainObject(next.spotify)) {
-    next.spotify = { ...next.spotify, visible: false };
-  }
+  const next = omitKeys(floatingWidgets, ['spotify']);
   if (isPlainObject(next.systemInfo)) {
     next.systemInfo = omitKeys(
       { ...next.systemInfo, visible: false },
@@ -326,10 +333,10 @@ export const buildSettingsSnapshotFromStore = (state = {}) => ({
   channels: selectPersistedChannels(state.channels || {}),
   dock: state.dock || {},
   monitors: state.monitors || {},
-  spotify: omitKeys(state.spotify || {}, ['playerWebApiForbidden']),
+  spotify: omitKeys(state.spotify || {}, ['playerWebApiForbidden', 'settings']),
   sounds: state.sounds || {},
   floatingWidgets: selectPersistedFloatingWidgets(state.floatingWidgets || {}),
-  navigation: selectPersistedNavigation(state.navigation || {}),
+  navigation: sanitizePersistedNavigation(state.navigation || {}),
   presets: Array.isArray(state.presets) ? state.presets : [],
   spaces: selectPersistedSpaces(state.spaces || {}),
   appearanceBySpace: state.appearanceBySpace || {
@@ -356,7 +363,7 @@ export const normalizeUnifiedSettingsSnapshot = (settings = {}) => {
     canonical.ui = selectPersistedUi(canonical.ui);
   }
   if (canonical.navigation) {
-    canonical.navigation = selectPersistedNavigation(canonical.navigation);
+    canonical.navigation = sanitizePersistedNavigation(canonical.navigation);
   }
   if (canonical.floatingWidgets) {
     canonical.floatingWidgets = selectPersistedFloatingWidgets(canonical.floatingWidgets);

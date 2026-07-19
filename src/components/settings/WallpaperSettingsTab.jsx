@@ -25,7 +25,6 @@ import { resolveLayout, resolveLayoutForPage } from '../../utils/channelLayoutSy
 import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import SettingsWeeSection from './SettingsWeeSection';
 import {
   WeeButton,
   WeeHelpLinkButton,
@@ -53,7 +52,7 @@ const SURFACES_SEGMENTS = [
 
 const SURFACES_TAB_TIPS = Object.freeze({
   library: 'Pick a tile to preview · Apply in the toolbar pins it to the space/page.',
-  look: 'Tone updates the canvas live · Clear page wallpaper when scope is This page.',
+  look: 'Sliders update the canvas live · Source and page pinning live in the toolbar.',
   atmosphere: 'Cycling and particles are Home-only · Watch them play on the canvas.',
   ribbon: 'Match paints the ribbon from wallpaper · Edit exact colors in Dock.',
 });
@@ -150,9 +149,6 @@ function useWallpaperSettingsController() {
     typeof selectedSpaceAppearance.spaceWallpaperUrl === 'string'
       ? selectedSpaceAppearance.spaceWallpaperUrl
       : null;
-  const selectedSpaceWallpaperEntry = selectedSpaceWallpaperUrl
-    ? wallpapers.find((w) => w?.url === selectedSpaceWallpaperUrl) || null
-    : null;
   const selectedWallpaperScope =
     selectedSpaceAppearance.wallpaperScope === 'perPage' ? 'perPage' : 'space';
   const supportsPerPageWallpaper =
@@ -376,15 +372,27 @@ function useWallpaperSettingsController() {
   }, [selectedSpaceId, setWallpaperState, updateSpaceWallpaperAppearance]);
 
   const handleSelectedSpaceUseGlobalWallpaperChange = useCallback((nextValue) => {
-    updateSpaceWallpaperAppearance(selectedSpaceId, { useGlobalWallpaper: nextValue });
-  }, [selectedSpaceId, updateSpaceWallpaperAppearance]);
-
-  const handleSelectedSpaceWallpaperOverride = useCallback((url) => {
+    if (nextValue) {
+      updateSpaceWallpaperAppearance(selectedSpaceId, {
+        useGlobalWallpaper: true,
+        spaceWallpaperUrl: null,
+      });
+      return;
+    }
+    // Switching to Custom: keep an existing override, otherwise seed from the library
+    // selection / current Home wallpaper so the scene does not go blank.
+    const state = useConsolidatedAppStore.getState();
+    const existing = state.appearanceBySpace?.[selectedSpaceId]?.wallpaper?.spaceWallpaperUrl;
+    const seed =
+      (typeof existing === 'string' && existing) ||
+      (typeof selectedWallpaper?.url === 'string' && selectedWallpaper.url) ||
+      (typeof state.wallpaper?.current?.url === 'string' && state.wallpaper.current.url) ||
+      null;
     updateSpaceWallpaperAppearance(selectedSpaceId, {
       useGlobalWallpaper: false,
-      spaceWallpaperUrl: url || null,
+      spaceWallpaperUrl: seed,
     });
-  }, [selectedSpaceId, updateSpaceWallpaperAppearance]);
+  }, [selectedSpaceId, selectedWallpaper, updateSpaceWallpaperAppearance]);
 
   const handleResetSelectedSpaceAppearance = useCallback(() => {
     const isHubSpace = selectedSpaceId === 'gamehub' || selectedSpaceId === 'mediahub';
@@ -991,8 +999,6 @@ function useWallpaperSettingsController() {
     selectedSpaceLabel,
     selectedSpaceUsesGlobalWallpaper,
     handleSelectedSpaceUseGlobalWallpaperChange,
-    handleSelectedSpaceWallpaperOverride,
-    selectedSpaceWallpaperEntry,
     selectedSpaceWallpaperUrl,
     effectiveActiveWallpaperUrl,
     selectedSpaceBrightness,
@@ -1093,8 +1099,6 @@ const WallpaperSettingsTab = React.memo(() => {
     selectedSpaceLabel,
     selectedSpaceUsesGlobalWallpaper,
     handleSelectedSpaceUseGlobalWallpaperChange,
-    handleSelectedSpaceWallpaperOverride,
-    selectedSpaceWallpaperEntry,
     selectedSpaceWallpaperUrl,
     effectiveActiveWallpaperUrl,
     selectedSpaceBrightness,
@@ -1343,6 +1347,34 @@ const WallpaperSettingsTab = React.memo(() => {
               </WeeSpaceRailPillButton>
             ))}
           </div>
+          {!isHomeSpace ? (
+            <div className="settings-wee-studio-context-group">
+              <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                Source
+              </span>
+              <WeeSegmentedControl
+                size="sm"
+                ariaLabel="Wallpaper source for this space"
+                layoutId="surfacesContextWallpaperSource"
+                value={selectedSpaceUsesGlobalWallpaper ? 'home' : 'own'}
+                onChange={(value) =>
+                  handleSelectedSpaceUseGlobalWallpaperChange(value === 'home')
+                }
+                options={[
+                  {
+                    value: 'home',
+                    label: 'Home',
+                    title: 'Follow the active Home / desktop wallpaper',
+                  },
+                  {
+                    value: 'own',
+                    label: 'Custom',
+                    title: 'Use a wallpaper pinned to this space — Apply a library tile',
+                  },
+                ]}
+              />
+            </div>
+          ) : null}
           {supportsPerPageWallpaper ? (
             <div className="settings-wee-studio-context-group">
               <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
@@ -1402,6 +1434,17 @@ const WallpaperSettingsTab = React.memo(() => {
             </div>
           ) : null}
           <div className="settings-wee-studio-context-group settings-wee-studio-context-group--apply">
+            {perPageMode && selectedPageWallpaperUrl ? (
+              <WeeButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleClearCurrentPageWallpaper}
+                title={`Clear the custom wallpaper on page ${selectedBoardCurrentPage + 1} (falls back to the space wallpaper)`}
+              >
+                Clear page {selectedBoardCurrentPage + 1}
+              </WeeButton>
+            ) : null}
             <WeeButton
               type="button"
               variant="primary"
@@ -1514,19 +1557,7 @@ const WallpaperSettingsTab = React.memo(() => {
                 <SpaceWallpaperAppearanceSection
                   wallpaperOpacity={wallpaperOpacity}
                   handleWallpaperOpacityChange={handleWallpaperOpacityChange}
-                  selectedSpaceId={selectedSpaceId}
-                  setSelectedSpaceId={setSelectedSpaceId}
-                  reduceMotion={reduceMotion}
-                  tabTransition={tabTransition}
                   selectedSpaceLabel={selectedSpaceLabel}
-                  selectedSpaceUsesGlobalWallpaper={selectedSpaceUsesGlobalWallpaper}
-                  handleSelectedSpaceUseGlobalWallpaperChange={
-                    handleSelectedSpaceUseGlobalWallpaperChange
-                  }
-                  selectedWallpaper={selectedWallpaper}
-                  handleSelectedSpaceWallpaperOverride={handleSelectedSpaceWallpaperOverride}
-                  selectedSpaceWallpaperEntry={selectedSpaceWallpaperEntry}
-                  selectedSpaceWallpaperUrl={selectedSpaceWallpaperUrl}
                   selectedSpaceBlur={selectedSpaceBlur}
                   handleSelectedSpaceBlurChange={handleSelectedSpaceBlurChange}
                   selectedSpaceBrightness={selectedSpaceBrightness}
@@ -1534,69 +1565,49 @@ const WallpaperSettingsTab = React.memo(() => {
                   selectedSpaceSaturate={selectedSpaceSaturate}
                   handleSelectedSpaceSaturateChange={handleSelectedSpaceSaturateChange}
                   handleResetSelectedSpaceAppearance={handleResetSelectedSpaceAppearance}
-                  showSpaceSelector={false}
-                  showGlobalOpacity={isHomeSpace}
-                  showWallpaperSourceSection={!isHomeSpace}
-                  supportsPerPageWallpaper={supportsPerPageWallpaper}
-                  selectedWallpaperScope={selectedWallpaperScope}
-                  onWallpaperScopeChange={handleSelectedWallpaperScopeChange}
-                  selectedBoardCurrentPage={selectedBoardCurrentPage}
-                  selectedPageWallpaperUrl={selectedPageWallpaperUrl}
-                  onClearCurrentPageWallpaper={handleClearCurrentPageWallpaper}
-                  pageMapEntries={pageMapEntries}
-                  onSelectBoardPage={handleSelectSettingsTargetPage}
-                  showScopeControl={false}
-                  showPageChipPicker={false}
+                  showGlobalOpacity
                 />
               ) : null}
 
               {activeSurfacesSegment === 'atmosphere' ? (
                 isHomeSpace ? (
-                <div className="flex flex-col gap-4">
-                  <SettingsWeeSection eyebrow="Cycling">
-                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-                      <WallpaperCyclingSection
-                        cycling={cycling}
-                        handleCyclingChange={handleCyclingChange}
-                        cycleInterval={cycleInterval}
-                        handleCycleIntervalChange={handleCycleIntervalChange}
-                        cycleAnimation={cycleAnimation}
-                        handleCycleAnimationChange={handleCycleAnimationChange}
-                        slideRandomDirection={slideRandomDirection}
-                        handleSlideRandomDirectionChange={handleSlideRandomDirectionChange}
-                        slideDirection={slideDirection}
-                        handleSlideDirectionChange={handleSlideDirectionChange}
-                        slideDuration={slideDuration}
-                        handleSlideDurationChange={handleSlideDurationChange}
-                        slideEasing={slideEasing}
-                        handleSlideEasingChange={handleSlideEasingChange}
-                        crossfadeDuration={crossfadeDuration}
-                        handleCrossfadeDurationChange={handleCrossfadeDurationChange}
-                        crossfadeEasing={crossfadeEasing}
-                        handleCrossfadeEasingChange={handleCrossfadeEasingChange}
-                      />
-                    </WeeModalFieldCard>
-                  </SettingsWeeSection>
+                <>
+                  <WallpaperCyclingSection
+                    cycling={cycling}
+                    handleCyclingChange={handleCyclingChange}
+                    cycleInterval={cycleInterval}
+                    handleCycleIntervalChange={handleCycleIntervalChange}
+                    cycleAnimation={cycleAnimation}
+                    handleCycleAnimationChange={handleCycleAnimationChange}
+                    slideRandomDirection={slideRandomDirection}
+                    handleSlideRandomDirectionChange={handleSlideRandomDirectionChange}
+                    slideDirection={slideDirection}
+                    handleSlideDirectionChange={handleSlideDirectionChange}
+                    slideDuration={slideDuration}
+                    handleSlideDurationChange={handleSlideDurationChange}
+                    slideEasing={slideEasing}
+                    handleSlideEasingChange={handleSlideEasingChange}
+                    crossfadeDuration={crossfadeDuration}
+                    handleCrossfadeDurationChange={handleCrossfadeDurationChange}
+                    crossfadeEasing={crossfadeEasing}
+                    handleCrossfadeEasingChange={handleCrossfadeEasingChange}
+                  />
 
-                  <SettingsWeeSection eyebrow="Overlay">
-                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-                      <WallpaperOverlaySection
-                        overlayEnabled={overlayEnabled}
-                        handleOverlayEnabledChange={handleOverlayEnabledChange}
-                        overlayEffect={overlayEffect}
-                        handleOverlayEffectChange={handleOverlayEffectChange}
-                        overlayIntensity={overlayIntensity}
-                        handleOverlayIntensityChange={handleOverlayIntensityChange}
-                        overlaySpeed={overlaySpeed}
-                        handleOverlaySpeedChange={handleOverlaySpeedChange}
-                        overlayWind={overlayWind}
-                        handleOverlayWindChange={handleOverlayWindChange}
-                        overlayGravity={overlayGravity}
-                        handleOverlayGravityChange={handleOverlayGravityChange}
-                      />
-                    </WeeModalFieldCard>
-                  </SettingsWeeSection>
-                </div>
+                  <WallpaperOverlaySection
+                    overlayEnabled={overlayEnabled}
+                    handleOverlayEnabledChange={handleOverlayEnabledChange}
+                    overlayEffect={overlayEffect}
+                    handleOverlayEffectChange={handleOverlayEffectChange}
+                    overlayIntensity={overlayIntensity}
+                    handleOverlayIntensityChange={handleOverlayIntensityChange}
+                    overlaySpeed={overlaySpeed}
+                    handleOverlaySpeedChange={handleOverlaySpeedChange}
+                    overlayWind={overlayWind}
+                    handleOverlayWindChange={handleOverlayWindChange}
+                    overlayGravity={overlayGravity}
+                    handleOverlayGravityChange={handleOverlayGravityChange}
+                  />
+                </>
                 ) : (
                   <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
                     <Text variant="h3" className="mb-1 playful-hero-text">
@@ -1612,8 +1623,7 @@ const WallpaperSettingsTab = React.memo(() => {
 
               {activeSurfacesSegment === 'ribbon' ? (
                 <>
-                  <SettingsWeeSection eyebrow="Ribbon look">
-                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+                  <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
                       <Text variant="h3" className="mb-1 playful-hero-text">
                         Ribbon by space &amp; page
                       </Text>
@@ -1704,11 +1714,9 @@ const WallpaperSettingsTab = React.memo(() => {
                             : `Page ${selectedBoardCurrentPage + 1} uses the space ribbon look until you apply one.`
                           : 'Space-level ribbon look. Page flips keep the same colors.'}
                       </p>
-                    </WeeModalFieldCard>
-                  </SettingsWeeSection>
+                  </WeeModalFieldCard>
 
-                  <SettingsWeeSection eyebrow="Match wallpaper">
-                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+                  <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
                           <Text variant="h3" className="mb-1 playful-hero-text">
@@ -1731,8 +1739,7 @@ const WallpaperSettingsTab = React.memo(() => {
                           Edit ribbon accents in Dock
                         </WeeHelpLinkButton>
                       </div>
-                    </WeeModalFieldCard>
-                  </SettingsWeeSection>
+                  </WeeModalFieldCard>
                 </>
               ) : null}
             </m.div>

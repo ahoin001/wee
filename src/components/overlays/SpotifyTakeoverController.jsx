@@ -17,7 +17,7 @@ function SpotifyTakeoverController() {
     useShallow((s) => ({
       mode: normalizeNowPlayingExperience(s.spotify.nowPlayingExperience),
       takeover: s.ui.spotifyTakeoverActive,
-      isPlaying: Boolean(s.spotify.isPlaying),
+      isPlaying: Boolean(s.nowPlaying?.isPlaying),
       idleStage: s.ui.homeIdleStage,
     }))
   );

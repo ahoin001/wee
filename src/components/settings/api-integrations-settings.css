@@ -28,8 +28,3 @@
 .api-integ-grid-actions {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
-
-/* Spotify accent for WToggle (overrides --wii-blue locally) */
-.wii-toggle-spotify-accent {
-  --wii-blue: var(--settings-tab-api);
-}

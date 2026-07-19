@@ -147,8 +147,8 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'open-settings-api-integrations-tab',
-    name: 'Open Music, Steam & Widgets Settings',
-    description: 'Open settings modal to Music, Steam & Widgets tab',
+    name: 'Open Now Playing, Steam & Widgets Settings',
+    description: 'Open settings modal to Now Playing, Steam & Widgets tab',
     defaultKey: 'a',
     defaultModifier: 'ctrl+shift',
     action: 'openSettingsModal',

@@ -40,16 +40,17 @@ function SurfacesScenePreview({
   const reduceMotion = useReducedMotion();
   const crossfade = createWeeTransition('tab', { reducedMotion: reduceMotion });
 
+  // The crossfade animates opacity on a wrapper; the user's opacity slider is a static
+  // style on the inner img so Framer's animate={{ opacity: 1 }} can never override it.
+  const layerOpacity = Math.min(1, Math.max(0, Number(opacity) || 0));
   const layerStyle = useMemo(() => {
-    const op = Math.min(1, Math.max(0, Number(opacity) || 0));
     const bl = Math.max(0, Number(blur) || 0);
     const br = Math.max(0.2, Number(brightness) || 1);
     const sat = Math.max(0, Number(saturate) || 1);
     return {
-      opacity: op,
       filter: `blur(${bl}px) brightness(${br}) saturate(${sat})`,
     };
-  }, [opacity, blur, brightness, saturate]);
+  }, [blur, brightness, saturate]);
 
   const focusWallpaper =
     activeSegment === 'library' || activeSegment === 'look' || activeSegment === 'atmosphere';
@@ -119,18 +120,22 @@ function SurfacesScenePreview({
         <div className={`absolute inset-0 transition-opacity duration-300 ${wallpaperDim}`}>
           <AnimatePresence mode="sync" initial={false}>
             {wallpaperUrl ? (
-              <m.img
+              <m.div
                 key={wallpaperUrl}
-                src={wallpaperUrl}
-                alt=""
-                draggable={false}
                 initial={reduceMotion ? false : { opacity: 0, scale: 1.04 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0, scale: 1.02 }}
                 transition={crossfade}
-                className="absolute inset-0 h-full w-full object-cover will-change-[filter,opacity,transform]"
-                style={layerStyle}
-              />
+                className="absolute inset-0 will-change-[opacity,transform]"
+              >
+                <img
+                  src={wallpaperUrl}
+                  alt=""
+                  draggable={false}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{ ...layerStyle, opacity: layerOpacity }}
+                />
+              </m.div>
             ) : (
               <m.div
                 key="empty-wallpaper"

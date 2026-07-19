@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { Heart, Loader2, Trash2, Upload } from 'lucide-react';
 import Text from '../../../ui/Text';
-import SettingsWeeSection from '../SettingsWeeSection';
 import { WeeButton, WeeModalFieldCard } from '../../../ui/wee';
 import { WALLPAPER_CHECKERBOARD_BG } from '../../../design/runtimeColorStrings.js';
 
@@ -38,234 +37,232 @@ function WallpaperLibrarySection({
     wallpapers.find((w) => w.url === pendingDeleteUrl)?.name || 'this wallpaper';
 
   return (
-    <SettingsWeeSection eyebrow="Library">
-      <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-        <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <Text variant="h3" className="mb-1 playful-hero-text">
-              Pick wallpaper
-            </Text>
-            <Text variant="desc" className="!mb-0">
-              Pick a tile to preview on the canvas. Use Apply in the toolbar for{' '}
-              {applyScopeLabel || selectedSpaceLabel}. Hearts feed Home cycling (Atmosphere).
-            </Text>
-          </div>
-          <WeeButton
-            type="button"
-            variant="secondary"
-            className="!inline-flex !shrink-0 !items-center !gap-2 !px-3.5 !py-2.5"
-            onClick={handleUpload}
-            disabled={uploading}
-            title="Upload wallpaper from your computer"
-          >
-            <Upload size={14} strokeWidth={2.5} aria-hidden />
-            {uploading ? 'Uploading…' : 'Upload'}
-          </WeeButton>
+    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+      <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <Text variant="h3" className="mb-1 playful-hero-text">
+            Pick wallpaper
+          </Text>
+          <Text variant="desc" className="!mb-0">
+            Pick a tile to preview on the canvas. Use Apply in the toolbar for{' '}
+            {applyScopeLabel || selectedSpaceLabel}. Hearts feed Home cycling (Atmosphere).
+          </Text>
         </div>
+        <WeeButton
+          type="button"
+          variant="secondary"
+          className="!inline-flex !shrink-0 !items-center !gap-2 !px-3.5 !py-2.5"
+          onClick={handleUpload}
+          disabled={uploading}
+          title="Upload wallpaper from your computer"
+        >
+          <Upload size={14} strokeWidth={2.5} aria-hidden />
+          {uploading ? 'Uploading…' : 'Upload'}
+        </WeeButton>
+      </div>
 
-        <div className="mb-5 mt-5 flex justify-center py-1">
-          <button
-            type="button"
-            className={`settings-wee-default-wallpaper min-w-[220px] max-w-full text-left ${
-              usingDefaultSelection ? 'settings-wee-default-wallpaper--active' : ''
-            }`}
-            onClick={handleRemoveWallpaper}
-          >
+      <div className="mb-5 mt-5 flex justify-center py-1">
+        <button
+          type="button"
+          className={`settings-wee-default-wallpaper min-w-[220px] max-w-full text-left ${
+            usingDefaultSelection ? 'settings-wee-default-wallpaper--active' : ''
+          }`}
+          onClick={handleRemoveWallpaper}
+        >
+          <div
+            className="settings-wee-default-wallpaper__swatch"
+            style={{
+              background: WALLPAPER_CHECKERBOARD_BG,
+              backgroundSize: '8px 8px',
+              backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
+            }}
+          />
+          <div className="min-w-0">
             <div
-              className="settings-wee-default-wallpaper__swatch"
-              style={{
-                background: WALLPAPER_CHECKERBOARD_BG,
-                backgroundSize: '8px 8px',
-                backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
-              }}
-            />
-            <div className="min-w-0">
-              <div
-                className={`mb-0.5 text-[14px] font-semibold ${
-                  usingDefaultSelection ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--text-primary))]'
-                }`}
-              >
-                {defaultWallpaperTitle}
-              </div>
-              <div
-                className={`text-xs ${
-                  usingDefaultSelection
-                    ? 'text-[hsl(var(--primary))]'
-                    : 'text-[hsl(var(--text-tertiary))]'
-                }`}
-              >
-                {defaultWallpaperHint}
-              </div>
-            </div>
-          </button>
-        </div>
-
-        <AnimatePresence mode="wait" initial={false}>
-          {selectedWallpaper ? (
-            <m.div
-              key={selectedWallpaper.url}
-              className="settings-wee-wallpaper-hero"
-              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reduceMotion ? undefined : { opacity: 0, y: -8, scale: 0.98 }}
-              transition={tabTransition}
+              className={`mb-0.5 text-[14px] font-semibold ${
+                usingDefaultSelection ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--text-primary))]'
+              }`}
             >
-              <div className="settings-wee-wallpaper-hero__row">
-                <div className="settings-wee-wallpaper-hero__frame">
-                  <img src={selectedWallpaper.url} alt="" />
-                </div>
-                <div className="settings-wee-wallpaper-hero__meta">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="settings-wee-wallpaper-hero__eyebrow">
-                      {effectiveActiveWallpaperUrl === selectedWallpaper.url ? 'Active asset' : 'Preview'}
-                    </span>
-                    {effectiveActiveWallpaperUrl === selectedWallpaper.url ? (
-                      <span className="settings-wee-wallpaper-hero__badge">On {selectedSpaceLabel}</span>
-                    ) : null}
-                  </div>
-                  <div className="settings-wee-wallpaper-hero__name">{selectedWallpaper.name}</div>
-                </div>
-                <div className="settings-wee-wallpaper-hero__actions">
-                  <WeeButton
-                    type="button"
-                    variant="secondary"
-                    className="!min-w-0 !px-3 !py-2.5 sm:!py-3"
-                    title={likedWallpapers.includes(selectedWallpaper.url) ? 'Unlike for cycling' : 'Like for cycling'}
-                    aria-label={
-                      likedWallpapers.includes(selectedWallpaper.url) ? 'Unlike wallpaper' : 'Like wallpaper'
-                    }
-                    onClick={() => handleLike(selectedWallpaper.url)}
-                  >
-                    <Heart
-                      size={18}
-                      strokeWidth={2.4}
-                      className={
-                        likedWallpapers.includes(selectedWallpaper.url)
-                          ? 'fill-[hsl(var(--state-error))] text-[hsl(var(--state-error))]'
-                          : ''
-                      }
-                      aria-hidden
-                    />
-                  </WeeButton>
-                </div>
-              </div>
-            </m.div>
-          ) : null}
-        </AnimatePresence>
-
-        <p className="settings-wee-subhead !mb-3 !mt-1">Saved</p>
-        <div className="settings-wee-wallpaper-picker-grid">
-          {wallpapers.length === 0 ? (
-            <Text variant="help" className="col-span-full text-center">
-              No saved wallpapers yet. Upload one to get started.
-            </Text>
-          ) : null}
-          {wallpapers.map((wallpaper, idx) => {
-            const selected = selectedWallpaper && selectedWallpaper.url === wallpaper.url;
-            const liked = likedWallpapers.includes(wallpaper.url);
-            const onDesktop = effectiveActiveWallpaperUrl === wallpaper.url;
-            return (
-              <div
-                key={wallpaper.url || idx}
-                role="button"
-                tabIndex={0}
-                className={[
-                  'settings-wee-wallpaper-picker-tile',
-                  selected ? 'settings-wee-wallpaper-picker-tile--selected' : '',
-                  onDesktop ? 'settings-wee-wallpaper-picker-tile--active-desktop' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                aria-label={`Select wallpaper ${wallpaper.name}`}
-                onClick={() => onSelectLibraryWallpaper(wallpaper)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelectLibraryWallpaper(wallpaper);
-                  }
-                }}
-              >
-                <div className="settings-wee-wallpaper-picker-tile__media">
-                  <img
-                    className="settings-wee-wallpaper-picker-tile__img"
-                    src={wallpaper.url}
-                    alt=""
-                  />
-                  {onDesktop ? (
-                    <span className="settings-wee-wallpaper-picker-tile__pill">{selectedSpaceLabel}</span>
-                  ) : null}
-                  <button
-                    type="button"
-                    className={`settings-wee-wallpaper-fab settings-wee-wallpaper-fab--bl ${
-                      liked ? 'settings-wee-wallpaper-fab--like-on' : ''
-                    }`}
-                    title={liked ? 'Unlike' : 'Like for cycling'}
-                    aria-label={liked ? 'Unlike wallpaper' : 'Like wallpaper'}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleLike(wallpaper.url);
-                    }}
-                  >
-                    <Heart size={14} strokeWidth={2.5} className={liked ? 'fill-current' : ''} aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    className="settings-wee-wallpaper-fab settings-wee-wallpaper-fab--br settings-wee-wallpaper-fab--danger"
-                    title="Remove from library"
-                    aria-label="Remove saved wallpaper"
-                    disabled={deleting[wallpaper.url]}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPendingDeleteUrl(wallpaper.url);
-                    }}
-                  >
-                    {deleting[wallpaper.url] ? (
-                      <Loader2 size={14} className="animate-spin" aria-hidden />
-                    ) : (
-                      <Trash2 size={14} strokeWidth={2.25} aria-hidden />
-                    )}
-                  </button>
-                </div>
-                <span className="settings-wee-wallpaper-picker-tile__title" title={wallpaper.name}>
-                  {wallpaper.name}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {pendingDeleteUrl ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[hsl(var(--state-error)/0.35)] bg-[hsl(var(--state-error)/0.08)] px-3 py-2.5">
-            <Text variant="caption" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
-              Remove “{pendingDeleteName}” from your library?
-            </Text>
-            <div className="flex flex-wrap gap-2">
-              <WeeButton
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setPendingDeleteUrl(null)}
-              >
-                Cancel
-              </WeeButton>
-              <WeeButton
-                type="button"
-                variant="danger"
-                size="sm"
-                disabled={Boolean(deleting[pendingDeleteUrl])}
-                onClick={() => {
-                  const url = pendingDeleteUrl;
-                  setPendingDeleteUrl(null);
-                  handleDelete(url);
-                }}
-              >
-                {deleting[pendingDeleteUrl] ? 'Removing…' : 'Remove'}
-              </WeeButton>
+              {defaultWallpaperTitle}
+            </div>
+            <div
+              className={`text-xs ${
+                usingDefaultSelection
+                  ? 'text-[hsl(var(--primary))]'
+                  : 'text-[hsl(var(--text-tertiary))]'
+              }`}
+            >
+              {defaultWallpaperHint}
             </div>
           </div>
+        </button>
+      </div>
+
+      <AnimatePresence mode="wait" initial={false}>
+        {selectedWallpaper ? (
+          <m.div
+            key={selectedWallpaper.url}
+            className="settings-wee-wallpaper-hero"
+            initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -8, scale: 0.98 }}
+            transition={tabTransition}
+          >
+            <div className="settings-wee-wallpaper-hero__row">
+              <div className="settings-wee-wallpaper-hero__frame">
+                <img src={selectedWallpaper.url} alt="" />
+              </div>
+              <div className="settings-wee-wallpaper-hero__meta">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="settings-wee-wallpaper-hero__eyebrow">
+                    {effectiveActiveWallpaperUrl === selectedWallpaper.url ? 'Active asset' : 'Preview'}
+                  </span>
+                  {effectiveActiveWallpaperUrl === selectedWallpaper.url ? (
+                    <span className="settings-wee-wallpaper-hero__badge">On {selectedSpaceLabel}</span>
+                  ) : null}
+                </div>
+                <div className="settings-wee-wallpaper-hero__name">{selectedWallpaper.name}</div>
+              </div>
+              <div className="settings-wee-wallpaper-hero__actions">
+                <WeeButton
+                  type="button"
+                  variant="secondary"
+                  className="!min-w-0 !px-3 !py-2.5 sm:!py-3"
+                  title={likedWallpapers.includes(selectedWallpaper.url) ? 'Unlike for cycling' : 'Like for cycling'}
+                  aria-label={
+                    likedWallpapers.includes(selectedWallpaper.url) ? 'Unlike wallpaper' : 'Like wallpaper'
+                  }
+                  onClick={() => handleLike(selectedWallpaper.url)}
+                >
+                  <Heart
+                    size={18}
+                    strokeWidth={2.4}
+                    className={
+                      likedWallpapers.includes(selectedWallpaper.url)
+                        ? 'fill-[hsl(var(--state-error))] text-[hsl(var(--state-error))]'
+                        : ''
+                    }
+                    aria-hidden
+                  />
+                </WeeButton>
+              </div>
+            </div>
+          </m.div>
         ) : null}
-      </WeeModalFieldCard>
-    </SettingsWeeSection>
+      </AnimatePresence>
+
+      <p className="settings-wee-subhead !mb-3 !mt-1">Saved</p>
+      <div className="settings-wee-wallpaper-picker-grid">
+        {wallpapers.length === 0 ? (
+          <Text variant="help" className="col-span-full text-center">
+            No saved wallpapers yet. Upload one to get started.
+          </Text>
+        ) : null}
+        {wallpapers.map((wallpaper, idx) => {
+          const selected = selectedWallpaper && selectedWallpaper.url === wallpaper.url;
+          const liked = likedWallpapers.includes(wallpaper.url);
+          const onDesktop = effectiveActiveWallpaperUrl === wallpaper.url;
+          return (
+            <div
+              key={wallpaper.url || idx}
+              role="button"
+              tabIndex={0}
+              className={[
+                'settings-wee-wallpaper-picker-tile',
+                selected ? 'settings-wee-wallpaper-picker-tile--selected' : '',
+                onDesktop ? 'settings-wee-wallpaper-picker-tile--active-desktop' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-label={`Select wallpaper ${wallpaper.name}`}
+              onClick={() => onSelectLibraryWallpaper(wallpaper)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectLibraryWallpaper(wallpaper);
+                }
+              }}
+            >
+              <div className="settings-wee-wallpaper-picker-tile__media">
+                <img
+                  className="settings-wee-wallpaper-picker-tile__img"
+                  src={wallpaper.url}
+                  alt=""
+                />
+                {onDesktop ? (
+                  <span className="settings-wee-wallpaper-picker-tile__pill">{selectedSpaceLabel}</span>
+                ) : null}
+                <button
+                  type="button"
+                  className={`settings-wee-wallpaper-fab settings-wee-wallpaper-fab--bl ${
+                    liked ? 'settings-wee-wallpaper-fab--like-on' : ''
+                  }`}
+                  title={liked ? 'Unlike' : 'Like for cycling'}
+                  aria-label={liked ? 'Unlike wallpaper' : 'Like wallpaper'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLike(wallpaper.url);
+                  }}
+                >
+                  <Heart size={14} strokeWidth={2.5} className={liked ? 'fill-current' : ''} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="settings-wee-wallpaper-fab settings-wee-wallpaper-fab--br settings-wee-wallpaper-fab--danger"
+                  title="Remove from library"
+                  aria-label="Remove saved wallpaper"
+                  disabled={deleting[wallpaper.url]}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPendingDeleteUrl(wallpaper.url);
+                  }}
+                >
+                  {deleting[wallpaper.url] ? (
+                    <Loader2 size={14} className="animate-spin" aria-hidden />
+                  ) : (
+                    <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+                  )}
+                </button>
+              </div>
+              <span className="settings-wee-wallpaper-picker-tile__title" title={wallpaper.name}>
+                {wallpaper.name}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {pendingDeleteUrl ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[hsl(var(--state-error)/0.35)] bg-[hsl(var(--state-error)/0.08)] px-3 py-2.5">
+          <Text variant="caption" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
+            Remove “{pendingDeleteName}” from your library?
+          </Text>
+          <div className="flex flex-wrap gap-2">
+            <WeeButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setPendingDeleteUrl(null)}
+            >
+              Cancel
+            </WeeButton>
+            <WeeButton
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={Boolean(deleting[pendingDeleteUrl])}
+              onClick={() => {
+                const url = pendingDeleteUrl;
+                setPendingDeleteUrl(null);
+                handleDelete(url);
+              }}
+            >
+              {deleting[pendingDeleteUrl] ? 'Removing…' : 'Remove'}
+            </WeeButton>
+          </div>
+        </div>
+      ) : null}
+    </WeeModalFieldCard>
   );
 }
 

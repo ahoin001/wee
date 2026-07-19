@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
-import { Clapperboard, Focus, Gamepad2, Home, PenLine, Pin, PinOff, Wand2 } from 'lucide-react';
+import { Clapperboard, Focus, Gamepad2, Home, Pin, PinOff, Wand2 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   CHANNEL_SPACE_LABELS,
@@ -34,7 +34,6 @@ import {
   getWeeShellChromeEntrance,
   createWeeTransition,
 } from '../../design/weeMotion';
-import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import {
   WeeGlassPill,
   WeeGooeyIconButton,
@@ -52,12 +51,11 @@ const SPACE_META = {
 
 /**
  * Expanded rail footprint — must match WeeGooeyIconButton sizes + flex gap/padding
- * in the open column (wand + pin are real actions, not free “+120” slack).
+ * in the open column (edit + pin are real actions, not free “+120” slack).
  */
 const SPACE_RAIL_LAYOUT = Object.freeze({
   spaceBtn: 56, // size lg
-  editBtn: 56, // size lg — Edit Home
-  wandBtn: 56, // size lg
+  editBtn: 56, // size lg — Edit board
   pinBtn: 48, // size md
   gapComfortable: 8, // gap-2
   gapCompact: 6, // gap-1.5
@@ -70,7 +68,7 @@ const SPACE_RAIL_LAYOUT = Object.freeze({
   dividerMarginYCompact: 4,
   borderY: 8, // border-4 top + bottom (border-box)
   viewportMargin: 16,
-  actionSlotCount: 4, // divider + edit + wand + pin
+  actionSlotCount: 3, // divider + edit + pin
 });
 
 function computeSpaceRailContentHeight(spaceCount, density = 'comfortable') {
@@ -95,7 +93,6 @@ function computeSpaceRailContentHeight(spaceCount, density = 'comfortable') {
     SPACE_RAIL_LAYOUT.dividerH +
     dividerMargin +
     SPACE_RAIL_LAYOUT.editBtn +
-    SPACE_RAIL_LAYOUT.wandBtn +
     SPACE_RAIL_LAYOUT.pinBtn +
     gaps
   );
@@ -433,11 +430,6 @@ export default function WeeGooeySpacePill() {
 
   const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
 
-  const handleWand = () => {
-    openSettingsToTab(SETTINGS_TAB_ID.CHANNELS);
-    setHovered(false);
-  };
-
   /** Live Board Studio on the current channel board (Home/Second Home stay put; hubs jump to Home). */
   const handleEditBoard = () => {
     enterHomeBoardArrange({ closeSettings: true });
@@ -644,32 +636,13 @@ export default function WeeGooeySpacePill() {
                         title={`${editBoardLabel} (Ctrl+E)`}
                         aria-label={editBoardLabel}
                       >
-                        <PenLine size={22} strokeWidth={2} className="relative z-10" aria-hidden />
-                      </WeeGooeyIconButton>
-
-                      <WeeGooeyIconButton
-                        variant="solid"
-                        size="lg"
-                        custom={orderedSpaces.length + 2}
-                        variants={itemVariants}
-                        initial="closed"
-                        animate="open"
-                        exit="closed"
-                        reducedMotion={reducedMotion}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleWand();
-                        }}
-                        title="Channels & layout"
-                        aria-label="Open channels and layout settings"
-                      >
                         <Wand2 size={22} strokeWidth={2} className="relative z-10" aria-hidden />
                       </WeeGooeyIconButton>
 
                       <WeeGooeyIconButton
                         variant="outline"
                         size="md"
-                        custom={orderedSpaces.length + 3}
+                        custom={orderedSpaces.length + 2}
                         variants={itemVariants}
                         initial="closed"
                         animate="open"

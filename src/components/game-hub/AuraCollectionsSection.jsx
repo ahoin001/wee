@@ -16,7 +16,12 @@ import {
   runFlyInAnimations,
   runFlyOutAnimations,
 } from './collectionFlyAnimations';
-import { maybeScrollHubExpansionIntoView, readHubDockInsetPx, readHubScrollTopReservePx } from './hubScrollUtils';
+import {
+  maybeScrollHubExpansionIntoView,
+  readHubDockInsetPx,
+  readHubScrollTopReservePx,
+  resolveHubScrollBehavior,
+} from './hubScrollUtils';
 
 /** One frame — hub-design uses rAF before measuring slot rects. */
 function nextFrame() {
@@ -131,18 +136,48 @@ export default function AuraCollectionsSection({
 
   const games = activeCollection?.games || [];
 
-  /** Instant scroll only — never smooth-scroll while fixed flyers are in flight. */
-  const ensureExpansionInView = useCallback((behavior = 'auto') => {
+  /**
+   * Post-settle only — never scroll during fixed FLIP flyers (that was the open jank).
+   * Start-aligned, thresholded, smooth (or snap under reduced-motion).
+   */
+  const ensureExpansionInView = useCallback((behavior) => {
     const container = hubScrollContainerRef?.current;
     const region = expansionRef.current;
     if (!container || !region) return;
     maybeScrollHubExpansionIntoView(container, region, {
       bottomInset: readHubDockInsetPx(region),
       topReserve: readHubScrollTopReservePx(region),
-      minVisibleRatio: 0.42,
-      behavior,
+      minVisibleRatio: 0.52,
+      align: 'start',
+      minDeltaPx: 32,
+      behavior: behavior ?? resolveHubScrollBehavior(),
     });
   }, [hubScrollContainerRef]);
+
+  /** After open fly settles (or reduced-motion expand finishes), gently reveal a clipped shelf. */
+  useEffect(() => {
+    if (!activeCollectionId || shelfClosing) return undefined;
+    if (flyAllowed && flyInProgress) return undefined;
+
+    let cancelled = false;
+    const delay = flyAllowed ? 48 : COLLECTION_EXPANSION_MS;
+    const t = window.setTimeout(() => {
+      if (cancelled) return;
+      ensureExpansionInView();
+    }, delay);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [
+    activeCollectionId,
+    ensureExpansionInView,
+    flyAllowed,
+    flyInProgress,
+    shelfClosing,
+  ]);
+
   const gameSignature = useMemo(
     () => `${activeCollectionId}:${(activeCollection?.games || []).map((g) => g.id).join(',')}`,
     [activeCollectionId, activeCollection]
@@ -292,8 +327,7 @@ export default function AuraCollectionsSection({
     let cancelled = false;
 
     (async () => {
-      // Instant scroll before measuring — fixed flyers cannot track smooth scroll.
-      ensureExpansionInView('auto');
+      // No scroll here — camera stays put while flyers travel from stack → slots.
       await nextFrame();
       if (cancelled || myGen !== flyGeneration.current || controller.signal.aborted) {
         setFlyInProgress(false);
@@ -313,7 +347,7 @@ export default function AuraCollectionsSection({
         return;
       }
 
-      const { didFly, aborted } = await runFlyInAnimations({
+      const { aborted } = await runFlyInAnimations({
         games,
         fromRect,
         getToRect: (i) => gridSlotRefs.current[i]?.getBoundingClientRect?.() || null,
@@ -330,10 +364,7 @@ export default function AuraCollectionsSection({
         setFlyInProgress(false);
         setFlyHandoff(false);
         setCardsRevealed(true);
-        if (didFly) {
-          // Soft post-settle nudge if dock still clips the shelf — still instant, not mid-flight.
-          ensureExpansionInView('auto');
-        }
+        // Post-settle scroll is owned by the settle effect (smooth, thresholded).
       }
     })();
 
@@ -342,13 +373,7 @@ export default function AuraCollectionsSection({
       controller.abort();
       if (flyAbortRef.current === controller) flyAbortRef.current = null;
     };
-  }, [
-    activeCollectionId,
-    ensureExpansionInView,
-    flyAllowed,
-    gameSignature,
-    prepareCollectionHandoff,
-  ]);
+  }, [activeCollectionId, flyAllowed, gameSignature, prepareCollectionHandoff]);
 
   const flushPendingOpen = useCallback(() => {
     const pid = pendingOpenCollectionIdRef.current;

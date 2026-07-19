@@ -52,7 +52,10 @@ import {
 import { DEFAULT_HOME_CLOCK_WIDGET } from './homeClockWidgetPrefs';
 import { DEFAULT_HOME_NOW_PLAYING_WIDGET } from './homeNowPlayingWidgetPrefs';
 import { recordRecentLaunchEntry } from './recentLaunches';
-import { mergeChannelsSlice } from './store/settingsPersistenceContract';
+import {
+  mergeChannelsSlice,
+  sanitizePersistedNavigation,
+} from './store/settingsPersistenceContract';
 import {
   captureSpaceAppearanceFromState,
   mergeLiveStateFromSpaceAppearance,
@@ -154,7 +157,6 @@ useConsolidatedAppStore = create(
           startOnBoot: false,
           settingsShortcut: '',
           // New shortcut properties for enhanced shortcuts tab
-          spotifyWidgetShortcut: '',
           systemInfoWidgetShortcut: '',
           adminPanelWidgetShortcut: '',
           performanceMonitorShortcut: '',
@@ -587,14 +589,6 @@ useConsolidatedAppStore = create(
                 animationLevel: 2, // Animation level: 0=static, 1=subtle, 2=dynamic, 3=intense
                 style: 'radial' // Gradient style: 'radial', 'linear', 'waves'
           },
-          settings: {
-            dynamicColors: true,
-            useBlurredBackground: true, // Enabled by default
-            blurAmount: 2, // 2px blur by default
-            autoShowWidget: false,
-            trackInfoPanelOpacity: 0.8,
-            trackInfoPanelBlur: 10
-          }
         },
 
         // Navigation state
@@ -604,8 +598,7 @@ useConsolidatedAppStore = create(
           buttonOrder: [],
           defaultButtons: [
             { id: 'settings', type: 'icon', icon: 'settings', label: 'Settings', action: 'open-settings' },
-            { id: 'presets', type: 'icon', icon: 'star', label: 'Presets', action: 'open-presets' },
-            { id: 'spotify', type: 'icon', icon: 'music', label: 'Spotify', action: 'toggle-spotify' }
+            { id: 'presets', type: 'icon', icon: 'star', label: 'Presets', action: 'open-presets' }
           ],
           buttonConfigs: {},
           loading: false,
@@ -663,16 +656,6 @@ useConsolidatedAppStore = create(
 
         // Floating widgets state
         floatingWidgets: {
-          spotify: {
-            visible: false,
-            position: { x: 20, y: 20 },
-            size: { width: 360, height: 440 },
-            settings: {
-              autoShowWidget: false,
-              autoHideWidget: true,
-              dynamicColors: false,
-            },
-          },
           systemInfo: {
             visible: false,
             position: { x: 20, y: 100 },
@@ -1331,14 +1314,7 @@ useConsolidatedAppStore = create(
           // Spotify manager
           spotifyManager,
           
-          // Widget toggle actions (Spotify + System Info archived — always force off)
-          toggleSpotifyWidget: () => {
-            const store = useConsolidatedAppStore.getState();
-            store.actions.setFloatingWidgetsState({
-              spotify: { ...store.floatingWidgets.spotify, visible: false }
-            });
-          },
-
+          // System Info is archived — keep legacy action dark.
           toggleSystemInfoWidget: () => {
             const store = useConsolidatedAppStore.getState();
             store.actions.setFloatingWidgetsState({
@@ -1763,7 +1739,12 @@ useConsolidatedAppStore = create(
                   },
                 };
               }
-              if (slices.navigation) next.navigation = { ...state.navigation, ...slices.navigation };
+              if (slices.navigation) {
+                next.navigation = sanitizePersistedNavigation({
+                  ...state.navigation,
+                  ...slices.navigation,
+                });
+              }
               if (slices.floatingWidgets) {
                 const nextFw = {
                   ...state.floatingWidgets,
@@ -1779,10 +1760,9 @@ useConsolidatedAppStore = create(
                     config: normalizeAdminPanelConfig(ap.config),
                   };
                 }
-                // Archived: floating Spotify + System Info are not mounted.
-                if (nextFw.spotify) {
-                  nextFw.spotify = { ...nextFw.spotify, visible: false };
-                }
+                // Strip the retired floating Spotify widget from old snapshots.
+                delete nextFw.spotify;
+                // Archived System Info is not mounted.
                 if (nextFw.systemInfo) {
                   nextFw.systemInfo = { ...nextFw.systemInfo, visible: false };
                 }

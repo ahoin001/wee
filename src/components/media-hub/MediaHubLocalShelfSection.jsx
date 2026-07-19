@@ -9,7 +9,12 @@ import {
   runFlyInAnimations,
   runFlyOutAnimations,
 } from '../game-hub/collectionFlyAnimations';
-import { maybeScrollHubExpansionIntoView, readHubDockInsetPx, readHubScrollTopReservePx } from '../game-hub/hubScrollUtils';
+import {
+  maybeScrollHubExpansionIntoView,
+  readHubDockInsetPx,
+  readHubScrollTopReservePx,
+  resolveHubScrollBehavior,
+} from '../game-hub/hubScrollUtils';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import '../game-hub/GameHubSpace.css';
 
@@ -151,19 +156,45 @@ export default function MediaHubLocalShelfSection({
   }, []);
 
   const ensureExpansionInView = useCallback(
-    (behavior = 'auto') => {
+    (behavior) => {
       const container = hubScrollContainerRef?.current;
       const region = expansionRef.current;
       if (!container || !region) return;
       maybeScrollHubExpansionIntoView(container, region, {
         bottomInset: readHubDockInsetPx(region),
         topReserve: readHubScrollTopReservePx(region),
-        minVisibleRatio: 0.42,
-        behavior,
+        minVisibleRatio: 0.52,
+        align: 'start',
+        minDeltaPx: 32,
+        behavior: behavior ?? resolveHubScrollBehavior(),
       });
     },
     [hubScrollContainerRef]
   );
+
+  /** Post-settle only — never scroll while fixed flyers are in flight. */
+  useEffect(() => {
+    if (!activeCollectionId || shelfClosing) return undefined;
+    if (flyAllowed && flyInProgress) return undefined;
+
+    let cancelled = false;
+    const delay = flyAllowed ? 48 : COLLECTION_EXPANSION_MS;
+    const t = window.setTimeout(() => {
+      if (cancelled) return;
+      ensureExpansionInView();
+    }, delay);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [
+    activeCollectionId,
+    ensureExpansionInView,
+    flyAllowed,
+    flyInProgress,
+    shelfClosing,
+  ]);
 
   const onSetCollection = useCallback((id) => {
     setActiveCollectionId(id);
@@ -300,7 +331,6 @@ export default function MediaHubLocalShelfSection({
     let cancelled = false;
 
     (async () => {
-      ensureExpansionInView('auto');
       await nextFrame();
       if (cancelled || myGen !== flyGeneration.current || controller.signal.aborted) {
         setFlyInProgress(false);
@@ -320,7 +350,7 @@ export default function MediaHubLocalShelfSection({
         return;
       }
 
-      const { didFly, aborted } = await runFlyInAnimations({
+      const { aborted } = await runFlyInAnimations({
         games,
         fromRect,
         getToRect: (i) => gridSlotRefs.current[i]?.getBoundingClientRect?.() || null,
@@ -338,7 +368,6 @@ export default function MediaHubLocalShelfSection({
         setFlyInProgress(false);
         setFlyHandoff(false);
         setCardsRevealed(true);
-        if (didFly) ensureExpansionInView('auto');
       }
     })();
 
@@ -347,14 +376,7 @@ export default function MediaHubLocalShelfSection({
       controller.abort();
       if (flyAbortRef.current === controller) flyAbortRef.current = null;
     };
-  }, [
-    activeCollectionId,
-    ensureExpansionInView,
-    flyAllowed,
-    gameSignature,
-    getFlyLayerParent,
-    prepareCollectionHandoff,
-  ]);
+  }, [activeCollectionId, flyAllowed, gameSignature, getFlyLayerParent, prepareCollectionHandoff]);
 
   const flushPendingOpen = useCallback(() => {
     const pid = pendingOpenCollectionIdRef.current;

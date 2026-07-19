@@ -10,7 +10,7 @@ const SpotifyImmersiveOverlay = () => {
     useShallow((state) => ({
       extractedColors: state.spotify.extractedColors,
       immersiveMode: state.spotify.immersiveMode,
-      isPlaying: state.spotify.isPlaying,
+      isPlaying: Boolean(state.nowPlaying?.isPlaying),
       /** Immersive config enabled OR momentary Now Playing takeover. */
       stackActive: selectSpotifyImmersiveActive(state),
     }))

@@ -3,9 +3,6 @@
  * Do not use raw hex in components; import from here.
  */
 
-export const CSS_SPOTIFY_PRIMARY = 'rgb(var(--spotify-green-rgb))';
-export const CSS_SPOTIFY_SECONDARY = 'rgb(var(--spotify-green-secondary-rgb))';
-
 /** Brand / chrome */
 export const CSS_WII_BLUE = 'hsl(var(--wii-blue))';
 export const CSS_TEXT_ON_ACCENT = 'hsl(var(--text-on-accent))';

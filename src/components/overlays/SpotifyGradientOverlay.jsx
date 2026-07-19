@@ -8,7 +8,7 @@ const SpotifyGradientOverlay = () => {
     useShallow((state) => ({
       extractedColors: state.spotify.extractedColors,
       immersiveMode: state.spotify.immersiveMode,
-      isPlaying: Boolean(state.nowPlaying?.isPlaying ?? state.spotify.isPlaying),
+      isPlaying: Boolean(state.nowPlaying?.isPlaying),
       // Album wash rides on Now Playing Color Match — never paint while match is off.
       spotifyMatchEnabled: Boolean(state.ui.spotifyMatchEnabled),
     }))

@@ -362,14 +362,11 @@ function App() {
     useShallow((s) => {
       const sp = s.spotify;
       return (
-        Boolean(sp.isConnected) ||
-        Boolean(sp.accessToken || sp.refreshToken) ||
         sp.immersiveMode?.enabled === true ||
         sp.immersiveMode?.liveGradientWallpaper === true ||
         Boolean(s.ui.spotifyTakeoverActive) ||
         // Now Playing Color Match — ribbon/wallpaper overlays for desktop SMTC too
-        Boolean(s.ui.spotifyMatchEnabled) ||
-        Boolean(s.floatingWidgets?.spotify?.settings?.dynamicColors)
+        Boolean(s.ui.spotifyMatchEnabled)
       );
     })
   );

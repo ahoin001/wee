@@ -1,14 +1,25 @@
 /**
- * Scroll a region inside a scroll container so it fills the visible area above a bottom inset (e.g. dock).
+ * Scroll a region inside a scroll container so it sits in the usable band above a bottom inset (e.g. dock).
+ * Prefer `align: 'start'` for collection shelves — minimal travel, less “camera whip.”
+ *
  * @param {HTMLElement} container
  * @param {HTMLElement} region
- * @param {{ bottomInset?: number, topReserve?: number, behavior?: 'smooth' | 'auto' }} [opts]
+ * @param {{
+ *   bottomInset?: number,
+ *   topReserve?: number,
+ *   behavior?: 'smooth' | 'auto',
+ *   align?: 'start' | 'center',
+ *   minDeltaPx?: number,
+ * }} [opts]
+ * @returns {boolean} true if a scroll was issued
  */
 export function scrollHubRegionIntoFocus(container, region, opts = {}) {
-  if (!container || !region) return;
+  if (!container || !region) return false;
 
   const bottomInset = Math.max(0, Number(opts.bottomInset) || 0);
   const topReserve = Math.max(0, Number(opts.topReserve) || 10);
+  const minDeltaPx = Number.isFinite(opts.minDeltaPx) ? Math.max(0, opts.minDeltaPx) : 28;
+  const align = opts.align === 'center' ? 'center' : 'start';
 
   const cRect = container.getBoundingClientRect();
   const rRect = region.getBoundingClientRect();
@@ -20,17 +31,21 @@ export function scrollHubRegionIntoFocus(container, region, opts = {}) {
   const usable = Math.max(160, viewH - bottomInset - topReserve);
 
   let targetScroll;
-  if (regionH <= usable) {
+  if (align === 'center' && regionH <= usable) {
     targetScroll = relTop - (usable - regionH) / 2;
   } else {
+    // Start alignment: lift just enough to pin the shelf top under the reserve.
     targetScroll = relTop - topReserve;
   }
 
   const maxScroll = Math.max(0, container.scrollHeight - viewH);
   targetScroll = Math.max(0, Math.min(targetScroll, maxScroll));
 
+  if (Math.abs(targetScroll - scrollTop) < minDeltaPx) return false;
+
   const behavior = opts.behavior === 'auto' ? 'auto' : 'smooth';
   container.scrollTo({ top: targetScroll, behavior });
+  return true;
 }
 
 /**
@@ -62,17 +77,30 @@ export function hubExpansionVisibleHeightRatio(container, region, opts = {}) {
 
 /**
  * Scroll the hub so an opened collection shelf is comfortably in view — only if mostly off-screen.
+ * Designed for **post-settle** use (never during fixed FLIP flyers).
+ *
  * @param {HTMLElement} container
  * @param {HTMLElement} region
- * @param {{ bottomInset?: number, topReserve?: number, minVisibleRatio?: number, behavior?: 'smooth' | 'auto' }} [opts]
+ * @param {{
+ *   bottomInset?: number,
+ *   topReserve?: number,
+ *   minVisibleRatio?: number,
+ *   behavior?: 'smooth' | 'auto',
+ *   align?: 'start' | 'center',
+ *   minDeltaPx?: number,
+ * }} [opts]
+ * @returns {boolean}
  */
 export function maybeScrollHubExpansionIntoView(container, region, opts = {}) {
-  const minRatio = Number.isFinite(opts.minVisibleRatio) ? opts.minVisibleRatio : 0.42;
+  const minRatio = Number.isFinite(opts.minVisibleRatio) ? opts.minVisibleRatio : 0.5;
   const { minVisibleRatio: _m, ...scrollOpts } = opts;
   const ratio = hubExpansionVisibleHeightRatio(container, region, scrollOpts);
-  if (ratio >= minRatio) return;
+  if (ratio >= minRatio) return false;
 
-  scrollHubRegionIntoFocus(container, region, scrollOpts);
+  return scrollHubRegionIntoFocus(container, region, {
+    align: 'start',
+    ...scrollOpts,
+  });
 }
 
 export function readHubDockInsetPx(fromEl) {
@@ -90,4 +118,15 @@ export function readHubScrollTopReservePx(fromEl) {
   const raw = stage ? window.getComputedStyle(stage).getPropertyValue('--hub-scroll-top-reserve').trim() : '';
   const n = Number.parseFloat(raw);
   return Number.isFinite(n) ? n : 10;
+}
+
+/** Prefer smooth after settle; snap when OS reduced-motion is on. */
+export function resolveHubScrollBehavior() {
+  if (typeof window === 'undefined') return 'auto';
+  try {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 'auto';
+  } catch {
+    /* ignore */
+  }
+  return 'smooth';
 }

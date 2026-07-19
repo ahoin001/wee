@@ -6,14 +6,12 @@ import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
 import {
   WeeModalFieldCard,
-  WeeSegmentedControl,
   WeeSettingsCollapsibleSection,
   WeeDockSettingsSubtabs,
 } from '../../ui/wee';
 import { AdminPanel } from '../admin';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { applyAdminPanelPowerActions, normalizeAdminPanelConfig } from '../../utils/adminPanelCommands';
-import { normalizeNowPlayingExperience } from '../../utils/spotifyTakeover';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import { logError } from '../../utils/logger';
 import ShortcutCaptureControl from './ShortcutCaptureControl';
@@ -24,8 +22,8 @@ import SettingsTabPageHeader from './SettingsTabPageHeader';
 const INTEGRATION_SUBTABS = [
   {
     id: 'music',
-    label: 'Music',
-    description: 'Spotify & Now Playing',
+    label: 'Now Playing',
+    description: 'Desktop media',
     icon: Music,
   },
   {
@@ -165,8 +163,8 @@ const ApiIntegrationsSettingsTab = () => {
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
       <SettingsTabPageHeader
-        title="Music, Steam & Widgets"
-        subtitle="Connect services — Music & Now Playing, Steam, floating widgets"
+        title="Now Playing, Steam & Widgets"
+        subtitle="Desktop media, optional services, Steam, and Quick Access"
       />
 
       <WeeDockSettingsSubtabs
@@ -179,7 +177,7 @@ const ApiIntegrationsSettingsTab = () => {
 
       <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-5" className="mb-2">
         <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-          Home tile Color Match and Now Playing listen filters live in{' '}
+          Now Playing appearance, Color Match, and takeover behavior live in{' '}
           <span className="font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]">
             Edit Home
           </span>
@@ -200,10 +198,45 @@ const ApiIntegrationsSettingsTab = () => {
       {activeSubTab === 'music' ? (
         <>
       <WeeSettingsCollapsibleSection
-        icon={Music}
-        title="Spotify Integration"
-        description="Connect Spotify for Color Match and Now Playing"
+        icon={Radio}
+        title="Now Playing source"
+        description="Player-agnostic desktop audio through Windows system media"
         defaultOpen
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
+          <div className="mb-6 flex items-center justify-between gap-4 rounded-lg bg-[hsl(var(--surface-tertiary))] p-4">
+            <div className="min-w-0">
+              <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
+                Listen to desktop music apps
+              </Text>
+              <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
+                Shows what Spotify Desktop, Apple Music, browsers, and other apps are playing —
+                no Premium or account connection required. Status: {systemMediaStatusLabel}
+              </Text>
+              {systemMediaDetectedLine ? (
+                <Text variant="caption" className="mt-1.5 truncate text-xs text-[hsl(var(--text-secondary))]">
+                  Detected:{' '}
+                  <span className="font-semibold text-[hsl(var(--text-primary))]">
+                    {systemMediaDetectedLine}
+                  </span>
+                </Text>
+              ) : null}
+            </div>
+            <WToggle checked={systemMediaEnabled} onChange={handleSystemMediaToggle} />
+          </div>
+
+          <Text variant="caption" className="mt-3 text-xs text-[hsl(var(--text-tertiary))]">
+            Now Playing follows the active Windows media session and sends standard media keys.
+            Configure its tile, app filter, Color Match, and takeover in Edit Home → Now Playing.
+          </Text>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
+      <WeeSettingsCollapsibleSection
+        icon={Music}
+        title="Optional Spotify connection"
+        description="Spotify Web API access for future library enhancements"
+        defaultOpen={false}
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
           <div className="mb-6">
@@ -237,72 +270,16 @@ const ApiIntegrationsSettingsTab = () => {
               </WButton>
               {!spotify.isConnected && !spotify.loading && (
                 <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
-                  Authorize with Spotify to enable Color Match and library-backed Now Playing.
+                  Optional. Now Playing, media controls, album art, and Color Match already work
+                  through Windows system media without connecting an account.
                 </Text>
               )}
             </div>
           </div>
 
           <Text variant="caption" className="mb-3 block text-[11px] text-[hsl(var(--text-tertiary))]">
-            Place a Now Playing tile on Home via Edit Home. Color Match for that tile is configured
-            there too.
-          </Text>
-
-          {/* Now Playing takeover experience */}
-          <div className="mt-6">
-            <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
-              Now Playing experience
-            </Text>
-            <Text variant="caption" className="!mb-3 block text-[11px] text-[hsl(var(--text-tertiary))]">
-              A momentary album-driven immersive overlay. Enter it from the command palette or the
-              Now Playing home tile; Escape (or any interaction, in automatic mode) exits.
-            </Text>
-            <WeeSegmentedControl
-              ariaLabel="Now Playing takeover experience"
-              value={normalizeNowPlayingExperience(spotify.nowPlayingExperience)}
-              onChange={(value) => actions.setSpotifyState({ nowPlayingExperience: value })}
-              options={[
-                { value: 'off', label: 'Off' },
-                { value: 'onDemand', label: 'On demand' },
-                { value: 'autoIdle', label: 'Auto when idle' },
-              ]}
-            />
-          </div>
-        </WeeModalFieldCard>
-      </WeeSettingsCollapsibleSection>
-
-      <WeeSettingsCollapsibleSection
-        icon={Radio}
-        title="System media & Now Playing"
-        description="One player-agnostic view of desktop audio through Windows system media"
-        defaultOpen={false}
-      >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
-          <div className="mb-6 flex items-center justify-between gap-4 rounded-lg bg-[hsl(var(--surface-tertiary))] p-4">
-            <div className="min-w-0">
-              <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
-                Listen to desktop music apps
-              </Text>
-              <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
-                Shows what Spotify Desktop, Apple Music, browsers, and other apps are playing —
-                no Premium required. Status: {systemMediaStatusLabel}
-              </Text>
-              {systemMediaDetectedLine ? (
-                <Text variant="caption" className="mt-1.5 truncate text-xs text-[hsl(var(--text-secondary))]">
-                  Detected:{' '}
-                  <span className="font-semibold text-[hsl(var(--text-primary))]">
-                    {systemMediaDetectedLine}
-                  </span>
-                </Text>
-              ) : null}
-            </div>
-            <WToggle checked={systemMediaEnabled} onChange={handleSystemMediaToggle} />
-          </div>
-
-          <Text variant="caption" className="mt-3 text-xs text-[hsl(var(--text-tertiary))]">
-            Now Playing follows the active Windows media session and sends standard media keys, so
-            Spotify Desktop, Apple Music, browsers, and other compatible players use the same
-            controls. Edit Home → Now Playing to filter by app and configure Color Match.
+            This connection is not required for the Home Now Playing tile. Keep it only if you want
+            Spotify-specific library features as they are added.
           </Text>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>

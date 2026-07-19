@@ -1,23 +1,4 @@
 export const createFloatingWidgetManager = (getStore) => ({
-  showSpotifyWidget() {
-    const store = getStore();
-    // Archived floating Spotify widget — keep state dark.
-    store.actions.setFloatingWidgetsState({
-      spotify: { ...store.floatingWidgets.spotify, visible: false },
-    });
-  },
-  hideSpotifyWidget() {
-    const store = getStore();
-    store.actions.setFloatingWidgetsState({
-      spotify: { ...store.floatingWidgets.spotify, visible: false },
-    });
-  },
-  setSpotifyWidgetPosition(position) {
-    const store = getStore();
-    store.actions.setFloatingWidgetsState({
-      spotify: { ...store.floatingWidgets.spotify, position },
-    });
-  },
   showSystemInfoWidget() {
     const store = getStore();
     // Archived System Info widget — keep state dark.

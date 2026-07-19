@@ -40,6 +40,7 @@ import {
   saveFrozenSpotifyLookPreset,
 } from '../../utils/presets/saveFrozenSpotifyLookPreset';
 import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
+import { normalizeNowPlayingExperience } from '../../utils/spotifyTakeover';
 import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings';
 import { useTimeColor } from '../../utils/useConsolidatedAppHooks';
 
@@ -173,6 +174,7 @@ function NowPlayingWidgetSettings() {
     liveGradientWallpaper,
     extractedColors,
     immersiveMode,
+    nowPlayingExperience,
     nowPlayingLooksRaw,
   } = useConsolidatedAppStore(
     useShallow((s) => ({
@@ -180,6 +182,7 @@ function NowPlayingWidgetSettings() {
       liveGradientWallpaper: Boolean(s.spotify?.immersiveMode?.liveGradientWallpaper),
       extractedColors: s.spotify?.extractedColors || null,
       immersiveMode: s.spotify?.immersiveMode || null,
+      nowPlayingExperience: s.spotify?.nowPlayingExperience,
       nowPlayingLooksRaw: s.ui?.homeNowPlayingWidget,
     }))
   );
@@ -357,6 +360,27 @@ function NowPlayingWidgetSettings() {
             checked={npLooks.showVisualizer}
             onChange={(checked) => patchLooks({ showVisualizer: Boolean(checked) })}
             title="Show music visualizer bars"
+          />
+        </div>
+
+        <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
+          <p className="m-0 mb-1 text-[11px] font-black text-[hsl(var(--text-primary))]">
+            Takeover experience
+          </p>
+          <p className="m-0 mb-2 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+            Album-driven full-screen moment from the command palette or automatically while idle
+          </p>
+          <WeeSegmentedControl
+            size="sm"
+            ariaLabel="Now Playing takeover experience"
+            layoutId="homeNowPlayingTakeoverExperience"
+            value={normalizeNowPlayingExperience(nowPlayingExperience)}
+            onChange={(value) => actions.setSpotifyState({ nowPlayingExperience: value })}
+            options={[
+              { value: 'off', label: 'Off' },
+              { value: 'onDemand', label: 'On demand' },
+              { value: 'autoIdle', label: 'Auto idle' },
+            ]}
           />
         </div>
 

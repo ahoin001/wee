@@ -134,10 +134,10 @@ export const SETTINGS_TAB_META = Object.freeze([
   // —— Integrations & Widgets ——
   {
     id: 'api-integrations',
-    label: 'Music, Steam & Widgets',
+    label: 'Now Playing, Steam & Widgets',
     icon: '🔌',
     color: 'hsl(var(--settings-tab-api))',
-    description: 'Spotify, Now Playing, Steam & Quick Access',
+    description: 'Desktop media, optional Spotify, Steam & Quick Access',
     categoryId: 'integrations',
     keywords: [
       'spotify', 'steam', 'steamid', 'enrichment', 'now playing', 'takeover', 'immersive',
