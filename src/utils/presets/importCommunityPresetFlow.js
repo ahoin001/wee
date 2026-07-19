@@ -1,9 +1,6 @@
-import { SPOTIFY_MATCH_PRESET_NAME } from './spotifyMatchPreset';
 import { PRESET_SCOPE_VISUAL } from './presetScopes';
 import { createPresetId } from './presetIds';
 import { normalizeWallpaperCurrentShape } from '../presetSharing';
-
-export const PRESET_IMPORT_MAX_CUSTOM = 5;
 
 function normalizeCommunitySettings(presetSettings) {
   if (!presetSettings || typeof presetSettings !== 'object') return presetSettings;
@@ -139,16 +136,6 @@ export async function importCommunityPresetFlow(presetData, { getPresets, setPre
       }
     } else if (presetSettings?.wallpaper) {
       presetSettings.wallpaper = normalizeWallpaperCurrentShape(presetSettings.wallpaper);
-    }
-
-    const customCount = getPresets().filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
-    if (customCount >= PRESET_IMPORT_MAX_CUSTOM) {
-      console.warn('[importCommunityPresetFlow] Max custom presets reached');
-      result.skippedMax = true;
-      result.errors.push(
-        `You’ve reached the ${PRESET_IMPORT_MAX_CUSTOM} custom preset limit. Delete or replace one, then try again.`
-      );
-      return result;
     }
 
     const convertedPreset = {

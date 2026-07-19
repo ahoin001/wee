@@ -330,12 +330,14 @@ const PresetListItem = React.forwardRef(function PresetListItem(
                             position: 'fixed',
                             top: menuPos.top,
                             left: menuPos.left,
-                            zIndex: 10050,
+                            /* Above WeeModalShell (--z-modal-top: 99999); old 10050 sat under settings. */
+                            zIndex: 'calc(var(--z-modal-top) + 10)',
                             minWidth: MENU_MIN_WIDTH_PX,
                             transformOrigin: menuPos.transformOrigin,
                           }}
                           className="overflow-hidden rounded-xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] py-1 shadow-[var(--shadow-lg)]"
                           onMouseDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
                         >
                           {menuItems}
                         </m.div>

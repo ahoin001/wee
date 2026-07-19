@@ -1,11 +1,11 @@
-import React, { useMemo, useRef } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PresetListItem } from '../../app-library';
 import Text from '../../../ui/Text';
 import Button from '../../../ui/WButton';
 
-const ROW_ESTIMATE_PX = 96;
-const VIRTUALIZE_THRESHOLD = 18;
+/** Saved presets shown per page in Looks settings. */
+export const PRESETS_PER_PAGE = 5;
 
 /** Saved preset list — thumbnail rows; parent provides wee shell. */
 const PresetsSavedListCard = React.memo(
@@ -20,7 +20,6 @@ const PresetsSavedListCard = React.memo(
     justApplied,
     communityUpdateMap,
     customPresetCount,
-    maxCustomPresets,
     onDragStart,
     onDragOver,
     onDragEnter,
@@ -46,16 +45,17 @@ const PresetsSavedListCard = React.memo(
       [presets, excludeName]
     );
 
-    const parentRef = useRef(null);
+    const pageCount = Math.max(1, Math.ceil(filtered.length / PRESETS_PER_PAGE));
+    const [page, setPage] = useState(0);
 
-    const virtualizer = useVirtualizer({
-      count: filtered.length,
-      getScrollElement: () => parentRef.current,
-      estimateSize: () => ROW_ESTIMATE_PX,
-      overscan: 6,
-    });
+    useEffect(() => {
+      setPage((prev) => Math.min(prev, pageCount - 1));
+    }, [pageCount]);
 
-    const useVirtual = filtered.length >= VIRTUALIZE_THRESHOLD;
+    const pageItems = useMemo(() => {
+      const start = page * PRESETS_PER_PAGE;
+      return filtered.slice(start, start + PRESETS_PER_PAGE);
+    }, [filtered, page]);
 
     if (filtered.length === 0) {
       return (
@@ -83,19 +83,6 @@ const PresetsSavedListCard = React.memo(
         </div>
       );
     }
-
-    const meter = (
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-          {customPresetCount} / {maxCustomPresets} custom presets saved · Drag ⋮⋮ to reorder
-        </Text>
-        {onImportFile ? (
-          <Button variant="tertiary" size="sm" onClick={onImportFile}>
-            Import .wee-preset
-          </Button>
-        ) : null}
-      </div>
-    );
 
     const itemProps = (preset) => {
       const presetId = preset.id || preset.name;
@@ -128,59 +115,67 @@ const PresetsSavedListCard = React.memo(
       };
     };
 
-    if (!useVirtual) {
-      return (
-        <div>
-          {meter}
-          <ul className="m-0 mb-0 list-none p-0">
-            {filtered.map((preset) => (
-              <PresetListItem key={preset.id || preset.name} {...itemProps(preset)} />
-            ))}
-          </ul>
-        </div>
-      );
-    }
-
-    const items = virtualizer.getVirtualItems();
-    const totalSize = virtualizer.getTotalSize();
+    const showPager = filtered.length > PRESETS_PER_PAGE;
+    const rangeStart = page * PRESETS_PER_PAGE + 1;
+    const rangeEnd = Math.min(filtered.length, (page + 1) * PRESETS_PER_PAGE);
 
     return (
       <div>
-        {meter}
-        <div
-          ref={parentRef}
-          className="max-h-[min(55vh,520px)] overflow-y-auto pr-1"
-          style={{ contain: 'strict' }}
-        >
-          <ul
-            className="m-0 mb-0 list-none p-0"
-            style={{
-              height: `${totalSize}px`,
-              width: '100%',
-              position: 'relative',
-            }}
-          >
-            {items.map((vi) => {
-              const preset = filtered[vi.index];
-              if (!preset) return null;
-              return (
-                <PresetListItem
-                  key={preset.id || preset.name}
-                  ref={virtualizer.measureElement}
-                  dataIndex={vi.index}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${vi.start}px)`,
-                  }}
-                  {...itemProps(preset)}
-                />
-              );
-            })}
-          </ul>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+            {customPresetCount} custom preset{customPresetCount === 1 ? '' : 's'} · Drag ⋮⋮ to
+            reorder
+            {showPager ? ` · Showing ${rangeStart}–${rangeEnd}` : ''}
+          </Text>
+          {onImportFile ? (
+            <Button variant="tertiary" size="sm" onClick={onImportFile}>
+              Import .wee-preset
+            </Button>
+          ) : null}
         </div>
+
+        <ul className="m-0 mb-0 list-none p-0">
+          {pageItems.map((preset) => (
+            <PresetListItem key={preset.id || preset.name} {...itemProps(preset)} />
+          ))}
+        </ul>
+
+        {showPager ? (
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page <= 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              aria-label="Previous presets page"
+              title="Previous page"
+            >
+              <span className="inline-flex items-center gap-1">
+                <ChevronLeft size={14} strokeWidth={2.5} aria-hidden />
+                Prev
+              </span>
+            </Button>
+            <Text
+              variant="caption"
+              className="!m-0 min-w-[5.5rem] text-center font-semibold tabular-nums text-[hsl(var(--text-secondary))]"
+            >
+              Page {page + 1} of {pageCount}
+            </Text>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page >= pageCount - 1}
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              aria-label="Next presets page"
+              title="Next page"
+            >
+              <span className="inline-flex items-center gap-1">
+                Next
+                <ChevronRight size={14} strokeWidth={2.5} aria-hidden />
+              </span>
+            </Button>
+          </div>
+        ) : null}
       </div>
     );
   }

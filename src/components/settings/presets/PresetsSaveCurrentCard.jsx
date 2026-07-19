@@ -12,8 +12,6 @@ const PresetsSaveCurrentCard = React.memo(
     onSave,
     error,
     captureNotice,
-    customPresetCount,
-    maxCustomPresets,
     isSaving = false,
     hideBoardScreenshot = false,
     onHideBoardScreenshotChange,
@@ -27,14 +25,14 @@ const PresetsSaveCurrentCard = React.memo(
           value={newPresetName}
           onChange={(e) => onNewPresetNameChange(e.target.value)}
           maxLength={32}
-          disabled={isSaving || customPresetCount >= maxCustomPresets}
+          disabled={isSaving}
           className="min-w-0 flex-1"
         />
         <Button
           variant="primary"
           className="min-w-[110px] shrink-0 sm:self-stretch"
           onClick={onSave}
-          disabled={isSaving || customPresetCount >= maxCustomPresets}
+          disabled={isSaving}
         >
           {isSaving ? 'Capturing…' : 'Save Look'}
         </Button>
@@ -76,11 +74,6 @@ const PresetsSaveCurrentCard = React.memo(
           className={`!m-0 ${captureNotice.type === 'success' ? 'text-[hsl(var(--state-success))]' : 'text-[hsl(var(--text-secondary))]'}`}
         >
           {captureNotice.text}
-        </Text>
-      ) : null}
-      {customPresetCount >= maxCustomPresets ? (
-        <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-          You can save up to {maxCustomPresets} custom presets (plus Spotify Match).
         </Text>
       ) : null}
     </div>

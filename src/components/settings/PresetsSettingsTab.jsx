@@ -19,7 +19,6 @@ import { applyPresetData } from '../../utils/presets/applyPresetData';
 import { normalizePresetRecord, sanitizePresetCollection, toVisualOnlyPreset } from '../../utils/presets/presetThemeData';
 import { exportPresetToFile, parsePresetFile, WEE_PRESET_FILE_EXTENSION } from '../../utils/presets/presetFileTransfer';
 import { SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
-import { MAX_CUSTOM_PRESETS } from '../../utils/presets/saveFrozenSpotifyLookPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
 import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
 import { createPresetId } from '../../utils/presets/presetIds';
@@ -235,10 +234,6 @@ const PresetsSettingsTab = React.memo(() => {
     }
     if (hasPresetName(newPresetName)) {
       setError('A preset with this name already exists.');
-      return;
-    }
-    if (customPresetCount >= MAX_CUSTOM_PRESETS) {
-      setError(`You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one first.`);
       return;
     }
 
@@ -599,17 +594,6 @@ const PresetsSettingsTab = React.memo(() => {
     if (!incoming) return;
 
     const currentPresets = useConsolidatedAppStore.getState().presets || [];
-    const currentCustomCount = currentPresets.filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
-    if (currentCustomCount >= MAX_CUSTOM_PRESETS) {
-      setCaptureNotice({
-        type: 'warning',
-        text: `You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one before importing.`,
-      });
-      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3600);
-      setImportModalOpen(false);
-      return;
-    }
-
     let nextName = incoming.name;
     let suffix = 2;
     while (hasPresetName(nextName)) {
@@ -789,13 +773,6 @@ const PresetsSettingsTab = React.memo(() => {
   const handleCreateShareableVisualCopy = async () => {
     const selected = uploadFormData.selectedPreset;
     if (!selected) return;
-    if (customPresetCount >= MAX_CUSTOM_PRESETS) {
-      setUploadMessage({
-        type: 'error',
-        text: `You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one before creating a shareable copy.`,
-      });
-      return;
-    }
     const visualCopy = toVisualOnlyPreset(selected);
     if (!visualCopy) return;
 
@@ -874,8 +851,6 @@ const PresetsSettingsTab = React.memo(() => {
             onSave={handleSave}
             error={error}
             captureNotice={captureNotice}
-            customPresetCount={customPresetCount}
-            maxCustomPresets={MAX_CUSTOM_PRESETS}
             isSaving={isSavingPreset}
             hideBoardScreenshot={hideBoardScreenshot}
             onHideBoardScreenshotChange={setHideBoardScreenshot}
@@ -900,7 +875,6 @@ const PresetsSettingsTab = React.memo(() => {
           justApplied={justApplied}
           communityUpdateMap={communityUpdateMap}
           customPresetCount={customPresetCount}
-          maxCustomPresets={MAX_CUSTOM_PRESETS}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}

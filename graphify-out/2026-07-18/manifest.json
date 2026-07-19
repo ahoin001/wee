@@ -550,8 +550,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784297775.8505807,
-    "ast_hash": "9be813d211d1736c870c9520810419d7",
+    "mtime": 1784427828.1386628,
+    "ast_hash": "56fa48ce4b2facfd1b5709d80cce8a08",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -1985,13 +1985,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/AdminQuickAccessSlot.jsx": {
-    "mtime": 1784230210.286843,
-    "ast_hash": "479d355fc8b87ff57c31f54ddbbffd7f",
+    "mtime": 1784427781.9904382,
+    "ast_hash": "3901678e66a33555323f60fab0112568",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
-    "mtime": 1784297769.4377134,
-    "ast_hash": "c7080be5dd8f63179855deed41c0ae77",
+    "mtime": 1784427876.7634723,
+    "ast_hash": "929476c1754ff9b5fcf4c72d415da797",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomePageIndicator.jsx": {
@@ -2095,8 +2095,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
-    "mtime": 1784230041.49927,
-    "ast_hash": "3773e8f674b35d8cebd2ae06e8d1f7fe",
+    "mtime": 1784427783.6332364,
+    "ast_hash": "0a015858bae60d801010cbc930c628ef",
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyTakeoverController.jsx": {
@@ -2240,8 +2240,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/ClockSlot.jsx": {
-    "mtime": 1784297738.6201751,
-    "ast_hash": "758bcbedbd34d6aaef00bb9beecc4ec0",
+    "mtime": 1784427799.8459947,
+    "ast_hash": "1011b8244aa44deae4119139325cf5df",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeWidgetShell.jsx": {
@@ -2255,8 +2255,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/WeatherSlot.jsx": {
-    "mtime": 1784427664.6477442,
-    "ast_hash": "6a17d7dfa4819b52c4154b7f9aab9bca",
+    "mtime": 1784427771.8549452,
+    "ast_hash": "073344c6c112764f1fde8b75ec09bac1",
     "semantic_hash": ""
   },
   "src/hooks/useHomeWeather.js": {
@@ -2295,8 +2295,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamGamesGlanceSlot.jsx": {
-    "mtime": 1784427640.4187024,
-    "ast_hash": "4bba1f53d1df7cd2ffabd1d4b11513f8",
+    "mtime": 1784427770.3514712,
+    "ast_hash": "e7f41e274af554bfbb5009b885d29aab",
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamMostPlayedSlot.jsx": {
@@ -2310,8 +2310,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamFriendsSlot.jsx": {
-    "mtime": 1784427633.901267,
-    "ast_hash": "ba63a20c287a3651fb044bf816fd1195",
+    "mtime": 1784427784.7461712,
+    "ast_hash": "0f23b9414f533bc21bdce8cf15c0d8bf",
     "semantic_hash": ""
   },
   "src/utils/overlayEscape.js": {

@@ -4,15 +4,6 @@ import useConsolidatedAppStore from '../useConsolidatedAppStore';
 import { buildPresetDataFromStore } from './buildPresetSnapshot';
 import { createPresetId } from './presetIds';
 import { PRESET_SCOPE_VISUAL } from './presetScopes';
-import { MAX_CUSTOM_PRESETS } from './saveFrozenSpotifyLookPreset';
-import { SPOTIFY_MATCH_PRESET_NAME } from './spotifyMatchPreset';
-
-function countCustomPresets(presets) {
-  return (Array.isArray(presets) ? presets : []).filter(
-    (p) => p?.name !== SPOTIFY_MATCH_PRESET_NAME
-  ).length;
-}
-
 /**
  * Save the current Atmosphere look as a visual-only Look (shareable).
  * Freezes album palette when Color Match has extracted colors; otherwise
@@ -29,12 +20,6 @@ export async function saveCurrentAtmosphereLookPreset({ name } = {}) {
 
   const state = useConsolidatedAppStore.getState();
   const presets = Array.isArray(state.presets) ? state.presets : [];
-  if (countCustomPresets(presets) >= MAX_CUSTOM_PRESETS) {
-    return {
-      ok: false,
-      error: `You can save up to ${MAX_CUSTOM_PRESETS} custom looks. Delete one first.`,
-    };
-  }
 
   const hasSpotifyPalette = Boolean(state.spotify?.extractedColors?.primary);
   const wallpaperMatchOn = state.ui?.wallpaperMatchEnabled !== false;
