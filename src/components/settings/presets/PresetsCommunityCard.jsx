@@ -195,7 +195,7 @@ const PresetsCommunityCard = React.memo(
                   <Text variant="caption" className="!mb-2 !mt-0 block text-[hsl(var(--text-tertiary))]">
                     {useCustomCover && uploadFormData.custom_image
                       ? 'Custom cover will be used when you share.'
-                      : 'Auto screenshot from this look — shared when you click Share preset.'}
+                      : 'Saved screenshot from the last Save/Update — shared as this cover.'}
                   </Text>
                   {sharePreviewSrc ? (
                     <img

@@ -11,10 +11,7 @@ import {
 } from '../design/runtimeColorStrings.js';
 import { DEFAULT_AMBIENT_COLOR } from './theme/extractImagePalette.js';
 import {
-  channelIdAtIndex,
-  resolveGridConfig,
   resolveLayout,
-  resolveNavigation,
 } from './channelLayoutSystem';
 import {
   applyPageLayoutOverrideToSpaceData,
@@ -26,9 +23,7 @@ import {
 import { DEFAULT_MOTION_FEEDBACK, mergeMotionFeedback } from './motionFeedbackDefaults';
 import {
   createDefaultChannelSpaceData,
-  DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
   getSecondaryChannelSpaceData,
-  normalizeChannelSpaceData,
   normalizeChannelSpaceKey,
   normalizeShellSpaceOrder,
   resolveMediaHubEnabled,
@@ -56,40 +51,12 @@ import {
 import { DEFAULT_HOME_CLOCK_WIDGET } from './homeClockWidgetPrefs';
 import { DEFAULT_HOME_NOW_PLAYING_WIDGET } from './homeNowPlayingWidgetPrefs';
 import { recordRecentLaunchEntry } from './recentLaunches';
-import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
 import {
   captureSpaceAppearanceFromState,
   mergeLiveStateFromSpaceAppearance,
 } from './appearance/spaceAppearance';
-import { createSeededWorkspaceState } from './workspaces/workspaceState';
 import { sanitizePresetCollection } from './presets/presetThemeData';
-
-/**
- * Read/write the second shell space’s channel grid via `secondaryChannelProfiles[activeId].channelSpace`
- * and mirror `dataBySpace.workspaces` for persistence merges.
- */
-function patchSecondaryChannelSpace(state, updater) {
-  const id = state.channels.activeSecondaryChannelProfileId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
-  const profiles = { ...(state.channels.secondaryChannelProfiles || {}) };
-  const entry = profiles[id] || {
-    id,
-    name: 'Second',
-    channelSpace: createDefaultChannelSpaceData(),
-  };
-  const current = entry.channelSpace || createDefaultChannelSpaceData();
-  const nextChannelSpace = syncSpaceDataFromLegacyMaps(updater(current));
-  profiles[id] = { ...entry, channelSpace: nextChannelSpace };
-  return {
-    ...state.channels,
-    secondaryChannelProfiles: profiles,
-    activeSecondaryChannelProfileId: id,
-    dataBySpace: {
-      ...state.channels.dataBySpace,
-      workspaces: nextChannelSpace,
-    },
-  };
-}
 
 /** Apply updater to home (or named) channel space and sync slots SSOT. */
 function patchHomeChannelSpace(state, spaceKey, updater) {
@@ -103,6 +70,11 @@ function patchHomeChannelSpace(state, spaceKey, updater) {
       [key]: next,
     },
   };
+}
+
+/** Focus board updater (`workspaces` remains the stable internal space id). */
+function patchFocusChannelSpace(state, updater) {
+  return patchHomeChannelSpace(state, 'workspaces', updater);
 }
 
 function shallowEqualObjects(a, b) {
@@ -245,7 +217,6 @@ useConsolidatedAppStore = create(
           /** Global confirmation dialog. Not persisted. */
           showConfirmationModal: false,
           confirmationModalData: null,
-          showWorkspaceSwitcher: false,
           /** True while any Configure Channel modal is open — disables grid drag/drop. Not persisted. */
           channelConfigureModalOpen: false,
           /** Live Board Studio: Home grid arrange overlay (drag chrome + punch toggling). Transient — not persisted. */
@@ -280,11 +251,6 @@ useConsolidatedAppStore = create(
           },
           /** Transient: recent-launch hint per channel id (not persisted; no process tracking). */
           channelOpenHints: {},
-          /**
-           * Transient: while capturing a preset thumbnail, Home channel slots render empty
-           * for display only (channels slice is not mutated / not persisted).
-           */
-          presetThumbnailCaptureActive: false,
           settingsActiveTab: 'channels', // Default active tab for settings modal
           // Keyboard shortcuts
           keyboardShortcuts: createDefaultKeyboardShortcuts(),
@@ -414,20 +380,11 @@ useConsolidatedAppStore = create(
             idleAttractDelaySec: 120,
           },
           
-          /** Per shell space: `home` + mirror of active secondary profile under `workspaces` */
+          /** Per channel shell space: Home + Focus (`workspaces` is the stable internal id). */
           dataBySpace: {
             home: createDefaultChannelSpaceData(),
             workspaces: createDefaultChannelSpaceData(),
           },
-          /** Second shell space: swappable channel grids (only one active via `activeSecondaryChannelProfileId`). */
-          secondaryChannelProfiles: {
-            [DEFAULT_SECONDARY_CHANNEL_PROFILE_ID]: {
-              id: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
-              name: 'Second',
-              channelSpace: createDefaultChannelSpaceData(),
-            },
-          },
-          activeSecondaryChannelProfileId: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
 
           /** Bounded launch history (Recently Used tile) — see utils/recentLaunches.js */
           recentLaunches: [],
@@ -746,9 +703,6 @@ useConsolidatedAppStore = create(
         // Presets
         presets: [],
 
-        // Workspaces
-        workspaces: createSeededWorkspaceState(),
-
         // Top-level shell spaces
         spaces: {
           activeSpaceId: 'home',
@@ -937,7 +891,7 @@ useConsolidatedAppStore = create(
             const key = normalizeChannelSpaceKey(spaceKey);
             if (key === 'workspaces') {
               return {
-                channels: patchSecondaryChannelSpace(state, (prev) => ({ ...prev, ...updates })),
+                channels: patchFocusChannelSpace(state, (prev) => ({ ...prev, ...updates })),
               };
             }
             const prev = state.channels.dataBySpace?.[key] || createDefaultChannelSpaceData();
@@ -999,7 +953,7 @@ useConsolidatedAppStore = create(
               };
             };
             if (key === 'workspaces') {
-              return { channels: patchSecondaryChannelSpace(state, apply) };
+              return { channels: patchFocusChannelSpace(state, apply) };
             }
             return { channels: patchHomeChannelSpace(state, key, apply) };
           }),
@@ -1023,7 +977,7 @@ useConsolidatedAppStore = create(
               };
             };
             if (key === 'workspaces') {
-              return { channels: patchSecondaryChannelSpace(state, apply) };
+              return { channels: patchFocusChannelSpace(state, apply) };
             }
             return { channels: patchHomeChannelSpace(state, key, apply) };
           }),
@@ -1050,7 +1004,7 @@ useConsolidatedAppStore = create(
             }
             const next = applySlotsToSpaceData(channelsData, nextSlots, layout);
             if (key === 'workspaces') {
-              return { channels: patchSecondaryChannelSpace(state, () => next) };
+              return { channels: patchFocusChannelSpace(state, () => next) };
             }
             return { channels: patchHomeChannelSpace(state, key, () => next) };
           }),
@@ -1059,7 +1013,7 @@ useConsolidatedAppStore = create(
             const key = normalizeChannelSpaceKey(spaceKey);
             if (key === 'workspaces') {
               return {
-                channels: patchSecondaryChannelSpace(state, (channelsData) => ({
+                channels: patchFocusChannelSpace(state, (channelsData) => ({
                   ...channelsData,
                   navigation: { ...channelsData.navigation, ...updates },
                 })),
@@ -1125,7 +1079,7 @@ useConsolidatedAppStore = create(
 
             if (key === 'workspaces') {
               return {
-                channels: patchSecondaryChannelSpace(state, () => next),
+                channels: patchFocusChannelSpace(state, () => next),
               };
             }
             return {
@@ -1162,7 +1116,7 @@ useConsolidatedAppStore = create(
             const next = applySlotsToSpaceData(channelsData, nextSlots, layout);
             if (key === 'workspaces') {
               return {
-                channels: patchSecondaryChannelSpace(state, () => next),
+                channels: patchFocusChannelSpace(state, () => next),
               };
             }
             return {
@@ -1209,7 +1163,7 @@ useConsolidatedAppStore = create(
                 });
               };
               if (key === 'workspaces') {
-                return { channels: patchSecondaryChannelSpace(state, apply) };
+                return { channels: patchFocusChannelSpace(state, apply) };
               }
               return { channels: patchHomeChannelSpace(state, key, apply) };
             }),
@@ -1220,7 +1174,7 @@ useConsolidatedAppStore = create(
             if (index < 0) return state;
             const apply = (channelsData) => removeHomeWidgetFromSpaceData(channelsData, index);
             if (key === 'workspaces') {
-              return { channels: patchSecondaryChannelSpace(state, apply) };
+              return { channels: patchFocusChannelSpace(state, apply) };
             }
             return { channels: patchHomeChannelSpace(state, key, apply) };
           }),
@@ -1251,7 +1205,7 @@ useConsolidatedAppStore = create(
               return setHomeSlotSpanInSpaceData(channelsData, index, next.colSpan, next.rowSpan);
             };
             if (key === 'workspaces') {
-              return { channels: patchSecondaryChannelSpace(state, apply) };
+              return { channels: patchFocusChannelSpace(state, apply) };
             }
             return { channels: patchHomeChannelSpace(state, key, apply) };
           }),
@@ -1264,7 +1218,7 @@ useConsolidatedAppStore = create(
             const apply = (channelsData) =>
               setHomeSlotSurfaceInSpaceData(channelsData, index, nextSurface);
             if (key === 'workspaces') {
-              return { channels: patchSecondaryChannelSpace(state, apply) };
+              return { channels: patchFocusChannelSpace(state, apply) };
             }
             return { channels: patchHomeChannelSpace(state, key, apply) };
           }),
@@ -1277,117 +1231,9 @@ useConsolidatedAppStore = create(
             const apply = (channelsData) =>
               setHomeSlotWidgetPatchInSpaceData(channelsData, index, widgetPatch);
             if (key === 'workspaces') {
-              return { channels: patchSecondaryChannelSpace(state, apply) };
+              return { channels: patchFocusChannelSpace(state, apply) };
             }
             return { channels: patchHomeChannelSpace(state, key, apply) };
-          }),
-
-          setActiveSecondaryChannelProfileId: (profileId) => set((state) => {
-            const profiles = state.channels.secondaryChannelProfiles || {};
-            if (!profiles[profileId]) return state;
-            const nextChannels = {
-              ...state.channels,
-              activeSecondaryChannelProfileId: profileId,
-            };
-            const mirrored = getSecondaryChannelSpaceData(nextChannels);
-            return {
-              channels: {
-                ...nextChannels,
-                dataBySpace: {
-                  ...nextChannels.dataBySpace,
-                  workspaces: mirrored,
-                },
-              },
-            };
-          }),
-
-          /**
-           * Copy a swappable second-space channel layout onto the live Home board (`dataBySpace.home`).
-           * Home stays the SSOT for the visible grid — this is a one-shot template apply, not a live mirror.
-           */
-          applySecondaryChannelProfileToHome: (profileId) => set((state) => {
-            const profiles = state.channels.secondaryChannelProfiles || {};
-            const entry = profiles[profileId];
-            if (!entry) return state;
-            const sourceSpace = entry.channelSpace || createDefaultChannelSpaceData();
-            const nextHomeData = syncSpaceDataFromLegacyMaps(
-              normalizeChannelSpaceData(JSON.parse(JSON.stringify(sourceSpace)))
-            );
-            return {
-              channels: {
-                ...state.channels,
-                dataBySpace: {
-                  ...state.channels.dataBySpace,
-                  home: nextHomeData,
-                },
-              },
-            };
-          }),
-
-          createSecondaryChannelProfile: (rawName) => set((state) => {
-            const profiles = state.channels.secondaryChannelProfiles || {};
-            const count = Object.keys(profiles).length;
-            if (count >= MAX_SAVED_WORKSPACES) return state;
-            const id = `sec-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-            const name =
-              typeof rawName === 'string' && rawName.trim()
-                ? rawName.trim()
-                : `Grid ${count + 1}`;
-            return {
-              channels: {
-                ...state.channels,
-                secondaryChannelProfiles: {
-                  ...profiles,
-                  [id]: {
-                    id,
-                    name,
-                    channelSpace: createDefaultChannelSpaceData(),
-                  },
-                },
-              },
-            };
-          }),
-
-          renameSecondaryChannelProfile: (profileId, rawName) => set((state) => {
-            const profiles = state.channels.secondaryChannelProfiles || {};
-            if (!profiles[profileId]) return state;
-            const name = typeof rawName === 'string' ? rawName.trim() : '';
-            if (!name) return state;
-            return {
-              channels: {
-                ...state.channels,
-                secondaryChannelProfiles: {
-                  ...profiles,
-                  [profileId]: { ...profiles[profileId], name },
-                },
-              },
-            };
-          }),
-
-          deleteSecondaryChannelProfile: (profileId) => set((state) => {
-            const profiles = { ...(state.channels.secondaryChannelProfiles || {}) };
-            const ids = Object.keys(profiles);
-            if (ids.length <= 1 || !profiles[profileId]) return state;
-            delete profiles[profileId];
-            let activeId = state.channels.activeSecondaryChannelProfileId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
-            if (activeId === profileId) {
-              activeId = Object.keys(profiles)[0];
-            }
-            const nextChannels = {
-              ...state.channels,
-              secondaryChannelProfiles: profiles,
-              activeSecondaryChannelProfileId: activeId,
-            };
-            const mirrored = getSecondaryChannelSpaceData(nextChannels);
-            return {
-              channels: {
-                ...nextChannels,
-                dataBySpace: {
-                  ...nextChannels.dataBySpace,
-                  workspaces: mirrored,
-                },
-              },
-            };
           }),
 
           // Dock actions
@@ -1545,14 +1391,6 @@ useConsolidatedAppStore = create(
             const { presets: sanitized } = sanitizePresetCollection(incoming);
             set({ presets: sanitized });
           },
-
-          // Workspace actions
-          setWorkspacesState: (updates) => set((state) => ({
-            workspaces: {
-              ...state.workspaces,
-              ...updates,
-            }
-          })),
 
           setSpacesState: (updates) => set((state) => {
             const nextSpaces = { ...state.spaces, ...updates };
@@ -1788,7 +1626,7 @@ useConsolidatedAppStore = create(
            * @param {Partial<{
            *   app: object, wallpaper: object, overlay: object, channels: object,
            *   ui: object, ribbon: object, time: object, dock: object, sounds: object,
-           *   presets: unknown[], workspaces: object, spaces: object, gameHub: object, mediaHub: object,
+           *   presets: unknown[], spaces: object, gameHub: object, mediaHub: object,
            *   navigation: object, floatingWidgets: object, monitors: object, spotify: object,
            *   appearanceBySpace: object, channelsSnapshot: object
            * }>} slices
@@ -1830,7 +1668,6 @@ useConsolidatedAppStore = create(
                 const { presets: sanitizedPresets } = sanitizePresetCollection(incoming);
                 next.presets = sanitizedPresets;
               }
-              if (slices.workspaces) next.workspaces = { ...state.workspaces, ...slices.workspaces };
               if (slices.spaces) {
                 const mergedSpaces = {
                   ...state.spaces,
@@ -2167,9 +2004,7 @@ useConsolidatedAppStore = create(
               authModalMode: 'signin',
               showConfirmationModal: false,
               confirmationModalData: null,
-              showWorkspaceSwitcher: false,
               channelOpenHints: {},
-              presetThumbnailCaptureActive: false,
               homeBoardArrangeMode: false,
               homeBoardPunchMode: false,
               homeBoardSelectedSlotIndex: null,
@@ -2289,14 +2124,6 @@ useConsolidatedAppStore = create(
                 home: createDefaultChannelSpaceData(),
                 workspaces: createDefaultChannelSpaceData(),
               },
-              secondaryChannelProfiles: {
-                [DEFAULT_SECONDARY_CHANNEL_PROFILE_ID]: {
-                  id: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
-                  name: 'Second',
-                  channelSpace: createDefaultChannelSpaceData(),
-                },
-              },
-              activeSecondaryChannelProfileId: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
               recentLaunches: [],
               operations: {
                 isLoading: false,
@@ -2346,7 +2173,6 @@ useConsolidatedAppStore = create(
               channelHoverVolume: 0.5,
             },
             presets: [],
-            workspaces: createSeededWorkspaceState(),
             spaces: {
               activeSpaceId: 'home',
               lastChannelSpaceId: 'home',

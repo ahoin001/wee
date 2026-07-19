@@ -6,12 +6,31 @@ import Slider from '../../../ui/Slider';
 import SettingsWeeSection from '../SettingsWeeSection';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
 import { WeeMorphStack, WeeRevealWhen, WeeSpaceRailPillButton } from '../../../ui/wee';
+import { requestWallpaperCycleManual } from '../../../utils/wallpaperCyclingBridge';
 import {
   EASING_OPTIONS,
   SLIDE_DIRECTION_MODE_OPTIONS,
   SLIDE_DIRECTION_OPTIONS,
   WALLPAPER_ANIMATIONS,
 } from './wallpaperSettingsConstants';
+
+/** Seconds — presets for the cycle timer. */
+const CYCLE_INTERVAL_PRESETS = [
+  { label: '15s', value: 15 },
+  { label: '30s', value: 30 },
+  { label: '1m', value: 60 },
+  { label: '5m', value: 300 },
+  { label: '15m', value: 900 },
+];
+
+const CYCLE_INTERVAL_MIN = 5;
+const CYCLE_INTERVAL_MAX = 1800;
+
+function clampCycleInterval(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 30;
+  return Math.min(CYCLE_INTERVAL_MAX, Math.max(CYCLE_INTERVAL_MIN, Math.round(n)));
+}
 
 function WallpaperCyclingSection({
   cycling,
@@ -33,12 +52,25 @@ function WallpaperCyclingSection({
   crossfadeEasing,
   handleCrossfadeEasingChange,
 }) {
+  const intervalSeconds = clampCycleInterval(cycleInterval);
+
+  const setIntervalSeconds = (raw) => {
+    handleCycleIntervalChange(clampCycleInterval(raw));
+  };
+
+  const runManualCycle = () => {
+    if (window.api?.wallpapers?.cycle) {
+      window.api.wallpapers.cycle();
+    }
+    requestWallpaperCycleManual();
+  };
+
   return (
     <SettingsWeeSection eyebrow="Cycling">
       <SettingsToggleFieldCard
         hoverAccent="primary"
         title="Liked-wallpaper cycling"
-        desc="Rotate through liked wallpapers on an interval. Only applies when cycling is enabled."
+        desc="Rotate liked wallpapers on a timer. On per-page boards, cycling runs only on pages that use the global wallpaper — pinned page art stays put."
         checked={cycling}
         onChange={handleCyclingChange}
       >
@@ -46,18 +78,7 @@ function WallpaperCyclingSection({
           <div className="settings-wee-field-row mb-0">
             <span className="settings-wee-field-row__label">Try it</span>
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-              <WeeSpaceRailPillButton
-                type="button"
-                size="sm"
-                onClick={() => {
-                  if (window.api?.wallpapers?.cycle) {
-                    window.api.wallpapers.cycle();
-                  }
-                  if (window.cycleToNextWallpaper) {
-                    window.cycleToNextWallpaper();
-                  }
-                }}
-              >
+              <WeeSpaceRailPillButton type="button" size="sm" onClick={runManualCycle}>
                 Manual cycle
               </WeeSpaceRailPillButton>
               <Text variant="small" className="!m-0 text-[hsl(var(--text-tertiary))]">
@@ -66,22 +87,52 @@ function WallpaperCyclingSection({
             </div>
           </div>
 
-          <div className="settings-wee-slider-row !items-center">
-            <span className="settings-wee-slider-row__label">Interval</span>
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <div className="min-w-[6rem] max-w-[8rem] shrink-0">
-                <WInput
-                  variant="wee"
-                  type="number"
-                  min={2}
-                  max={600}
-                  value={cycleInterval}
-                  onChange={(e) => handleCycleIntervalChange(Number(e.target.value))}
-                  className="!py-2.5 text-[15px] tabular-nums leading-normal"
-                />
+          <div className="settings-wee-slider-row !items-start">
+            <span className="settings-wee-slider-row__label pt-1">Timer</span>
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                {CYCLE_INTERVAL_PRESETS.map((preset) => (
+                  <WeeSpaceRailPillButton
+                    key={preset.value}
+                    type="button"
+                    size="sm"
+                    active={intervalSeconds === preset.value}
+                    onClick={() => setIntervalSeconds(preset.value)}
+                  >
+                    {preset.label}
+                  </WeeSpaceRailPillButton>
+                ))}
               </div>
-              <Text variant="small" className="text-[hsl(var(--text-tertiary))]">
-                seconds per wallpaper
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <Slider
+                    min={CYCLE_INTERVAL_MIN}
+                    max={CYCLE_INTERVAL_MAX}
+                    step={5}
+                    value={intervalSeconds}
+                    onChange={setIntervalSeconds}
+                    containerClassName="!mb-0"
+                    hideValue
+                  />
+                </div>
+                <div className="min-w-[5.5rem] max-w-[7rem] shrink-0">
+                  <WInput
+                    variant="wee"
+                    type="number"
+                    min={CYCLE_INTERVAL_MIN}
+                    max={CYCLE_INTERVAL_MAX}
+                    value={intervalSeconds}
+                    onChange={(e) => setIntervalSeconds(Number(e.target.value))}
+                    className="!py-2.5 text-[15px] tabular-nums leading-normal"
+                  />
+                </div>
+                <Text variant="small" className="text-[hsl(var(--text-tertiary))]">
+                  seconds
+                </Text>
+              </div>
+              <Text variant="small" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                How long each liked wallpaper stays before the next transition. Low-power mode
+                floors this at 60s.
               </Text>
             </div>
           </div>
@@ -95,6 +146,7 @@ function WallpaperCyclingSection({
                 options={WALLPAPER_ANIMATIONS}
                 value={cycleAnimation}
                 onChange={handleCycleAnimationChange}
+                variant="wee"
                 className="w-full min-w-0"
               />
               <Text variant="small" className="mt-1 text-[hsl(var(--text-tertiary))]">
@@ -110,11 +162,7 @@ function WallpaperCyclingSection({
               <WeeSpaceRailPillButton
                 type="button"
                 size="sm"
-                onClick={() => {
-                  if (window.cycleToNextWallpaper) {
-                    window.cycleToNextWallpaper();
-                  }
-                }}
+                onClick={runManualCycle}
                 title="Preview animation with current settings"
               >
                 Preview
@@ -132,6 +180,7 @@ function WallpaperCyclingSection({
                       options={SLIDE_DIRECTION_MODE_OPTIONS}
                       value={slideRandomDirection ? 'random' : 'fixed'}
                       onChange={(value) => handleSlideRandomDirectionChange(value === 'random')}
+                      variant="wee"
                       className="w-full"
                     />
                   </div>
@@ -145,6 +194,7 @@ function WallpaperCyclingSection({
                         options={SLIDE_DIRECTION_OPTIONS}
                         value={slideDirection}
                         onChange={handleSlideDirectionChange}
+                        variant="wee"
                         className="w-full"
                       />
                     </div>
@@ -174,6 +224,7 @@ function WallpaperCyclingSection({
                       options={EASING_OPTIONS}
                       value={slideEasing}
                       onChange={handleSlideEasingChange}
+                      variant="wee"
                       className="w-full"
                     />
                   </div>
@@ -206,6 +257,7 @@ function WallpaperCyclingSection({
                       options={EASING_OPTIONS}
                       value={crossfadeEasing}
                       onChange={handleCrossfadeEasingChange}
+                      variant="wee"
                       className="w-full"
                     />
                   </div>
@@ -215,8 +267,8 @@ function WallpaperCyclingSection({
           </WeeMorphStack>
 
           <p className="settings-wee-help !mb-0 mt-2">
-            Fade, slide, zoom, Ken Burns, morph, and blur transitions use the same liked set — tune the interval
-            so cycling stays gentle on slower machines.
+            Need at least two liked wallpapers. Transitions preload the next image before animating;
+            keep the timer gentle on slower machines.
           </p>
         </div>
       </SettingsToggleFieldCard>

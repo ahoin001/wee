@@ -49,13 +49,6 @@ const SPACE_META = {
   gamehub: { label: 'Games', Icon: Gamepad2 },
 };
 
-function truncateRailLabel(name, max = 10) {
-  const trimmed = typeof name === 'string' ? name.trim() : '';
-  if (!trimmed) return 'Focus';
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, Math.max(1, max - 1))}…`;
-}
-
 /**
  * Expanded rail footprint — must match WeeGooeyIconButton sizes + flex gap/padding
  * in the open column (wand + pin are real actions, not free “+120” slack).
@@ -198,14 +191,9 @@ export default function WeeGooeySpacePill() {
     isTransitioning,
     order,
     mediaHubEnabled,
-    activeSecondaryProfileName,
     setSpacesState,
   } = useConsolidatedAppStore(
     useShallow((state) => {
-      const activeProfileId = state.channels?.activeSecondaryChannelProfileId;
-      const activeProfile = activeProfileId
-        ? state.channels?.secondaryChannelProfiles?.[activeProfileId]
-        : null;
       return {
         activeSpaceId: state.spaces.activeSpaceId,
         railEnabled: state.spaces.railEnabled ?? true,
@@ -215,8 +203,6 @@ export default function WeeGooeySpacePill() {
         isTransitioning: state.spaces.isTransitioning,
         order: state.spaces.order,
         mediaHubEnabled: state.spaces.mediaHubEnabled === true,
-        activeSecondaryProfileName:
-          typeof activeProfile?.name === 'string' ? activeProfile.name : '',
         setSpacesState: state.actions.setSpacesState,
       };
     })
@@ -303,16 +289,9 @@ export default function WeeGooeySpacePill() {
     () =>
       spaceOrder.map((id) => {
         const base = SPACE_META[id] || { label: id, Icon: Home };
-        if (id === 'workspaces') {
-          return {
-            id,
-            label: truncateRailLabel(activeSecondaryProfileName),
-            Icon: base.Icon,
-          };
-        }
         return { id, label: base.label, Icon: base.Icon };
       }),
-    [spaceOrder, activeSecondaryProfileName]
+    [spaceOrder]
   );
 
   const activeSpaceIndex = useMemo(

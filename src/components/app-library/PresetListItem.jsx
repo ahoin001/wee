@@ -56,8 +56,6 @@ const PresetListItem = React.forwardRef(function PresetListItem(
     onCancelEdit,
     onEditNameChange,
     onKeyPress,
-    onApplyToActiveProfile,
-    hasActiveProfile,
     hasCommunityUpdate,
     onApplyCommunityUpdate,
     onShare,
@@ -128,18 +126,6 @@ const PresetListItem = React.forwardRef(function PresetListItem(
         }}
       >
         {justUpdated === presetKey ? 'Updated!' : 'Update from current'}
-      </button>
-      <button
-        type="button"
-        className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))] disabled:opacity-45"
-        disabled={!hasActiveProfile}
-        onClick={(e) => {
-          e.stopPropagation();
-          setMenuOpen(false);
-          onApplyToActiveProfile(preset);
-        }}
-      >
-        Apply to profile
       </button>
       {preset.shareable !== false && onShare ? (
         <button
@@ -395,8 +381,6 @@ PresetListItem.propTypes = {
   onCancelEdit: PropTypes.func.isRequired,
   onEditNameChange: PropTypes.func.isRequired,
   onKeyPress: PropTypes.func.isRequired,
-  onApplyToActiveProfile: PropTypes.func.isRequired,
-  hasActiveProfile: PropTypes.bool.isRequired,
   hasCommunityUpdate: PropTypes.bool,
   onApplyCommunityUpdate: PropTypes.func,
   onShare: PropTypes.func,

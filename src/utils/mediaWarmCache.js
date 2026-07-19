@@ -130,13 +130,6 @@ export function collectWarmMediaUrlsFromStore(storeState) {
     if (ch?.data?.configuredChannels) addFromConfigured(ch.data.configuredChannels);
     if (ch?.dataBySpace?.home?.configuredChannels) addFromConfigured(ch.dataBySpace.home.configuredChannels);
     if (ch?.dataBySpace?.workspaces?.configuredChannels) addFromConfigured(ch.dataBySpace.workspaces.configuredChannels);
-    const profiles = ch?.secondaryChannelProfiles;
-    if (profiles && typeof profiles === 'object') {
-      Object.values(profiles).forEach((entry) => {
-        const cs = entry?.channelSpace?.configuredChannels;
-        if (cs) addFromConfigured(cs);
-      });
-    }
   } catch {
     /* ignore */
   }

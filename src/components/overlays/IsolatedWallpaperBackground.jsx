@@ -15,7 +15,10 @@ import {
 } from '../../design/spaceShellMotion';
 import { CHANNEL_PAGE_FLIP_MS, resolveLayout } from '../../utils/channelLayoutSystem';
 import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
-import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAccent';
+import {
+  isWallpaperCyclingEligible,
+  resolveDisplayWallpaperUrl,
+} from '../../utils/theme/resolveEffectiveAccent';
 import { preloadImageUrl } from '../../utils/mediaWarmCache';
 
 /**
@@ -62,18 +65,12 @@ function IsolatedWallpaperBackgroundInner({
     currentPage,
   });
   const wallpaperCurrent = wallpaper.current;
-  const useGlobalWallpaper = activeSpaceAppearance?.useGlobalWallpaper !== false;
-  const isHomeShellSpace = activeSpaceId === 'home';
-  const spaceWallpaperUrl =
-    isHomeShellSpace
-      ? null
-      : !useGlobalWallpaper && typeof activeSpaceAppearance?.spaceWallpaperUrl === 'string'
-        ? activeSpaceAppearance.spaceWallpaperUrl
-        : null;
-  // Per-page scope owns the layer for the whole board (even sparse wallpaperByPage) —
-  // never re-enable global cycling on an empty page key.
-  const hasPerPageScope = activeSpaceAppearance?.wallpaperScope === 'perPage';
-  const hasSpaceWallpaperOverride = Boolean(spaceWallpaperUrl) || hasPerPageScope;
+  // Cycle only when this page/space falls through to global wallpaper.current.
+  const canCycleCurrentSpace = isWallpaperCyclingEligible({
+    activeSpaceId,
+    appearanceBySpace,
+    currentPage,
+  });
 
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
@@ -131,13 +128,11 @@ function IsolatedWallpaperBackgroundInner({
     slideDirection: cyclingSlideDirection,
   } = useWallpaperCycling();
   const setWallpaperState = useConsolidatedAppStore((state) => state.actions.setWallpaperState);
-  // Per-page or space override owns the layer — skip global cycling transitions.
   const { opacity, blur, cycleAnimation } = wallpaper;
   const effectiveSpaceBlur =
     typeof activeSpaceAppearance?.spaceBlur === 'number'
       ? activeSpaceAppearance.spaceBlur
       : blur;
-  const canCycleCurrentSpace = !hasSpaceWallpaperOverride;
   const effectiveCyclingTransitioning = canCycleCurrentSpace && cyclingTransitioning;
   const transitionCurrentWallpaperUrl = canCycleCurrentSpace
     ? wallpaperEntryUrlKey(currentWallpaper) || null

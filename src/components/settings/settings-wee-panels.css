@@ -13,6 +13,48 @@
   margin-top: 1.5rem;
 }
 
+/* Surfaces studio — wider canvas + two-pane body */
+.settings-wee-tab-root--studio {
+  max-width: 72rem;
+}
+
+.settings-wee-studio-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .settings-wee-studio-body {
+    grid-template-columns: minmax(17.5rem, 2fr) minmax(0, 3fr);
+    gap: 1.5rem;
+  }
+}
+
+.settings-wee-studio-preview {
+  position: relative;
+}
+
+@media (min-width: 960px) {
+  .settings-wee-studio-preview {
+    position: sticky;
+    top: 0.5rem;
+    z-index: 10;
+  }
+}
+
+.settings-wee-studio-controls {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.settings-wee-studio-controls > * + * {
+  margin-top: 0;
+}
+
 .settings-wee-sticky-step-bar {
   position: sticky;
   top: 0;
@@ -24,6 +66,30 @@
   padding: 0.75rem;
   backdrop-filter: blur(12px);
   box-shadow: 0 6px 16px hsl(var(--color-pure-black) / 0.08);
+}
+
+/* Compact Surfaces context strip — one dense row when possible */
+.settings-wee-sticky-step-bar--studio {
+  padding: 0.65rem 0.85rem;
+}
+
+.settings-wee-sticky-step-bar--studio .settings-wee-studio-context-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+}
+
+.settings-wee-sticky-step-bar--studio .settings-wee-studio-context-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+  min-width: 0;
+}
+
+.settings-wee-sticky-step-bar--studio .settings-wee-studio-segments {
+  margin-left: auto;
 }
 
 .settings-wee-intro {

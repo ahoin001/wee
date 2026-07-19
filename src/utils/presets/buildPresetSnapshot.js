@@ -3,7 +3,10 @@ import { captureSpaceAppearanceFromState } from '../appearance/spaceAppearance';
 import {
   getSecondaryChannelSpaceData,
   normalizeChannelSpaceData,
+  resolveActiveBoardCurrentPage,
 } from '../channelSpaces';
+import { wallpaperEntryUrlKey } from '../wallpaperShape';
+import { resolveDisplayWallpaperUrl } from '../theme/resolveEffectiveAccent';
 import { PRESET_SCOPE_VISUAL, PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS } from './presetScopes';
 
 function cloneSafe(value, fallback = null) {
@@ -85,6 +88,18 @@ export function buildPresetDataFromStore({
   // Fresh capture — never bake a stale appearanceBySpace row from the last space switch.
   const liveAppearance = captureSpaceAppearanceFromState(state);
   const mediaHubEnabled = spaces?.mediaHubEnabled === true;
+  const activeSpaceId = spaces?.activeSpaceId || 'home';
+  const currentPage = resolveActiveBoardCurrentPage({
+    activeSpaceId,
+    channels,
+  });
+  const displayWallpaperUrl = resolveDisplayWallpaperUrl({
+    activeSpaceId,
+    wallpaperCurrent: wallpaper.current,
+    appearanceBySpace: state.appearanceBySpace,
+    wallpaperEntryUrlKey,
+    currentPage,
+  });
 
   const presetData = {
     wallpaper: {
@@ -98,8 +113,6 @@ export function buildPresetDataFromStore({
       cycleWallpapers: wallpaper.cycleWallpapers,
       cycleInterval: wallpaper.cycleInterval,
       cycleAnimation: wallpaper.cycleAnimation,
-      savedWallpapers: wallpaper.savedWallpapers,
-      likedWallpapers: wallpaper.likedWallpapers,
       slideDirection: wallpaper.slideDirection,
       crossfadeDuration: wallpaper.crossfadeDuration,
       crossfadeEasing: wallpaper.crossfadeEasing,
@@ -149,6 +162,13 @@ export function buildPresetDataFromStore({
       ...(mediaHubEnabled
         ? { mediahub: appearanceForSpace(state, 'mediahub', liveAppearance) }
         : {}),
+      gamehub: appearanceForSpace(state, 'gamehub', liveAppearance),
+    },
+    /** Local capture metadata; community allowlist intentionally omits this object. */
+    captureContext: {
+      activeSpaceId,
+      currentPage,
+      displayWallpaperUrl,
     },
   };
 

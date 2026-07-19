@@ -36,7 +36,7 @@ export function resolvePreviewSlotLabel(slot, configuredChannels, slotIndex) {
 
 /**
  * Live grid canvas for Channels & layout — schematic cells with real slot labels.
- * Punch mode toggles wallpaper holes; size edits update the grid live.
+ * Tapping any cell punches/restores a wallpaper hole; size edits update the grid live.
  * Page / dimension controls live in the parent toolbox above this canvas.
  */
 function ChannelBoardLivePreview({
@@ -45,7 +45,6 @@ function ChannelBoardLivePreview({
   slots,
   configuredChannels,
   pageSlotIndices,
-  punchHoleMode,
   onToggleSlot,
   safePreviewPage,
   currentPage,
@@ -93,11 +92,7 @@ function ChannelBoardLivePreview({
   return (
     <SettingsLivePreviewFrame
       eyebrow="Board canvas"
-      caption={
-        punchHoleMode
-          ? 'Tap a tile to punch a wallpaper hole.'
-          : 'Canvas updates as you change size above.'
-      }
+      caption="Tap a tile to punch a wallpaper hole — tap a punched tile to restore it. Sizes update live above."
       headerAside={headerAside}
       sticky={false}
       minHeightClassName="min-h-[16rem] md:min-h-[20rem] lg:min-h-[22rem]"
@@ -120,25 +115,16 @@ function ChannelBoardLivePreview({
             <m.button
               key={`preview-slot-${slotIndex}`}
               type="button"
-              disabled={!punchHoleMode}
               onClick={() => onToggleSlot(slotIndex)}
-              whileHover={
-                reduceMotion || !punchHoleMode ? undefined : { scale: 1.05, y: -1 }
-              }
-              whileTap={reduceMotion || !punchHoleMode ? undefined : { scale: 0.92 }}
+              whileHover={reduceMotion ? undefined : { scale: 1.05, y: -1 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.92 }}
               transition={press}
-              title={
-                punchHoleMode
-                  ? hidden
-                    ? 'Show this slot'
-                    : 'Hide this slot'
-                  : label || `Slot ${slotIndex + 1}`
-              }
-              className={`relative flex min-h-[3rem] items-center justify-center overflow-hidden rounded-xl border-2 px-1 text-[9px] font-bold uppercase leading-tight tracking-wide md:min-h-[3.25rem] md:text-[10px] ${
+              title={hidden ? 'Show this slot' : 'Hide this slot'}
+              className={`relative flex min-h-[3rem] cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 px-1 text-[9px] font-bold uppercase leading-tight tracking-wide md:min-h-[3.25rem] md:text-[10px] ${
                 hidden
                   ? 'border-dashed border-[hsl(var(--border-secondary))] bg-transparent text-[hsl(var(--text-tertiary))]'
                   : 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)]'
-              } ${punchHoleMode ? 'cursor-pointer' : 'cursor-default'}`}
+              }`}
             >
               {hidden ? (
                 <EyeOff size={14} aria-hidden />
@@ -162,7 +148,6 @@ ChannelBoardLivePreview.propTypes = {
   slots: PropTypes.array,
   configuredChannels: PropTypes.object,
   pageSlotIndices: PropTypes.arrayOf(PropTypes.number).isRequired,
-  punchHoleMode: PropTypes.bool,
   onToggleSlot: PropTypes.func.isRequired,
   safePreviewPage: PropTypes.number.isRequired,
   currentPage: PropTypes.number.isRequired,
@@ -173,7 +158,6 @@ ChannelBoardLivePreview.defaultProps = {
   slotMeta: {},
   slots: [],
   configuredChannels: {},
-  punchHoleMode: false,
   wallpaperUrl: null,
 };
 

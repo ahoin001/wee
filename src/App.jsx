@@ -4,8 +4,8 @@ import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 // Side effect: registers every cache domain with the cache registry (refresh actions).
 import './utils/cacheDomains';
 import { useShallow } from 'zustand/react/shallow';
-import useWallpaperCycling from './utils/useWallpaperCycling';
 import useKeyboardShortcuts from './utils/useKeyboardShortcuts';
+import { requestWallpaperCycleManual } from './utils/wallpaperCyclingBridge';
 import useWheelNavigation from './hooks/useWheelNavigation';
 import { electronApi } from './utils/electronApi';
 import useBackgroundMusicLifecycle from './utils/useBackgroundMusicLifecycle';
@@ -203,8 +203,19 @@ function App() {
   const { reducedMotion, pillOpen } = useWeeMotion();
 
 
-  // Initialize wallpaper cycling (only for cycling status indicator)
-  const { isCycling, cycleToNextWallpaper, cycleIntervalSeconds } = useWallpaperCycling();
+  // Cycling engine lives in IsolatedWallpaperBackground; indicator reads store + bridge.
+  const { isCycling, cycleIntervalSeconds } = useConsolidatedAppStore(
+    useShallow((state) => {
+      const likedCount = state.wallpaper.likedWallpapers?.length ?? 0;
+      const lowPower = state.ui.lowPowerMode;
+      const interval = state.wallpaper.cycleInterval ?? 30;
+      return {
+        isCycling: Boolean(state.wallpaper.cycleWallpapers) && likedCount > 1,
+        cycleIntervalSeconds: lowPower ? Math.max(interval, 60) : interval,
+      };
+    })
+  );
+  const cycleToNextWallpaper = requestWallpaperCycleManual;
 
   // Single BGM lifecycle owner (focus/blur + settings-driven start/stop)
   useBackgroundMusicLifecycle({ appReady });

@@ -35,9 +35,6 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   );
 
   const channels = useConsolidatedAppStore((state) => state.channels);
-  const presetThumbnailCaptureActive = useConsolidatedAppStore(
-    (state) => Boolean(state.ui?.presetThumbnailCaptureActive)
-  );
   const setChannelDataForSpace = useConsolidatedAppStore((state) => state.actions.setChannelDataForSpace);
   const setChannelSettings = useConsolidatedAppStore((state) => state.actions.setChannelSettings);
   const setChannelOperations = useConsolidatedAppStore((state) => state.actions.setChannelOperations);
@@ -105,13 +102,11 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   ]);
 
   const configuredChannels = useMemo(() => {
-    if (presetThumbnailCaptureActive) return {};
     return channelData.configuredChannels || {};
-  }, [channelData.configuredChannels, presetThumbnailCaptureActive]);
+  }, [channelData.configuredChannels]);
   const channelConfigs = useMemo(() => {
-    if (presetThumbnailCaptureActive) return {};
     return channelData.channelConfigs || {};
-  }, [channelData.channelConfigs, presetThumbnailCaptureActive]);
+  }, [channelData.channelConfigs]);
   const slotMeta = useMemo(() => channelData.slotMeta || {}, [channelData.slotMeta]);
   const slots = useMemo(() => channelData.slots || [], [channelData.slots]);
 

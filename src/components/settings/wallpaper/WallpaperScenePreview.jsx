@@ -14,7 +14,7 @@ function WallpaperScenePreview({
   blur = 0,
   brightness = 1,
   saturate = 1,
-  sticky = true,
+  sticky = false,
 }) {
   const layerStyle = useMemo(() => {
     const op = Math.min(1, Math.max(0, Number(opacity) || 0));

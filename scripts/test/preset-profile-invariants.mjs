@@ -13,10 +13,6 @@ import {
   sanitizePresetCollection,
   toVisualOnlyPreset,
 } from '../../src/utils/presets/presetThemeData.js';
-import {
-  createSeededWorkspaceState,
-  normalizeWorkspacesState,
-} from '../../src/utils/workspaces/workspaceState.js';
 
 function test(name, fn) {
   try {
@@ -175,7 +171,10 @@ test('community sanitize promotes current.url and public wallpaper URL', () => {
         workspaces: { blur: 9 },
       },
     },
-    { wallpaperPublicUrl: 'https://cdn.example.com/shared-bg.jpg' }
+    {
+      wallpaperPublicUrl: 'https://cdn.example.com/shared-bg.jpg',
+      sourceWallpaperUrl: 'userdata://icons/bg.jpg',
+    }
   );
 
   assert.equal(sanitized.wallpaper.current.url, 'https://cdn.example.com/shared-bg.jpg');
@@ -184,7 +183,48 @@ test('community sanitize promotes current.url and public wallpaper URL', () => {
   assert.equal(sanitized.ribbon.ribbonColor, '#112233');
   assert.equal(sanitized.time.color, '#ffffff');
   assert.equal(sanitized.dock.classicThemeId, 'wii-blue');
-  assert.deepEqual(sanitized.appearanceBySpace, { home: { blur: 4 } });
+  assert.deepEqual(sanitized.appearanceBySpace, {
+    home: { blur: 4 },
+    workspaces: { blur: 9 },
+  });
+});
+
+test('community sanitize remaps visible page wallpaper and drops private siblings', () => {
+  const sanitized = sanitizePresetSettingsForCommunity(
+    {
+      wallpaper: { current: { url: 'userdata://global.jpg' } },
+      appearanceBySpace: {
+        home: {
+          wallpaper: {
+            wallpaperScope: 'perPage',
+            wallpaperByPage: {
+              0: 'userdata://visible.jpg',
+              1: 'userdata://private.jpg',
+              2: 'https://cdn.example.com/public.jpg',
+            },
+          },
+        },
+        workspaces: {
+          wallpaper: {
+            useGlobalWallpaper: false,
+            spaceWallpaperUrl: 'userdata://focus.jpg',
+          },
+        },
+      },
+    },
+    {
+      wallpaperPublicUrl: 'https://cdn.example.com/shared-visible.jpg',
+      sourceWallpaperUrl: 'userdata://visible.jpg',
+    }
+  );
+
+  assert.deepEqual(sanitized.appearanceBySpace.home.wallpaper.wallpaperByPage, {
+    0: 'https://cdn.example.com/shared-visible.jpg',
+    2: 'https://cdn.example.com/public.jpg',
+  });
+  assert.equal(sanitized.appearanceBySpace.home.wallpaper.wallpaperScope, 'perPage');
+  assert.equal(sanitized.appearanceBySpace.workspaces.wallpaper.spaceWallpaperUrl, null);
+  assert.equal(sanitized.appearanceBySpace.workspaces.wallpaper.useGlobalWallpaper, true);
 });
 
 test('getPresetWallpaperUrl prefers current.url', () => {
@@ -199,18 +239,6 @@ test('getPresetWallpaperUrl prefers current.url', () => {
   const normalized = normalizeWallpaperCurrentShape({ url: 'https://cdn.example.com/only.jpg', opacity: 1 });
   assert.equal(normalized.current.url, 'https://cdn.example.com/only.jpg');
   assert.equal(normalized.url, 'https://cdn.example.com/only.jpg');
-});
-
-test('workspace state seeding and normalization keep default profiles', () => {
-  const seeded = createSeededWorkspaceState();
-  assert.equal(seeded.items.length, 3);
-  assert.equal(seeded.items[0].name, 'Home Space');
-  assert.equal(seeded.activeWorkspaceId, seeded.items[0].id);
-
-  const normalized = normalizeWorkspacesState({ items: [], activeWorkspaceId: null });
-  assert.equal(normalized.items.length, 3);
-  assert.equal(normalized.items[0].name, 'Home Space');
-  assert.equal(normalized.activeWorkspaceId, normalized.items[0].id);
 });
 
 console.log('Invariant suite complete.');

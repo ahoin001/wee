@@ -52,6 +52,8 @@ function registerCaptureHandlers({
   });
 
   ipcMain.handle('capture-preset-thumbnail', async (event, options = {}) => {
+    const hideBoardSelector =
+      options.composition === 'hideBoard' ? "'.paginated-channels-container'," : '';
     const hideUiScript = `
       (() => {
         const styleId = '__weePresetCaptureHideUI__';
@@ -63,7 +65,7 @@ function registerCaptureHandlers({
           '[class*="modal"]',
           '[class*="popover"]',
           '[class*="tooltip"]',
-          '[class*="widget"]',
+          ${hideBoardSelector}
           '.settings-action-menu'
         ].join(',') + '{ visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }';
         document.head.appendChild(style);

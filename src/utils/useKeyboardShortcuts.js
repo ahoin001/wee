@@ -180,10 +180,6 @@ const useKeyboardShortcuts = () => {
       });
     };
 
-    window.openWorkspaceSwitcher = () => {
-      setUIState?.({ showWorkspaceSwitcher: true });
-    };
-
     window.toggleHomeArrange = () => {
       toggleHomeBoardArrange();
     };
@@ -209,7 +205,6 @@ const useKeyboardShortcuts = () => {
       delete window.toggleCustomCursor;
       delete window.toggleSettingsMenu;
       delete window.toggleSpaceRailPin;
-      delete window.openWorkspaceSwitcher;
       delete window.toggleHomeArrange;
       delete window.toggleCommandPalette;
       delete window.openUpdateModal;

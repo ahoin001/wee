@@ -32,7 +32,6 @@ const selectPersistedSlices = (state) => [
   state.floatingWidgets,
   state.navigation,
   state.presets,
-  state.workspaces,
   state.spaces,
   state.appearanceBySpace,
   state.gameHub,

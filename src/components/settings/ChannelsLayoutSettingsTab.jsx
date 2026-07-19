@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Activity, Aperture, LayoutGrid, Minus, Plus, Sparkles } from 'lucide-react';
+import { Activity, Aperture, LayoutGrid, Minus, Moon, Plus } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
@@ -9,14 +9,15 @@ import {
   WeeButton,
   WeeDescriptionToggleRow,
   WeeDockSettingsSubtabs,
-  WeeHelpLinkButton,
-  WeeHelpParagraph,
   WeeModalFieldCard,
+  WeeRevealWhen,
   WeeSegmentedControl,
   WeeSectionEyebrow,
+  WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
+import MotionToggleRow from './MotionToggleRow';
 import ChannelBoardLivePreview from './ChannelBoardLivePreview';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -35,6 +36,11 @@ import {
 import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
+import {
+  IDLE_PERSONALITY_PACKS,
+  matchIdlePersonality,
+  normalizeIdleExperienceSettings,
+} from '../../utils/idleExperience';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
 import { createWeeTransition, useWeeMotion } from '../../design/weeMotion';
 
@@ -50,22 +56,10 @@ const LAYOUT_SUB_TABS = [
     icon: LayoutGrid,
   },
   {
-    id: 'widgets',
-    label: 'Widgets',
-    description: 'Floating & Home',
-    icon: Sparkles,
-  },
-  {
     id: 'channel-style',
     label: 'Channel style',
-    description: 'Look & hover',
+    description: 'Look, motion & Ken Burns',
     icon: Activity,
-  },
-  {
-    id: 'ken-burns',
-    label: 'Ken Burns',
-    description: 'Zoom & pan',
-    icon: Aperture,
   },
 ];
 
@@ -153,16 +147,12 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
       setUIState: state.actions.setUIState,
       setChannelLayoutForSpace: state.actions.setChannelLayoutForSpace,
       setChannelSlotHiddenForSpace: state.actions.setChannelSlotHiddenForSpace,
-      setFloatingWidgetsState: state.actions.setFloatingWidgetsState,
     }))
   );
   const motionFeedback = useConsolidatedAppStore((state) => state.ui.motionFeedback);
-  const gooeyPrefs = useMemo(() => mergeMotionFeedback(motionFeedback).gooey, [motionFeedback]);
-  const adminPanelVisible = useConsolidatedAppStore(
-    (state) => Boolean(state.floatingWidgets?.adminPanel?.visible)
-  );
+  const mfPrefs = useMemo(() => mergeMotionFeedback(motionFeedback), [motionFeedback]);
+  const gooeyPrefs = mfPrefs.gooey;
   const setSpacesState = useConsolidatedAppStore((state) => state.actions.setSpacesState);
-  const [punchHoleMode, setPunchHoleMode] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
   const [boardPickerKey, setBoardPickerKey] = useState(null);
   const [pageOnlyLayout, setPageOnlyLayout] = useState(false);
@@ -198,20 +188,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     actions.setUIState({ showSettingsModal: false });
   }, [actions, setSpacesState]);
 
-  const handleToggleAdminPanel = useCallback(
-    (nextVisible) => {
-      const current = useConsolidatedAppStore.getState().floatingWidgets?.adminPanel;
-      if (!current) return;
-      actions.setFloatingWidgetsState({
-        adminPanel: {
-          ...current,
-          visible: typeof nextVisible === 'boolean' ? nextVisible : !current.visible,
-        },
-      });
-    },
-    [actions]
-  );
-
   const handleChannelHoverModeChange = useCallback(
     (mode) => {
       actions.setUIState((prev) => {
@@ -230,7 +206,70 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     [actions]
   );
 
+  const handleChannelGooeyIntensityChange = useCallback(
+    (value) => {
+      actions.setUIState((prev) => {
+        const mFeedback = mergeMotionFeedback(prev.motionFeedback);
+        return {
+          motionFeedback: mergeMotionFeedback({
+            ...mFeedback,
+            gooey: {
+              ...mFeedback.gooey,
+              surfaces: { ...mFeedback.gooey.surfaces, channels: value / 100 },
+            },
+          }),
+        };
+      });
+    },
+    [actions]
+  );
+
+  const setChannelMotion = useCallback(
+    (key, checked) => {
+      actions.setUIState((prev) => {
+        const mFeedback = mergeMotionFeedback(prev.motionFeedback);
+        return {
+          motionFeedback: mergeMotionFeedback({
+            ...mFeedback,
+            channels: { ...mFeedback.channels, [key]: checked },
+          }),
+        };
+      });
+    },
+    [actions]
+  );
+
+  const setIdleMode = useCallback(
+    (mode) => actions.setChannelSettings({ idleExperienceMode: mode }),
+    [actions]
+  );
+
+  const setIdleDelay = useCallback(
+    (value) => actions.setChannelSettings({ autoFadeTimeout: value }),
+    [actions]
+  );
+
+  const setAttractDelay = useCallback(
+    (value) => actions.setChannelSettings({ idleAttractDelaySec: value }),
+    [actions]
+  );
+
+  const setIdleIntensity = useCallback(
+    (value) => {
+      if (value === 'off') {
+        actions.setChannelSettings({ idleAnimationEnabled: false });
+        return;
+      }
+      const pack = IDLE_PERSONALITY_PACKS[value];
+      if (!pack) return;
+      actions.setChannelSettings({ idleAnimationEnabled: true, idleAnimationTypes: [...pack] });
+    },
+    [actions]
+  );
+
   const settings = channels?.settings || {};
+  const idle = useMemo(() => normalizeIdleExperienceSettings(settings), [settings]);
+  const idlePersonality = idle.delightsEnabled ? matchIdlePersonality(idle.delightTypes) : 'off';
 
   const currentData = useMemo(
     () => getChannelDataSlice(channels, layoutSpaceKey),
@@ -487,15 +526,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               </WeeButton>
             ) : null}
           </div>
-          <WeeButton
-            type="button"
-            variant={punchHoleMode ? 'primary' : 'secondary'}
-            className="shrink-0"
-            aria-pressed={punchHoleMode}
-            onClick={() => setPunchHoleMode((v) => !v)}
-          >
-            {punchHoleMode ? 'Done punching' : 'Punch holes'}
-          </WeeButton>
           {!isFocusBoard ? (
             <WeeButton type="button" variant="secondary" className="shrink-0" onClick={handlePunchOnHome}>
               Punch on Home
@@ -519,7 +549,12 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
           <Text variant="caption" className="!mt-3 !mb-0 text-[hsl(var(--text-tertiary))]">
             Columns/rows apply to page {safePreviewPage + 1} only. Pages &amp; peek stay board-wide.
           </Text>
-        ) : null}
+        ) : (
+          <Text variant="caption" className="!mt-3 !mb-0 text-[hsl(var(--text-tertiary))]">
+            Tap tiles on the canvas below to punch see-through wallpaper holes (or restore them).
+            Add, place, and restyle widgets in Edit Home.
+          </Text>
+        )}
       </div>
 
       <ChannelBoardLivePreview
@@ -531,7 +566,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
         slots={currentData.slots}
         configuredChannels={currentData.configuredChannels}
         pageSlotIndices={pageSlotIndices}
-        punchHoleMode={punchHoleMode}
         onToggleSlot={handleToggleSlotHidden}
         safePreviewPage={safePreviewPage}
         currentPage={currentPage}
@@ -540,91 +574,207 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     </div>
   );
 
-  const renderWidgetsPanel = () => (
-    <div className="flex flex-col gap-4">
-      <SettingsToggleFieldCard
-        hoverAccent="none"
-        titleClassName={TOGGLE_TITLE}
-        title="Admin panel widget"
-        desc="Floating Quick Access menu for Windows tools. You can also pin Quick Access on Home."
-        checked={adminPanelVisible}
-        onChange={handleToggleAdminPanel}
-      />
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-dashed border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.4)] p-4">
-        <div className="min-w-0 max-w-md">
-          <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-            Widgets on the board
-          </WeeSectionEyebrow>
-          <WeeHelpParagraph className="!normal-case !tracking-[0.04em]">
-            Board widgets float on wallpaper by default (Clear). Use Glass for a light frost,
-            or Basic for a solid card — place and restyle them in Edit Home.
-          </WeeHelpParagraph>
-        </div>
-        <WeeButton
-          type="button"
-          variant="secondary"
-          className="shrink-0"
-          onClick={handleArrangeOnHome}
-        >
-          Edit Home
-        </WeeButton>
-      </div>
-
-      <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-        Spotify connects under{' '}
-        <WeeHelpLinkButton
-          type="button"
-          className="!mt-0 inline"
-          onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS, { integrationsSubTab: 'music' })}
-        >
-          Music, Steam &amp; Widgets
-        </WeeHelpLinkButton>
-        . Use a Now Playing channel on Home instead of a floating player.
-      </Text>
-    </div>
-  );
-
   const renderChannelStylePanel = () => (
-    <div className="flex flex-col gap-4">
-      <SettingsToggleFieldCard
-        hoverAccent="none"
-        titleClassName={TOGGLE_TITLE}
-        title="Hover-only animations"
-        desc="Animated channel art (GIFs/MP4s) plays only while you hover when this is on."
-        checked={settings.animatedOnHover ?? false}
-        onChange={handleAnimatedOnHoverChange}
-      />
+    <div className="flex flex-col gap-6">
+      <WeeSettingsCollapsibleSection
+        icon={Activity}
+        title="Channel art & hover"
+        description="Animated media playback and gooey hover feel on channel tiles."
+        defaultOpen
+      >
+        <div className="flex flex-col gap-4">
+          <SettingsToggleFieldCard
+            hoverAccent="none"
+            titleClassName={TOGGLE_TITLE}
+            title="Hover-only animations"
+            desc="Animated channel art (GIFs/MP4s) plays only while you hover when this is on."
+            checked={settings.animatedOnHover ?? false}
+            onChange={handleAnimatedOnHoverChange}
+          />
 
-      <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
-        <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-          Channel hover physics
-        </WeeSectionEyebrow>
-        <Text variant="caption" className="!mb-3 block text-[hsl(var(--text-tertiary))]">
-          Space-pill gooey hover on channels. Bounce strength is under Motion → Gooey physics.
-        </Text>
-        <WeeSegmentedControl
-          ariaLabel="Channel hover physics mode"
-          value={gooeyPrefs.channelHoverMode ?? GOOEY_HOVER_MODES.both}
-          onChange={handleChannelHoverModeChange}
-          options={[
-            { value: GOOEY_HOVER_MODES.squash, label: 'Squash' },
-            { value: GOOEY_HOVER_MODES.glow, label: 'Glow' },
-            { value: GOOEY_HOVER_MODES.both, label: 'Both' },
-          ]}
-        />
-        <button
-          type="button"
-          className="mt-3 text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
-          onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
-        >
-          Open Motion settings
-        </button>
-      </WeeModalFieldCard>
+          <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5 space-y-5">
+            <div>
+              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+                Channel hover physics
+              </WeeSectionEyebrow>
+              <Text variant="caption" className="!mb-3 block text-[hsl(var(--text-tertiary))]">
+                Space-pill gooey hover on channels — pick how tiles react on hover.
+              </Text>
+              <WeeSegmentedControl
+                ariaLabel="Channel hover physics mode"
+                value={gooeyPrefs.channelHoverMode ?? GOOEY_HOVER_MODES.both}
+                onChange={handleChannelHoverModeChange}
+                options={[
+                  { value: GOOEY_HOVER_MODES.squash, label: 'Squash' },
+                  { value: GOOEY_HOVER_MODES.glow, label: 'Glow' },
+                  { value: GOOEY_HOVER_MODES.both, label: 'Both' },
+                ]}
+              />
+            </div>
+            <div>
+              <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+                Channel bounce: {Math.round((gooeyPrefs.surfaces?.channels ?? 1) * 100)}%
+              </Text>
+              <Text variant="caption" className="!mb-2 block text-[hsl(var(--text-tertiary))]">
+                100% matches the space rail pill. Lower values settle faster with less overshoot.
+                Global bounce for other surfaces lives under Motion.
+              </Text>
+              <Slider
+                value={Math.round((gooeyPrefs.surfaces?.channels ?? 1) * 100)}
+                min={0}
+                max={100}
+                step={5}
+                hideValue
+                aria-label="Channel gooey bounce intensity"
+                onChange={handleChannelGooeyIntensityChange}
+              />
+            </div>
+            <button
+              type="button"
+              className="text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
+              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
+            >
+              Open Motion settings
+            </button>
+          </WeeModalFieldCard>
+        </div>
+      </WeeSettingsCollapsibleSection>
+
+      <WeeSettingsCollapsibleSection
+        icon={LayoutGrid}
+        title="Channels & grid"
+        description="Launch tiles, drag preview, slots, and reorder feedback."
+        defaultOpen
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <MotionToggleRow
+            title="Tap / press on channels"
+            description="Spring squash when you click a channel tile to launch."
+            checked={mfPrefs.channels.tap}
+            onChange={(v) => setChannelMotion('tap', v)}
+          />
+          <MotionToggleRow
+            title="Drag preview"
+            description="Lifted, tilted floating preview while dragging a channel."
+            checked={mfPrefs.channels.dragPreview}
+            onChange={(v) => setChannelMotion('dragPreview', v)}
+          />
+          <MotionToggleRow
+            title="Drop target highlight"
+            description="Slot glows when you drag over a valid drop target."
+            checked={mfPrefs.channels.dropTarget}
+            onChange={(v) => setChannelMotion('dropTarget', v)}
+          />
+          <MotionToggleRow
+            title="Reorder sparkles"
+            description="Particle burst when you pick up a tile and when you drop it."
+            checked={mfPrefs.channels.reorderParticles}
+            onChange={(v) => setChannelMotion('reorderParticles', v)}
+          />
+          <MotionToggleRow
+            title="Reorder slot motion"
+            description="Tiles wobble and settle after a reorder; includes drop celebration on the moved tile."
+            checked={mfPrefs.channels.reorderSlotMotion}
+            onChange={(v) => setChannelMotion('reorderSlotMotion', v)}
+          />
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
+      <WeeSettingsCollapsibleSection
+        icon={Moon}
+        title="Idle experience"
+        description="What Home does when you step away — fade, micro-delights, attract."
+        defaultOpen
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6 space-y-5">
+          <div>
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
+              Mode
+            </WeeSectionEyebrow>
+            <WeeSegmentedControl
+              ariaLabel="Idle experience mode"
+              value={idle.mode}
+              onChange={setIdleMode}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'subtle', label: 'Subtle' },
+                { value: 'attract', label: 'Attract' },
+              ]}
+            />
+            <Text variant="caption" className="!mt-2 block text-[hsl(var(--text-tertiary))]">
+              Subtle fades the grid toward the wallpaper when idle. Attract additionally spotlights
+              your tiles after a longer wait — it never launches anything and pauses when the app is
+              unfocused or in low power.
+            </Text>
+          </div>
+
+          <WeeRevealWhen when={idle.mode !== 'off'}>
+            <div className="space-y-5">
+              <div className="w-full min-w-0">
+                <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+                  Idle delay: {idle.idleDelaySec}s
+                </Text>
+                <Slider
+                  value={idle.idleDelaySec}
+                  min={1}
+                  max={30}
+                  step={1}
+                  hideValue
+                  aria-label="Idle delay before fade"
+                  onChange={setIdleDelay}
+                />
+              </div>
+
+              <div>
+                <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
+                  Tile micro-delights
+                </WeeSectionEyebrow>
+                <WeeSegmentedControl
+                  ariaLabel="Idle micro-delight intensity"
+                  value={idlePersonality || 'off'}
+                  onChange={setIdleIntensity}
+                  options={[
+                    { value: 'off', label: 'Off' },
+                    { value: 'restrained', label: 'Restrained' },
+                    { value: 'playful', label: 'Playful' },
+                    { value: 'showy', label: 'Showy' },
+                  ]}
+                />
+              </div>
+
+              <WeeRevealWhen when={idle.mode === 'attract'}>
+                <div className="w-full min-w-0">
+                  <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+                    Attract after: {Math.round(idle.attractDelaySec / 60)} min idle
+                  </Text>
+                  <Slider
+                    value={idle.attractDelaySec}
+                    min={60}
+                    max={600}
+                    step={30}
+                    hideValue
+                    aria-label="Attract mode delay"
+                    onChange={setAttractDelay}
+                  />
+                </div>
+              </WeeRevealWhen>
+            </div>
+          </WeeRevealWhen>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
+      <WeeSettingsCollapsibleSection
+        icon={Aperture}
+        title="Ken Burns"
+        description="Cinematic zoom and pan on still channel art."
+        defaultOpen
+      >
+        {renderKenBurnsControls()}
+      </WeeSettingsCollapsibleSection>
     </div>
   );
 
-  const renderKenBurnsPanel = () => (
+  const renderKenBurnsControls = () => (
     <div className="flex flex-col gap-4">
       <SettingsToggleFieldCard
         hoverAccent="none"
@@ -776,14 +926,12 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   const renderPanel = () => {
     switch (activeSubTab) {
       case 'board':
+      case 'widgets': // legacy: widgets folded into board + Edit Home
         return renderBoardPanel();
-      case 'widgets':
-        return renderWidgetsPanel();
       case 'channel-style':
       case 'tile-style': // legacy local subtab id
+      case 'ken-burns': // legacy: Ken Burns merged into channel style
         return renderChannelStylePanel();
-      case 'ken-burns':
-        return renderKenBurnsPanel();
       default:
         return null;
     }
@@ -793,7 +941,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
       <SettingsTabPageHeader
         title="Channel & layout"
-        subtitle="Size the Home or Focus grid, place widgets, and tune how channels look"
+        subtitle="Size the Home or Focus grid, punch wallpaper holes, and tune how channels look and move"
         className="mb-6"
       />
 

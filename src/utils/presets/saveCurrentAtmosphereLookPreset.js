@@ -65,6 +65,7 @@ export async function saveCurrentAtmosphereLookPreset({ name } = {}) {
     shareable: true,
     timestamp: new Date().toISOString(),
     thumbnailDataUrl: thumbnailDataUrl || null,
+    thumbnailComposition: 'showBoard',
     frozenAtmosphereLook: true,
     ...(hasSpotifyPalette ? { frozenSpotifyLook: true } : {}),
   };

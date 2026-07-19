@@ -22,8 +22,6 @@ import { SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPrese
 import { MAX_CUSTOM_PRESETS } from '../../utils/presets/saveFrozenSpotifyLookPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
 import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
-import { buildWorkspaceDataFromStore } from '../../utils/workspaces/buildWorkspaceSnapshot';
-import { normalizeWorkspacesState } from '../../utils/workspaces/workspaceState';
 import { createPresetId } from '../../utils/presets/presetIds';
 import {
   PRESET_SCOPE_VISUAL,
@@ -48,6 +46,7 @@ import {
   WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
+import WToggle from '../../ui/WToggle';
 
 const normalizePresetName = (value) => value.trim().toLowerCase();
 
@@ -61,16 +60,14 @@ const PRESET_UPDATE_SCOPE_OPTIONS = [
 ];
 
 const PresetsSettingsTab = React.memo(() => {
-  const { presets, workspaces } = useConsolidatedAppStore(
+  const { presets } = useConsolidatedAppStore(
     useShallow((state) => ({
       presets: state.presets,
-      workspaces: state.workspaces,
     }))
   );
-  const { setPresets, setWorkspacesState } = useConsolidatedAppStore(
+  const { setPresets } = useConsolidatedAppStore(
     useShallow((state) => ({
       setPresets: state.actions.setPresets,
-      setWorkspacesState: state.actions.setWorkspacesState,
     }))
   );
 
@@ -88,6 +85,8 @@ const PresetsSettingsTab = React.memo(() => {
   const [communityUpdateMap, setCommunityUpdateMap] = useState({});
   const [captureNotice, setCaptureNotice] = useState({ type: '', text: '' });
   const [isSavingPreset, setIsSavingPreset] = useState(false);
+  const [hideBoardScreenshot, setHideBoardScreenshot] = useState(false);
+  const [updateHideBoardScreenshot, setUpdateHideBoardScreenshot] = useState(false);
   const [uploadFormData, setUploadFormData] = useState({
     name: '',
     description: '',
@@ -167,8 +166,6 @@ const PresetsSettingsTab = React.memo(() => {
   }, [presets]);
 
   const customPresetCount = presets.filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
-  const normalizedProfiles = normalizeWorkspacesState(workspaces);
-  const hasActiveProfile = false;
   const hasPresetName = useCallback(
     (name, excludeId = null) => {
       const normalized = normalizePresetName(name);
@@ -249,7 +246,10 @@ const PresetsSettingsTab = React.memo(() => {
     setCaptureNotice({ type: 'info', text: 'Capturing preview…' });
     try {
       const presetData = buildPresetDataFromStore({ captureScope: selectedCaptureScope });
-      const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
+      const thumbnailComposition = hideBoardScreenshot ? 'hideBoard' : 'showBoard';
+      const thumbnailDataUrl = await capturePresetThumbnailDataUrl({
+        composition: thumbnailComposition,
+      });
       if (thumbnailDataUrl) {
         setCaptureNotice({ type: 'success', text: 'Captured preset preview' });
       } else {
@@ -265,6 +265,7 @@ const PresetsSettingsTab = React.memo(() => {
         shareable: selectedCaptureScope === PRESET_SCOPE_VISUAL,
         timestamp: new Date().toISOString(),
         thumbnailDataUrl: thumbnailDataUrl || null,
+        thumbnailComposition,
       };
 
       const updatedPresets = [...presets, newPreset];
@@ -283,7 +284,7 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   const commitPresetUpdate = useCallback(
-    async (presetId, updateScope) => {
+    async (presetId, updateScope, thumbnailComposition) => {
       if (!presetId || isUpdatingPreset) return false;
       setIsUpdatingPreset(true);
       try {
@@ -297,7 +298,9 @@ const PresetsSettingsTab = React.memo(() => {
 
         const scope = normalizePresetScope(updateScope);
         const presetData = buildPresetDataFromStore({ captureScope: scope });
-        const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
+        const thumbnailDataUrl = await capturePresetThumbnailDataUrl({
+          composition: thumbnailComposition,
+        });
         if (thumbnailDataUrl) {
           setCaptureNotice({ type: 'success', text: 'Preset updated with a fresh preview' });
         } else {
@@ -317,6 +320,7 @@ const PresetsSettingsTab = React.memo(() => {
                 shareable: scope === PRESET_SCOPE_VISUAL,
                 timestamp: new Date().toISOString(),
                 thumbnailDataUrl: thumbnailDataUrl || p.thumbnailDataUrl || null,
+                thumbnailComposition,
               }
             : p
         );
@@ -349,6 +353,7 @@ const PresetsSettingsTab = React.memo(() => {
         currentScope,
       });
       setSelectedUpdateScope(currentScope);
+      setUpdateHideBoardScreenshot(targetPreset.thumbnailComposition === 'hideBoard');
       setUpdateScopeModalOpen(true);
     },
     [presets]
@@ -370,9 +375,19 @@ const PresetsSettingsTab = React.memo(() => {
 
   const handleConfirmUpdateScope = useCallback(async () => {
     if (!updateScopeDialog?.presetId || isUpdatingPreset) return;
-    const ok = await commitPresetUpdate(updateScopeDialog.presetId, selectedUpdateScope);
+    const ok = await commitPresetUpdate(
+      updateScopeDialog.presetId,
+      selectedUpdateScope,
+      updateHideBoardScreenshot ? 'hideBoard' : 'showBoard'
+    );
     if (ok) setUpdateScopeModalOpen(false);
-  }, [updateScopeDialog, selectedUpdateScope, isUpdatingPreset, commitPresetUpdate]);
+  }, [
+    updateScopeDialog,
+    selectedUpdateScope,
+    updateHideBoardScreenshot,
+    isUpdatingPreset,
+    commitPresetUpdate,
+  ]);
 
   const updateScopeChoiceLabel = useMemo(() => {
     const match = PRESET_UPDATE_SCOPE_OPTIONS.find((o) => o.value === selectedUpdateScope);
@@ -433,29 +448,6 @@ const PresetsSettingsTab = React.memo(() => {
     });
     setJustApplied(key);
     setTimeout(() => setJustApplied(null), 900);
-  };
-
-  const handleApplyPresetToActiveProfile = async (preset) => {
-    const normalizedPreset = normalizePresetRecord(preset);
-    if (!normalizedPreset || !normalizedProfiles.activeWorkspaceId) return;
-
-    await runSceneTransition(`Applying ${preset?.name || 'preset'} to active profile`, async () => {
-      await applyPresetData(normalizedPreset);
-    });
-
-    const nextItems = normalizedProfiles.items.map((profile) =>
-      profile.id === normalizedProfiles.activeWorkspaceId
-        ? {
-            ...profile,
-            data: buildWorkspaceDataFromStore(),
-            timestamp: new Date().toISOString(),
-          }
-        : profile
-    );
-    setWorkspacesState({
-      items: nextItems,
-      activeWorkspaceId: normalizedProfiles.activeWorkspaceId,
-    });
   };
 
   const handleImportCommunityPreset = async (presetData) => {
@@ -666,7 +658,11 @@ const PresetsSettingsTab = React.memo(() => {
       setUploadMessage({ type: '', text: '' });
 
       const warnings = [];
-      const { file: wallpaperFile, warning: wallpaperWarning } = await resolveWallpaperFileForShare(uploadFormData.selectedPreset);
+      const {
+        file: wallpaperFile,
+        sourceUrl: wallpaperSourceUrl,
+        warning: wallpaperWarning,
+      } = await resolveWallpaperFileForShare(uploadFormData.selectedPreset);
       if (wallpaperWarning) warnings.push(wallpaperWarning);
       const autoThumbnailDataUrl = uploadFormData.selectedPreset.thumbnailDataUrl || null;
       const { file: customImageFile, warning: customImageWarning } = resolveCustomImageFileForShare(
@@ -678,6 +674,7 @@ const PresetsSettingsTab = React.memo(() => {
       const presetData = {
         settings: uploadFormData.selectedPreset.data,
         wallpaper: wallpaperFile,
+        wallpaperSourceUrl,
         customImage: customImageFile,
       };
 
@@ -880,6 +877,8 @@ const PresetsSettingsTab = React.memo(() => {
             customPresetCount={customPresetCount}
             maxCustomPresets={MAX_CUSTOM_PRESETS}
             isSaving={isSavingPreset}
+            hideBoardScreenshot={hideBoardScreenshot}
+            onHideBoardScreenshotChange={setHideBoardScreenshot}
           />
         </WeeSettingsCollapsibleSection>
       </div>
@@ -916,8 +915,6 @@ const PresetsSettingsTab = React.memo(() => {
           onCancelEdit={handleCancelEdit}
           onEditNameChange={(e) => setEditName(e.target.value)}
           onKeyPress={handleKeyPress}
-          onApplyToActiveProfile={handleApplyPresetToActiveProfile}
-          hasActiveProfile={hasActiveProfile}
           onApplyCommunityUpdate={handleApplyCommunityUpdate}
           onShare={handleSharePreset}
           onExport={handleExportPresetFile}
@@ -1064,6 +1061,23 @@ const PresetsSettingsTab = React.memo(() => {
             <p className="m-0 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
               Will save as: {updateScopeChoiceLabel}
             </p>
+
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.55)] px-4 py-3">
+              <div className="min-w-0">
+                <p className="m-0 font-semibold text-[hsl(var(--text-primary))]">
+                  Hide board in refreshed screenshot
+                </p>
+                <p className="m-0 mt-1 text-xs text-[hsl(var(--text-tertiary))]">
+                  Off shows real tiles. On captures wallpaper and chrome only.
+                </p>
+              </div>
+              <WToggle
+                checked={updateHideBoardScreenshot}
+                onChange={setUpdateHideBoardScreenshot}
+                aria-label="Hide board in refreshed preset screenshot"
+                disabled={isUpdatingPreset}
+              />
+            </div>
           </div>
         </WeeModalShell>
       ) : null}

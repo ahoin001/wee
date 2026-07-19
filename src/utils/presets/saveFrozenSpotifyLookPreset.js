@@ -64,6 +64,7 @@ export async function saveFrozenSpotifyLookPreset({ name } = {}) {
     shareable: true,
     timestamp: new Date().toISOString(),
     thumbnailDataUrl: thumbnailDataUrl || null,
+    thumbnailComposition: 'showBoard',
     frozenSpotifyLook: true,
   };
 

@@ -14,7 +14,6 @@ export function isBlockingOverlayOpen(ui = {}) {
       ui.showUpdateModal ||
       ui.isAuthModalOpen ||
       ui.showConfirmationModal ||
-      ui.showWorkspaceSwitcher ||
       ui.commandPaletteOpen ||
       ui.homeBoardArrangeMode
   );
@@ -55,11 +54,6 @@ export function closeTopOverlayOnEscape(store) {
 
   if (ui.showConfirmationModal) {
     setUIState({ showConfirmationModal: false, confirmationModalData: null });
-    return 'closed-modal';
-  }
-
-  if (ui.showWorkspaceSwitcher) {
-    setUIState({ showWorkspaceSwitcher: false });
     return 'closed-modal';
   }
 

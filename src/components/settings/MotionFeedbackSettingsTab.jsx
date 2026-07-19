@@ -1,17 +1,10 @@
 import React, { useCallback, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
-import { Anchor, AppWindow, Info, LayoutGrid, Layers, Moon, Rocket, Wand2, Zap } from 'lucide-react';
+import { Anchor, AppWindow, Info, Layers, Rocket, Wand2, Zap } from 'lucide-react';
 import Text from '../../ui/Text';
-import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
-import {
-  IDLE_PERSONALITY_PACKS,
-  matchIdlePersonality,
-  normalizeIdleExperienceSettings,
-} from '../../utils/idleExperience';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
 import {
   WeeModalFieldCard,
@@ -21,89 +14,17 @@ import {
   WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
+import MotionToggleRow from './MotionToggleRow';
 import './surfaceStyles.css';
 
-function MotionToggleRow({ title, description, checked, onChange, disabled }) {
-  return (
-    <div
-      className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-[hsl(var(--border-primary)/0.35)] py-3 last:border-b-0 ${
-        disabled ? 'opacity-50' : ''
-      }`}
-    >
-      <div className="min-w-0">
-        <Text
-          variant="body"
-          className="text-[0.8125rem] font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]"
-        >
-          {title}
-        </Text>
-        {description ? (
-          <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
-            {description}
-          </Text>
-        ) : null}
-      </div>
-      <div className="flex shrink-0 items-center justify-end">
-        <WToggle checked={checked} onChange={onChange} disabled={disabled} disableLabelClick />
-      </div>
-    </div>
-  );
-}
-
-MotionToggleRow.propTypes = {
-  title: PropTypes.string.isRequired,
-  description: PropTypes.string,
-  checked: PropTypes.bool.isRequired,
-  onChange: PropTypes.func.isRequired,
-  disabled: PropTypes.bool,
-};
-
-MotionToggleRow.defaultProps = {
-  description: null,
-  disabled: false,
-};
-
 const MotionFeedbackSettingsTab = React.memo(() => {
-  const { setUIState, setChannelSettings } = useConsolidatedAppStore(
+  const { setUIState } = useConsolidatedAppStore(
     useShallow((state) => ({
       setUIState: state.actions.setUIState,
-      setChannelSettings: state.actions.setChannelSettings,
     }))
   );
   const raw = useConsolidatedAppStore((s) => s.ui.motionFeedback);
   const mf = useMemo(() => mergeMotionFeedback(raw), [raw]);
-
-  const channelSettings = useConsolidatedAppStore((s) => s.channels.settings);
-  const idle = useMemo(() => normalizeIdleExperienceSettings(channelSettings), [channelSettings]);
-  const idlePersonality = idle.delightsEnabled ? matchIdlePersonality(idle.delightTypes) : 'off';
-
-  const setIdleMode = useCallback(
-    (mode) => setChannelSettings({ idleExperienceMode: mode }),
-    [setChannelSettings]
-  );
-
-  const setIdleDelay = useCallback(
-    (value) => setChannelSettings({ autoFadeTimeout: value }),
-    [setChannelSettings]
-  );
-
-  const setAttractDelay = useCallback(
-    (value) => setChannelSettings({ idleAttractDelaySec: value }),
-    [setChannelSettings]
-  );
-
-  const setIdleIntensity = useCallback(
-    (value) => {
-      if (value === 'off') {
-        setChannelSettings({ idleAnimationEnabled: false });
-        return;
-      }
-      const pack = IDLE_PERSONALITY_PACKS[value];
-      if (!pack) return;
-      setChannelSettings({ idleAnimationEnabled: true, idleAnimationTypes: [...pack] });
-    },
-    [setChannelSettings]
-  );
 
   const master = mf.master;
 
@@ -127,21 +48,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
           launch: value,
         }),
       }));
-    },
-    [setUIState]
-  );
-
-  const setChannel = useCallback(
-    (key, checked) => {
-      setUIState((prev) => {
-        const m = mergeMotionFeedback(prev.motionFeedback);
-        return {
-          motionFeedback: mergeMotionFeedback({
-            ...m,
-            channels: { ...m.channels, [key]: checked },
-          }),
-        };
-      });
     },
     [setUIState]
   );
@@ -268,93 +174,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
 
-      <WeeSettingsCollapsibleSection
-        icon={Moon}
-        title="Idle experience"
-        description="What Home does when you step away — fade, micro-delights, attract."
-        defaultOpen
-      >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6 space-y-5">
-          <div>
-            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
-              Mode
-            </WeeSectionEyebrow>
-            <WeeSegmentedControl
-              ariaLabel="Idle experience mode"
-              value={idle.mode}
-              onChange={setIdleMode}
-              options={[
-                { value: 'off', label: 'Off' },
-                { value: 'subtle', label: 'Subtle' },
-                { value: 'attract', label: 'Attract' },
-              ]}
-            />
-            <Text variant="caption" className="!mt-2 block text-[hsl(var(--text-tertiary))]">
-              Subtle fades the grid toward the wallpaper when idle. Attract additionally spotlights
-              your tiles after a longer wait — it never launches anything and pauses when the app is
-              unfocused or in low power.
-            </Text>
-          </div>
-
-          <WeeRevealWhen when={idle.mode !== 'off'}>
-            <div className="space-y-5">
-              <div className="w-full min-w-0">
-                <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-                  Idle delay: {idle.idleDelaySec}s
-                </Text>
-                <Slider
-                  value={idle.idleDelaySec}
-                  min={1}
-                  max={30}
-                  step={1}
-                  hideValue
-                  aria-label="Idle delay before fade"
-                  onChange={setIdleDelay}
-                />
-              </div>
-
-              <div>
-                <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
-                  Tile micro-delights
-                </WeeSectionEyebrow>
-                <WeeSegmentedControl
-                  ariaLabel="Idle micro-delight intensity"
-                  value={idlePersonality || 'off'}
-                  onChange={setIdleIntensity}
-                  options={[
-                    { value: 'off', label: 'Off' },
-                    { value: 'restrained', label: 'Restrained' },
-                    { value: 'playful', label: 'Playful' },
-                    { value: 'showy', label: 'Showy' },
-                  ]}
-                />
-                <Text variant="caption" className="!mt-2 block text-[hsl(var(--text-tertiary))]">
-                  Fine-grained animation types live under Channels &amp; layout → Idle motion
-                  (advanced).
-                </Text>
-              </div>
-
-              <WeeRevealWhen when={idle.mode === 'attract'}>
-                <div className="w-full min-w-0">
-                  <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-                    Attract after: {Math.round(idle.attractDelaySec / 60)} min idle
-                  </Text>
-                  <Slider
-                    value={idle.attractDelaySec}
-                    min={60}
-                    max={600}
-                    step={30}
-                    hideValue
-                    aria-label="Attract mode delay"
-                    onChange={setAttractDelay}
-                  />
-                </div>
-              </WeeRevealWhen>
-            </div>
-          </WeeRevealWhen>
-        </WeeModalFieldCard>
-      </WeeSettingsCollapsibleSection>
-
       <WeeRevealWhen when={master}>
         <div className="flex flex-col gap-6">
       <WeeSettingsCollapsibleSection
@@ -378,46 +197,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
             Subtle brightens the launched tile. Cinematic also recedes the rest of the board and
             softens the dock. Reduced motion keeps only the status pill.
           </Text>
-        </WeeModalFieldCard>
-      </WeeSettingsCollapsibleSection>
-
-      <WeeSettingsCollapsibleSection
-        icon={LayoutGrid}
-        title="Channels & grid"
-        description="Launch tiles, drag preview, slots, and reorder feedback."
-        defaultOpen
-      >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-          <MotionToggleRow
-            title="Tap / press on channels"
-            description="Spring squash when you click a channel tile to launch."
-            checked={mf.channels.tap}
-            onChange={(v) => setChannel('tap', v)}
-          />
-          <MotionToggleRow
-            title="Drag preview"
-            description="Lifted, tilted floating preview while dragging a channel."
-            checked={mf.channels.dragPreview}
-            onChange={(v) => setChannel('dragPreview', v)}
-          />
-          <MotionToggleRow
-            title="Drop target highlight"
-            description="Slot glows when you drag over a valid drop target."
-            checked={mf.channels.dropTarget}
-            onChange={(v) => setChannel('dropTarget', v)}
-          />
-          <MotionToggleRow
-            title="Reorder sparkles"
-            description="Particle burst when you pick up a tile and when you drop it."
-            checked={mf.channels.reorderParticles}
-            onChange={(v) => setChannel('reorderParticles', v)}
-          />
-          <MotionToggleRow
-            title="Reorder slot motion"
-            description="Tiles wobble and settle after a reorder; includes drop celebration on the moved tile."
-            checked={mf.channels.reorderSlotMotion}
-            onChange={(v) => setChannel('reorderSlotMotion', v)}
-          />
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
 
@@ -501,7 +280,7 @@ const MotionFeedbackSettingsTab = React.memo(() => {
       <WeeSettingsCollapsibleSection
         icon={Anchor}
         title="Gooey physics"
-        description="Space-pill expand/shrink springs for modals, channels, ribbon, and Media Hub — bounce amount per surface."
+        description="Space-pill expand/shrink springs for modals, ribbon, and Media Hub — bounce amount per surface. Channel bounce lives under Channel & layout → Channel style."
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6 space-y-5">
@@ -534,20 +313,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
               hideValue
               aria-label="Modal gooey intensity"
               onChange={(v) => setGooey({ surfaces: { modals: v / 100 } })}
-            />
-          </div>
-          <div>
-            <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-              Channels: {Math.round((mf.gooey?.surfaces?.channels ?? 1) * 100)}%
-            </Text>
-            <Slider
-              value={Math.round((mf.gooey?.surfaces?.channels ?? 1) * 100)}
-              min={0}
-              max={100}
-              step={5}
-              hideValue
-              aria-label="Channel gooey intensity"
-              onChange={(v) => setGooey({ surfaces: { channels: v / 100 } })}
             />
           </div>
           <div>

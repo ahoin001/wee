@@ -7,14 +7,14 @@ How **vertical shell spaces**, **channel grids**, **Media Hub**, and **saved loo
 Canonical order (top → bottom), when Media Hub is **off**:
 
 1. **`home`** — Primary channel grid (casual / default mood strip).
-2. **`workspaces`** — Focus: second Home-like channel grid (work / alternate mood). Rail label uses the active secondary profile name, or **Focus**.
+2. **`workspaces`** — Focus: second Home-like channel grid (work / alternate mood). The internal id is retained for persistence compatibility; the product label is **Focus**.
 3. **`gamehub`** — Game Hub (no channel grid; separate UI and state).
 
 When **`spaces.mediaHubEnabled`** is true, **`mediahub`** is inserted after Focus and before Game Hub:
 
 `home → workspaces → mediahub → gamehub`
 
-New installs start with Media Hub **off**. If a persisted `spaces.order` still includes `mediahub`, load migrates `mediaHubEnabled: true` once so existing users keep it. Toggle lives in Settings → Home Profiles → **Show Media Hub**. When disabled, `MediaHubSpace` is not mounted.
+New installs start with Media Hub **off**. When disabled, `MediaHubSpace` is not mounted.
 
 Normalize via `normalizeShellSpaceOrder(order, { mediaHubEnabled })` in [`channelSpaces.js`](../src/utils/channelSpaces.js).
 
@@ -23,7 +23,7 @@ Normalize via `normalizeShellSpaceOrder(order, { mediaHubEnabled })` in [`channe
 | Rail id        | Store / behavior |
 |----------------|------------------|
 | `home`         | `channels.dataBySpace.home` |
-| `workspaces`   | `channels.secondaryChannelProfiles[activeId].channelSpace` (mirrored to `dataBySpace.workspaces`) |
+| `workspaces`   | `channels.dataBySpace.workspaces` |
 
 `resolveActiveChannelSpaceKey(activeSpaceId)` returns `'workspaces'` when Focus is active, otherwise `'home'` (including when Media Hub / Game Hub is active — channel nav is hidden there).
 
@@ -33,10 +33,8 @@ Both boards use `PaginatedChannels` + the same board mutation engine (`boardMuta
 
 | Term | Meaning |
 |------|---------|
-| **Focus** / rail `workspaces` | Second live channel strip |
-| **Home Profiles** (settings tab historically “Workspaces”) | Saved full-environment snapshots (`workspaces.items`) |
-| **Secondary channel profiles** | Named layouts for the Focus strip (up to 3) |
-| **Presets** | Shareable look (+ optional Home/Focus boards) |
+| **Focus** / rail `workspaces` | Second live channel strip; `workspaces` is only its stable internal id |
+| **Presets / Looks** | Shareable atmosphere across spaces/pages; never channel boards |
 
 ## Look: wallpaper per space / per page
 
@@ -65,7 +63,9 @@ See `src/utils/boardMutation.js`: punched holes are fixed geometry during drag; 
 
 ## Presets
 
-Local save defaults to boards included (`visual+homeChannels`): `homeChannels` + `focusChannels` (including `slots[].hidden`), `appearanceBySpace` for home/Focus, and `ui.wallpaperMatchEnabled`. Community share stays visual-only.
+Looks capture wallpaper, cycling presentation, ribbon/dock, overlay, theme toggles, and `appearanceBySpace` (including per-page wallpaper/ribbon maps). Applying a Look never replaces `channels.dataBySpace.home` or `channels.dataBySpace.workspaces`.
+
+Legacy `visual+homeChannels` files remain readable for migration, but new saves are visual-only. Community sharing uploads the wallpaper visible at capture time and scrubs private scoped URLs.
 
 ## Space transitions and channel drag
 

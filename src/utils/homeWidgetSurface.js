@@ -58,7 +58,7 @@ export function migrateSpaceDataLegacyGlassSurfaces(spaceData) {
 }
 
 /**
- * Walk `channels.dataBySpace` (+ secondary profiles) and rewrite legacy glass → basic.
+ * Walk `channels.dataBySpace` and rewrite legacy glass → basic.
  * @param {Record<string, unknown> | null | undefined} channels
  */
 export function migrateChannelsLegacyGlassSurfaces(channels) {
@@ -74,29 +74,9 @@ export function migrateChannelsLegacyGlassSurfaces(channels) {
     if (next !== space) changed = true;
   }
 
-  let nextProfiles = channels.secondaryChannelProfiles;
-  if (nextProfiles && typeof nextProfiles === 'object') {
-    const profiles = {};
-    for (const [id, entry] of Object.entries(nextProfiles)) {
-      if (!entry || typeof entry !== 'object') {
-        profiles[id] = entry;
-        continue;
-      }
-      const nextSpace = migrateSpaceDataLegacyGlassSurfaces(entry.channelSpace);
-      if (nextSpace !== entry.channelSpace) {
-        changed = true;
-        profiles[id] = { ...entry, channelSpace: nextSpace };
-      } else {
-        profiles[id] = entry;
-      }
-    }
-    nextProfiles = profiles;
-  }
-
   if (!changed) return channels;
   return {
     ...channels,
     dataBySpace: nextBySpace,
-    secondaryChannelProfiles: nextProfiles,
   };
 }

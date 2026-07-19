@@ -11,10 +11,9 @@ import {
 import { migrateSpaceDataToSlots } from './homeGridSlots';
 
 /**
- * Channel grid data is scoped per shell space profile layer:
+ * Channel grid data is scoped per shell space:
  * - `dataBySpace.home` is the live Home board.
- * - `secondaryChannelProfiles[id].channelSpace` stores Home Profile channel layouts.
- * - `dataBySpace.workspaces` remains a persistence mirror of the active Home Profile.
+ * - `dataBySpace.workspaces` is the live Focus board.
  * - `slots[]` is the widget-ready SSOT; configuredChannels/channelConfigs/slotMeta are projections.
  */
 
@@ -91,9 +90,6 @@ export function normalizeShellSpaceOrder(order, { mediaHubEnabled } = {}) {
   if (filtered.length !== canonical.length) return [...canonical];
   return filtered;
 }
-
-/** Default profile id for the second space’s channel grid (after migration). */
-export const DEFAULT_SECONDARY_CHANNEL_PROFILE_ID = 'sec-default';
 
 /** @returns {'home' | 'workspaces'} */
 export function normalizeChannelSpaceKey(spaceId) {
@@ -209,18 +205,10 @@ export function normalizeChannelSpaceData(raw) {
   return migrateSpaceDataToSlots(normalized);
 }
 
-/**
- * Channel grid for the second shell space (rail id `workspaces`), from the active profile.
- */
+/** Channel grid for the Focus shell space (stable rail id `workspaces`). */
 export function getSecondaryChannelSpaceData(channels) {
   if (!channels || typeof channels !== 'object') {
     return createDefaultChannelSpaceData();
-  }
-  const id = channels.activeSecondaryChannelProfileId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
-  const profiles = channels.secondaryChannelProfiles || {};
-  const entry = profiles[id];
-  if (entry && typeof entry.channelSpace === 'object') {
-    return normalizeChannelSpaceData(entry.channelSpace);
   }
   return normalizeChannelSpaceData(channels.dataBySpace?.workspaces || createDefaultChannelSpaceData());
 }
@@ -234,51 +222,39 @@ export function getChannelDataSlice(channels, spaceKey) {
 }
 
 /**
- * One-shot migration: legacy `dataBySpace.workspaces` only → secondary profile map.
- * @returns {object} patched `channels` slice
+ * One-shot migration from the removed Focus-profile layer.
+ * The active legacy profile wins only when it contains a board; afterward the
+ * profile keys are removed and `dataBySpace.workspaces` is the sole SSOT.
  */
-export function normalizeSecondaryChannelProfiles(channels) {
+export function migrateLegacySecondaryChannelProfiles(channels) {
   if (!channels || typeof channels !== 'object') return channels;
   const empty = createDefaultChannelSpaceData();
+  const {
+    secondaryChannelProfiles,
+    activeSecondaryChannelProfileId,
+    ...rest
+  } = channels;
+  const profiles =
+    secondaryChannelProfiles && typeof secondaryChannelProfiles === 'object'
+      ? secondaryChannelProfiles
+      : null;
+  const activeEntry =
+    profiles?.[activeSecondaryChannelProfileId] ||
+    (profiles ? Object.values(profiles)[0] : null);
   const legacyWs = channels.dataBySpace?.workspaces;
-
-  let profiles = { ...(channels.secondaryChannelProfiles || {}) };
-  let activeId = channels.activeSecondaryChannelProfileId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
-
-  const hasProfiles = profiles && Object.keys(profiles).length > 0;
-  if (!hasProfiles) {
-    const source =
-      legacyWs && typeof legacyWs === 'object'
-        ? JSON.parse(JSON.stringify(legacyWs))
-        : JSON.parse(JSON.stringify(empty));
-    profiles = {
-      [DEFAULT_SECONDARY_CHANNEL_PROFILE_ID]: {
-        id: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
-        name: 'Second',
-        channelSpace: source,
-      },
-    };
-    activeId = DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
-  } else if (!profiles[activeId]) {
-    const firstId = Object.keys(profiles)[0];
-    activeId = firstId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
-  }
-
-  const activeEntry = profiles[activeId];
-  const activeSpace = activeEntry?.channelSpace
-    ? normalizeChannelSpaceData(JSON.parse(JSON.stringify(activeEntry.channelSpace)))
-    : legacyWs && typeof legacyWs === 'object'
-      ? normalizeChannelSpaceData(JSON.parse(JSON.stringify(legacyWs)))
-      : JSON.parse(JSON.stringify(empty));
+  const source =
+    activeEntry?.channelSpace && typeof activeEntry.channelSpace === 'object'
+      ? activeEntry.channelSpace
+      : legacyWs && typeof legacyWs === 'object'
+        ? legacyWs
+        : empty;
 
   return {
-    ...channels,
-    secondaryChannelProfiles: profiles,
-    activeSecondaryChannelProfileId: activeId,
+    ...rest,
     dataBySpace: {
       ...channels.dataBySpace,
       home: normalizeChannelSpaceData(channels.dataBySpace?.home || empty),
-      workspaces: activeSpace,
+      workspaces: normalizeChannelSpaceData(JSON.parse(JSON.stringify(source))),
     },
   };
 }
@@ -292,13 +268,13 @@ export function migrateLegacyChannelsToDataBySpace(channels) {
   const hasBoth = channels.dataBySpace?.home && channels.dataBySpace?.workspaces;
   if (hasBoth) {
     const { data: _drop, ...rest } = channels;
-    return normalizeSecondaryChannelProfiles(rest);
+    return migrateLegacySecondaryChannelProfiles(rest);
   }
   const legacy = channels.data;
   const partialHome = channels.dataBySpace?.home;
   const partialWs = channels.dataBySpace?.workspaces;
   if (partialHome || partialWs) {
-    return normalizeSecondaryChannelProfiles({
+    return migrateLegacySecondaryChannelProfiles({
       ...channels,
       dataBySpace: {
         home: partialHome ? JSON.parse(JSON.stringify(partialHome)) : legacy ? JSON.parse(JSON.stringify(legacy)) : empty,
@@ -306,7 +282,7 @@ export function migrateLegacyChannelsToDataBySpace(channels) {
       },
     });
   }
-  return normalizeSecondaryChannelProfiles({
+  return migrateLegacySecondaryChannelProfiles({
     ...channels,
     dataBySpace: {
       home: legacy ? JSON.parse(JSON.stringify(legacy)) : empty,

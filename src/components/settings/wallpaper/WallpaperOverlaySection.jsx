@@ -39,6 +39,7 @@ function WallpaperOverlaySection({
                 options={OVERLAY_EFFECT_OPTIONS}
                 value={overlayEffect}
                 onChange={handleOverlayEffectChange}
+                variant="wee"
                 className="w-full"
               />
             </div>

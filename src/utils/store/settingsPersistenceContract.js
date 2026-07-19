@@ -5,9 +5,7 @@ import { normalizeHomeClockWidget } from '../homeClockWidgetPrefs.js';
 import { normalizeHomeNowPlayingWidget } from '../homeNowPlayingWidgetPrefs.js';
 import {
   createDefaultChannelSpaceData,
-  DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
   migrateLegacyChannelsToDataBySpace,
-  normalizeSecondaryChannelProfiles,
   normalizeShellSpaceOrder,
   resolveMediaHubEnabled,
 } from '../channelSpaces.js';
@@ -30,7 +28,6 @@ export const CANONICAL_SETTINGS_KEYS = [
   'floatingWidgets',
   'navigation',
   'presets',
-  'workspaces',
   'spaces',
   'appearanceBySpace',
   'gameHub',
@@ -114,27 +111,6 @@ function mergeChannelData(baseData, patchData) {
   return merged;
 }
 
-function mergeSecondaryProfilesMap(baseProfiles, patchProfiles) {
-  const out = { ...(baseProfiles || {}) };
-  Object.entries(patchProfiles || {}).forEach(([id, entry]) => {
-    if (!isPlainObject(entry)) return;
-    const prev = out[id];
-    const def = createDefaultChannelSpaceData();
-    const prevSpace = prev?.channelSpace || def;
-    const patchSpace = entry.channelSpace;
-    const mergedSpace =
-      patchSpace != null && isPlainObject(patchSpace)
-        ? mergeChannelData(prevSpace, patchSpace)
-        : prevSpace;
-    out[id] = {
-      id,
-      name: typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : prev?.name || 'Second',
-      channelSpace: mergedSpace,
-    };
-  });
-  return out;
-}
-
 export function mergeChannelsSlice(baseChannels, patchChannels) {
   if (!isPlainObject(patchChannels)) return isPlainObject(baseChannels) ? baseChannels : {};
   if (!isPlainObject(baseChannels)) return patchChannels;
@@ -173,16 +149,10 @@ export function mergeChannelsSlice(baseChannels, patchChannels) {
       patchM.dataBySpace?.workspaces != null ? patchM.dataBySpace.workspaces : patchChannels.data || {}
     ),
   };
-  merged.secondaryChannelProfiles = mergeSecondaryProfilesMap(
-    baseM.secondaryChannelProfiles,
-    patchM.secondaryChannelProfiles
-  );
-  merged.activeSecondaryChannelProfileId =
-    patchM.activeSecondaryChannelProfileId !== undefined && patchM.activeSecondaryChannelProfileId !== null
-      ? patchM.activeSecondaryChannelProfileId
-      : baseM.activeSecondaryChannelProfileId ?? DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
   delete merged.data;
-  return normalizeSecondaryChannelProfiles(merged);
+  delete merged.secondaryChannelProfiles;
+  delete merged.activeSecondaryChannelProfileId;
+  return merged;
 }
 
 function mergeSettingsAtRoot(base, patch) {
@@ -308,24 +278,21 @@ function selectPersistedChannelSpaceData(spaceData) {
 
 const selectPersistedChannels = (channels = {}) => {
   if (!isPlainObject(channels)) return {};
-  const next = omitKeys(channels, ['operations', 'data']);
-  next.recentLaunches = sanitizeRecentLaunches(channels.recentLaunches);
-  if (isPlainObject(channels.dataBySpace)) {
+  // Collapse removed Focus profiles before stripping their legacy keys so the
+  // active board survives first hydration from older settings.
+  const migrated = migrateLegacyChannelsToDataBySpace(channels);
+  const next = omitKeys(migrated, [
+    'operations',
+    'data',
+    'secondaryChannelProfiles',
+    'activeSecondaryChannelProfileId',
+  ]);
+  next.recentLaunches = sanitizeRecentLaunches(migrated.recentLaunches);
+  if (isPlainObject(migrated.dataBySpace)) {
     next.dataBySpace = {
-      home: selectPersistedChannelSpaceData(channels.dataBySpace.home),
-      workspaces: selectPersistedChannelSpaceData(channels.dataBySpace.workspaces),
+      home: selectPersistedChannelSpaceData(migrated.dataBySpace.home),
+      workspaces: selectPersistedChannelSpaceData(migrated.dataBySpace.workspaces),
     };
-  }
-  if (isPlainObject(channels.secondaryChannelProfiles)) {
-    const profiles = {};
-    Object.entries(channels.secondaryChannelProfiles).forEach(([id, entry]) => {
-      if (!isPlainObject(entry)) return;
-      profiles[id] = {
-        ...entry,
-        channelSpace: selectPersistedChannelSpaceData(entry.channelSpace),
-      };
-    });
-    next.secondaryChannelProfiles = profiles;
   }
   return next;
 };
@@ -363,7 +330,6 @@ export const buildSettingsSnapshotFromStore = (state = {}) => ({
   floatingWidgets: selectPersistedFloatingWidgets(state.floatingWidgets || {}),
   navigation: selectPersistedNavigation(state.navigation || {}),
   presets: Array.isArray(state.presets) ? state.presets : [],
-  workspaces: state.workspaces || {},
   spaces: selectPersistedSpaces(state.spaces || {}),
   appearanceBySpace: state.appearanceBySpace || {
     home: null,

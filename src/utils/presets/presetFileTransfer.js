@@ -33,6 +33,7 @@ export function buildPresetFilePayload(preset) {
       data: visual.data,
       captureScope: visual.captureScope,
       thumbnailDataUrl: visual.thumbnailDataUrl || null,
+      thumbnailComposition: visual.thumbnailComposition,
     },
   };
 }
@@ -110,6 +111,8 @@ export function parsePresetFile(text) {
       typeof rawPreset.thumbnailDataUrl === 'string' && rawPreset.thumbnailDataUrl.startsWith('data:image/')
         ? rawPreset.thumbnailDataUrl
         : null,
+    thumbnailComposition:
+      rawPreset.thumbnailComposition === 'hideBoard' ? 'hideBoard' : 'showBoard',
     timestamp: new Date().toISOString(),
   });
   if (!visual) {

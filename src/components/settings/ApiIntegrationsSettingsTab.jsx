@@ -14,6 +14,7 @@ import { AdminPanel } from '../admin';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { applyAdminPanelPowerActions, normalizeAdminPanelConfig } from '../../utils/adminPanelCommands';
 import { normalizeNowPlayingExperience } from '../../utils/spotifyTakeover';
+import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import { logError } from '../../utils/logger';
 import ShortcutCaptureControl from './ShortcutCaptureControl';
 import SteamIntegrationSettings from './SteamIntegrationSettings';
@@ -64,6 +65,7 @@ const ApiIntegrationsSettingsTab = () => {
       }))
     );
   const actions = useConsolidatedAppStore(useShallow((state) => state.actions));
+  const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
 
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
@@ -181,15 +183,13 @@ const ApiIntegrationsSettingsTab = () => {
           <span className="font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]">
             Edit Home
           </span>
-          . Place Quick Access under{' '}
+          . Pin Quick Access on your board from{' '}
           <button
             type="button"
             className="border-0 bg-transparent p-0 font-black uppercase tracking-[0.12em] text-[hsl(var(--primary))] underline decoration-[hsl(var(--primary)/0.45)] underline-offset-4"
-            onClick={() => {
-              actions.setUIState({ settingsActiveTab: 'channels' });
-            }}
+            onClick={() => enterHomeBoardArrange({ closeSettings: true })}
           >
-            Channels &amp; layout → Widgets
+            Edit Home
           </button>
           .
         </Text>

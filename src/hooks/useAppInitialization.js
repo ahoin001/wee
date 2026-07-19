@@ -7,7 +7,6 @@ import {
 } from '../utils/store/settingsPersistenceContract';
 import { normalizeShellSpaceOrder, resolveMediaHubEnabled } from '../utils/channelSpaces';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
-import { createSeededWorkspaceState } from '../utils/workspaces/workspaceState';
 import { weeMeasureAsync, weeMarkStartupHydrationCommitted } from '../utils/weePerformanceMarks';
 
 const CLEAN_FOUNDATION_VERSION = 1;
@@ -24,6 +23,8 @@ function buildChannelPatchFromNormalized(normalized) {
   if (normalized.dataBySpace) {
     channelPatch.dataBySpace = normalized.dataBySpace;
   }
+  // Legacy-only migration input; mergeChannelsSlice collapses the active profile
+  // into dataBySpace.workspaces and strips these keys from runtime state.
   if (normalized.secondaryChannelProfiles) {
     channelPatch.secondaryChannelProfiles = normalized.secondaryChannelProfiles;
   }
@@ -129,9 +130,6 @@ export const useAppInitialization = () => {
           if (!shouldHardResetLegacySavedModes && resolvedSettings.presets) {
             slices.presets = resolvedSettings.presets;
           }
-          if (!shouldHardResetLegacySavedModes && resolvedSettings.workspaces) {
-            slices.workspaces = resolvedSettings.workspaces;
-          }
           if (resolvedSettings.spaces) {
             const mediaHubEnabled = resolveMediaHubEnabled(resolvedSettings.spaces.order, {
               mediaHubEnabled: resolvedSettings.spaces.mediaHubEnabled,
@@ -165,7 +163,6 @@ export const useAppInitialization = () => {
 
         if (shouldHardResetLegacySavedModes) {
           slices.presets = [];
-          slices.workspaces = createSeededWorkspaceState();
         }
 
         /* Never cold-start on hub spaces: restore Home (persisted in lastChannelSpaceId). */

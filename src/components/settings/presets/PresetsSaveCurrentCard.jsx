@@ -2,6 +2,7 @@ import React from 'react';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
 import WInput from '../../../ui/WInput';
+import WToggle from '../../../ui/WToggle';
 
 /** "Save current as Look" form — visual-only (shareable). */
 const PresetsSaveCurrentCard = React.memo(
@@ -14,6 +15,8 @@ const PresetsSaveCurrentCard = React.memo(
     customPresetCount,
     maxCustomPresets,
     isSaving = false,
+    hideBoardScreenshot = false,
+    onHideBoardScreenshotChange,
   }) => (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
@@ -38,8 +41,28 @@ const PresetsSaveCurrentCard = React.memo(
       </div>
 
       <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-        Saves wallpaper, colors, and dock as a shareable Look. Channel boards stay on Home and Focus —
-        arrange them live on those spaces.
+        Saves atmosphere across spaces and pages. Your Home and Focus boards are never replaced.
+      </Text>
+
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.55)] px-4 py-3">
+        <div className="min-w-0">
+          <Text variant="body" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
+            Hide board in screenshot
+          </Text>
+          <Text variant="caption" className="!m-0 mt-1 block text-[hsl(var(--text-tertiary))]">
+            Off shows your real tiles. On captures wallpaper and chrome with no ghost tiles.
+          </Text>
+        </div>
+        <WToggle
+          checked={hideBoardScreenshot}
+          onChange={onHideBoardScreenshotChange}
+          aria-label="Hide board in preset screenshot"
+          disabled={isSaving}
+        />
+      </div>
+
+      <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
+        The screenshot is taken when you save or update this Look.
       </Text>
 
       {error ? (

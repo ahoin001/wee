@@ -101,3 +101,46 @@ export function resolveDisplayWallpaperUrl({
         : null;
   return spaceWallpaperUrl || globalWallpaperUrl || null;
 }
+
+/**
+ * Liked-wallpaper cycling may only own the plate when display resolves to the
+ * global `wallpaper.current` fallback — not when a per-page pin or space
+ * override is showing. Evaluated per active page/space.
+ *
+ * @param {{
+ *   activeSpaceId?: string,
+ *   appearanceBySpace?: object,
+ *   currentPage?: number,
+ * }} args
+ * @returns {boolean}
+ */
+export function isWallpaperCyclingEligible({
+  activeSpaceId,
+  appearanceBySpace,
+  currentPage = 0,
+}) {
+  const activeSpaceAppearance = appearanceBySpace?.[activeSpaceId]?.wallpaper || null;
+
+  if (activeSpaceAppearance?.wallpaperScope === 'perPage') {
+    const byPage = activeSpaceAppearance?.wallpaperByPage;
+    if (byPage && typeof byPage === 'object') {
+      const pageUrl = byPage[currentPage] ?? byPage[String(currentPage)];
+      if (typeof pageUrl === 'string' && pageUrl.length > 0) {
+        return false;
+      }
+    }
+  }
+
+  const useGlobalWallpaper = activeSpaceAppearance?.useGlobalWallpaper !== false;
+  const isHomeShellSpace = activeSpaceId === 'home';
+  if (
+    !isHomeShellSpace &&
+    !useGlobalWallpaper &&
+    typeof activeSpaceAppearance?.spaceWallpaperUrl === 'string' &&
+    activeSpaceAppearance.spaceWallpaperUrl.length > 0
+  ) {
+    return false;
+  }
+
+  return true;
+}

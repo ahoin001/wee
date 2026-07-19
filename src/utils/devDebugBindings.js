@@ -1,11 +1,12 @@
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { electronApi } from './electronApi';
+import { requestWallpaperCycleManual } from './wallpaperCyclingBridge';
 
 export const registerDevDebugBindings = ({
   openDevTools,
   wallpaper,
   isCycling,
-  cycleToNextWallpaper,
+  cycleToNextWallpaper = requestWallpaperCycleManual,
 }) => {
   window.openDevTools = openDevTools;
 

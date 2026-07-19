@@ -34,6 +34,8 @@ export function toVisualOnlyPreset(preset) {
     captureScope: PRESET_SCOPE_VISUAL,
     includesHomeChannels: false,
     shareable: true,
+    thumbnailComposition:
+      presetWithId.thumbnailComposition === 'hideBoard' ? 'hideBoard' : 'showBoard',
     data,
   };
 }
@@ -63,6 +65,8 @@ export function normalizePresetRecord(preset) {
       captureScope: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
       includesHomeChannels: true,
       shareable: false,
+      thumbnailComposition:
+        presetWithId.thumbnailComposition === 'hideBoard' ? 'hideBoard' : 'showBoard',
       data: {
         ...data,
         ...(homeChannels ? { homeChannels } : {}),

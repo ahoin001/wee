@@ -209,7 +209,7 @@ function RibbonDockPanel({
 
   return (
     <div className="flex flex-col gap-5">
-      <RibbonLivePreview sticky />
+      <RibbonLivePreview sticky={false} />
       <WeeHelpParagraph>
         Scope ribbon colors per Home/Focus page in{' '}
         <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.WALLPAPER)}>
@@ -359,6 +359,7 @@ function RibbonDockPanel({
                 value={chromeEffect}
                 onChange={onChromeEffectChange}
                 options={CHROME_EFFECT_OPTIONS}
+                variant="wee"
                 className="w-full"
               />
               {chromeEffect !== 'none' ? (
@@ -413,6 +414,7 @@ function RibbonDockPanel({
                         value={chromeNeonColorMode}
                         onChange={onChromeEffectNeonColorModeChange}
                         options={RIBBON_NEON_COLOR_MODE_OPTIONS}
+                        variant="wee"
                         className="w-full"
                       />
                       <Text

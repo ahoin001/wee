@@ -505,7 +505,10 @@ export const uploadPreset = async (presetData, formData) => {
   const wallpaperPublicUrl = wallpaperUrl
     ? getStoragePublicObjectUrl('preset-wallpapers', wallpaperUrl)
     : null
-  const sharedSettings = sanitizePresetSettingsForCommunity(presetData.settings, { wallpaperPublicUrl })
+  const sharedSettings = sanitizePresetSettingsForCommunity(presetData.settings, {
+    wallpaperPublicUrl,
+    sourceWallpaperUrl: presetData.wallpaperSourceUrl || null,
+  })
   const rootPresetId = formData.parent_preset_id || null
   let nextVersion = 1
 

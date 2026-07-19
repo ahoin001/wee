@@ -1,24 +1,40 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { useAppActivity } from '../hooks/useAppActivity';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from './wallpaperShape';
+import { isWallpaperCyclingEligible } from './theme/resolveEffectiveAccent';
+import { resolveActiveBoardCurrentPage } from './channelSpaces';
+import { preloadImageUrl } from './mediaWarmCache';
+import { registerWallpaperCycleManual } from './wallpaperCyclingBridge';
 
 const useWallpaperCycling = () => {
-  const { wallpaper, setWallpaperState, lowPowerMode, activeSpaceId, sessionPower } = useConsolidatedAppStore(
+  const {
+    wallpaper,
+    setWallpaperState,
+    lowPowerMode,
+    activeSpaceId,
+    sessionPower,
+    appearanceBySpace,
+    channels,
+  } = useConsolidatedAppStore(
     useShallow((state) => ({
       wallpaper: state.wallpaper,
       setWallpaperState: state.actions.setWallpaperState,
       lowPowerMode: state.ui.lowPowerMode,
       activeSpaceId: state.spaces.activeSpaceId,
       sessionPower: state.ui.sessionPower ?? 'normal',
+      appearanceBySpace: state.appearanceBySpace,
+      channels: state.channels,
     }))
   );
   const { isAppActive } = useAppActivity();
   const isAppActiveRef = useRef(isAppActive);
   const cycleAllowed = isAppActive && sessionPower !== 'away';
   const cycleAllowedRef = useRef(cycleAllowed);
+  const displayEligibleRef = useRef(true);
   const prevSpaceIdRef = useRef(activeSpaceId);
+  const prevPageRef = useRef(0);
   const intervalRef = useRef(null);
   const isTransitioningRef = useRef(false);
   const cycleRafRef = useRef(null);
@@ -30,18 +46,30 @@ const useWallpaperCycling = () => {
   // Local state for transitions to avoid triggering store re-renders
   const [localTransitionState, setLocalTransitionState] = useState({
     isTransitioning: false,
-    progress: 0, // Unified progress for all animations
+    progress: 0,
     slideDirection: 'right',
     nextWallpaper: null,
   });
 
-  // Force update counter to ensure isolated component re-renders
-  const [forceUpdate, setForceUpdate] = useState(0);
+  const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
+  const displayEligible = useMemo(
+    () =>
+      isWallpaperCyclingEligible({
+        activeSpaceId,
+        appearanceBySpace,
+        currentPage,
+      }),
+    [activeSpaceId, appearanceBySpace, currentPage]
+  );
 
   useEffect(() => {
     isAppActiveRef.current = isAppActive;
     cycleAllowedRef.current = cycleAllowed;
   }, [isAppActive, cycleAllowed]);
+
+  useEffect(() => {
+    displayEligibleRef.current = displayEligible;
+  }, [displayEligible]);
 
   const abortCycleTransition = useCallback(() => {
     if (cycleRafRef.current != null) {
@@ -57,7 +85,6 @@ const useWallpaperCycling = () => {
       slideDirection: 'right',
       nextWallpaper: null,
     });
-    setForceUpdate((n) => n + 1);
   }, []);
 
   useEffect(() => {
@@ -74,12 +101,22 @@ const useWallpaperCycling = () => {
     currentWallpaperRef.current = normalized?.url ? normalized : wallpaper.current ?? null;
   }, [wallpaper.current, wallpaper.savedWallpapers]);
 
-  /** Space switch: abort in-flight cycle animation so merged wallpaper + space crossfade own the frame. */
+  /** Space / page change: abort in-flight cycle so space/page crossfade owns the frame. */
   useEffect(() => {
-    if (prevSpaceIdRef.current === activeSpaceId) return;
+    const spaceChanged = prevSpaceIdRef.current !== activeSpaceId;
+    const pageChanged = prevPageRef.current !== currentPage;
     prevSpaceIdRef.current = activeSpaceId;
-    abortCycleTransition();
-  }, [activeSpaceId, abortCycleTransition]);
+    prevPageRef.current = currentPage;
+    if (spaceChanged || pageChanged) {
+      abortCycleTransition();
+    }
+  }, [activeSpaceId, currentPage, abortCycleTransition]);
+
+  useEffect(() => {
+    if (!displayEligible) {
+      abortCycleTransition();
+    }
+  }, [displayEligible, abortCycleTransition]);
 
   const {
     cycleWallpapers,
@@ -120,28 +157,39 @@ const useWallpaperCycling = () => {
     return normalizeWallpaperForStore(likedWallpapers[nextIndex], opts);
   }, [likedWallpapers, current, savedWallpapers]);
 
-  // Enhanced transition function with animation-specific behavior
   const transitionToWallpaper = useCallback(
     async (nextWallpaper) => {
       const normalized = normalizeWallpaperForStore(nextWallpaper, { savedWallpapers });
       if (!normalized?.url || isTransitioningRef.current) {
         return;
       }
+      if (!cycleAllowedRef.current || !displayEligibleRef.current) {
+        return;
+      }
+
+      // Decode before animating so the next layer does not pop in mid-fade.
+      try {
+        await preloadImageUrl(normalized.url);
+      } catch {
+        // Continue anyway — missing preload should not stall the interval forever.
+      }
+
+      if (!cycleAllowedRef.current || !displayEligibleRef.current || isTransitioningRef.current) {
+        return;
+      }
 
       isTransitioningRef.current = true;
       nextWallpaperRef.current = normalized;
 
-      // Use local state for transition properties to avoid triggering other components
       setLocalTransitionState({
         isTransitioning: true,
-        progress: 0, // Reset progress for new transition
+        progress: 0,
         slideDirection: slideRandomDirection
           ? ['left', 'right', 'up', 'down'][Math.floor(Math.random() * 4)]
           : slideDirection,
         nextWallpaper: normalized,
       });
 
-      // Animation-specific duration and easing
       let duration;
       let easing;
 
@@ -151,19 +199,19 @@ const useWallpaperCycling = () => {
           easing = slideEasing;
           break;
         case 'zoom':
-          duration = crossfadeDuration * 0.8; // Faster for zoom effect
+          duration = crossfadeDuration * 0.8;
           easing = crossfadeEasing;
           break;
         case 'ken-burns':
-          duration = crossfadeDuration * 1.4; // Slower for cinematic effect
+          duration = crossfadeDuration * 1.4;
           easing = crossfadeEasing;
           break;
         case 'morph':
-          duration = crossfadeDuration * 1.2; // Medium for morphing
+          duration = crossfadeDuration * 1.2;
           easing = crossfadeEasing;
           break;
         case 'blur':
-          duration = crossfadeDuration * 0.7; // Quick blur transition
+          duration = crossfadeDuration * 0.7;
           easing = crossfadeEasing;
           break;
         case 'fade':
@@ -175,9 +223,8 @@ const useWallpaperCycling = () => {
 
       const startTime = Date.now();
 
-      // Enhanced animation with improved easing functions
       const animate = () => {
-        if (!isAppActiveRef.current) {
+        if (!isAppActiveRef.current || !displayEligibleRef.current) {
           abortCycleTransition();
           return;
         }
@@ -185,27 +232,22 @@ const useWallpaperCycling = () => {
         const elapsed = (Date.now() - startTime) / 1000;
         const progress = Math.min(elapsed / duration, 1);
 
-        // Apply enhanced easing functions
         let easedProgress = progress;
 
         switch (easing) {
           case 'ease-out':
-            // Smooth deceleration - most natural for wallpaper transitions
             easedProgress = 1 - Math.pow(1 - progress, 3);
             break;
           case 'ease-in':
-            // Gradual acceleration
             easedProgress = Math.pow(progress, 3);
             break;
           case 'ease-in-out':
-            // Smooth acceleration and deceleration
             easedProgress =
               progress < 0.5
                 ? 4 * progress * progress * progress
                 : 1 - Math.pow(-2 * progress + 2, 3) / 2;
             break;
           case 'cubic-bezier':
-            // Custom cubic-bezier curve for professional feel
             easedProgress = progress * progress * (3 - 2 * progress);
             break;
           case 'linear':
@@ -214,25 +256,19 @@ const useWallpaperCycling = () => {
             break;
         }
 
-        // Update progress with local state only
         setLocalTransitionState((prev) => ({ ...prev, progress: easedProgress }));
-        setForceUpdate((prev) => prev + 1); // Force isolated component to re-render
 
-        // Continue or complete
         if (progress < 1) {
           cycleRafRef.current = requestAnimationFrame(animate);
         } else {
           cycleRafRef.current = null;
-          // Complete transition - update refs and store (always `{ url }`, never bare URL string)
           currentWallpaperRef.current = normalized;
           nextWallpaperRef.current = null;
 
-          // Only update the store ONCE at the very end
           setWallpaperState({
             current: normalized,
           });
 
-          // Reset local transition state
           setLocalTransitionState({
             isTransitioning: false,
             progress: 0,
@@ -260,10 +296,9 @@ const useWallpaperCycling = () => {
     ]
   );
 
-  // Simple cycle function
   const cycleToNext = useCallback(() => {
-    if (!cycleAllowedRef.current || isTransitioningRef.current) {
-      return; // Don't cycle if already transitioning
+    if (!cycleAllowedRef.current || !displayEligibleRef.current || isTransitioningRef.current) {
+      return;
     }
 
     const nextWallpaper = getNextWallpaper();
@@ -273,16 +308,20 @@ const useWallpaperCycling = () => {
     }
   }, [getNextWallpaper, transitionToWallpaper]);
 
-  // Manage cycling lifecycle - simplified to prevent infinite loops
+  // Manage cycling lifecycle — one interval, only while display-eligible.
   useEffect(() => {
-    // Clear any existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    // Start cycling if conditions are met
-    if (cycleAllowed && cycleWallpapers && likedWallpapers && likedWallpapers.length > 1) {
+    if (
+      cycleAllowed &&
+      displayEligible &&
+      cycleWallpapers &&
+      likedWallpapers &&
+      likedWallpapers.length > 1
+    ) {
       intervalRef.current = setInterval(() => {
         if (!isTransitioningRef.current) {
           cycleToNext();
@@ -290,41 +329,51 @@ const useWallpaperCycling = () => {
       }, effectiveCycleInterval * 1000);
     }
 
-    // Cleanup function
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [cycleWallpapers, likedWallpapers?.length, effectiveCycleInterval, cycleToNext, cycleAllowed]);
+  }, [
+    cycleWallpapers,
+    likedWallpapers?.length,
+    effectiveCycleInterval,
+    cycleToNext,
+    cycleAllowed,
+    displayEligible,
+  ]);
 
-  // Manual cycle function
   const manualCycle = useCallback(() => {
-    if (cycleAllowedRef.current && !isTransitioningRef.current) {
+    if (cycleAllowedRef.current && displayEligibleRef.current && !isTransitioningRef.current) {
       cycleToNext();
     }
   }, [cycleToNext]);
 
+  useEffect(() => registerWallpaperCycleManual(manualCycle), [manualCycle]);
+
   return {
-    isCycling: cycleWallpapers && likedWallpapers && likedWallpapers.length > 1,
+    isCycling:
+      Boolean(cycleWallpapers) &&
+      Boolean(likedWallpapers && likedWallpapers.length > 1) &&
+      displayEligible,
+    displayEligible,
     /** Effective interval in seconds (respects low-power minimum). For UI/debug only. */
     cycleIntervalSeconds: effectiveCycleInterval,
     isTransitioning: localTransitionState.isTransitioning,
     currentWallpaper: currentWallpaperRef.current,
     nextWallpaper: localTransitionState.nextWallpaper,
-    crossfadeProgress: localTransitionState.progress, // Changed from crossfadeProgress to progress
-    slideProgress: localTransitionState.progress, // Changed from slideProgress to progress
+    crossfadeProgress: localTransitionState.progress,
+    slideProgress: localTransitionState.progress,
     slideDirection: localTransitionState.slideDirection,
     cycleToNextWallpaper: manualCycle,
-    forceUpdate, // Add force update counter
-    // Debug info
     debug: {
       cycleWallpapers,
       lowPowerMode,
       likedWallpapersCount: likedWallpapers?.length,
       savedWallpapersCount: savedWallpapers?.length,
       hasMultipleLiked: likedWallpapers && likedWallpapers.length > 1,
+      displayEligible,
     },
   };
 };

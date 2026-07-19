@@ -55,8 +55,8 @@
     "semantic_hash": "47d3a5031f64c12033797d1f0bc15535"
   },
   "scripts/test/preset-profile-invariants.mjs": {
-    "mtime": 1784425296.2388332,
-    "ast_hash": "80892842424f3ec48b65ab18caca8de6",
+    "mtime": 1784228484.024891,
+    "ast_hash": "644791359a27bc495e1e6659fa58b773",
     "semantic_hash": ""
   },
   "scripts/test/test-anon-key.js": {
@@ -734,6 +734,11 @@
     "ast_hash": "4a79717440622ec2d6d6d44a33f4d8f0",
     "semantic_hash": ""
   },
+  "src/components/settings/WorkspacesSettingsTab.jsx": {
+    "mtime": 1784240598.364305,
+    "ast_hash": "7a525997cb160c5fe272e43b424a63d0",
+    "semantic_hash": ""
+  },
   "src/components/settings/dock/ClassicDockPanel.jsx": {
     "mtime": 1784150441.521691,
     "ast_hash": "c765ab2fdb717262498bd78553d26c30",
@@ -755,13 +760,13 @@
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
-    "mtime": 1784425369.0284226,
-    "ast_hash": "733f333d9a2214b6fc470204ab746668",
+    "mtime": 1784239821.3775318,
+    "ast_hash": "e4455441dfec856420dd1e0336c05933",
     "semantic_hash": ""
   },
   "src/components/settings/presets/PresetsCommunityCard.jsx": {
-    "mtime": 1784425217.8554862,
-    "ast_hash": "66a582a2f949a7891c889221562c092e",
+    "mtime": 1783954824.6002588,
+    "ast_hash": "fdb94d4fb684f86abb9db794a888dd0b",
     "semantic_hash": ""
   },
   "src/components/settings/presets/PresetsSaveCurrentCard.jsx": {
@@ -940,8 +945,8 @@
     "semantic_hash": "241852201b0b703707bf46ac25307557"
   },
   "src/hooks/useAppInitialization.js": {
-    "mtime": 1784425302.3348868,
-    "ast_hash": "d3af2928fe61b1cafff48c1c29eff32d",
+    "mtime": 1784424942.8712187,
+    "ast_hash": "e1af7fc08fab871e8847d85c156fed87",
     "semantic_hash": ""
   },
   "src/hooks/useAppShellEffects.js": {
@@ -1345,8 +1350,8 @@
     "semantic_hash": ""
   },
   "src/utils/keyboardShortcuts.js": {
-    "mtime": 1784425326.9776208,
-    "ast_hash": "b45ca1b436e5b165676225f12e39deed",
+    "mtime": 1784256089.7209926,
+    "ast_hash": "16789b70635353e486095143f7e3387c",
     "semantic_hash": ""
   },
   "src/utils/launchErrorMessages.js": {
@@ -1395,8 +1400,8 @@
     "semantic_hash": ""
   },
   "src/utils/presetSharing.js": {
-    "mtime": 1784425395.05617,
-    "ast_hash": "26579f4500c2475b677cd4edc906bed8",
+    "mtime": 1784425131.2734182,
+    "ast_hash": "1682719e3646e5a8071149e2951458b4",
     "semantic_hash": ""
   },
   "src/utils/presetSoundSettings.js": {
@@ -1495,8 +1500,8 @@
     "semantic_hash": ""
   },
   "src/utils/store/settingsPersistenceContract.js": {
-    "mtime": 1784425385.2356756,
-    "ast_hash": "cdd62e28590b48a5142bc7012fd36f67",
+    "mtime": 1784424847.1823757,
+    "ast_hash": "093c5d1f5f1879ba641f4f5e590ca54a",
     "semantic_hash": ""
   },
   "src/utils/store/storeContracts.ts": {
@@ -1530,8 +1535,8 @@
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784425454.4457917,
-    "ast_hash": "505ff37b3ea776fc7ebc18212fed2e85",
+    "mtime": 1784425140.8421078,
+    "ast_hash": "177aa7df534866d2807aedd4158845d4",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -1775,8 +1780,8 @@
     "semantic_hash": ""
   },
   "docs/spaces-architecture.md": {
-    "mtime": 1784425242.3620415,
-    "ast_hash": "37d1edc7f37c2e466dfd3b3e069af57a",
+    "mtime": 1784242657.15412,
+    "ast_hash": "5bc670a3ba4a711c16ec917bb930df43",
     "semantic_hash": ""
   },
   "docs/spotify-setup.md": {
@@ -2120,8 +2125,8 @@
     "semantic_hash": ""
   },
   "src/utils/presets/presetFileTransfer.js": {
-    "mtime": 1784425277.6584823,
-    "ast_hash": "176cf8d12b1fb49f7b1f935120c9a33e",
+    "mtime": 1784139451.8846004,
+    "ast_hash": "82c30766f53c930275f604f3b83c14db",
     "semantic_hash": ""
   },
   "src/utils/recentLaunches.js": {

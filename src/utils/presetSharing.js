@@ -146,18 +146,66 @@ const normalizeWallpaperCollections = (settings) => {
   }
 }
 
-/**
- * Community share: Home appearance only (never other spaces / channels).
- */
-const sanitizeAppearanceBySpaceForCommunity = (appearanceBySpace) => {
+const remapSharedWallpaperUrl = (url, sourceWallpaperUrl, wallpaperPublicUrl) => {
+  if (typeof url !== 'string' || !url) return null
+  if (wallpaperPublicUrl && sourceWallpaperUrl && url === sourceWallpaperUrl) {
+    return wallpaperPublicUrl
+  }
+  return scrubPrivateUrl(url)
+}
+
+const sanitizeSpaceAppearanceForCommunity = (
+  appearance,
+  { sourceWallpaperUrl, wallpaperPublicUrl }
+) => {
+  if (!isPlainObject(appearance)) return null
+  const next = cloneJson(appearance)
+  if (!isPlainObject(next.wallpaper)) return next
+
+  const wallpaper = { ...next.wallpaper }
+  const remappedSpaceUrl = remapSharedWallpaperUrl(
+    wallpaper.spaceWallpaperUrl,
+    sourceWallpaperUrl,
+    wallpaperPublicUrl
+  )
+  wallpaper.spaceWallpaperUrl = remappedSpaceUrl
+
+  const byPage = {}
+  if (isPlainObject(wallpaper.wallpaperByPage)) {
+    Object.entries(wallpaper.wallpaperByPage).forEach(([page, url]) => {
+      const remapped = remapSharedWallpaperUrl(url, sourceWallpaperUrl, wallpaperPublicUrl)
+      if (remapped) byPage[page] = remapped
+    })
+  }
+  wallpaper.wallpaperByPage = byPage
+
+  if (wallpaper.wallpaperScope === 'perPage' && Object.keys(byPage).length === 0) {
+    wallpaper.wallpaperScope = 'space'
+  }
+  if (wallpaper.useGlobalWallpaper === false && !wallpaper.spaceWallpaperUrl) {
+    wallpaper.useGlobalWallpaper = true
+  }
+
+  next.wallpaper = wallpaper
+  return next
+}
+
+/** Community Looks carry shell appearance, never channel boards. */
+const sanitizeAppearanceBySpaceForCommunity = (appearanceBySpace, options) => {
   if (!isPlainObject(appearanceBySpace)) return undefined
-  if (!isPlainObject(appearanceBySpace.home)) return { home: null }
-  return { home: cloneJson(appearanceBySpace.home) }
+  const next = {}
+  for (const spaceId of ['home', 'workspaces', 'gamehub']) {
+    if (isPlainObject(appearanceBySpace[spaceId])) {
+      next[spaceId] = sanitizeSpaceAppearanceForCommunity(appearanceBySpace[spaceId], options)
+    }
+  }
+  return next
 }
 
 export const sanitizePresetSettingsForCommunity = (settingsInput, options = {}) => {
   const rawSettings = cloneJson(settingsInput)
   const wallpaperPublicUrl = options.wallpaperPublicUrl || null
+  const sourceWallpaperUrl = options.sourceWallpaperUrl || null
 
   removeBlockedKeys(rawSettings)
   const settings = {}
@@ -166,7 +214,10 @@ export const sanitizePresetSettingsForCommunity = (settingsInput, options = {}) 
   }
 
   if (settings.appearanceBySpace !== undefined) {
-    settings.appearanceBySpace = sanitizeAppearanceBySpaceForCommunity(settings.appearanceBySpace)
+    settings.appearanceBySpace = sanitizeAppearanceBySpaceForCommunity(settings.appearanceBySpace, {
+      sourceWallpaperUrl,
+      wallpaperPublicUrl,
+    })
   }
 
   if (isPlainObject(settings.wallpaper)) {
@@ -208,9 +259,15 @@ const fileFromBase64 = (base64Data, filename, mimeType) => {
 
 export const resolveWallpaperFileForShare = async (selectedPreset) => {
   const wallpaperRef = selectedPreset?.data?.wallpaper
-  const wallpaperUrl = getPresetWallpaperUrl(wallpaperRef)
+  const wallpaperUrl =
+    selectedPreset?.data?.captureContext?.displayWallpaperUrl ||
+    getPresetWallpaperUrl(wallpaperRef)
   if (!wallpaperUrl) {
-    return { file: null, warning: 'No wallpaper on this preset; shared look will use colors only.' }
+    return {
+      file: null,
+      sourceUrl: null,
+      warning: 'No wallpaper on this preset; shared look will use colors only.',
+    }
   }
 
   const mimeHint =
@@ -221,11 +278,11 @@ export const resolveWallpaperFileForShare = async (selectedPreset) => {
   try {
     if (isUserdataUrl(wallpaperUrl)) {
       if (!window.api?.wallpapers?.getFile) {
-        return { file: null, warning: 'Wallpaper API unavailable; shared preset will not include wallpaper.' }
+        return { file: null, sourceUrl: wallpaperUrl, warning: 'Wallpaper API unavailable; shared preset will not include wallpaper.' }
       }
       const wallpaperResult = await window.api.wallpapers.getFile(wallpaperUrl)
       if (!wallpaperResult?.success || !wallpaperResult?.data) {
-        return { file: null, warning: 'Could not read local wallpaper; shared preset will not include wallpaper.' }
+        return { file: null, sourceUrl: wallpaperUrl, warning: 'Could not read local wallpaper; shared preset will not include wallpaper.' }
       }
       const file = fileFromBase64(
         wallpaperResult.data,
@@ -235,33 +292,35 @@ export const resolveWallpaperFileForShare = async (selectedPreset) => {
       if (file.size > COMMUNITY_WALLPAPER_MAX_BYTES) {
         return {
           file: null,
+          sourceUrl: wallpaperUrl,
           warning: 'Wallpaper is too large to upload; shared preset will not include wallpaper.',
         }
       }
-      return { file, warning: null }
+      return { file, sourceUrl: wallpaperUrl, warning: null }
     }
 
     if (isHttpUrl(wallpaperUrl)) {
       const response = await fetch(wallpaperUrl)
       if (!response.ok) {
-        return { file: null, warning: 'Could not fetch remote wallpaper; shared preset will not include wallpaper.' }
+        return { file: null, sourceUrl: wallpaperUrl, warning: 'Could not fetch remote wallpaper; shared preset will not include wallpaper.' }
       }
       const blob = await response.blob()
       if (blob.size > COMMUNITY_WALLPAPER_MAX_BYTES) {
         return {
           file: null,
+          sourceUrl: wallpaperUrl,
           warning: 'Wallpaper is too large to upload; shared preset will not include wallpaper.',
         }
       }
       const file = new File([blob], nameHint.endsWith('.jpg') ? nameHint : 'wallpaper.jpg', {
         type: blob.type || mimeHint,
       })
-      return { file, warning: null }
+      return { file, sourceUrl: wallpaperUrl, warning: null }
     }
 
-    return { file: null, warning: 'Unsupported wallpaper source; shared preset will not include wallpaper.' }
+    return { file: null, sourceUrl: wallpaperUrl, warning: 'Unsupported wallpaper source; shared preset will not include wallpaper.' }
   } catch {
-    return { file: null, warning: 'Wallpaper upload preparation failed; shared preset will not include wallpaper.' }
+    return { file: null, sourceUrl: wallpaperUrl, warning: 'Wallpaper upload preparation failed; shared preset will not include wallpaper.' }
   }
 }
 
@@ -277,33 +336,25 @@ const waitForNextPaint = () =>
   })
 
 /**
- * Capture a preset thumbnail with empty Home channel slots (display-only).
- * Does not mutate the channels store slice — uses ui.presetThumbnailCaptureActive.
+ * Capture the current Look. `hideBoard` hides the entire channel board; `showBoard`
+ * preserves the real tiles. There is intentionally no ghost/empty-tile mode.
  */
-export const capturePresetThumbnailDataUrl = async () => {
-  let setUIState = null
+export const capturePresetThumbnailDataUrl = async ({ composition = 'showBoard' } = {}) => {
   try {
     if (!window.api?.capturePresetThumbnail) return null
 
-    // Lazy require avoids circular imports with the store ↔ preset helpers.
-    const { default: useConsolidatedAppStore } = await import('./useConsolidatedAppStore')
-    setUIState = useConsolidatedAppStore.getState().actions.setUIState
-    setUIState({ presetThumbnailCaptureActive: true })
     await waitForNextPaint()
-    // Brief settle so empty tiles paint before Electron capturePage.
-    await new Promise((resolve) => setTimeout(resolve, 48))
 
-    const result = await window.api.capturePresetThumbnail({ width: 960, height: 540, quality: 88 })
+    const result = await window.api.capturePresetThumbnail({
+      width: 960,
+      height: 540,
+      quality: 88,
+      composition: composition === 'hideBoard' ? 'hideBoard' : 'showBoard',
+    })
     if (!result?.success || !result?.dataUrl) return null
     return result.dataUrl
   } catch {
     return null
-  } finally {
-    try {
-      setUIState?.({ presetThumbnailCaptureActive: false })
-    } catch {
-      // ignore restore failures
-    }
   }
 }
 

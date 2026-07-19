@@ -200,8 +200,8 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'open-workspace-switcher',
-    name: 'Open Looks Settings',
-    description: 'Open Looks (saved visual vibes) — Home setups switcher was removed',
+    name: 'Open Presets',
+    description: 'Open saved visual Looks and community presets',
     defaultKey: 'j',
     defaultModifier: 'ctrl',
     action: 'openSettingsModal',
@@ -546,14 +546,6 @@ export const executeShortcutAction = (action, actionParams = {}) => {
         window.toggleSpaceRailPin();
       } else {
         logWarn('ShortcutHandler', 'toggleSpaceRailPin function not available');
-      }
-      break;
-
-    case 'openWorkspaceSwitcher':
-      if (window.openWorkspaceSwitcher) {
-        window.openWorkspaceSwitcher();
-      } else {
-        logWarn('ShortcutHandler', 'openWorkspaceSwitcher function not available');
       }
       break;
 
