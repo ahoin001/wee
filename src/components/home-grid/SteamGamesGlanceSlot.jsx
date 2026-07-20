@@ -17,16 +17,17 @@ import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
 import {
-  getHomeSteamTileSizeConfig,
-  normalizeHomeSteamWidget,
-} from '../../utils/homeSteamWidgetPrefs';
-import {
-  sortFavoriteSteamGames,
   sortMostPlayedSteamGames,
   sortRecentSteamGames,
   sortTaggedSteamGames,
+  sortWeeFavoriteSteamGames,
   steamEnrichmentIpcArgs,
 } from '../../utils/steamGamesGlance';
+import {
+  getHomeSteamTileSizeConfig,
+  normalizeHomeSteamWidget,
+  resolveSteamShelfTileLayout,
+} from '../../utils/homeSteamWidgetPrefs';
 
 /** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
 const EMPTY_ENRICHED_GAMES = Object.freeze([]);
@@ -64,9 +65,9 @@ const VARIANT_META = {
     kindId: 'steamFavorites',
     ariaLabel: 'Steam Favorites',
     launchSource: 'steamFavorites',
-    emptyNoData: 'Star favorites in Steam, then reopen this shelf',
-    needsClientMeta: true,
-    needsApi: false,
+    emptyNoData: 'Star games in Game Hub to fill this shelf',
+    needsClientMeta: false,
+    needsApi: true,
     icon: Star,
     playtimeField: 'playtimeForever',
   },
@@ -96,6 +97,7 @@ function SteamGamesGlanceSlot({
   const {
     enrichedGames,
     hiddenGameIds,
+    favoriteGameIds,
     steamId,
     apiKeyConfigured,
     apiEnabled,
@@ -108,6 +110,9 @@ function SteamGamesGlanceSlot({
       hiddenGameIds: Array.isArray(state.gameHub?.ui?.hiddenGameIds)
         ? state.gameHub.ui.hiddenGameIds
         : EMPTY_HIDDEN_GAME_IDS,
+      favoriteGameIds: Array.isArray(state.gameHub?.ui?.favoriteGameIds)
+        ? state.gameHub.ui.favoriteGameIds
+        : EMPTY_FAVORITES,
       steamId: state.gameHub?.profile?.steamId || '',
       apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
       apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
@@ -145,7 +150,14 @@ function SteamGamesGlanceSlot({
   );
 
   const tileCfg = getHomeSteamTileSizeConfig(steamPrefs.tileSize);
-  const capacity = Math.max(Number(sizePreset.capacity) || 12, tileCfg.capacity);
+  const shelfLayout = resolveSteamShelfTileLayout({
+    colSpan: slot?.colSpan ?? sizePreset.colSpan ?? 2,
+    rowSpan: slot?.rowSpan ?? sizePreset.rowSpan ?? 2,
+  });
+  const capacity =
+    shelfLayout.mode === 'shelf'
+      ? Math.min(Number(sizePreset.capacity) || 14, shelfLayout.capacityCap)
+      : Math.max(Number(sizePreset.capacity) || 12, tileCfg.capacity);
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
   const colSpan = slot?.colSpan ?? sizePreset.colSpan ?? 2;
@@ -154,10 +166,16 @@ function SteamGamesGlanceSlot({
     () => resolveHomeWidgetLayout(colSpan, rowSpan),
     [colSpan, rowSpan]
   );
-  // Covers are always Dense; density follows widget footprint for chrome only.
-  const coverDensity = layout.density === 'roomy' ? 'cozy' : 'compact';
+  // 1-row cinema shelves use cozy density; taller grids stay compact/dense.
+  const coverDensity =
+    shelfLayout.mode === 'shelf'
+      ? shelfLayout.density
+      : layout.density === 'roomy'
+        ? 'cozy'
+        : 'compact';
 
   useEffect(() => {
+    // Client VDF metadata is only required for Steam Tags (not Wee Favorites).
     if (!meta.needsClientMeta) return;
     if (!steamId || !window.api?.steam?.getClientLibraryMetadata) return;
     const age = Date.now() - Number(clientMeta.fetchedAt || 0);
@@ -197,11 +215,10 @@ function SteamGamesGlanceSlot({
 
   const games = useMemo(() => {
     if (variant === 'favorites') {
-      return sortFavoriteSteamGames(
-        enrichedList,
-        clientMeta.favoritesAppIds,
-        hiddenGameIds
-      ).slice(0, capacity);
+      return sortWeeFavoriteSteamGames(enrichedList, favoriteGameIds, hiddenGameIds).slice(
+        0,
+        capacity
+      );
     }
     if (variant === 'tagged') {
       return sortTaggedSteamGames(
@@ -219,8 +236,8 @@ function SteamGamesGlanceSlot({
     variant,
     enrichedList,
     hiddenGameIds,
+    favoriteGameIds,
     capacity,
-    clientMeta.favoritesAppIds,
     clientMeta.appIdToTags,
     selectedTag,
   ]);
@@ -229,6 +246,7 @@ function SteamGamesGlanceSlot({
     if (softRefreshTried.current) return;
     if (!steamId || !apiEnabled) return;
     if (games.length > 0) return;
+    if (variant === 'favorites' && favoriteGameIds.length === 0) return;
     if (meta.needsClientMeta && !meta.needsApi) return;
     if (!window.api?.steam?.getEnrichedGames) return;
     softRefreshTried.current = true;
@@ -257,7 +275,7 @@ function SteamGamesGlanceSlot({
     return () => {
       cancelled = true;
     };
-  }, [steamId, apiEnabled, games.length, setGameHubState, meta.needsClientMeta, meta.needsApi]);
+  }, [steamId, apiEnabled, games.length, setGameHubState, meta.needsClientMeta, meta.needsApi, variant, favoriteGameIds.length]);
 
   const handleLaunch = useCallback(
     async (game) => {
@@ -321,16 +339,16 @@ function SteamGamesGlanceSlot({
   } else if (meta.needsClientMeta && clientMeta.error === 'steam-not-found') {
     emptyHint = 'Steam install not found on this PC';
   } else if (meta.needsClientMeta && clientMeta.error === 'sharedconfig-missing') {
-    emptyHint = 'Open Steam once so favorites/tags can sync';
+    emptyHint = 'Open Steam once so tags can sync';
   } else if (variant === 'tagged' && !selectedTag) {
     emptyHint = 'Pick a Steam library tag in Looks';
-  } else if (variant === 'favorites' && clientMeta.fetchedAt && !clientMeta.favoritesAppIds.length) {
+  } else if (variant === 'favorites' && favoriteGameIds.length === 0) {
     emptyHint = meta.emptyNoData;
   } else if (meta.needsApi && !apiEnabled) {
     emptyHint = 'Enable Steam Web API in Now Playing, Steam & Widgets';
   } else if (meta.needsApi && !apiKeyConfigured && !lastSyncedAt) {
     emptyHint = 'Add Steam API key in Now Playing, Steam & Widgets';
-  } else if (meta.needsApi && !lastSyncedAt) {
+  } else if (meta.needsApi && !lastSyncedAt && variant !== 'favorites') {
     emptyHint = 'Sync Steam from Now Playing, Steam & Widgets';
   }
 

@@ -4,6 +4,11 @@ import { Info, MousePointer2, Pin, Keyboard } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import {
+  clearSpaceRailHideTimer,
+  scheduleSpaceRailHideIfEligible,
+  setSpaceRailPinned,
+} from '../../utils/spaceRailVisibility';
 import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import './surfaceStyles.css';
@@ -51,23 +56,21 @@ const NavigationPillSettingsTab = React.memo(() => {
 
   const setAutoHideRail = useCallback(
     (checked) => {
+      clearSpaceRailHideTimer();
       setSpacesState({
         autoHideRail: checked,
         railVisible: checked ? false : true,
       });
+      if (checked) {
+        scheduleSpaceRailHideIfEligible();
+      }
     },
     [setSpacesState]
   );
 
-  const setRailPinned = useCallback(
-    (checked) => {
-      setSpacesState({
-        railPinned: checked,
-        railVisible: true,
-      });
-    },
-    [setSpacesState]
-  );
+  const setRailPinned = useCallback((checked) => {
+    setSpaceRailPinned(checked);
+  }, []);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">

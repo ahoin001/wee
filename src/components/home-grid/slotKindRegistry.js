@@ -53,9 +53,9 @@ const WEATHER_TILE_SIZE_PRESETS = Object.freeze({
  * Shelves (1-row) first, then tall boards, then wide 3×2. Cap matches 4×4 board max.
  */
 export const STEAM_TILE_SIZE_PRESETS = Object.freeze({
-  H2: Object.freeze({ id: 'H2', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 24 }),
-  H3: Object.freeze({ id: 'H3', label: '3×1', colSpan: 3, rowSpan: 1, capacity: 28 }),
-  H4: Object.freeze({ id: 'H4', label: '4×1', colSpan: 4, rowSpan: 1, capacity: 30 }),
+  H2: Object.freeze({ id: 'H2', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 12 }),
+  H3: Object.freeze({ id: 'H3', label: '3×1', colSpan: 3, rowSpan: 1, capacity: 14 }),
+  H4: Object.freeze({ id: 'H4', label: '4×1', colSpan: 4, rowSpan: 1, capacity: 16 }),
   M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 12 }),
   L: Object.freeze({ id: 'L', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 18 }),
   XL: Object.freeze({ id: 'XL', label: '2×4', colSpan: 2, rowSpan: 4, capacity: 24 }),
@@ -64,10 +64,12 @@ export const STEAM_TILE_SIZE_PRESETS = Object.freeze({
 });
 
 /**
- * Steam Friends list tiles — banner + boards sized for sectioned online/offline lists.
+ * Steam Friends — 1-row shelves (H*) use horizontal friend cards; taller sizes keep the list.
  */
 export const STEAM_FRIENDS_SIZE_PRESETS = Object.freeze({
-  S: Object.freeze({ id: 'S', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 6 }),
+  H2: Object.freeze({ id: 'H2', label: '2×1', colSpan: 2, rowSpan: 1, capacity: 10 }),
+  H3: Object.freeze({ id: 'H3', label: '3×1', colSpan: 3, rowSpan: 1, capacity: 14 }),
+  H4: Object.freeze({ id: 'H4', label: '4×1', colSpan: 4, rowSpan: 1, capacity: 18 }),
   M: Object.freeze({ id: 'M', label: '2×2', colSpan: 2, rowSpan: 2, capacity: 12 }),
   L: Object.freeze({ id: 'L', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 18 }),
   W: Object.freeze({ id: 'W', label: '3×2', colSpan: 3, rowSpan: 2, capacity: 16 }),
@@ -179,7 +181,7 @@ export const HOME_SLOT_KINDS = {
   steamFavorites: {
     id: 'steamFavorites',
     label: 'Steam Favorites',
-    description: 'Games you starred in the Steam client',
+    description: 'Games you starred in Wee Game Hub',
     icon: '⭐',
     category: 'steam',
     colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
@@ -205,7 +207,7 @@ export const HOME_SLOT_KINDS = {
   steamFriends: {
     id: 'steamFriends',
     label: 'Steam Friends',
-    description: 'Friends online & offline',
+    description: 'Friends online & offline — 1-row shelves scroll as cards',
     icon: '👥',
     category: 'steam',
     colSpan: STEAM_FRIENDS_SIZE_PRESETS.M.colSpan,

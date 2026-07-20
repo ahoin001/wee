@@ -434,13 +434,13 @@ export default function MediaHubSpace() {
     () => getMediaHubOverlayPanelMotion(reducedMotion),
     [reducedMotion]
   );
-  const { entranceKey, tier: hubEntranceTier, animateState: hubEntranceState, onEntranceComplete } = useHubSpaceEntrance(
+  const { entranceKey, tier: hubEntranceTier, animateState: hubEntranceState, onEntranceComplete, shellMs } = useHubSpaceEntrance(
     'mediahub',
     reducedMotion
   );
   const hubOrchestratorVariants = useMemo(
-    () => createHubEntranceOrchestratorVariants(hubEntranceTier, reducedMotion),
-    [hubEntranceTier, reducedMotion]
+    () => createHubEntranceOrchestratorVariants(hubEntranceTier, reducedMotion, shellMs),
+    [hubEntranceTier, reducedMotion, shellMs]
   );
   const mediaHubShellBandVariants = useMemo(
     () => createMediaHubShellBandVariants(hubEntranceTier, reducedMotion),
@@ -451,8 +451,8 @@ export default function MediaHubSpace() {
     [hubEntranceTier, reducedMotion]
   );
   const mediaHubGridItemVariants = useMemo(
-    () => createMediaHubGridItemVariants(hubEntranceTier, reducedMotion),
-    [hubEntranceTier, reducedMotion]
+    () => createMediaHubGridItemVariants(hubEntranceTier, reducedMotion, shellMs),
+    [hubEntranceTier, reducedMotion, shellMs]
   );
   const activeTab = activeTabRaw || 'discover';
   const contentMode = contentModeRaw || 'movie';

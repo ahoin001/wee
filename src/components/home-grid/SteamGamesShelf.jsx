@@ -14,6 +14,7 @@ import {
   getHomeSteamGutterConfig,
   getHomeSteamTileSizeConfig,
   resolveSteamShelfScrollAxis,
+  resolveSteamShelfTileLayout,
 } from '../../utils/homeSteamWidgetPrefs';
 
 /**
@@ -89,6 +90,8 @@ export function SteamCoverTile({
   onActivate,
   footer = null,
   density = 'cozy',
+  /** When true, tile fills shelf row height and sizes width via 2∶3 aspect. */
+  shelfFill = false,
 }) {
   const id = String(appId || '');
   const primarySrc =
@@ -105,7 +108,11 @@ export function SteamCoverTile({
         event.stopPropagation();
         onActivate?.(event);
       }}
-      className="home-widget-float-tile group relative aspect-[2/3] w-full min-w-0 overflow-hidden rounded-[0.85rem] border border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.88)] text-left shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95"
+      className={`home-widget-float-tile group relative overflow-hidden rounded-[0.85rem] border border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.88)] text-left shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95 ${
+        shelfFill
+          ? 'h-full w-auto shrink-0 snap-start aspect-[2/3]'
+          : 'aspect-[2/3] w-full min-w-0'
+      }`}
     >
       {primarySrc ? (
         <img
@@ -149,6 +156,7 @@ SteamCoverTile.propTypes = {
   onActivate: PropTypes.func,
   footer: PropTypes.node,
   density: PropTypes.oneOf(['compact', 'cozy', 'roomy']),
+  shelfFill: PropTypes.bool,
 };
 
 /**
@@ -157,19 +165,30 @@ SteamCoverTile.propTypes = {
  *   colSpan: number,
  *   rowSpan: number,
  *   children: React.ReactNode,
+ *   coverDensity?: 'compact'|'cozy'|'roomy',
  * }} props
  */
 export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children, coverDensity }) {
   const tileCfg = getHomeSteamTileSizeConfig(prefs?.tileSize);
   const gutterCfg = getHomeSteamGutterConfig(prefs?.gutter);
+  const shelfLayout = resolveSteamShelfTileLayout({ colSpan, rowSpan });
   const scrollAxis = resolveSteamShelfScrollAxis(prefs, { colSpan, rowSpan });
   const isHorizontal = scrollAxis === 'horizontal';
-  const density = coverDensity || 'compact';
+  const isCinemaShelf = shelfLayout.mode === 'shelf';
+  const density = coverDensity || shelfLayout.density || 'compact';
 
   // Single board-row shelves pack one cover row; taller horizontal (e.g. 3×2) keep Dense’s 2.
-  const horizontalRows = rowSpan <= 1 ? 1 : tileCfg.horizontalRows;
+  const horizontalRows = isCinemaShelf ? 1 : rowSpan <= 1 ? 1 : tileCfg.horizontalRows;
 
   const gridStyle = useMemo(() => {
+    if (isCinemaShelf) {
+      return {
+        gridAutoFlow: 'column',
+        gridTemplateRows: 'minmax(0, 1fr)',
+        gridAutoColumns: 'max-content',
+        height: '100%',
+      };
+    }
     if (isHorizontal) {
       return {
         gridAutoFlow: 'column',
@@ -180,22 +199,32 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children, cov
     return {
       gridTemplateColumns: `repeat(${tileCfg.columns}, minmax(0, 1fr))`,
     };
-  }, [isHorizontal, horizontalRows, tileCfg.columns, tileCfg.tileMaxPx]);
+  }, [isCinemaShelf, isHorizontal, horizontalRows, tileCfg.columns, tileCfg.tileMaxPx]);
 
   const enrichedChildren = useMemo(() => {
     return React.Children.map(children, (child) => {
       if (!React.isValidElement(child)) return child;
-      if (child.props?.density != null) return child;
-      return React.cloneElement(child, { density });
+      const next = {};
+      if (child.props?.density == null) next.density = density;
+      if (isCinemaShelf && child.props?.shelfFill == null) next.shelfFill = true;
+      if (Object.keys(next).length === 0) return child;
+      return React.cloneElement(child, next);
     });
-  }, [children, density]);
+  }, [children, density, isCinemaShelf]);
 
   return (
     <WeeFadeScroll
       axis={isHorizontal ? 'x' : 'y'}
-      fadePx={40}
+      fadePx={isCinemaShelf ? 56 : 40}
       hideScrollbar
       className="min-h-0 flex-1"
+      style={
+        isCinemaShelf
+          ? {
+              scrollSnapType: 'x proximity',
+            }
+          : undefined
+      }
       onWheel={(event) => {
         event.stopPropagation();
         if (!isHorizontal) return;
@@ -207,7 +236,11 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children, cov
     >
       <div
         className={`grid content-start ${gutterCfg.gapClass} ${
-          isHorizontal ? 'h-full w-max min-w-full pr-4' : 'pb-4'
+          isCinemaShelf
+            ? 'h-full w-max min-w-full items-stretch pr-6'
+            : isHorizontal
+              ? 'h-full w-max min-w-full pr-4'
+              : 'pb-4'
         }`}
         style={gridStyle}
       >

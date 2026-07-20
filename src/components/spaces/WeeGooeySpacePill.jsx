@@ -28,6 +28,13 @@ import {
 import useChannelOperations from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import {
+  SPACE_RAIL_HIDE_DELAY_MS,
+  clearSpaceRailHideTimer,
+  revealSpaceRail,
+  scheduleSpaceRailHideIfEligible,
+  setSpaceRailPinned,
+} from '../../utils/spaceRailVisibility';
+import {
   useWeeMotion,
   createWeeShellRailContainerVariants,
   createWeeShellRailItemVariants,
@@ -226,27 +233,28 @@ export default function WeeGooeySpacePill() {
   const [viewportHeight, setViewportHeight] = useState(() =>
     typeof window !== 'undefined' ? window.innerHeight : 900
   );
-  const hideTimeoutRef = useRef(null);
   const draggingRef = useRef(false);
   const rootRef = useRef(null);
   const previousIndexRef = useRef(0);
   const { pillOpen, pillClose, reducedMotion } = useWeeMotion();
-  const hideDelayMs = 900;
 
   const clearHideTimer = useCallback(() => {
-    if (hideTimeoutRef.current) {
-      window.clearTimeout(hideTimeoutRef.current);
-      hideTimeoutRef.current = null;
-    }
+    clearSpaceRailHideTimer();
   }, []);
 
   const scheduleHideIfEligible = useCallback(() => {
-    clearHideTimer();
-    if (railPinned || !autoHideRail || draggingRef.current || isTransitioning) return;
-    hideTimeoutRef.current = window.setTimeout(() => {
-      setSpacesState({ railVisible: false });
-    }, hideDelayMs);
-  }, [autoHideRail, clearHideTimer, isTransitioning, railPinned, setSpacesState]);
+    if (draggingRef.current) return;
+    scheduleSpaceRailHideIfEligible({ delayMs: SPACE_RAIL_HIDE_DELAY_MS });
+  }, []);
+
+  /** After shell slide settles, auto-hide if unpinned (hide was skipped while isTransitioning). */
+  useEffect(() => {
+    if (isTransitioning) return undefined;
+    if (railPinned || !autoHideRail) return undefined;
+    if (hovered || focusWithin || draggingRef.current) return undefined;
+    scheduleHideIfEligible();
+    return undefined;
+  }, [isTransitioning, railPinned, autoHideRail, hovered, focusWithin, scheduleHideIfEligible]);
 
   const channelKey = resolveActiveChannelSpaceKey(activeSpaceId);
   const { navigation } = useChannelOperations(channelKey);
@@ -341,7 +349,8 @@ export default function WeeGooeySpacePill() {
 
   const onSelectSpace = useCallback(
     (spaceId) => {
-      setSpacesState({ activeSpaceId: spaceId, railVisible: true });
+      setSpacesState({ activeSpaceId: spaceId });
+      revealSpaceRail({ scheduleHide: true });
       setHovered(false);
     },
     [setSpacesState]
@@ -350,8 +359,8 @@ export default function WeeGooeySpacePill() {
   const onDragStart = useCallback(() => {
     draggingRef.current = true;
     clearHideTimer();
-    setSpacesState({ railVisible: true });
-  }, [clearHideTimer, setSpacesState]);
+    revealSpaceRail({ scheduleHide: false });
+  }, [clearHideTimer]);
 
   const onDragEnd = useCallback(
     (event) => {
@@ -383,13 +392,15 @@ export default function WeeGooeySpacePill() {
         const nextSpaceId = getNextSpace(spaceOrder, activeSpaceId, delta);
         if (nextSpaceId !== activeSpaceId) {
           event.preventDefault();
-          setSpacesState({ activeSpaceId: nextSpaceId, railVisible: true });
+          setSpacesState({ activeSpaceId: nextSpaceId });
+          revealSpaceRail({ scheduleHide: true });
         }
         return;
       }
       if (event.key === 'Escape' && !railPinned && autoHideRail) {
         setHovered(false);
         setFocusWithin(false);
+        clearSpaceRailHideTimer();
         setSpacesState({ railVisible: false });
       }
     };
@@ -445,10 +456,8 @@ export default function WeeGooeySpacePill() {
   const onPillHoverEnter = useCallback(() => {
     clearHideTimer();
     setHovered(true);
-    if (!railVisible) {
-      setSpacesState({ railVisible: true });
-    }
-  }, [clearHideTimer, railVisible, setSpacesState]);
+    revealSpaceRail({ scheduleHide: false });
+  }, [clearHideTimer]);
 
   const onPillHoverLeave = useCallback(() => {
     setHovered(false);
@@ -459,10 +468,8 @@ export default function WeeGooeySpacePill() {
 
   const onHotspotEnter = useCallback(() => {
     clearHideTimer();
-    if (!railVisible) {
-      setSpacesState({ railVisible: true });
-    }
-  }, [clearHideTimer, railVisible, setSpacesState]);
+    revealSpaceRail({ scheduleHide: false });
+  }, [clearHideTimer]);
 
   const onHotspotLeave = useCallback(() => {
     if (!hovered && !focusWithin) {
@@ -473,8 +480,8 @@ export default function WeeGooeySpacePill() {
   const onPillFocusCapture = useCallback(() => {
     clearHideTimer();
     setFocusWithin(true);
-    setSpacesState({ railVisible: true });
-  }, [clearHideTimer, setSpacesState]);
+    revealSpaceRail({ scheduleHide: false });
+  }, [clearHideTimer]);
 
   const onPillBlurCapture = useCallback(
     (event) => {
@@ -488,17 +495,8 @@ export default function WeeGooeySpacePill() {
   );
 
   const handlePinToggle = useCallback(() => {
-    const nextPinned = !railPinned;
-    setSpacesState({
-      railPinned: nextPinned,
-      railVisible: true,
-    });
-    if (!nextPinned) {
-      scheduleHideIfEligible();
-    } else {
-      clearHideTimer();
-    }
-  }, [clearHideTimer, railPinned, scheduleHideIfEligible, setSpacesState]);
+    setSpaceRailPinned(!railPinned);
+  }, [railPinned]);
 
   if (!railEnabled) {
     return null;

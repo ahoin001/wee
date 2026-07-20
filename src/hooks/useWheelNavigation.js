@@ -6,6 +6,7 @@ import {
   resolveActiveChannelSpaceKey,
 } from '../utils/channelSpaces';
 import { CHANNEL_PAGE_FLIP_MS, resolveSteppedChannelPage } from '../utils/channelLayoutSystem';
+import { revealSpaceRail } from '../utils/spaceRailVisibility';
 
 const SPACE_WHEEL_COOLDOWN_MS = 320;
 const PAGE_TILT_COOLDOWN_MS = 140;
@@ -147,7 +148,8 @@ export default function useWheelNavigation() {
 
       lastSpaceNavAt.current = now;
       event.preventDefault();
-      actions.setSpacesState?.({ activeSpaceId: nextId, railVisible: true });
+      actions.setSpacesState?.({ activeSpaceId: nextId });
+      revealSpaceRail({ scheduleHide: true });
     };
 
     window.addEventListener('wheel', onWheel, { passive: false, capture: true });

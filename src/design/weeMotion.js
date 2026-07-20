@@ -2,7 +2,7 @@ import { useReducedMotion } from 'framer-motion';
 import {
   SPACE_SHELL_ENTRANCE_TIERS,
   SPACE_SHELL_TRANSITION_MS_DEFAULT,
-  SPACE_SHELL_TRANSITION_MS_RAPID,
+  resolveSpaceShellEntranceTiming,
 } from './spaceShellMotion';
 import { CHANNEL_PAGE_FLIP_MS } from '../utils/channelLayoutSystem';
 
@@ -404,10 +404,21 @@ export function createWeeShellRailItemVariants(pillOpen, reducedMotion) {
 
 /**
  * Channel grid tiles — softer than rail icons (closer to legacy CSS tile enter).
+ * Delays budget against the remaining shell slide after mid-slide reveal.
+ * @param {object} pillOpen
+ * @param {boolean} reducedMotion
+ * @param {number} [shellMs]
  */
-export function createWeeChannelTileItemVariants(pillOpen, reducedMotion) {
+export function createWeeChannelTileItemVariants(
+  pillOpen,
+  reducedMotion,
+  shellMs = SPACE_SHELL_TRANSITION_MS_DEFAULT
+) {
   const playfulFull = WEE_SPRINGS.hubSpaceEntranceFull;
   const revisitGooey = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
+  const { staggerBudgetS } = resolveSpaceShellEntranceTiming(shellMs);
+  const fullStep = Math.min(0.045, staggerBudgetS / 12);
+  const revisitStep = Math.min(0.03, staggerBudgetS / 16);
   return {
     closed: {
       opacity: 0,
@@ -423,10 +434,10 @@ export function createWeeChannelTileItemVariants(pillOpen, reducedMotion) {
         ? { duration: 0.12 }
         : {
             ...playfulFull,
-            delay: 0.08 + Math.min(i * 0.036, 0.5),
+            delay: Math.min(i * fullStep, staggerBudgetS * 0.9),
           },
     }),
-    /** Welcome-back stagger — gooey spring, slightly longer wave than legacy subtle */
+    /** Welcome-back stagger — gooey spring within the same shell budget */
     revisit: (i) => ({
       opacity: 1,
       scale: 1,
@@ -435,7 +446,7 @@ export function createWeeChannelTileItemVariants(pillOpen, reducedMotion) {
         ? { duration: 0.1 }
         : {
             ...revisitGooey,
-            delay: 0.04 + Math.min(i * 0.024, 0.32),
+            delay: Math.min(i * revisitStep, staggerBudgetS * 0.75),
           },
     }),
   };
@@ -641,10 +652,7 @@ export function createMediaHubShellBandVariants(tier, reducedMotion) {
       show: {
         opacity: 1,
         y: 0,
-        transition: {
-          ...springFull,
-          delay: 0.08,
-        },
+        transition: springFull,
       },
     };
   }
@@ -654,40 +662,46 @@ export function createMediaHubShellBandVariants(tier, reducedMotion) {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: {
-        ...springRevisit,
-        delay: 0.04,
-      },
+      transition: springRevisit,
     },
   };
 }
 
 /**
- * Parent orchestrator: stagger children after optional shell delay.
+ * Parent orchestrator: stagger children within the post-reveal shell budget.
+ * `delayChildren` is 0 — reveal is already timed mid-slide by useHubSpaceEntrance.
  * @param {'firstVisitPlayful' | 'revisitSubtleGooey' | 'full' | 'subtle'} tier
  * @param {boolean} reducedMotion
+ * @param {number} [shellMs] — live space-world duration (480 default / 260 rapid)
  */
-export function createHubEntranceOrchestratorVariants(tier, reducedMotion) {
+export function createHubEntranceOrchestratorVariants(
+  tier,
+  reducedMotion,
+  shellMs = SPACE_SHELL_TRANSITION_MS_DEFAULT
+) {
   if (reducedMotion) {
     return {
       hidden: {},
       show: {
-        transition: { staggerChildren: 0.04, delayChildren: 0.02 },
+        transition: { staggerChildren: 0.03, delayChildren: 0 },
       },
     };
   }
-  /** Budget staggered assemble against the space-shell slide clock (no parallel domain). */
-  const shellS = SPACE_SHELL_TRANSITION_MS_DEFAULT / 1000;
-  const rapidS = SPACE_SHELL_TRANSITION_MS_RAPID / 1000;
+  const { staggerBudgetS } = resolveSpaceShellEntranceTiming(shellMs);
   const isFull = isFirstVisitTier(tier);
+  const childHint = isFull ? 5 : 4;
+  const staggerChildren = Math.min(
+    isFull ? 0.1 : 0.07,
+    Math.max(0.02, staggerBudgetS / childHint)
+  );
   if (isFull) {
     return {
       hidden: { opacity: 0 },
       show: {
         opacity: 1,
         transition: {
-          staggerChildren: shellS * 0.35,
-          delayChildren: shellS * 0.35,
+          staggerChildren,
+          delayChildren: 0,
         },
       },
     };
@@ -698,8 +712,8 @@ export function createHubEntranceOrchestratorVariants(tier, reducedMotion) {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: rapidS * 0.35,
-        delayChildren: rapidS * 0.2,
+        staggerChildren,
+        delayChildren: 0,
       },
     },
   };
@@ -771,9 +785,17 @@ export function createMediaHubGridContainerVariants(tier, reducedMotion) {
 
 /**
  * Grid cards: spring pop with capped index delay (avoids animating hundreds of springs).
+ * Delays stay inside the post-reveal shell stagger budget.
  * Pass `custom={index}` on each `m` child.
+ * @param {'firstVisitPlayful' | 'revisitSubtleGooey' | 'full' | 'subtle'} tier
+ * @param {boolean} reducedMotion
+ * @param {number} [shellMs]
  */
-export function createMediaHubGridItemVariants(tier, reducedMotion) {
+export function createMediaHubGridItemVariants(
+  tier,
+  reducedMotion,
+  shellMs = SPACE_SHELL_TRANSITION_MS_DEFAULT
+) {
   if (reducedMotion) {
     return {
       hidden: { opacity: 0, y: 6 },
@@ -783,8 +805,10 @@ export function createMediaHubGridItemVariants(tier, reducedMotion) {
   const isFull = isFirstVisitTier(tier);
   const springFull = WEE_SPRINGS.hubSpaceEntranceFull;
   const springRevisit = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
-  const baseDelay = isFull ? 0.18 : 0.1;
-  const perItem = isFull ? 0.068 : 0.034;
+  const { staggerBudgetS } = resolveSpaceShellEntranceTiming(shellMs);
+  const perItem = isFull
+    ? Math.min(0.068, staggerBudgetS / 10)
+    : Math.min(0.034, staggerBudgetS / 14);
   if (isFull) {
     return {
       hidden: { opacity: 0, y: 11, scale: 0.986 },
@@ -796,7 +820,7 @@ export function createMediaHubGridItemVariants(tier, reducedMotion) {
           scale: 1,
           transition: {
             ...springFull,
-            delay: baseDelay + Math.min(idx, MEDIA_HUB_GRID_STAGGER_CAP) * perItem,
+            delay: Math.min(idx, MEDIA_HUB_GRID_STAGGER_CAP) * perItem,
           },
         };
       },
@@ -812,7 +836,7 @@ export function createMediaHubGridItemVariants(tier, reducedMotion) {
         scale: 1,
         transition: {
           ...springRevisit,
-          delay: baseDelay + Math.min(idx, MEDIA_HUB_GRID_STAGGER_CAP) * perItem,
+          delay: Math.min(idx, MEDIA_HUB_GRID_STAGGER_CAP) * perItem,
         },
       };
     },

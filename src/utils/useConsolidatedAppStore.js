@@ -727,6 +727,8 @@ useConsolidatedAppStore = create(
           mediaHubEnabled: false,
           /** True while the space-world slide is animating — channel drag should be disabled. */
           isTransitioning: false,
+          /** Live shell slide duration (ms) for the current switch — entrance stagger budget. */
+          shellTransitionMs: 480,
           railEnabled: true,
           autoHideRail: true,
           railPinned: false,
@@ -2261,6 +2263,7 @@ useConsolidatedAppStore = create(
               order: ['home', 'workspaces', 'gamehub'],
               mediaHubEnabled: false,
               isTransitioning: false,
+              shellTransitionMs: 480,
               railEnabled: true,
               autoHideRail: true,
               railPinned: false,

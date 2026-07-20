@@ -22,6 +22,32 @@ export const SPACE_SHELL_RAPID_WINDOW_MS = 1000;
 export const SPACE_SHELL_EASE_CSS = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 /**
+ * Fraction of live shell duration when hub/home content begins revealing.
+ * Overlaps the CSS slide ease-out so stagger is not a second settle wave.
+ */
+export const SPACE_SHELL_CONTENT_REVEAL_AT = 0.35;
+
+/**
+ * @param {number} [shellMs]
+ * @returns {{ shellMs: number, revealAtMs: number, staggerBudgetMs: number, shellS: number, staggerBudgetS: number }}
+ */
+export function resolveSpaceShellEntranceTiming(shellMs = SPACE_SHELL_TRANSITION_MS_DEFAULT) {
+  const ms = Math.max(
+    0,
+    Number.isFinite(Number(shellMs)) ? Number(shellMs) : SPACE_SHELL_TRANSITION_MS_DEFAULT
+  );
+  const revealAtMs = Math.round(ms * SPACE_SHELL_CONTENT_REVEAL_AT);
+  const staggerBudgetMs = Math.max(0, ms - revealAtMs);
+  return {
+    shellMs: ms,
+    revealAtMs,
+    staggerBudgetMs,
+    shellS: ms / 1000,
+    staggerBudgetS: staggerBudgetMs / 1000,
+  };
+}
+
+/**
  * JS approximation of `SPACE_SHELL_EASE_CSS` for RAF tweens (ribbon look, etc.).
  * Snappy early progress + soft settle — matches wallpaper/space-world feel better than easeOutCubic.
  * @param {number} t — 0…1

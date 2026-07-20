@@ -261,7 +261,7 @@ const selectPersistedFloatingWidgets = (floatingWidgets = {}) => {
 /** Strip rail animation flags; force Media Hub archived off when flagged. */
 const selectPersistedSpaces = (spaces = {}) => {
   if (!isPlainObject(spaces)) return {};
-  const next = omitKeys(spaces, ['isTransitioning', 'railVisible']);
+  const next = omitKeys(spaces, ['isTransitioning', 'railVisible', 'shellTransitionMs']);
   const mediaHubEnabled = resolveMediaHubEnabled(next.order, {
     mediaHubEnabled: next.mediaHubEnabled,
   });

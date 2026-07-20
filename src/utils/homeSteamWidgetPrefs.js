@@ -108,7 +108,46 @@ export function getHomeSteamGutterConfig(gutterId) {
 export function resolveSteamShelfScrollAxis(_prefs, { colSpan = 2, rowSpan = 2 } = {}) {
   const cols = Math.max(1, Number(colSpan) || 1);
   const rows = Math.max(1, Number(rowSpan) || 1);
+  // Single board-row shelves always scroll sideways (cinema strip).
+  if (rows <= 1) return 'horizontal';
   return cols > rows ? 'horizontal' : 'vertical';
+}
+
+/**
+ * Cover layout for Steam game shelves.
+ * 1-row (H2/H3/H4) → height-filling cinema strip; taller boards keep Dense grid.
+ * @param {{ colSpan?: number, rowSpan?: number }} span
+ * @returns {{
+ *   mode: 'shelf' | 'grid',
+ *   horizontalRows: number,
+ *   density: 'compact' | 'cozy' | 'roomy',
+ *   capacityCap: number,
+ *   tileMaxPx: number | null,
+ *   columns: number,
+ * }}
+ */
+export function resolveSteamShelfTileLayout({ colSpan = 2, rowSpan = 2 } = {}) {
+  const rows = Math.max(1, Number(rowSpan) || 1);
+  if (rows <= 1) {
+    return {
+      mode: 'shelf',
+      horizontalRows: 1,
+      density: 'cozy',
+      capacityCap: 16,
+      /** Height-driven covers — width comes from aspect-ratio, not a px cap. */
+      tileMaxPx: null,
+      columns: 1,
+    };
+  }
+  const dense = HOME_STEAM_TILE_SIZES.S;
+  return {
+    mode: 'grid',
+    horizontalRows: dense.horizontalRows,
+    density: 'compact',
+    capacityCap: dense.capacity,
+    tileMaxPx: dense.tileMaxPx,
+    columns: dense.columns,
+  };
 }
 
 /**

@@ -7,6 +7,7 @@ import { toggleHomeBoardArrange } from '../hooks/useHomeBoardArrange';
 import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
 import { closeTopOverlayOnEscape, isBlockingOverlayOpen } from './overlayEscape';
 import { CHANNEL_PAGE_FLIP_MS, resolveSteppedChannelPage } from './channelLayoutSystem';
+import { setSpaceRailPinned } from './spaceRailVisibility';
 
 /** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
 const EMPTY_KEYBOARD_SHORTCUTS = Object.freeze([]);
@@ -172,12 +173,7 @@ const useKeyboardShortcuts = () => {
     };
 
     window.toggleSpaceRailPin = () => {
-      const state = getState();
-      const currentPinned = Boolean(state.spaces?.railPinned);
-      setSpacesState?.({
-        railPinned: !currentPinned,
-        railVisible: true,
-      });
+      setSpaceRailPinned();
     };
 
     window.toggleHomeArrange = () => {

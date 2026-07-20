@@ -130,6 +130,7 @@ const PaginatedChannelsInner = React.memo(() => {
     tier: channelEntranceTier,
     animateState: channelEntranceState,
     onEntranceComplete,
+    shellMs,
   } = useHubSpaceEntrance(channelSpaceKey, reducedMotion);
   const channelReturnVariants = useMemo(
     () =>
@@ -320,9 +321,16 @@ const PaginatedChannelsInner = React.memo(() => {
   const idleExperience = useHomeIdleExperience({ enabled: isHomeActive });
   const isGridFaded = isHomeActive && idleExperience.isFaded;
 
-  // Live Board Studio applies to Home and Focus channel boards.
-  const arrangeModeActive = isChannelBoardSpace && homeBoardArrangeMode;
-  const punchModeActive = isChannelBoardSpace && homeBoardPunchMode;
+  // Live Board Studio applies to Home and Focus — but only the *active* board
+  // owns arrange/punch chrome. Kept-alive sibling boards must not portal a second Edit Home bar.
+  const arrangeModeActive =
+    isChannelBoardSpace &&
+    activeSpaceId === channelSpaceKey &&
+    homeBoardArrangeMode;
+  const punchModeActive =
+    isChannelBoardSpace &&
+    activeSpaceId === channelSpaceKey &&
+    homeBoardPunchMode;
 
   /** Widget picker in the arrange tray — owned here so tile clicks can open it. */
   const [arrangePickerOpen, setArrangePickerOpen] = useState(false);
@@ -1351,6 +1359,7 @@ const PaginatedChannelsInner = React.memo(() => {
           onPageFlipComplete={handleAnimationComplete}
           hubEntranceKey={entranceKey}
           hubEntranceTier={channelEntranceTier}
+          hubEntranceShellMs={shellMs}
           focusRecedeEnabled={effectiveSettings.focusRecedeEnabled}
           arrangeModeActive={arrangeModeActive}
           punchModeActive={punchModeActive}

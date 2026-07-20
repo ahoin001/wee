@@ -46,6 +46,7 @@ const WiiChannelStrip = ({
   onPageFlipComplete,
   hubEntranceKey = 0,
   hubEntranceTier = SPACE_SHELL_ENTRANCE_TIERS.firstVisitPlayful,
+  hubEntranceShellMs,
   focusRecedeEnabled = false,
   arrangeModeActive = false,
   punchModeActive = false,
@@ -54,8 +55,8 @@ const WiiChannelStrip = ({
 }) => {
   const { pillOpen, reducedMotion } = useWeeMotion();
   const tileItemVariants = useMemo(
-    () => createWeeChannelTileItemVariants(pillOpen, reducedMotion),
-    [pillOpen, reducedMotion]
+    () => createWeeChannelTileItemVariants(pillOpen, reducedMotion, hubEntranceShellMs),
+    [pillOpen, reducedMotion, hubEntranceShellMs]
   );
   const tileAnimate =
     hubEntranceTier === SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey ? 'revisit' : 'open';
@@ -105,10 +106,13 @@ const WiiChannelStrip = ({
     [slots, safeColumns, safeRows, totalChannelSlots]
   );
 
+  // Columns are page×N tracks; rows are SHARED across every page in the continuous strip.
+  // Both axes must use fixed fr tracks (minmax(0,1fr)) — never `auto` max — so a tall/wide
+  // widget’s content cannot inflate tracks and distort 1×1 channels on this page or others.
   const boardStyle = useMemo(
     () => ({
       gridTemplateColumns: `repeat(${totalGridColumns}, minmax(0, 1fr))`,
-      gridTemplateRows: `repeat(${safeRows}, minmax(clamp(86px, 11.8vh, 156px), auto))`,
+      gridTemplateRows: `repeat(${safeRows}, minmax(0, 1fr))`,
     }),
     [totalGridColumns, safeRows]
   );
@@ -302,6 +306,7 @@ WiiChannelStrip.propTypes = {
   onPageFlipComplete: PropTypes.func,
   hubEntranceKey: PropTypes.number,
   hubEntranceTier: PropTypes.oneOf(Object.values(SPACE_SHELL_ENTRANCE_TIERS)),
+  hubEntranceShellMs: PropTypes.number,
   focusRecedeEnabled: PropTypes.bool,
   arrangeModeActive: PropTypes.bool,
   punchModeActive: PropTypes.bool,

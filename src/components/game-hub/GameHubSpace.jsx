@@ -100,14 +100,14 @@ export default function GameHubSpace() {
   const heroScrollRafRef = useRef(null);
 
   const reducedMotion = useReducedMotion();
-  const { entranceKey, tier: hubEntranceTier, animateState: hubEntranceState, onEntranceComplete } = useHubSpaceEntrance(
+  const { entranceKey, tier: hubEntranceTier, animateState: hubEntranceState, onEntranceComplete, shellMs } = useHubSpaceEntrance(
     'gamehub',
     reducedMotion
   );
 
   const hubOrchestratorVariants = useMemo(
-    () => createHubEntranceOrchestratorVariants(hubEntranceTier, reducedMotion),
-    [hubEntranceTier, reducedMotion]
+    () => createHubEntranceOrchestratorVariants(hubEntranceTier, reducedMotion, shellMs),
+    [hubEntranceTier, reducedMotion, shellMs]
   );
   const hubBandVariants = useMemo(
     () => createHubEntranceBandVariants(hubEntranceTier, reducedMotion),

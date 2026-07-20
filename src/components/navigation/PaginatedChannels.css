@@ -164,7 +164,9 @@
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
-  align-content: start;
+  /* Stretch so equal 1fr row tracks fill the board; content scrolls inside widgets. */
+  align-content: stretch;
+  justify-content: stretch;
 }
 
 .wii-strip-channel-cell {

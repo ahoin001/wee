@@ -253,6 +253,106 @@ FriendListRow.propTypes = {
   layout: PropTypes.object.isRequired,
 };
 
+/**
+ * Compact portrait card for 1-row friends cinema shelves.
+ */
+function FriendShelfCard({ friend, interactionsLocked, onLaunchGame, onOpenProfile }) {
+  const online = isFriendOnline(friend);
+  const inGame = isFriendInGame(friend);
+  const statusOnly = friendStatusLabel(friend);
+  const avatarRing = inGame
+    ? 'border-[hsl(var(--state-success)/0.8)]'
+    : online
+      ? 'border-[hsl(var(--primary)/0.7)]'
+      : 'border-[hsl(var(--border-primary)/0.45)]';
+  const presenceDot = inGame
+    ? 'bg-[hsl(var(--state-success))]'
+    : online
+      ? 'bg-[hsl(var(--primary))]'
+      : 'bg-[hsl(var(--text-tertiary))]';
+
+  return (
+    <button
+      type="button"
+      title={
+        friend.gameName
+          ? `${friend.personaName} · ${friend.gameName}`
+          : friend.personaName
+      }
+      aria-label={
+        friend.gameName
+          ? `${friend.personaName} playing ${friend.gameName}`
+          : `${friend.personaName}${statusOnly ? `, ${statusOnly}` : ''}`
+      }
+      disabled={interactionsLocked}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (interactionsLocked) return;
+        if (friend.gameId) onLaunchGame?.(friend);
+        else onOpenProfile?.(friend);
+      }}
+      className={`group flex h-full w-[5.75rem] shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-[1rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.78)] px-2 py-2 text-center shadow-[var(--shadow-sm)] backdrop-blur-md transition-[transform,border-color,box-shadow,opacity] hover:border-[hsl(var(--primary)/0.55)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-70 ${
+        online ? '' : 'opacity-80'
+      }`}
+    >
+      <div className="relative shrink-0">
+        {friend.avatarUrl ? (
+          <img
+            src={friend.avatarUrl}
+            alt=""
+            className={`h-11 w-11 rounded-full border-2 object-cover ${avatarRing}`}
+            draggable={false}
+          />
+        ) : (
+          <span
+            className={`flex h-11 w-11 items-center justify-center rounded-full border-2 bg-[hsl(var(--surface-secondary))] text-[12px] font-black text-[hsl(var(--text-secondary))] ${avatarRing}`}
+          >
+            {(friend.personaName || '?').slice(0, 1).toUpperCase()}
+          </span>
+        )}
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[hsl(var(--surface-elevated))] ${presenceDot}`}
+          aria-hidden
+        />
+      </div>
+      <div className="min-w-0 w-full">
+        <div className="truncate text-[10px] font-extrabold tracking-wide text-[var(--hw-text-primary)]">
+          {friend.personaName}
+        </div>
+        <div className="mt-0.5 truncate text-[8px] font-bold">
+          {friend.gameName ? (
+            <span className="text-[hsl(var(--state-success))]">{friend.gameName}</span>
+          ) : (
+            <span
+              className={
+                online ? 'text-[var(--hw-text-secondary)]' : 'text-[var(--hw-text-tertiary)]'
+              }
+            >
+              {statusOnly || 'Online'}
+            </span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+FriendShelfCard.propTypes = {
+  friend: PropTypes.shape({
+    steamId: PropTypes.string,
+    personaName: PropTypes.string,
+    avatarUrl: PropTypes.string,
+    gameId: PropTypes.string,
+    gameName: PropTypes.string,
+    personaState: PropTypes.number,
+    online: PropTypes.bool,
+    inGame: PropTypes.bool,
+  }).isRequired,
+  interactionsLocked: PropTypes.bool,
+  onLaunchGame: PropTypes.func,
+  onOpenProfile: PropTypes.func,
+};
+
 function SteamFriendsSlot({
   slot,
   channelId,
@@ -285,25 +385,27 @@ function SteamFriendsSlot({
   const [loading, setLoading] = useState(false);
 
   const friendsList = Array.isArray(friendsPlaying) ? friendsPlaying : EMPTY_FRIENDS_PLAYING;
+  const colSpan = slot?.colSpan ?? 2;
   const rowSpan = slot?.rowSpan ?? 2;
+  const isShelfRow = rowSpan <= 1;
 
   const sizePreset = useMemo(
     () =>
-      matchHomeSlotSizePreset('steamFriends', slot?.colSpan ?? 2, slot?.rowSpan ?? 2) || {
+      matchHomeSlotSizePreset('steamFriends', colSpan, rowSpan) || {
         id: 'M',
         colSpan: 2,
         rowSpan: 2,
         capacity: 12,
       },
-    [slot?.colSpan, slot?.rowSpan]
+    [colSpan, rowSpan]
   );
   const layout = useMemo(
-    () => resolveHomeWidgetLayout(slot?.colSpan ?? 2, slot?.rowSpan ?? 2),
-    [slot?.colSpan, slot?.rowSpan]
+    () => resolveHomeWidgetLayout(colSpan, rowSpan),
+    [colSpan, rowSpan]
   );
   const capacity = Math.max(
     Number(sizePreset.capacity) || 12,
-    layout.cells <= 2 ? 6 : layout.density === 'roomy' ? 24 : 12
+    isShelfRow ? 10 : layout.cells <= 2 ? 6 : layout.density === 'roomy' ? 24 : 12
   );
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
@@ -311,34 +413,42 @@ function SteamFriendsSlot({
     friendsPlayingStatusCode === 'private-friends' ||
     /private/i.test(String(friendsPlayingError || ''));
 
-  const { inGameFriends, onlineFriends, offlineFriends, visibleCount, onlineCount, inGameCount } =
-    useMemo(() => {
-      // Sort before capacity so in-game friends never get truncated by offline rows.
-      const sorted = [...friendsList].sort((a, b) => {
-        const rank = friendPresenceRank(b) - friendPresenceRank(a);
-        if (rank !== 0) return rank;
-        return String(a?.personaName || '').localeCompare(String(b?.personaName || ''), undefined, {
-          sensitivity: 'base',
-        });
+  const {
+    cappedFriends,
+    inGameFriends,
+    onlineFriends,
+    offlineFriends,
+    visibleCount,
+    onlineCount,
+    inGameCount,
+  } = useMemo(() => {
+    // Sort before capacity so in-game friends never get truncated by offline rows.
+    const sorted = [...friendsList].sort((a, b) => {
+      const rank = friendPresenceRank(b) - friendPresenceRank(a);
+      if (rank !== 0) return rank;
+      return String(a?.personaName || '').localeCompare(String(b?.personaName || ''), undefined, {
+        sensitivity: 'base',
       });
-      const capped = sorted.slice(0, capacity);
-      const inGame = [];
-      const online = [];
-      const offline = [];
-      for (const friend of capped) {
-        if (isFriendInGame(friend)) inGame.push(friend);
-        else if (isFriendOnline(friend)) online.push(friend);
-        else offline.push(friend);
-      }
-      return {
-        inGameFriends: inGame,
-        onlineFriends: online,
-        offlineFriends: offline,
-        visibleCount: capped.length,
-        onlineCount: friendsList.filter(isFriendOnline).length,
-        inGameCount: friendsList.filter(isFriendInGame).length,
-      };
-    }, [friendsList, capacity]);
+    });
+    const capped = sorted.slice(0, capacity);
+    const inGame = [];
+    const online = [];
+    const offline = [];
+    for (const friend of capped) {
+      if (isFriendInGame(friend)) inGame.push(friend);
+      else if (isFriendOnline(friend)) online.push(friend);
+      else offline.push(friend);
+    }
+    return {
+      cappedFriends: capped,
+      inGameFriends: inGame,
+      onlineFriends: online,
+      offlineFriends: offline,
+      visibleCount: capped.length,
+      onlineCount: friendsList.filter(isFriendOnline).length,
+      inGameCount: friendsList.filter(isFriendInGame).length,
+    };
+  }, [friendsList, capacity]);
 
   useEffect(() => {
     if (!steamId || !apiEnabled || !window.api?.steam?.getFriendsPlaying) return;
@@ -537,7 +647,7 @@ function SteamFriendsSlot({
       ) : (
         <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
           <SteamWidgetHeading title="Friends" icon={Users} compact={rowSpan <= 1} />
-          {layout.density !== 'compact' ? (
+          {!isShelfRow && layout.density !== 'compact' ? (
             <p className="-mt-0.5 mb-0 px-0.5 text-[9px] font-bold text-[var(--hw-text-tertiary)]">
               {inGameCount > 0 ? `${inGameCount} in game · ` : ''}
               {onlineCount} online
@@ -546,38 +656,68 @@ function SteamFriendsSlot({
                 : ''}
             </p>
           ) : null}
-          <WeeFadeScroll axis="y" fadePx={28} hideScrollbar className="min-h-0 flex-1">
-            <div
-              className={`pb-2 ${layout.gapClass} ${
-                layout.listColumns > 1 ? 'grid grid-cols-2' : 'flex flex-col'
-              }`}
+
+          {isShelfRow ? (
+            <WeeFadeScroll
+              axis="x"
+              fadePx={48}
+              hideScrollbar
+              className="min-h-0 flex-1"
+              style={{ scrollSnapType: 'x proximity' }}
+              onWheel={(event) => {
+                event.stopPropagation();
+                if (Math.abs(event.deltaX) < Math.abs(event.deltaY) && event.deltaY) {
+                  event.currentTarget.scrollLeft += event.deltaY;
+                  event.preventDefault();
+                }
+              }}
             >
-              {inGameFriends.length > 0 ? (
-                <>
-                  <FriendSectionLabel spanGrid={layout.listColumns > 1}>
-                    In game · {inGameFriends.length}
-                  </FriendSectionLabel>
-                  {renderFriendRows(inGameFriends)}
-                </>
-              ) : null}
-              {onlineFriends.length > 0 ? (
-                <>
-                  <FriendSectionLabel spanGrid={layout.listColumns > 1}>
-                    Online · {onlineFriends.length}
-                  </FriendSectionLabel>
-                  {renderFriendRows(onlineFriends)}
-                </>
-              ) : null}
-              {offlineFriends.length > 0 ? (
-                <>
-                  <FriendSectionLabel spanGrid={layout.listColumns > 1}>
-                    Offline · {offlineFriends.length}
-                  </FriendSectionLabel>
-                  {renderFriendRows(offlineFriends)}
-                </>
-              ) : null}
-            </div>
-          </WeeFadeScroll>
+              <div className="flex h-full w-max min-w-full items-stretch gap-2 pr-5">
+                {cappedFriends.map((friend) => (
+                  <FriendShelfCard
+                    key={friend.steamId}
+                    friend={friend}
+                    interactionsLocked={interactionsLocked}
+                    onLaunchGame={handleLaunchGame}
+                    onOpenProfile={handleOpenProfile}
+                  />
+                ))}
+              </div>
+            </WeeFadeScroll>
+          ) : (
+            <WeeFadeScroll axis="y" fadePx={28} hideScrollbar className="min-h-0 flex-1">
+              <div
+                className={`pb-2 ${layout.gapClass} ${
+                  layout.listColumns > 1 ? 'grid grid-cols-2' : 'flex flex-col'
+                }`}
+              >
+                {inGameFriends.length > 0 ? (
+                  <>
+                    <FriendSectionLabel spanGrid={layout.listColumns > 1}>
+                      In game · {inGameFriends.length}
+                    </FriendSectionLabel>
+                    {renderFriendRows(inGameFriends)}
+                  </>
+                ) : null}
+                {onlineFriends.length > 0 ? (
+                  <>
+                    <FriendSectionLabel spanGrid={layout.listColumns > 1}>
+                      Online · {onlineFriends.length}
+                    </FriendSectionLabel>
+                    {renderFriendRows(onlineFriends)}
+                  </>
+                ) : null}
+                {offlineFriends.length > 0 ? (
+                  <>
+                    <FriendSectionLabel spanGrid={layout.listColumns > 1}>
+                      Offline · {offlineFriends.length}
+                    </FriendSectionLabel>
+                    {renderFriendRows(offlineFriends)}
+                  </>
+                ) : null}
+              </div>
+            </WeeFadeScroll>
+          )}
         </div>
       )}
     </HomeWidgetShell>

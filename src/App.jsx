@@ -42,6 +42,7 @@ import {
   SPACE_SHELL_TRANSITION_MS_DEFAULT,
   SPACE_SHELL_TRANSITION_MS_RAPID,
 } from './design/spaceShellMotion';
+import { onSpaceRailTransitionSettled } from './utils/spaceRailVisibility';
 import { collectPrioritizedWarmMediaUrls } from './utils/mediaWarmCache';
 import { scheduleMediaWarmPass } from './utils/mediaWarmScheduler';
 import { IS_DEV } from './utils/env';
@@ -314,8 +315,9 @@ function App() {
         ? SPACE_SHELL_TRANSITION_MS_RAPID
         : SPACE_SHELL_TRANSITION_MS_DEFAULT;
     setSpaceWorldDurationMs(nextDurationMs);
+    setSpacesState({ shellTransitionMs: nextDurationMs });
     setSpaceSwitchSeq((s) => s + 1);
-  }, [activeSpaceId]);
+  }, [activeSpaceId, setSpacesState]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -331,6 +333,8 @@ function App() {
       if (settled) return;
       settled = true;
       setSpacesState({ isTransitioning: false });
+      // Unpinned auto-hide rails revealed for nav must hide after the slide settles.
+      onSpaceRailTransitionSettled();
     };
     if (reducedMotion || spaceWorldDurationMs <= 0 || !node) {
       const raf = window.requestAnimationFrame(settleTransition);

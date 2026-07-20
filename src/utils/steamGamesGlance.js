@@ -69,10 +69,10 @@ export function sortMostPlayedSteamGames(games, hiddenGameIds) {
 }
 
 /**
- * Resolve enriched (or stub) rows for Steam client favorite app ids.
- * Preserves client favorite order; fills gaps with CDN stubs when enrichment is missing.
+ * Resolve enriched (or stub) rows for favorite app ids.
+ * Preserves favorite order; fills gaps with CDN stubs when enrichment is missing.
  * @param {unknown[]} games
- * @param {unknown[]} favoriteAppIds
+ * @param {unknown[]} favoriteAppIds — raw Steam app ids
  * @param {unknown} [hiddenGameIds]
  * @returns {object[]}
  */
@@ -107,6 +107,44 @@ export function sortFavoriteSteamGames(games, favoriteAppIds, hiddenGameIds) {
     });
   }
   return out;
+}
+
+/**
+ * Extract Steam app ids from Wee Game Hub favorite ids (`steam-{appId}`).
+ * Non-Steam hub ids are skipped. Preserves Wee favorite order.
+ * @param {unknown[]} favoriteGameIds — `gameHub.ui.favoriteGameIds`
+ * @returns {string[]}
+ */
+export function appIdsFromWeeFavoriteGameIds(favoriteGameIds) {
+  const list = Array.isArray(favoriteGameIds) ? favoriteGameIds : [];
+  const out = [];
+  for (const raw of list) {
+    const id = String(raw || '').trim();
+    if (!id) continue;
+    if (id.startsWith('steam-')) {
+      const appId = id.slice('steam-'.length).trim();
+      if (appId) out.push(appId);
+      continue;
+    }
+    // Legacy / accidental bare app ids
+    if (/^\d+$/.test(id)) out.push(id);
+  }
+  return out;
+}
+
+/**
+ * Home Favorites shelf — Wee Game Hub stars (`favoriteGameIds`) as SSOT.
+ * @param {unknown[]} games
+ * @param {unknown[]} favoriteGameIds — hub ids like `steam-{appId}`
+ * @param {unknown} [hiddenGameIds]
+ * @returns {object[]}
+ */
+export function sortWeeFavoriteSteamGames(games, favoriteGameIds, hiddenGameIds) {
+  return sortFavoriteSteamGames(
+    games,
+    appIdsFromWeeFavoriteGameIds(favoriteGameIds),
+    hiddenGameIds
+  );
 }
 
 /**

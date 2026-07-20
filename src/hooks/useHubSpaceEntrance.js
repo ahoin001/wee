@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
-import { SPACE_SHELL_ENTRANCE_TIERS } from '../design/spaceShellMotion';
+import {
+  SPACE_SHELL_ENTRANCE_TIERS,
+  SPACE_SHELL_TRANSITION_MS_DEFAULT,
+  resolveSpaceShellEntranceTiming,
+} from '../design/spaceShellMotion';
 
 const STORAGE_PREFIX = 'wee.hubEntrance.';
 
@@ -37,29 +41,31 @@ function writeFullComplete(spaceId) {
  * Session-aware shell-space entrance: playful spring first visit per session per space;
  * revisit runs a visible hidden→show assembly (stagger) on each landing.
  *
- * Every entrance run (including cold-start home when already active) uses a reveal pulse:
- * hidden → bump entranceKey → double-rAF → show, so Framer always sees a rising edge.
- * First visit also waits until the shell world transition finishes when coming from another space.
+ * Content reveal starts mid-shell-slide (`SPACE_SHELL_CONTENT_REVEAL_AT`) so stagger
+ * shares one timeline with the CSS space-world track — not a post-arrival second wave.
  *
  * @param {string} spaceId
  * @param {boolean} reducedMotion
  */
 export function useHubSpaceEntrance(spaceId, reducedMotion) {
-  const { activeSpaceId, isSpaceTransitioning } = useConsolidatedAppStore(
+  const { activeSpaceId, shellTransitionMs } = useConsolidatedAppStore(
     useShallow((s) => ({
       activeSpaceId: s.spaces?.activeSpaceId,
-      isSpaceTransitioning: s.spaces?.isTransitioning ?? false,
+      shellTransitionMs:
+        s.spaces?.shellTransitionMs ?? SPACE_SHELL_TRANSITION_MS_DEFAULT,
     }))
   );
 
   const isActive = activeSpaceId === spaceId;
-  const canStart = isActive && !isSpaceTransitioning;
+  const shellMs =
+    typeof shellTransitionMs === 'number' && shellTransitionMs > 0
+      ? shellTransitionMs
+      : SPACE_SHELL_TRANSITION_MS_DEFAULT;
 
   /** Start false so first paint with `isActive` still runs the activation effect. */
   const prevIsActiveRef = useRef(false);
-  const prevCanStartRef = useRef(false);
-  const runCounterRef = useRef(0);
   const coldStartPulsedRef = useRef(false);
+  const runCounterRef = useRef(0);
   const [entranceKey, setEntranceKey] = useState(0);
   const [runTier, setRunTier] = useState(() =>
     reducedMotion ? SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey : readTier(spaceId)
@@ -92,46 +98,61 @@ export function useHubSpaceEntrance(spaceId, reducedMotion) {
 
   /**
    * Cold start: space is already active on first mount (`prevIsActive` never rises).
-   * Pulse once when canStart becomes true so home gets the same hidden→show edge as return.
+   * Pulse once so home gets the same hidden→show edge as return.
    */
   useEffect(() => {
-    if (!canStart || coldStartPulsedRef.current) {
-      prevCanStartRef.current = canStart;
-      return;
-    }
-    // Rising edge of canStart without a prior activation bump (entranceKey still 0).
-    if (!prevCanStartRef.current && entranceKey === 0) {
+    if (!isActive || coldStartPulsedRef.current) return;
+    if (entranceKey === 0) {
       coldStartPulsedRef.current = true;
       const tier = reducedMotion
         ? SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey
         : readTier(spaceId);
       setRunTier(tier);
       bumpEntrance(tier);
-    } else if (canStart && entranceKey > 0) {
+    } else {
       coldStartPulsedRef.current = true;
     }
-    prevCanStartRef.current = canStart;
-  }, [canStart, entranceKey, reducedMotion, spaceId, bumpEntrance]);
+  }, [isActive, entranceKey, reducedMotion, spaceId, bumpEntrance]);
 
   useLayoutEffect(() => {
-    if (!isActive || !canStart || entranceKey === 0) {
+    if (!isActive || entranceKey === 0) {
       if (!isActive) setRevealToShow(false);
       return undefined;
     }
     setRevealToShow(false);
     let cancelled = false;
+    let id1 = 0;
     let id2 = 0;
-    const id1 = requestAnimationFrame(() => {
-      id2 = requestAnimationFrame(() => {
-        if (!cancelled) setRevealToShow(true);
+    let timer = 0;
+
+    const pulseShow = () => {
+      id1 = requestAnimationFrame(() => {
+        id2 = requestAnimationFrame(() => {
+          if (!cancelled) setRevealToShow(true);
+        });
       });
-    });
+    };
+
+    // Capture transition gate once at entrance start — do not re-arm when settle flips.
+    const transitioning = Boolean(
+      useConsolidatedAppStore.getState().spaces?.isTransitioning
+    );
+    const { revealAtMs } = resolveSpaceShellEntranceTiming(shellMs);
+    const waitMs = reducedMotion || !transitioning ? 0 : revealAtMs;
+
+    if (waitMs <= 0) {
+      pulseShow();
+    } else {
+      timer = window.setTimeout(pulseShow, waitMs);
+    }
+
     return () => {
       cancelled = true;
+      if (timer) window.clearTimeout(timer);
       cancelAnimationFrame(id1);
       if (id2) cancelAnimationFrame(id2);
     };
-  }, [isActive, canStart, entranceKey]);
+  }, [isActive, entranceKey, shellMs, reducedMotion]);
 
   const onEntranceComplete = useCallback(
     (completedKey = entranceKey) => {
@@ -147,14 +168,15 @@ export function useHubSpaceEntrance(spaceId, reducedMotion) {
 
   const animateState = (() => {
     if (!isActive) return 'hidden';
-    if (!canStart) return 'hidden';
     return revealToShow ? 'show' : 'hidden';
   })();
 
   return {
     entranceKey,
     tier: runTier,
-    canStart,
+    /** @deprecated Prefer animateState — kept for callers that gated on settle. */
+    canStart: isActive && revealToShow,
+    shellMs,
     animateState,
     onEntranceComplete,
   };
