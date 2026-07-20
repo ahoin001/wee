@@ -41,6 +41,10 @@ function ChannelModalBehaviorTab({
   handleHoverSoundSelect,
   handleHoverSoundUpload,
   handleHoverSoundDelete,
+  openTrimForSelected,
+  openTrimForSound,
+  hoverSoundHint,
+  hoverSoundError,
 }) {
   const channelHoverSounds = getSoundsByCategory('channelHover') || [];
   const globalHoverEnabled = useConsolidatedAppStore(
@@ -151,6 +155,10 @@ function ChannelModalBehaviorTab({
                 handleHoverSoundSelect={handleHoverSoundSelect}
                 handleHoverSoundUpload={handleHoverSoundUpload}
                 handleHoverSoundDelete={handleHoverSoundDelete}
+                openTrimForSelected={openTrimForSelected}
+                openTrimForSound={openTrimForSound}
+                hoverSoundHint={hoverSoundHint}
+                hoverSoundError={hoverSoundError}
               />
             </WeeRevealWhen>
 
@@ -190,6 +198,10 @@ ChannelModalBehaviorTab.propTypes = {
   handleHoverSoundSelect: PropTypes.func.isRequired,
   handleHoverSoundUpload: PropTypes.func.isRequired,
   handleHoverSoundDelete: PropTypes.func,
+  openTrimForSelected: PropTypes.func,
+  openTrimForSound: PropTypes.func,
+  hoverSoundHint: PropTypes.string,
+  hoverSoundError: PropTypes.string,
 };
 
 export default React.memo(ChannelModalBehaviorTab);

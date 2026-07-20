@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { playPreview, setPreviewVolume, stopPreview } from '../utils/soundPlayback';
+import {
+  SOUND_PREVIEW_MAX_SEC,
+  probeAudioDuration,
+  validateSoundDuration,
+  validateSoundUploadSize,
+} from '../utils/audioTrim';
 
 const DEFAULT_HOVER_VOLUME = 0.5;
 
@@ -37,6 +43,8 @@ export function useChannelModalHoverSound({
   const [uploadingHoverSound, setUploadingHoverSound] = useState(false);
   const [deletingHoverSoundId, setDeletingHoverSoundId] = useState(null);
   const [hoverSoundError, setHoverSoundError] = useState('');
+  const [hoverSoundHint, setHoverSoundHint] = useState('');
+  const [trimSound, setTrimSound] = useState(null);
 
   const reportError = useCallback(
     (message) => {
@@ -55,6 +63,7 @@ export function useChannelModalHoverSound({
   const hydrateFromSaved = useCallback((saved) => {
     stopHoverPreview();
     setHoverSoundError('');
+    setHoverSoundHint('');
     if (!saved?.url) {
       setHoverSound(null);
       setHoverSoundName('');
@@ -84,7 +93,6 @@ export function useChannelModalHoverSound({
         const selectedSound = channelHoverSounds.find((s) => s.id === soundId);
 
         if (selectedSound) {
-          // Preserve channel volume — one volume for all use of this override.
           setHoverSound({
             url: selectedSound.url,
             name: selectedSound.name,
@@ -95,6 +103,7 @@ export function useChannelModalHoverSound({
           setSelectedHoverSoundId(soundId);
           setHoverSoundEnabled(true);
           setHoverSoundError('');
+          setHoverSoundHint('');
         }
       } catch (error) {
         console.error('[ChannelModal] Error selecting hover sound:', error);
@@ -120,10 +129,32 @@ export function useChannelModalHoverSound({
     [hoverSoundVolume]
   );
 
+  const openTrimForSound = useCallback((sound) => {
+    if (!sound?.url) return;
+    stopHoverPreview();
+    setTrimSound(sound);
+  }, [stopHoverPreview]);
+
+  const closeTrimDialog = useCallback(() => {
+    setTrimSound(null);
+  }, []);
+
+  const handleTrimSaved = useCallback(
+    async (savedSound) => {
+      if (!savedSound) return;
+      await loadSoundLibrary();
+      applyUploadedSound(savedSound);
+      setHoverSoundHint('Trimmed sound saved.');
+      setTrimSound(null);
+    },
+    [applyUploadedSound, loadSoundLibrary]
+  );
+
   const handleHoverSoundUpload = useCallback(async () => {
     try {
       setUploadingHoverSound(true);
       setHoverSoundError('');
+      setHoverSoundHint('');
 
       const fileResult = await selectSoundFile();
       if (!fileResult.success) {
@@ -134,6 +165,11 @@ export function useChannelModalHoverSound({
       }
 
       const { file } = fileResult;
+      const sizeError = validateSoundUploadSize('channelHover', file.size);
+      if (sizeError) {
+        throw new Error(sizeError);
+      }
+
       const name = file.name.replace(/\.[^/.]+$/, '');
 
       const addResult = await addSound('channelHover', file, name);
@@ -141,16 +177,29 @@ export function useChannelModalHoverSound({
         throw new Error(addResult.error || 'Failed to add sound');
       }
 
-      if (addResult.sound) {
-        applyUploadedSound(addResult.sound);
-        return;
+      let sound = addResult.sound;
+      if (!sound) {
+        await loadSoundLibrary();
+        const channelHoverSounds = getSoundsByCategory('channelHover');
+        sound = channelHoverSounds.find((s) => s.name === name);
       }
 
-      await loadSoundLibrary();
-      const channelHoverSounds = getSoundsByCategory('channelHover');
-      const newSound = channelHoverSounds.find((s) => s.name === name);
-      if (newSound) {
-        await handleHoverSoundSelect(newSound.id);
+      if (!sound) {
+        throw new Error('Sound uploaded but could not be found in the library');
+      }
+
+      applyUploadedSound(sound);
+
+      const duration = await probeAudioDuration(sound.url);
+      const check = validateSoundDuration('channelHover', duration);
+      if (!check.ok) {
+        setHoverSoundHint(check.error);
+        openTrimForSound(sound);
+        return;
+      }
+      if (check.warn) {
+        setHoverSoundHint(check.warn);
+        openTrimForSound(sound);
       }
     } catch (error) {
       console.error('[ChannelModal] Error uploading hover sound:', error);
@@ -163,8 +212,8 @@ export function useChannelModalHoverSound({
     addSound,
     loadSoundLibrary,
     getSoundsByCategory,
-    handleHoverSoundSelect,
     applyUploadedSound,
+    openTrimForSound,
     reportError,
   ]);
 
@@ -209,6 +258,7 @@ export function useChannelModalHoverSound({
   useEffect(() => {
     if (!isOpen) {
       stopHoverPreview();
+      setTrimSound(null);
     }
   }, [isOpen, stopHoverPreview]);
 
@@ -222,6 +272,7 @@ export function useChannelModalHoverSound({
     setPreviewingSoundId(selectedHoverSoundId);
     try {
       await playPreview(hoverSoundUrl, hoverSoundVolume, {
+        maxDurationSec: SOUND_PREVIEW_MAX_SEC,
         onEnded: () => {
           setHoverSoundPreviewPlaying(false);
           setPreviewingSoundId(null);
@@ -231,6 +282,7 @@ export function useChannelModalHoverSound({
       console.error('[ChannelModal] Preview play error:', e);
       setHoverSoundPreviewPlaying(false);
       setPreviewingSoundId(null);
+      reportError(e?.message || 'Preview failed — the file may be corrupt or unsupported.');
     }
   }, [
     hoverSoundPreviewPlaying,
@@ -239,12 +291,12 @@ export function useChannelModalHoverSound({
     hoverSoundUrl,
     hoverSoundVolume,
     stopHoverPreview,
+    reportError,
   ]);
 
   const handleTestLibraryHoverSound = useCallback(
     async (sound) => {
       if (!sound?.url) return;
-      // Preview only — does not change selection or channel volume.
       if (hoverSoundPreviewPlaying && previewingSoundId === sound.id) {
         stopHoverPreview();
         return;
@@ -253,6 +305,7 @@ export function useChannelModalHoverSound({
       setPreviewingSoundId(sound.id);
       try {
         await playPreview(sound.url, hoverSoundVolume, {
+          maxDurationSec: SOUND_PREVIEW_MAX_SEC,
           onEnded: () => {
             setHoverSoundPreviewPlaying(false);
             setPreviewingSoundId(null);
@@ -285,6 +338,7 @@ export function useChannelModalHoverSound({
     setHoverSoundUrl('');
     setSelectedHoverSoundId(null);
     setHoverSoundEnabled(false);
+    setHoverSoundHint('');
   }, [stopHoverPreview]);
 
   const resetHoverSoundFields = useCallback(() => {
@@ -301,6 +355,31 @@ export function useChannelModalHoverSound({
     }
   }, [isOpen, soundLibrary, hoverSoundUrl, getSoundsByCategory]);
 
+  const openTrimForSelected = useCallback(() => {
+    const channelHoverSounds = getSoundsByCategory('channelHover') || [];
+    const selected =
+      channelHoverSounds.find((s) => s.id === selectedHoverSoundId) ||
+      channelHoverSounds.find((s) => s.url === hoverSoundUrl);
+    if (selected) {
+      openTrimForSound(selected);
+      return;
+    }
+    if (hoverSoundUrl) {
+      openTrimForSound({
+        id: selectedHoverSoundId,
+        name: hoverSoundName || 'Custom hover',
+        url: hoverSoundUrl,
+        isDefault: false,
+      });
+    }
+  }, [
+    getSoundsByCategory,
+    selectedHoverSoundId,
+    hoverSoundUrl,
+    hoverSoundName,
+    openTrimForSound,
+  ]);
+
   return {
     setHoverSound,
     hydrateFromSaved,
@@ -315,6 +394,12 @@ export function useChannelModalHoverSound({
     uploadingHoverSound,
     deletingHoverSoundId,
     hoverSoundError,
+    hoverSoundHint,
+    trimSound,
+    closeTrimDialog,
+    handleTrimSaved,
+    openTrimForSelected,
+    openTrimForSound,
     handleHoverSoundSelect,
     handleHoverSoundUpload,
     handleHoverSoundDelete,

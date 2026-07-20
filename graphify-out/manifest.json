@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784496299.821532,
-    "ast_hash": "26db0a6df6f2159db8385b8d53a1cc8d",
+    "mtime": 1784559566.1656268,
+    "ast_hash": "861109c8d641211f598339b76d05c144",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/ChannelModal.jsx": {
-    "mtime": 1784557258.0128152,
-    "ast_hash": "6a2761c5f3939bc9c9a09ed16d61c9f2",
+    "mtime": 1784560620.9181957,
+    "ast_hash": "52536804a6006deed8f7607071210e8f",
     "semantic_hash": ""
   },
   "src/components/channels/ChannelModalSuggestedGames.jsx": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/channelModal/ChannelModalBehaviorTab.jsx": {
-    "mtime": 1784557250.6304302,
-    "ast_hash": "ab0ac27728e19c75663e4df65e8cd387",
+    "mtime": 1784560618.2585297,
+    "ast_hash": "8d03ad779c0accb6a21d2564fecd2905",
     "semantic_hash": ""
   },
   "src/components/channels/channelModal/ChannelModalChannelArtPanel.jsx": {
@@ -945,13 +945,13 @@
     "semantic_hash": "dd2d33f779ad7cd15b0a7d3d4d4adb51"
   },
   "src/hooks/useChannelModalHoverSound.js": {
-    "mtime": 1784557213.940732,
-    "ast_hash": "707cf1437a30d464ff76616b3d56d8e6",
+    "mtime": 1784560592.5859485,
+    "ast_hash": "8acf200e0c683d591785175187414f2d",
     "semantic_hash": ""
   },
   "src/hooks/useChannelModalInitialization.js": {
-    "mtime": 1784495365.313797,
-    "ast_hash": "0349b105d62129a5eb8b3df0e0d19076",
+    "mtime": 1784560502.9252045,
+    "ast_hash": "cbc6272b8b4771a1690fc6d0ddae08f9",
     "semantic_hash": ""
   },
   "src/hooks/useChannelModalMedia.js": {
@@ -1210,8 +1210,8 @@
     "semantic_hash": ""
   },
   "src/utils/AudioManager.js": {
-    "mtime": 1784495348.345874,
-    "ast_hash": "70cc5d896d26d36b926ca3bdd23f8cd9",
+    "mtime": 1784560525.0055175,
+    "ast_hash": "f5b3b8cca14064c251b7117d127981f8",
     "semantic_hash": ""
   },
   "src/utils/IntervalManager.js": {
@@ -2445,8 +2445,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/channelModal/ChannelHoverSoundPicker.jsx": {
-    "mtime": 1784557238.6003377,
-    "ast_hash": "7c1f2d84a2afeb731feee407ac4a4abb",
+    "mtime": 1784560611.136541,
+    "ast_hash": "2f9bd1cdab74cd229d5225e6238ca807",
     "semantic_hash": ""
   },
   "src/components/home-grid/EpicLibrarySlot.jsx": {
@@ -2547,6 +2547,16 @@
   "src/utils/spaceRailVisibility.js": {
     "mtime": 1784559152.1105134,
     "ast_hash": "e8754ad0980a70daa6f0773e8eb0429c",
+    "semantic_hash": ""
+  },
+  "src/components/sounds/SoundTrimDialog.jsx": {
+    "mtime": 1784560621.6200964,
+    "ast_hash": "447133ac30b651c53b46398de39df2c0",
+    "semantic_hash": ""
+  },
+  "src/utils/audioTrim.js": {
+    "mtime": 1784560629.6545353,
+    "ast_hash": "e25ac1dc935037cb8390862566eb9f14",
     "semantic_hash": ""
   }
 }

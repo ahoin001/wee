@@ -1,17 +1,40 @@
-/** Wait until the element can play through. */
-function waitForAudioReady(audio) {
+/** Wait until the element has enough data to start (`canplay`). */
+function waitForAudioReady(audio, { timeoutMs = 12000 } = {}) {
   if (audio.readyState >= 2) {
     return Promise.resolve();
   }
   return new Promise((resolve, reject) => {
-    const onOk = () => {
+    let settled = false;
+    const cleanup = () => {
+      audio.removeEventListener('canplay', onOk);
+      audio.removeEventListener('canplaythrough', onOk);
       audio.removeEventListener('error', onErr);
+      if (timer != null) window.clearTimeout(timer);
+    };
+    const onOk = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve();
     };
     const onErr = () => {
-      audio.removeEventListener('canplaythrough', onOk);
+      if (settled) return;
+      settled = true;
+      cleanup();
       reject(new Error('Audio load error'));
     };
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      // Prefer starting with what we have over hanging forever on large files.
+      if (audio.readyState >= 2) {
+        onOk();
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(new Error('Audio load timed out'));
+    }, timeoutMs);
+    audio.addEventListener('canplay', onOk, { once: true });
     audio.addEventListener('canplaythrough', onOk, { once: true });
     audio.addEventListener('error', onErr, { once: true });
   });
@@ -41,8 +64,16 @@ class AudioManager {
     this._previewGeneration = 0;
     /** True while exclusive preview is ducking BGM. */
     this._previewDuckActive = false;
+    /** Optional auto-stop timer for long preview clips. */
+    this._previewStopTimer = null;
     /** @type {((this: HTMLAudioElement, ev: Event) => void) | null} */
     this._bgmEndedHandler = null;
+  }
+
+  _clearPreviewStopTimer() {
+    if (this._previewStopTimer == null) return;
+    window.clearTimeout(this._previewStopTimer);
+    this._previewStopTimer = null;
   }
 
   _disposeAudioElement(audio) {
@@ -429,13 +460,32 @@ class AudioManager {
    * Exclusive preview slot (Test / Preview buttons).
    * @param {string} url
    * @param {number} [volume]
-   * @param {{ onEnded?: () => void }} [options] — called when playback finishes naturally (not on stopPreview)
+   * @param {{
+   *   onEnded?: () => void,
+   *   maxDurationSec?: number,
+   *   startSec?: number,
+   *   endSec?: number,
+   * }} [options] — onEnded when playback finishes naturally or hits max/end (not on stopPreview)
    */
   async playPreview(url, volume = 0.5, options = {}) {
     if (!url) return;
     this.stopPreview();
     const onEnded = typeof options?.onEnded === 'function' ? options.onEnded : null;
-    const generation = ++this._previewGeneration;
+    const generation = this._previewGeneration;
+    const startSec = Number(options?.startSec);
+    const endSec = Number(options?.endSec);
+    const maxDurationSec = Number(options?.maxDurationSec);
+    const finishNatural = () => {
+      this._clearPreviewStopTimer();
+      if (this.previewAudio) {
+        this._disposeAudioElement(this.previewAudio);
+        this.previewAudio = null;
+      }
+      this._releasePreviewDuck();
+      if (generation === this._previewGeneration) {
+        onEnded?.();
+      }
+    };
     try {
       const audio = new Audio();
       audio.preload = 'auto';
@@ -447,6 +497,13 @@ class AudioManager {
         this._disposeAudioElement(audio);
         return;
       }
+      if (Number.isFinite(startSec) && startSec > 0) {
+        try {
+          audio.currentTime = startSec;
+        } catch {
+          /* ignore seek failures */
+        }
+      }
       this._applyDuck();
       this._previewDuckActive = true;
       await audio.play();
@@ -456,12 +513,28 @@ class AudioManager {
         return;
       }
       this.previewAudio = audio;
+
+      let limitSec = null;
+      if (Number.isFinite(endSec) && endSec > (Number.isFinite(startSec) ? startSec : 0)) {
+        const from = Number.isFinite(startSec) ? startSec : 0;
+        limitSec = Math.max(0.05, endSec - from);
+      } else if (Number.isFinite(maxDurationSec) && maxDurationSec > 0) {
+        limitSec = maxDurationSec;
+      }
+      if (limitSec != null) {
+        this._clearPreviewStopTimer();
+        this._previewStopTimer = window.setTimeout(() => {
+          if (generation !== this._previewGeneration) return;
+          finishNatural();
+        }, limitSec * 1000);
+      }
+
       audio.addEventListener(
         'ended',
         () => {
+          this._clearPreviewStopTimer();
           if (this.previewAudio === audio) this.previewAudio = null;
           this._releasePreviewDuck();
-          // Only notify if this preview was not superseded by stop/replace.
           if (generation === this._previewGeneration) {
             onEnded?.();
           }
@@ -469,6 +542,7 @@ class AudioManager {
         { once: true }
       );
     } catch (error) {
+      this._clearPreviewStopTimer();
       this._releasePreviewDuck();
       console.error('[AudioManager] Failed to play preview:', error);
       throw error;
@@ -477,6 +551,7 @@ class AudioManager {
 
   stopPreview() {
     this._previewGeneration += 1;
+    this._clearPreviewStopTimer();
     this._releasePreviewDuck();
     if (!this.previewAudio) return;
     this._disposeAudioElement(this.previewAudio);

@@ -1,8 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Reset + hydrate ChannelModal local state when opening a channel.
  * Per-channel motion / Ken Burns / launch-pause are global — not loaded here.
+ *
+ * IMPORTANT: hydrate only on open / channel change — not when `configuredChannels`
+ * identity churns. Re-hydrating called stopPreview and made hover-sound Preview
+ * start-then-immediately-stop.
  */
 export const useChannelModalInitialization = ({
   isOpen = true,
@@ -30,6 +34,9 @@ export const useChannelModalInitialization = ({
   fetchEpicGames,
   preloadMediaLibrary,
 }) => {
+  const configuredChannelsRef = useRef(configuredChannels);
+  configuredChannelsRef.current = configuredChannels;
+
   useEffect(() => {
     if (!isOpen || !channelId) return;
 
@@ -40,7 +47,7 @@ export const useChannelModalInitialization = ({
     hydrateHoverSound?.(null);
     setAsAdmin(false);
 
-    const existingChannel = configuredChannels[channelId];
+    const existingChannel = configuredChannelsRef.current[channelId];
     if (!existingChannel) return;
 
     setPath(existingChannel.path || '');
@@ -50,7 +57,6 @@ export const useChannelModalInitialization = ({
   }, [
     isOpen,
     channelId,
-    configuredChannels,
     setPath,
     setPathError,
     setShowError,

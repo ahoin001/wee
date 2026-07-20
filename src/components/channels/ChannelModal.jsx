@@ -20,6 +20,7 @@ import { preloadMediaLibrary } from '../../utils/mediaLibraryCache';
 import useSoundLibrary from '../../utils/useSoundLibrary';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { getChannelDataSlice } from '../../utils/channelSpaces';
+import SoundTrimDialog from '../sounds/SoundTrimDialog';
 import './ChannelModal.css';
 
 function ChannelModal({
@@ -128,6 +129,13 @@ function ChannelModal({
     handleHoverSoundVolumeChange,
     clearHoverSoundSelection,
     resetHoverSoundFields,
+    hoverSoundError,
+    hoverSoundHint,
+    trimSound,
+    closeTrimDialog,
+    handleTrimSaved,
+    openTrimForSelected,
+    openTrimForSound,
   } = useChannelModalHoverSound({
     currentHoverSound,
     isOpen,
@@ -474,10 +482,22 @@ function ChannelModal({
               handleHoverSoundSelect={handleHoverSoundSelect}
               handleHoverSoundUpload={handleHoverSoundUpload}
               handleHoverSoundDelete={handleHoverSoundDelete}
+              openTrimForSelected={openTrimForSelected}
+              openTrimForSound={openTrimForSound}
+              hoverSoundHint={hoverSoundHint}
+              hoverSoundError={hoverSoundError}
             />
           )}
         </div>
       </WeeChannelModal>
+
+      <SoundTrimDialog
+        isOpen={Boolean(trimSound)}
+        onClose={closeTrimDialog}
+        sound={trimSound}
+        soundType="channelHover"
+        onSaved={handleTrimSaved}
+      />
     </>
   );
 }

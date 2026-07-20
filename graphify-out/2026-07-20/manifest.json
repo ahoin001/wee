@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/App.jsx": {
-    "mtime": 1784559227.5511649,
-    "ast_hash": "d61c3615a59d38f13252a8467e9ccd6d",
+    "mtime": 1784559314.191638,
+    "ast_hash": "8c2dc79442587c0c7e7c0bd5f46fd11e",
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanel.jsx": {
@@ -210,8 +210,8 @@
     "semantic_hash": "5cf71756890d59c8bf24681fef30c348"
   },
   "src/components/channels/WiiChannelStrip.jsx": {
-    "mtime": 1784559092.7782097,
-    "ast_hash": "d3d1033b9ac07fa4de8f3aa568112ac3",
+    "mtime": 1784559389.965063,
+    "ast_hash": "340f9969c94c79a4fe11abc469b47337",
     "semantic_hash": ""
   },
   "src/components/channels/channelGridStyles.js": {
@@ -405,8 +405,8 @@
     "semantic_hash": "c21f7566834f5fb136784a4dc3fb65b3"
   },
   "src/components/game-hub/GameHubSpace.jsx": {
-    "mtime": 1784490394.50601,
-    "ast_hash": "0906a15ab76698cae53d1bebb4b6e030",
+    "mtime": 1784559380.4974775,
+    "ast_hash": "b74b3dd3ba776800a58a261d1b0aff6b",
     "semantic_hash": ""
   },
   "src/components/game-hub/GameHubTileDialogsProvider.jsx": {
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "src/components/media-hub/MediaHubSpace.jsx": {
-    "mtime": 1784141203.314412,
-    "ast_hash": "9dab5257c75ac25531db3551074b43e7",
+    "mtime": 1784559389.587671,
+    "ast_hash": "580415ed23d606f023d90b70a7bcafed",
     "semantic_hash": ""
   },
   "src/components/media-hub/index.js": {
@@ -550,8 +550,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784559100.5946803,
-    "ast_hash": "8b55eed8be692f6ec89091ecb254fd0c",
+    "mtime": 1784559382.7119043,
+    "ast_hash": "060a14d3c69825f703d97b6c9d2818de",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -885,8 +885,8 @@
     "semantic_hash": ""
   },
   "src/design/spaceShellMotion.js": {
-    "mtime": 1784238227.472986,
-    "ast_hash": "398cb982bc2b1be73b9b84ddd94c42ba",
+    "mtime": 1784559306.363174,
+    "ast_hash": "7fdb0dadf8ec2a6530bf3bf6ebd7e75f",
     "semantic_hash": ""
   },
   "src/design/suggestedGameBadgeColors.js": {
@@ -905,8 +905,8 @@
     "semantic_hash": ""
   },
   "src/design/weeMotion.js": {
-    "mtime": 1784557017.3398242,
-    "ast_hash": "70fc174fa353bad800431b138ab84cd8",
+    "mtime": 1784559368.3311608,
+    "ast_hash": "1dad53dd3d0750fc73962c73e0e5a7d9",
     "semantic_hash": ""
   },
   "src/dev/hub-modal-overhaul-reference.jsx": {
@@ -975,8 +975,8 @@
     "semantic_hash": "90ec795864c01bafa54a8b97d7c56fa5"
   },
   "src/hooks/useHubSpaceEntrance.js": {
-    "mtime": 1783895412.7608354,
-    "ast_hash": "4c3041369ebcee310e5fd48d90292926",
+    "mtime": 1784559334.770932,
+    "ast_hash": "d1936bb7f69a4d50c2ed8ac6c2a1969a",
     "semantic_hash": ""
   },
   "src/hooks/useMediaLibraryBrowser.js": {
@@ -1475,8 +1475,8 @@
     "semantic_hash": ""
   },
   "src/utils/store/settingsPersistenceContract.js": {
-    "mtime": 1784558035.580773,
-    "ast_hash": "726b2690344e1b86465aadfe55d91a2e",
+    "mtime": 1784559310.8179162,
+    "ast_hash": "0060a526cc811976692a2b59908e19c0",
     "semantic_hash": ""
   },
   "src/utils/store/storeContracts.ts": {
@@ -1510,8 +1510,8 @@
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784558034.6286721,
-    "ast_hash": "d834cb85e24b3f1cd298b78f7562483c",
+    "mtime": 1784559334.660196,
+    "ast_hash": "c47240b15df04b266a5661296779d206",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {

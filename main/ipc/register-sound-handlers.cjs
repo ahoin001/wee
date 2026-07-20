@@ -36,6 +36,12 @@ function registerSoundHandlers({
   ipcMain.handle('get-saved-sounds', async () => await loadSoundLibrary());
   ipcMain.handle('save-saved-sounds', async (_event, sounds) => await writeJson(savedSoundsPath, sounds));
 
+  const maxBytesForSoundType = (soundType) => {
+    if (soundType === 'channelHover' || soundType === 'channelClick') return 5 * 1024 * 1024;
+    if (soundType === 'backgroundMusic') return 15 * 1024 * 1024;
+    return 10 * 1024 * 1024;
+  };
+
   ipcMain.handle('select-sound-file', async () => {
     try {
       const result = await dialog.showOpenDialog(getMainWindow(), {
@@ -63,8 +69,9 @@ function registerSoundHandlers({
         try {
           const stats = await fsPromises.stat(filePath);
           fileSize = stats.size;
-          if (stats.size > 10 * 1024 * 1024) {
-            return { success: false, error: 'File is too large.\n\nMaximum file size is 10MB. Please select a smaller file.' };
+          // Soft dialog gate — category-specific hard limits apply in add-sound.
+          if (stats.size > 15 * 1024 * 1024) {
+            return { success: false, error: 'File is too large.\n\nMaximum file size is 15MB. Please select a smaller file or trim it first.' };
           }
           if (stats.size === 0) {
             return { success: false, error: 'File is empty.\n\nPlease select a valid audio file.' };
@@ -89,7 +96,11 @@ function registerSoundHandlers({
       const fileExtension = path.extname(file.name).toLowerCase();
       if (!validExtensions.includes(fileExtension)) return { success: false, error: `Invalid file type: ${fileExtension}. Supported formats: ${validExtensions.join(', ')}` };
       const stats = await fsPromises.stat(file.path).catch(() => null);
-      if (stats?.size > 10 * 1024 * 1024) return { success: false, error: 'File is too large. Maximum size is 10MB.' };
+      const maxBytes = maxBytesForSoundType(soundType);
+      if (stats?.size > maxBytes) {
+        const mb = Math.round(maxBytes / (1024 * 1024));
+        return { success: false, error: `File is too large. Maximum for this sound type is ${mb}MB.` };
+      }
       if (!name || name.trim().length === 0) return { success: false, error: 'Sound name cannot be empty' };
       if (name.length > 50) return { success: false, error: 'Sound name is too long. Maximum length is 50 characters.' };
       const trimmedName = name.trim();
@@ -115,6 +126,96 @@ function registerSoundHandlers({
       }
     } catch (error) {
       return { success: false, error: `Unexpected error: ${error.message}` };
+    }
+  });
+
+  /**
+   * Save a trimmed WAV clip — replace an existing user sound, or create a new library entry.
+   * Payload: { soundType, soundId? (replace), mode: 'replace'|'new', name?, wavBase64 }
+   */
+  ipcMain.handle('sounds:save-trimmed', async (_event, payload = {}) => {
+    try {
+      const { soundType, soundId, mode, name, wavBase64 } = payload;
+      if (!soundTypes.includes(soundType)) {
+        return { success: false, error: `Invalid sound type: ${soundType}` };
+      }
+      if (!wavBase64 || typeof wavBase64 !== 'string') {
+        return { success: false, error: 'Missing trimmed audio data' };
+      }
+      let wavBuffer;
+      try {
+        wavBuffer = Buffer.from(wavBase64, 'base64');
+      } catch {
+        return { success: false, error: 'Invalid trimmed audio payload' };
+      }
+      if (wavBuffer.length < 44) {
+        return { success: false, error: 'Trimmed audio is empty' };
+      }
+      const maxBytes = maxBytesForSoundType(soundType);
+      if (wavBuffer.length > maxBytes) {
+        const mb = Math.round(maxBytes / (1024 * 1024));
+        return { success: false, error: `Trimmed file is too large (max ${mb}MB). Shorten the selection.` };
+      }
+
+      const library = await loadSoundLibrary();
+      if (!library[soundType]) library[soundType] = [];
+      await fsPromises.mkdir(userSoundsPath, { recursive: true });
+
+      if (mode === 'replace') {
+        const idx = library[soundType].findIndex((s) => s.id === soundId);
+        if (idx === -1) return { success: false, error: 'Sound not found' };
+        const existing = library[soundType][idx];
+        if (existing.isDefault) {
+          return { success: false, error: 'Cannot overwrite default sounds — use Save as new instead.' };
+        }
+        const timestamp = Date.now();
+        const filename = `user-${soundType}-${timestamp}.wav`;
+        const targetPath = path.join(userSoundsPath, filename);
+        await fsPromises.writeFile(targetPath, wavBuffer);
+        if (existing.filename && existing.filename !== filename) {
+          try {
+            await fsPromises.unlink(path.join(userSoundsPath, existing.filename));
+          } catch {
+            /* ignore missing old file */
+          }
+        }
+        const next = {
+          ...existing,
+          filename,
+          url: `userdata://sounds/${filename}`,
+        };
+        library[soundType][idx] = next;
+        await writeJson(savedSoundsPath, library);
+        return { success: true, sound: next };
+      }
+
+      // mode === 'new' (default)
+      const trimmedName = String(name || '').trim() || 'Trimmed sound';
+      if (trimmedName.length > 50) {
+        return { success: false, error: 'Sound name is too long. Maximum length is 50 characters.' };
+      }
+      const clash = library[soundType].find((s) => s.name.toLowerCase() === trimmedName.toLowerCase());
+      if (clash) {
+        return { success: false, error: `A sound named "${trimmedName}" already exists` };
+      }
+      const timestamp = Date.now();
+      const filename = `user-${soundType}-${timestamp}.wav`;
+      const targetPath = path.join(userSoundsPath, filename);
+      await fsPromises.writeFile(targetPath, wavBuffer);
+      const newSound = {
+        id: `user-${soundType}-${timestamp}`,
+        name: trimmedName,
+        filename,
+        url: `userdata://sounds/${filename}`,
+        volume: 0.5,
+        enabled: false,
+        isDefault: false,
+      };
+      library[soundType].push(newSound);
+      await writeJson(savedSoundsPath, library);
+      return { success: true, sound: newSound };
+    } catch (error) {
+      return { success: false, error: error?.message || 'Failed to save trimmed sound' };
     }
   });
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, LayoutGroup, m, useReducedMotion } from 'framer-motion';
-import { Check, Loader2, Pause, Play, Trash2, Upload, Volume2 } from 'lucide-react';
+import { Check, Loader2, Pause, Play, Scissors, Trash2, Upload, Volume2 } from 'lucide-react';
 import Slider from '../../../ui/Slider';
 import Text from '../../../ui/Text';
 import {
@@ -35,6 +35,10 @@ function ChannelHoverSoundPicker({
   handleHoverSoundSelect,
   handleHoverSoundUpload,
   handleHoverSoundDelete,
+  openTrimForSelected,
+  openTrimForSound,
+  hoverSoundHint,
+  hoverSoundError,
 }) {
   const reduceMotion = useReducedMotion();
   const listTransition = createWeeTransition('tab', { reducedMotion: !!reduceMotion });
@@ -118,6 +122,18 @@ function ChannelHoverSoundPicker({
                     <Play size={14} strokeWidth={2.5} aria-hidden />
                   )}
                   {nowPlayingPreview ? 'Stop' : 'Preview'}
+                </WeeButton>
+                <WeeButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={openTrimForSelected}
+                  className="!inline-flex !items-center !gap-1.5"
+                  title="Trim this sound"
+                  disabled={!hoverSoundUrl}
+                >
+                  <Scissors size={14} strokeWidth={2.4} aria-hidden />
+                  Trim
                 </WeeButton>
                 <WeeButton
                   type="button"
@@ -289,6 +305,19 @@ function ChannelHoverSoundPicker({
                         ) : null}
                       </div>
 
+                      <button
+                        type="button"
+                        className="relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[hsl(var(--text-tertiary))] transition-colors hover:bg-[hsl(var(--primary)/0.12)] hover:text-[hsl(var(--primary))]"
+                        title={`Trim ${sound.name}`}
+                        aria-label={`Trim ${sound.name}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openTrimForSound?.(sound);
+                        }}
+                      >
+                        <Scissors size={14} strokeWidth={2.25} aria-hidden />
+                      </button>
+
                       <AnimatePresence mode="wait" initial={false}>
                         {pendingDelete ? (
                           <m.div
@@ -355,9 +384,21 @@ function ChannelHoverSoundPicker({
         )}
       </div>
 
+      {hoverSoundError ? (
+        <Text variant="help" className="!m-0 text-[hsl(var(--state-error))]">
+          {hoverSoundError}
+        </Text>
+      ) : null}
+      {hoverSoundHint ? (
+        <Text variant="help" className="!m-0 text-[hsl(var(--state-warning))]">
+          {hoverSoundHint}
+        </Text>
+      ) : null}
+
       <Text variant="help" className="!m-0">
         Applied sounds override the global hover track for this tile only. Still needs Sounds →
-        Enable hover sounds. Uploads are shared across channels.
+        Enable hover sounds. Uploads are shared across channels (max 5MB for hover clips). Use Trim
+        for longer songs — previews stop after a few seconds.
       </Text>
     </div>
   );
@@ -388,6 +429,10 @@ ChannelHoverSoundPicker.propTypes = {
   handleHoverSoundSelect: PropTypes.func.isRequired,
   handleHoverSoundUpload: PropTypes.func.isRequired,
   handleHoverSoundDelete: PropTypes.func,
+  openTrimForSelected: PropTypes.func,
+  openTrimForSound: PropTypes.func,
+  hoverSoundHint: PropTypes.string,
+  hoverSoundError: PropTypes.string,
 };
 
 ChannelHoverSoundPicker.defaultProps = {
@@ -404,6 +449,10 @@ ChannelHoverSoundPicker.defaultProps = {
   globalHoverEnabled: true,
   handleTestLibraryHoverSound: undefined,
   handleHoverSoundDelete: undefined,
+  openTrimForSelected: undefined,
+  openTrimForSound: undefined,
+  hoverSoundHint: '',
+  hoverSoundError: '',
 };
 
 export default React.memo(ChannelHoverSoundPicker);
