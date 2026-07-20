@@ -1,11 +1,11 @@
 # Graph Report - wee  (2026-07-20)
 
 ## Corpus Check
-- 497 files · ~335,947 words
+- 497 files · ~335,975 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2816 nodes · 6815 edges · 205 communities (149 shown, 56 thin omitted)
+- 2816 nodes · 6815 edges · 205 communities (148 shown, 57 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 102 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
@@ -237,7 +237,7 @@
 ## Import Cycles
 - 4-file cycle: `src/components/app-library/CommunityPresets.jsx -> src/components/modals/index.js -> src/components/modals/PrimaryActionsModal.jsx -> src/components/app-library/index.js -> src/components/app-library/CommunityPresets.jsx`
 
-## Communities (205 total, 56 thin omitted)
+## Communities (205 total, 57 thin omitted)
 
 ### Community 0 - "PresetsSettingsTab.jsx"
 Cohesion: 0.13
@@ -280,12 +280,12 @@ Cohesion: 0.23
 Nodes (12): PerformanceMonitor(), CHANNEL_IDLE_MS, getChannelIdleDurationMs(), getInitialActivity(), getInitialMainWindowActivity(), useAppActivity(), useHomeIdleExperience(), usePowerPolicy() (+4 more)
 
 ### Community 11 - "AdminPanel.jsx"
-Cohesion: 0.43
-Nodes (7): AdminQuickAccessSlot(), layoutCellsForPreset(), splitActionsByCapacity(), AuthModal(), createWeeShellRailItemVariants(), useFloatingWidgetsState(), useUIState()
+Cohesion: 0.25
+Nodes (17): AdminPanel(), AdminPanelWidget(), AdminQuickAccessSlot(), layoutCellsForPreset(), splitActionsByCapacity(), QuickAccessWidgetSettings(), AuthModal(), ApiIntegrationsSettingsTab() (+9 more)
 
 ### Community 12 - "ChannelModal.jsx"
-Cohesion: 0.33
-Nodes (13): clampGooeyIntensity(), createGooeyCloseSpring(), createGooeyModalPanelVariants(), createGooeyOpenSpring(), DEFAULT_GOOEY_PHYSICS, lerp(), mergeGooeyPhysics(), normalizeGooeyHoverMode() (+5 more)
+Cohesion: 0.21
+Nodes (16): FloatingWidgetPresence, clampGooeyIntensity(), createGooeyCloseSpring(), createGooeyModalPanelVariants(), createGooeyOpenSpring(), DEFAULT_GOOEY_PHYSICS, lerp(), mergeGooeyPhysics() (+8 more)
 
 ### Community 13 - "scripts"
 Cohesion: 0.06
@@ -316,7 +316,7 @@ Cohesion: 0.17
 Nodes (15): chromeForSize(), EMPTY_SYSTEM_SESSIONS, formatMs(), NowPlayingSlot(), toStoredSession(), useNowPlayingSources(), EMPTY_NOW_PLAYING, normalizeNowPlaying() (+7 more)
 
 ### Community 20 - "managers.js"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (21): createWiiStripGridStyle(), WiiChannelStrip(), resolveSpaceShellEntranceTiming(), SPACE_SHELL_ENTRANCE_TIERS, createHomeChannelEntranceBandVariants(), createHubEntranceOrchestratorVariants(), createMediaHubGridContainerVariants(), createMediaHubGridItemVariants() (+13 more)
 
 ### Community 22 - "WButton.jsx"
@@ -368,7 +368,7 @@ Cohesion: 0.17
 Nodes (11): { app, BrowserWindow, ipcMain, shell, dialog }, createDesktopShortcut(), createStartMenuShortcut(), { exec }, finalizeInstallation(), fs, INSTALL_STEPS, os (+3 more)
 
 ### Community 35 - "ChannelModalChannelArtPanel.jsx"
-Cohesion: 0.17
+Cohesion: 0.15
 Nodes (19): ChannelDragOverlayFrame(), ChannelDropTargetMotion(), buildDropMicroSparks(), buildDropParticles(), buildLiftParticles(), ChannelReorderVfxPortal(), DropBurstLayer(), LiftBurstLayer() (+11 more)
 
 ### Community 36 - "PerformanceMonitor"
@@ -437,7 +437,7 @@ Nodes (23): GameHubControlsPill(), HomePageIndicator(), HomeSlotResizeHandle(), 
 
 ### Community 53 - "electron-updater"
 Cohesion: 0.29
-Nodes (12): AdminPanel(), EMPTY_CUSTOM, AdminPanelWidget(), ADMIN_ACTION_CATEGORIES, ALLOWED_SIMPLE_START_TARGETS, CUSTOM_ACTION_ICONS, DESTRUCTIVE_ACTION_IDS, DESTRUCTIVE_COMMAND_PATTERNS (+4 more)
+Nodes (9): EMPTY_CUSTOM, ADMIN_ACTION_CATEGORIES, ALLOWED_SIMPLE_START_TARGETS, CUSTOM_ACTION_ICONS, DESTRUCTIVE_ACTION_IDS, DESTRUCTIVE_COMMAND_PATTERNS, isDestructiveAdminAction(), splitCommand() (+1 more)
 
 ### Community 54 - "useWallpaperDataFileSync.js"
 Cohesion: 0.60
@@ -472,8 +472,8 @@ Cohesion: 0.28
 Nodes (8): SpotifyLiveGradientWallpaper(), formatMessage(), logError(), logWarn(), registerSpotifyGradientSave(), SPOTIFY_SCOPES, generatePresetThumbnail(), uploadPreset()
 
 ### Community 74 - "mediaHubStremio.js"
-Cohesion: 0.53
-Nodes (3): FloatingWidgetPresence, useDialogExitPresence(), variantNameFromDefinition()
+Cohesion: 0.50
+Nodes (4): 1.A Dial Inference (design read → dial values), 1.B Use-Case Presets, 1.C How the Dials Drive Output, 1. THE THREE DIALS (Core Configuration)
 
 ### Community 75 - "@dnd-kit/utilities"
 Cohesion: 0.31
@@ -552,8 +552,8 @@ Cohesion: 0.33
 Nodes (5): Effects, Leave / return, Removability (one effect), Removability (whole feature), Scene FX Beta
 
 ### Community 95 - "@tanstack/react-virtual"
-Cohesion: 0.12
-Nodes (16): 10. SECTION RHYTHM RULE, 12. DENSITY & SPACING DISCIPLINE, 14. IMAGE / MEDIA DIRECTION, 16. MULTI-IMAGE CONSISTENCY RULE, 17. CLARITY CHECK, 19. RESPONSE BEHAVIOR, 1. ACTIVE BASELINE CONFIGURATION, 21. FINAL GOAL (+8 more)
+Cohesion: 0.14
+Nodes (14): 10. SECTION RHYTHM RULE, 12. DENSITY & SPACING DISCIPLINE, 14. IMAGE / MEDIA DIRECTION, 16. MULTI-IMAGE CONSISTENCY RULE, 17. CLARITY CHECK, 19. RESPONSE BEHAVIOR, 1. ACTIVE BASELINE CONFIGURATION, 21. FINAL GOAL (+6 more)
 
 ### Community 96 - "commandCatalog.js"
 Cohesion: 0.24
@@ -566,10 +566,6 @@ Nodes (5): defaultUncontrolledSize(), useFloatingWidgetFrame(), viewportResizeBo
 ### Community 98 - "zustand"
 Cohesion: 0.28
 Nodes (3): ConfirmationModal(), ImageModal(), WeeModalShell()
-
-### Community 110 - "normalizeNowPlayingExperience"
-Cohesion: 0.43
-Nodes (7): QuickAccessWidgetSettings(), ApiIntegrationsSettingsTab(), INTEGRATION_SUBTABS, spotifyBtnClass(), SteamIntegrationSettings, applyAdminPanelPowerActions(), normalizeAdminPanelConfig()
 
 ### Community 111 - "Animation Audit Playbook"
 Cohesion: 0.09
@@ -672,8 +668,8 @@ Cohesion: 0.17
 Nodes (12): 4.10 Quotes & Testimonials, 4.11 Page Theme Lock (Light / Dark Mode Consistency), 4.1 Typography, 4.2 Color Calibration, 4.3 Layout Diversification, 4.4 Materiality, Shadows, Cards, 4.5 Interactive UI States, 4.6 Data & Form Patterns (+4 more)
 
 ### Community 141 - "How to Set Up Supabase"
-Cohesion: 0.13
-Nodes (15): 0.A Read these signals first, 0.B Output a one-line "Design Read" before generating, 0. BRIEF INFERENCE (Read the Room Before Anything Else), 0.C If the brief is ambiguous, ask one question, do not guess, 0.D Anti-Default Discipline, 13. OUT OF SCOPE, 14. FINAL PRE-FLIGHT CHECK, 1.A Dial Inference (design read → dial values) (+7 more)
+Cohesion: 0.18
+Nodes (11): 0.A Read these signals first, 0.B Output a one-line "Design Read" before generating, 0. BRIEF INFERENCE (Read the Room Before Anything Else), 0.C If the brief is ambiguous, ask one question, do not guess, 0.D Anti-Default Discipline, 13. OUT OF SCOPE, 14. FINAL PRE-FLIGHT CHECK, 2.A When to reach for a real design system (use official packages) (+3 more)
 
 ### Community 142 - "Components Organization"
 Cohesion: 0.50
@@ -794,7 +790,7 @@ Nodes (17): IsolatedWallpaperBackground, IsolatedWallpaperBackgroundInner(), spa
 ## Knowledge Gaps
 - **842 isolated node(s):** `PLAYLISTS`, `SONGS`, `name`, `version`, `main` (+837 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **56 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **57 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_

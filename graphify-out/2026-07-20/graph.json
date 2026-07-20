@@ -2940,7 +2940,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_admin_adminpanel_adminpanel",
-      "community": 53,
+      "community": 11,
       "norm_label": "adminpanel()"
     },
     {
@@ -2950,7 +2950,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_admin_adminpanelwidget",
-      "community": 53,
+      "community": 11,
       "norm_label": "adminpanelwidget.jsx"
     },
     {
@@ -2960,7 +2960,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_admin_adminpanelwidget_adminpanelwidget",
-      "community": 53,
+      "community": 11,
       "norm_label": "adminpanelwidget()"
     },
     {
@@ -5740,7 +5740,7 @@
       "source_location": "L265",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetsettingspanel_quickaccesswidgetsettings",
-      "community": 110,
+      "community": 11,
       "norm_label": "quickaccesswidgetsettings()"
     },
     {
@@ -7570,7 +7570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_settings_apiintegrationssettingstab",
-      "community": 110,
+      "community": 11,
       "norm_label": "apiintegrationssettingstab.jsx"
     },
     {
@@ -7580,7 +7580,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_settings_apiintegrationssettingstab_integration_subtabs",
-      "community": 110,
+      "community": 11,
       "norm_label": "integration_subtabs"
     },
     {
@@ -7590,7 +7590,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_settings_apiintegrationssettingstab_spotifybtnclass",
-      "community": 110,
+      "community": 11,
       "norm_label": "spotifybtnclass()"
     },
     {
@@ -7600,7 +7600,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_components_settings_apiintegrationssettingstab_apiintegrationssettingstab",
-      "community": 110,
+      "community": 11,
       "norm_label": "apiintegrationssettingstab()"
     },
     {
@@ -8360,7 +8360,7 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "src_components_settings_steamintegrationsettings_steamintegrationsettings",
-      "community": 110,
+      "community": 11,
       "norm_label": "steamintegrationsettings"
     },
     {
@@ -9180,7 +9180,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_widgets_common_floatingwidgetpresence",
-      "community": 74,
+      "community": 12,
       "norm_label": "floatingwidgetpresence.jsx"
     },
     {
@@ -9190,7 +9190,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_widgets_common_floatingwidgetpresence_floatingwidgetpresence",
-      "community": 74,
+      "community": 12,
       "norm_label": "floatingwidgetpresence"
     },
     {
@@ -9200,7 +9200,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_widgets_common_gooeyfloatingpanel",
-      "community": 20,
+      "community": 35,
       "norm_label": "gooeyfloatingpanel.jsx"
     },
     {
@@ -9210,7 +9210,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_components_widgets_common_gooeyfloatingpanel_gooeyfloatingpanel",
-      "community": 20,
+      "community": 35,
       "norm_label": "gooeyfloatingpanel()"
     },
     {
@@ -10037,7 +10037,7 @@
       "label": "ImmersiveSoundModeController()",
       "file_type": "code",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeController.jsx",
-      "source_location": "L16",
+      "source_location": "L19",
       "_origin": "ast",
       "id": "src_features_immersivesoundmode_immersivesoundmodecontroller_immersivesoundmodecontroller",
       "community": 3,
@@ -10810,7 +10810,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usedialogexitpresence",
-      "community": 74,
+      "community": 12,
       "norm_label": "usedialogexitpresence.js"
     },
     {
@@ -10820,7 +10820,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_hooks_usedialogexitpresence_variantnamefromdefinition",
-      "community": 74,
+      "community": 12,
       "norm_label": "variantnamefromdefinition()"
     },
     {
@@ -10830,7 +10830,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_hooks_usedialogexitpresence_usedialogexitpresence",
-      "community": 74,
+      "community": 12,
       "norm_label": "usedialogexitpresence()"
     },
     {
@@ -12450,7 +12450,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ui_wee_weemodalshell",
-      "community": 74,
+      "community": 12,
       "norm_label": "weemodalshell.jsx"
     },
     {
@@ -13460,7 +13460,7 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "src_utils_adminpanelcommands_normalizeadminpanelconfig",
-      "community": 110,
+      "community": 11,
       "norm_label": "normalizeadminpanelconfig()"
     },
     {
@@ -13470,7 +13470,7 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "src_utils_adminpanelcommands_applyadminpanelpoweractions",
-      "community": 110,
+      "community": 11,
       "norm_label": "applyadminpanelpoweractions()"
     },
     {
@@ -13480,7 +13480,7 @@
       "source_location": "L157",
       "_origin": "ast",
       "id": "src_utils_adminpanelcommands_executeadmincommand",
-      "community": 53,
+      "community": 11,
       "norm_label": "executeadmincommand()"
     },
     {
@@ -22250,7 +22250,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "agents_skills_design_taste_frontend_skill_1_the_three_dials_core_configuration",
-      "community": 141,
+      "community": 74,
       "norm_label": "1. the three dials (core configuration)"
     },
     {
@@ -22260,7 +22260,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "agents_skills_design_taste_frontend_skill_1_a_dial_inference_design_read_dial_values",
-      "community": 141,
+      "community": 74,
       "norm_label": "1.a dial inference (design read \u2192 dial values)"
     },
     {
@@ -22270,7 +22270,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "agents_skills_design_taste_frontend_skill_1_b_use_case_presets",
-      "community": 141,
+      "community": 74,
       "norm_label": "1.b use-case presets"
     },
     {
@@ -22280,7 +22280,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "agents_skills_design_taste_frontend_skill_1_c_how_the_dials_drive_output",
-      "community": 141,
+      "community": 74,
       "norm_label": "1.c how the dials drive output"
     },
     {
@@ -23770,7 +23770,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "agents_skills_imagegen_frontend_web_skill",
-      "community": 95,
+      "community": 110,
       "norm_label": "skill.md"
     },
     {
@@ -23780,7 +23780,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "agents_skills_imagegen_frontend_web_skill_hard_output_rule_read_first",
-      "community": 95,
+      "community": 110,
       "norm_label": "hard output rule \u2014 read first"
     },
     {
@@ -23790,7 +23790,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "agents_skills_imagegen_frontend_web_skill_hero_composition_bias_read_first",
-      "community": 95,
+      "community": 110,
       "norm_label": "hero composition bias \u2014 read first"
     },
     {
@@ -67393,7 +67393,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0,
       "source": "src_features_immersivesoundmode_immersivesoundmodestage_immersivesoundmodestage",
       "target": "src_design_weemotion_useweemotion",
@@ -67603,7 +67603,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeController.jsx",
-      "source_location": "L16",
+      "source_location": "L19",
       "weight": 1.0,
       "source": "src_features_immersivesoundmode_immersivesoundmodecontroller",
       "target": "src_features_immersivesoundmode_immersivesoundmodecontroller_immersivesoundmodecontroller",
@@ -67669,7 +67669,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeController.jsx",
-      "source_location": "L20",
+      "source_location": "L36",
       "weight": 1.0,
       "source": "src_features_immersivesoundmode_immersivesoundmodecontroller_immersivesoundmodecontroller",
       "target": "src_features_immersivesoundmode_immersivesoundmodeprefs_normalizeimmersivesoundmode",
@@ -68007,7 +68007,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx",
-      "source_location": "L275",
+      "source_location": "L276",
       "weight": 1.0,
       "context": "argument",
       "source": "src_features_immersivesoundmode_immersivesoundmodestage",
@@ -68107,7 +68107,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx",
-      "source_location": "L66",
+      "source_location": "L67",
       "weight": 1.0,
       "source": "src_features_immersivesoundmode_immersivesoundmodestage_immersivesoundmodestage",
       "target": "src_features_immersivesoundmode_immersivesoundmodeapi_exitimmersivesoundmode",
@@ -68118,7 +68118,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx",
-      "source_location": "L27",
+      "source_location": "L31",
       "weight": 1.0,
       "source": "src_features_immersivesoundmode_immersivesoundmodestage_immersivesoundmodestage",
       "target": "src_features_immersivesoundmode_immersivesoundmodeprefs_normalizeimmersivesoundmode",
@@ -68129,7 +68129,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0,
       "source": "src_features_immersivesoundmode_immersivesoundmodestage_immersivesoundmodestage",
       "target": "src_features_immersivesoundmode_immersivesoundmodeprefs_resolveimmersivesoundlook",
@@ -68140,7 +68140,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx",
-      "source_location": "L34",
+      "source_location": "L35",
       "weight": 1.0,
       "source": "src_features_immersivesoundmode_immersivesoundmodestage_immersivesoundmodestage",
       "target": "src_hooks_useanimationactivity_useanimationactivity",
@@ -68151,7 +68151,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx",
-      "source_location": "L48",
+      "source_location": "L49",
       "weight": 1.0,
       "source": "src_features_immersivesoundmode_immersivesoundmodestage_immersivesoundmodestage",
       "target": "src_hooks_usemusicreactivelevels_usemusicreactivelevels",

@@ -96,6 +96,25 @@ function shallowEqualObjects(a, b) {
   return true;
 }
 
+/** True when applying `updates` would not change any compared fields on `prev`. */
+function channelSpacePatchUnchanged(prev, updates) {
+  if (!updates || typeof updates !== 'object') return true;
+  const base = prev && typeof prev === 'object' ? prev : {};
+  for (const key of Object.keys(updates)) {
+    const nextVal = updates[key];
+    const prevVal = base[key];
+    if (nextVal && typeof nextVal === 'object' && !Array.isArray(nextVal)) {
+      const prevObj = prevVal && typeof prevVal === 'object' ? prevVal : {};
+      for (const nestedKey of Object.keys(nextVal)) {
+        if (!Object.is(prevObj[nestedKey], nextVal[nestedKey])) return false;
+      }
+      continue;
+    }
+    if (!Object.is(prevVal, nextVal)) return false;
+  }
+  return true;
+}
+
 /**
  * Merge patch into an object while treating `undefined` as explicit key removal.
  * Used for per-channel overrides so selecting "global" can truly clear stored keys.
@@ -905,11 +924,15 @@ useConsolidatedAppStore = create(
           setChannelDataForSpace: (spaceKey, updates) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
             if (key === 'workspaces') {
+              const prev =
+                state.channels.dataBySpace?.workspaces || createDefaultChannelSpaceData();
+              if (channelSpacePatchUnchanged(prev, updates)) return state;
               return {
-                channels: patchFocusChannelSpace(state, (prev) => ({ ...prev, ...updates })),
+                channels: patchFocusChannelSpace(state, (space) => ({ ...space, ...updates })),
               };
             }
             const prev = state.channels.dataBySpace?.[key] || createDefaultChannelSpaceData();
+            if (channelSpacePatchUnchanged(prev, updates)) return state;
             return {
               channels: {
                 ...state.channels,
@@ -1027,14 +1050,18 @@ useConsolidatedAppStore = create(
           setChannelNavigationForSpace: (spaceKey, updates) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
             if (key === 'workspaces') {
+              const channelsData =
+                state.channels?.dataBySpace?.workspaces || createDefaultChannelSpaceData();
+              if (channelSpacePatchUnchanged(channelsData.navigation, updates)) return state;
               return {
-                channels: patchFocusChannelSpace(state, (channelsData) => ({
-                  ...channelsData,
-                  navigation: { ...channelsData.navigation, ...updates },
+                channels: patchFocusChannelSpace(state, (space) => ({
+                  ...space,
+                  navigation: { ...space.navigation, ...updates },
                 })),
               };
             }
             const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
+            if (channelSpacePatchUnchanged(channelsData.navigation, updates)) return state;
             return {
               channels: {
                 ...state.channels,

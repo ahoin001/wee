@@ -26,9 +26,11 @@ import {
  *
  * @param {object} [options]
  * @param {boolean} [options.enableGlobalPageShortcuts] — Register window key/mouse page nav only here (e.g. PaginatedChannels shell), not per Channel tile.
+ * @param {boolean} [options.runLayoutNormalization] — Soft Wii layout/nav sync. Default false — enable only on the board shell so tiles/chrome do not fan out store writes (React #185).
  */
 export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   const enableGlobalPageShortcuts = options.enableGlobalPageShortcuts === true;
+  const runLayoutNormalization = options.runLayoutNormalization === true;
   const contextKey = useChannelSpaceKey();
   const spaceKey = normalizeChannelSpaceKey(
     explicitSpaceKey !== undefined && explicitSpaceKey !== null ? explicitSpaceKey : contextKey
@@ -79,6 +81,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   }, [channelData, navigation]);
 
   useEffect(() => {
+    if (!runLayoutNormalization) return;
     const { dataPatch, navigationPatch, needsNormalization } = getWiiNormalization(channelData);
     if (!needsNormalization) {
       return;
@@ -87,6 +90,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     setChannelDataForSpace(spaceKey, dataPatch);
     setChannelNavigationForSpace(spaceKey, navigationPatch);
   }, [
+    runLayoutNormalization,
     spaceKey,
     channelData.layout,
     channelData.gridColumns,

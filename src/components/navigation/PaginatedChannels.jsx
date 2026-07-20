@@ -89,7 +89,10 @@ const PaginatedChannelsInner = React.memo(() => {
     prevPage,
     isChannelSlotHidden,
     setSlotHidden,
-  } = useChannelOperations(undefined, { enableGlobalPageShortcuts: true });
+  } = useChannelOperations(undefined, {
+    enableGlobalPageShortcuts: true,
+    runLayoutNormalization: true,
+  });
 
   const isSpaceTransitioning = useConsolidatedAppStore((s) => s.spaces.isTransitioning);
   const activeSpaceId = useConsolidatedAppStore((s) => s.spaces.activeSpaceId);

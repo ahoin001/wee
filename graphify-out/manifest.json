@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784562126.9116092,
-    "ast_hash": "75e61868d6cc9ca8c5824c13e4fb87da",
+    "mtime": 1784563943.5812473,
+    "ast_hash": "a2a2736660c961fada4146f123c9f434",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -550,8 +550,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784559382.7119043,
-    "ast_hash": "060a14d3c69825f703d97b6c9d2818de",
+    "mtime": 1784565510.8723216,
+    "ast_hash": "91225c35b33be1fb37ba3c8cbe981ef3",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -1245,8 +1245,8 @@
     "semantic_hash": "94a8c4a1e74adaf131627b9dd302479c"
   },
   "src/utils/channelLayoutSystem.js": {
-    "mtime": 1784562688.3885145,
-    "ast_hash": "5566a96ce2d2a38cd338b5693f79829a",
+    "mtime": 1784565504.466927,
+    "ast_hash": "3604830af9ba60b7de2a38b8b3771ae4",
     "semantic_hash": ""
   },
   "src/utils/channelMediaType.js": {
@@ -1280,8 +1280,8 @@
     "semantic_hash": "337177928ec75e7f42c27682e6426e0b"
   },
   "src/utils/channelSpaces.js": {
-    "mtime": 1784432323.9363222,
-    "ast_hash": "54af8c48c07353f26d722cc822e07a30",
+    "mtime": 1784565505.4630294,
+    "ast_hash": "a52cbecf439b409fb0a55c41308389ec",
     "semantic_hash": ""
   },
   "src/utils/colorHex.js": {
@@ -1500,8 +1500,8 @@
     "semantic_hash": ""
   },
   "src/utils/useChannelOperations.js": {
-    "mtime": 1784425135.2324908,
-    "ast_hash": "608a7bdbe0af9a24fa34d3428dd927f0",
+    "mtime": 1784565510.37614,
+    "ast_hash": "3e379d2bf54c335d8f89062f8202b997",
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppHooks.js": {
@@ -1510,8 +1510,8 @@
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784559334.660196,
-    "ast_hash": "c47240b15df04b266a5661296779d206",
+    "mtime": 1784565525.0406146,
+    "ast_hash": "f5c23de164383846684f4c7bdf7b8ca3",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {

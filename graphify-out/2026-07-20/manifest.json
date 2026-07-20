@@ -2465,8 +2465,8 @@
     "semantic_hash": ""
   },
   "src/features/immersiveSoundMode/ImmersiveSoundModeController.jsx": {
-    "mtime": 1784557766.787723,
-    "ast_hash": "d8044b457bbeb5986ac766fc3088775d",
+    "mtime": 1784563780.055784,
+    "ast_hash": "74730bd72cc576563fa2162d591ca8c9",
     "semantic_hash": ""
   },
   "src/features/immersiveSoundMode/ImmersiveSoundModeSettingsSection.jsx": {
@@ -2475,8 +2475,8 @@
     "semantic_hash": ""
   },
   "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx": {
-    "mtime": 1784557780.2909396,
-    "ast_hash": "3a3b899c15e9bcfcb25658c175745c26",
+    "mtime": 1784563780.0552707,
+    "ast_hash": "93beaca5f6ac1c471be581e89c3f366d",
     "semantic_hash": ""
   },
   "src/features/immersiveSoundMode/immersiveSoundModeApi.js": {

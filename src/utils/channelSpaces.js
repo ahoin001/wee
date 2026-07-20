@@ -7,6 +7,7 @@ import {
   WII_LAYOUT_PRESET,
   WII_STRIP_PEEK_PERCENT,
   CHANNEL_PAGE_FLIP_MS,
+  coerceChannelPageFlipMs,
 } from './channelLayoutSystem';
 import { migrateSpaceDataToSlots } from './homeGridSlots';
 
@@ -216,7 +217,7 @@ export function normalizeChannelSpaceData(raw) {
       totalPages: layout.totalPages,
       currentPage,
       animationType: incomingNav.animationType || 'slide',
-      animationDuration: incomingNav.animationDuration || CHANNEL_PAGE_FLIP_MS,
+      animationDuration: coerceChannelPageFlipMs(incomingNav.animationDuration),
       enableSlideAnimation:
         incomingNav.enableSlideAnimation !== undefined ? incomingNav.enableSlideAnimation : true,
     },

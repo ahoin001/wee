@@ -83,6 +83,18 @@ export const WII_STRIP_LAYOUT_PRESET = Object.freeze({
 /** Page flip duration (ms) — shared by goToPage timeout + CSS/Framer strip. */
 export const CHANNEL_PAGE_FLIP_MS = 520;
 
+/**
+ * Coerce persisted/legacy page-flip duration to a positive number (never a string).
+ * String `"520"` must not stick via `!==` against numeric `520` (React #185 write storm).
+ * @param {unknown} value
+ * @returns {number}
+ */
+export function coerceChannelPageFlipMs(value) {
+  const ms = Number(value);
+  if (Number.isFinite(ms) && ms > 0) return ms;
+  return CHANNEL_PAGE_FLIP_MS;
+}
+
 export const DEFAULT_CHANNEL_NAVIGATION = Object.freeze({
   currentPage: 0,
   totalPages: 3,
@@ -448,7 +460,8 @@ export const getWiiNormalization = (channelData) => {
   const hasNavigationMismatch =
     (currentNavigation.totalPages ?? DEFAULT_CHANNEL_NAVIGATION.totalPages) !== navigationPatch.totalPages ||
     (currentNavigation.currentPage || 0) !== navigationPatch.currentPage ||
-    currentNavigation.animationDuration !== navigationPatch.animationDuration;
+    coerceChannelPageFlipMs(currentNavigation.animationDuration) !==
+      navigationPatch.animationDuration;
 
   return {
     dataPatch,
