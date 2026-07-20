@@ -11,6 +11,36 @@ export const WII_LAYOUT_PRESET = Object.freeze({
   totalPages: 3,
 });
 
+/** Canonical live tile aspect (~classic Wii 2:1). CSS `aspect-ratio` is the SSOT in cells. */
+export const WII_TILE_ASPECT = 1.95;
+
+/**
+ * Estimate cell-fill aspect if tiles were stretched to fill the board (legacy fill).
+ * Live tiles use `WII_TILE_ASPECT` via CSS instead — this is for captions/tests only,
+ * not a second layout path.
+ *
+ * @param {{ columns: number, rows: number, boardWidth: number, boardHeight: number, gap?: number }} opts
+ * @returns {number} width/height of one cell
+ */
+export function estimateWiiTileAspect({
+  columns,
+  rows,
+  boardWidth,
+  boardHeight,
+  gap = 0,
+} = {}) {
+  const cols = Math.max(1, Number(columns) || 1);
+  const rws = Math.max(1, Number(rows) || 1);
+  const bw = Math.max(0, Number(boardWidth) || 0);
+  const bh = Math.max(0, Number(boardHeight) || 0);
+  const g = Math.max(0, Number(gap) || 0);
+  if (!bw || !bh) return WII_TILE_ASPECT;
+  const cellW = (bw - g * (cols - 1)) / cols;
+  const cellH = (bh - g * (rws - 1)) / rws;
+  if (!(cellW > 0) || !(cellH > 0)) return WII_TILE_ASPECT;
+  return cellW / cellH;
+}
+
 /** Clamped ranges for settings geometry controls. */
 export const CHANNEL_LAYOUT_LIMITS = Object.freeze({
   columns: { min: 3, max: 4 },

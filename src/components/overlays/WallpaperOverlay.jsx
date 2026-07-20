@@ -192,7 +192,11 @@ const WallpaperOverlay = ({
     const config = effects[effect];
     const width = canvasSizeRef.current.width || canvas.clientWidth || 0;
     const height = canvasSizeRef.current.height || canvas.clientHeight || 0;
-    if (!width || !height) return;
+    // Zero-size frames (minimize/restore) must not kill the loop — keep RAF alive.
+    if (!width || !height) {
+      animationRef.current = requestAnimationFrame(animate);
+      return;
+    }
 
     // Calculate delta time for consistent animation speed
     const deltaTime = currentTime - lastTimeRef.current;
@@ -293,11 +297,24 @@ const WallpaperOverlay = ({
     animationRef.current = requestAnimationFrame(animate);
   }, [engineActive, effect, effects, intensity, speed, wind, gravity]);
 
+  const canRunOverlayLoop = engineActive && shouldAnimate && !!effect && !!effects[effect];
+
+  const forceStartLoop = useCallback(() => {
+    if (!canRunOverlayLoop) return;
+    if (animationRef.current != null && isActiveRef.current) return;
+    isActiveRef.current = true;
+    lastTimeRef.current = performance.now();
+    animationRef.current = requestAnimationFrame(animate);
+  }, [animate, canRunOverlayLoop]);
+
   // Start/stop animation with proper cleanup
   useEffect(() => {
-    if (engineActive && shouldAnimate && effect && effects[effect]) {
+    if (canRunOverlayLoop) {
       isActiveRef.current = true;
       lastTimeRef.current = performance.now();
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
       animationRef.current = requestAnimationFrame(animate);
     } else {
       isActiveRef.current = false;
@@ -314,7 +331,28 @@ const WallpaperOverlay = ({
         animationRef.current = null;
       }
     };
-  }, [engineActive, shouldAnimate, effect, animate, effects]);
+  }, [canRunOverlayLoop, animate]);
+
+  // Resume if the loop died while still "active" (visibility restore / focus).
+  useEffect(() => {
+    if (!canRunOverlayLoop) return undefined;
+
+    const kickIfDead = () => {
+      if (document.visibilityState === 'hidden') return;
+      forceStartLoop();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') kickIfDead();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', kickIfDead);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', kickIfDead);
+    };
+  }, [canRunOverlayLoop, forceStartLoop]);
 
   // Initialize particles when effect changes
   useEffect(() => {
@@ -342,6 +380,7 @@ const WallpaperOverlay = ({
         ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
         initializeParticles();
+        forceStartLoop();
       }, 80);
     };
 
@@ -359,7 +398,7 @@ const WallpaperOverlay = ({
       window.removeEventListener('resize', resizeCanvas);
       ro?.disconnect?.();
     };
-  }, [initializeParticles, mode]);
+  }, [initializeParticles, mode, forceStartLoop]);
 
   // Cleanup on unmount
   useEffect(() => {

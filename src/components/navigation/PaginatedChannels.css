@@ -173,8 +173,8 @@
   min-width: 0;
   min-height: 0;
   display: flex;
-  align-items: stretch;
-  justify-content: stretch;
+  align-items: center;
+  justify-content: center;
 }
 
 .wii-strip-channel-cell--hidden {
@@ -186,7 +186,8 @@
 
 .wii-strip-channel-cell .channel {
   width: 100%;
-  height: 100%;
+  max-height: 100%;
+  height: auto;
 }
 
 /*
@@ -425,7 +426,7 @@ button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable:hover {
 }
 
 .channels-grid > * {
-  aspect-ratio: 1;
+  /* Live Wii tiles use .channel.wii-mode-tile aspect-ratio (~2:1); do not force squares. */
   min-height: 0;
   min-width: 0;
 }

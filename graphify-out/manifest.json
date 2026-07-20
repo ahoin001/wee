@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784559566.1656268,
-    "ast_hash": "861109c8d641211f598339b76d05c144",
+    "mtime": 1784561174.8605187,
+    "ast_hash": "f025fc35e2e2461aad0b0546235680e1",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -580,8 +580,8 @@
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyGradientOverlay.jsx": {
-    "mtime": 1784434536.3104517,
-    "ast_hash": "4684e2efcca2ab6d16e15590840241f2",
+    "mtime": 1784561973.8997781,
+    "ast_hash": "4a801282836d250b0d37f28e4cf187af",
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyImmersiveOverlay.jsx": {
@@ -595,8 +595,8 @@
     "semantic_hash": ""
   },
   "src/components/overlays/WallpaperOverlay.jsx": {
-    "mtime": 1784433789.5574372,
-    "ast_hash": "81d90557a6c96458f75c80c53be1528f",
+    "mtime": 1784561973.0197456,
+    "ast_hash": "0295776291ee9d693abd32dc97db4956",
     "semantic_hash": ""
   },
   "src/components/overlays/index.js": {
@@ -615,8 +615,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
-    "mtime": 1784432389.4564714,
-    "ast_hash": "189a6500c13fdd7b3dc638efa5eaef34",
+    "mtime": 1784562001.2083063,
+    "ast_hash": "6acdbd7fd950e5e7921136500a9911ad",
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
@@ -925,9 +925,9 @@
     "semantic_hash": ""
   },
   "src/hooks/useAppActivity.js": {
-    "mtime": 1776695132.2739942,
-    "ast_hash": "241852201b0b703707bf46ac25307557",
-    "semantic_hash": "241852201b0b703707bf46ac25307557"
+    "mtime": 1784561974.4998076,
+    "ast_hash": "2025e834e650ce8804d315332593de4f",
+    "semantic_hash": ""
   },
   "src/hooks/useAppInitialization.js": {
     "mtime": 1784425302.3348868,
@@ -1245,8 +1245,8 @@
     "semantic_hash": "94a8c4a1e74adaf131627b9dd302479c"
   },
   "src/utils/channelLayoutSystem.js": {
-    "mtime": 1784298788.4477353,
-    "ast_hash": "f21b6fe45d4c6aa69e86c603cf1547ff",
+    "mtime": 1784561987.810716,
+    "ast_hash": "fab5cfb3c0fc12f1eb6fd9b2801e4827",
     "semantic_hash": ""
   },
   "src/utils/channelMediaType.js": {
@@ -2510,8 +2510,8 @@
     "semantic_hash": ""
   },
   "src/features/sceneFxBeta/effects/SceneFxAtmosphere.jsx": {
-    "mtime": 1784558008.9501295,
-    "ast_hash": "459362d64af3c054bf6b0a60384ccb19",
+    "mtime": 1784561980.2864873,
+    "ast_hash": "6ce1b944b025dcecf7f4fc6df1fee0a3",
     "semantic_hash": ""
   },
   "src/features/sceneFxBeta/effects/SceneFxCursorWake.jsx": {

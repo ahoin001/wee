@@ -191,6 +191,8 @@ const SpotifyGradientOverlay = () => {
         ctx.drawImage(createGradientOverlay, 0, 0, canvas.width, canvas.height);
       } catch (err) {
         console.warn('[SpotifyGradientOverlay] paint failed', err);
+        // Keep RAF alive — a transient paint failure must not kill the loop.
+        animationRef.current = requestAnimationFrame(animate);
         return;
       }
       animationRef.current = requestAnimationFrame(animate);

@@ -72,12 +72,13 @@ export const useAppActivity = () => {
     };
   }, []);
 
+  // Soft focus: document OR Electron main may lag after Alt-Tab; either is enough.
+  // Keep away/suspend gates (visibility, minimize, main visible) unchanged.
   const isAppActive =
     activity.isVisible &&
-    activity.isFocused &&
-    mainWindowActivity.isFocused &&
     !mainWindowActivity.isMinimized &&
-    mainWindowActivity.isVisible;
+    mainWindowActivity.isVisible &&
+    (activity.isFocused || mainWindowActivity.isFocused);
 
   return {
     isVisible: activity.isVisible,

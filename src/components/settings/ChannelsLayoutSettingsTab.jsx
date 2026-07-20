@@ -28,6 +28,7 @@ import {
   resolveLayoutForPage,
   WII_LAYOUT_PRESET,
   WII_STRIP_PEEK_PERCENT,
+  WII_TILE_ASPECT,
 } from '../../utils/channelLayoutSystem';
 import {
   CHANNEL_SPACE_LABELS,
@@ -511,6 +512,10 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             ariaLabel="next-page peek percent"
           />
         </div>
+        <p className="mt-2 text-xs text-[hsl(var(--text-secondary))]">
+          Channel tiles stay ~{WII_TILE_ASPECT.toFixed(2)}:1 (classic Wii). Rows/columns change scale,
+          not square fill.
+        </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
           <div className="mr-auto flex flex-wrap items-center gap-3">
