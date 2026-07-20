@@ -694,7 +694,8 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                       <span className="sound-toggle-row__label">Enable hover sounds</span>
                       <p className="sound-toggle-row__hint">
                         Master mute for all hover SFX, including per-channel custom sounds. Pick one
-                        Active track below for the global default.
+                        Active track below for the global default. Per-channel overrides use their
+                        own volume — not this category&apos;s track level.
                       </p>
                     </div>
                   }

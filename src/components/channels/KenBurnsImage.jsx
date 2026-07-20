@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import {
+  CHANNEL_HOVER_ENTER_DWELL_MS,
+  CHANNEL_HOVER_FADE_IN_MS,
+} from '../../utils/soundPlayback';
 import './KenBurnsImage.css';
+
+/** Soft return to identity after hover Ken Burns — matches channel hover exit feel. */
+const KEN_BURNS_HOVER_UNWIND_MS = 320;
+const KEN_BURNS_HOVER_UNWIND_MS_REDUCED = 120;
 
 // Gentle pan directions for smooth wallpaper-style transitions
 const PAN_DIRECTIONS = [
@@ -53,6 +61,8 @@ const KenBurnsImage = ({
   
   // Performance
   enableIntersectionObserver = true,
+  /** When false, pause slideshow/autoplay clocks (page hidden / low power / off-screen). */
+  animationEnabled = true,
   
   // Callbacks
   onImageChange = null,
@@ -62,7 +72,6 @@ const KenBurnsImage = ({
   // State management
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [nextImageIndex, setNextImageIndex] = useState(1);
-  const [isHovered, setIsHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(!enableIntersectionObserver);
   const [currentPanDirection, setCurrentPanDirection] = useState(0);
   const [directionIndex, setDirectionIndex] = useState(0);
@@ -70,15 +79,24 @@ const KenBurnsImage = ({
   const [isTransitioning, setIsTransitioning] = useState(false); // Track transition state
   const [imageErrorCounter, setImageErrorCounter] = useState(0); // Force re-render when images fail
   const [allImagesFailed, setAllImagesFailed] = useState(false); // Track if all images have failed
+  const [isHovered, setIsHovered] = useState(false);
+  const [isUnwinding, setIsUnwinding] = useState(false);
 
   // Refs
   const containerRef = useRef(null);
   const animationTimeoutRef = useRef(null);
+  const hoverDwellTimeoutRef = useRef(null);
+  const unwindTimeoutRef = useRef(null);
   const intersectionObserverRef = useRef(null);
   const currentImageRef = useRef(null);
   const nextImageRef = useRef(null);
   const brokenImagesRef = useRef(new Set()); // Track broken image URLs without causing re-renders
   const lastResetKeyRef = useRef('');
+  const prefersReducedMotionRef = useRef(
+    typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
 
   // Get valid image source helper - stable function that checks current broken images
   const getValidImageSrc = useCallback((index) => {
@@ -175,7 +193,7 @@ const KenBurnsImage = ({
 
   // Autoplay animation
   const startAutoplayAnimation = useCallback(() => {
-    if (!isVisible || mode !== 'autoplay') return;
+    if (!isVisible || !animationEnabled || mode !== 'autoplay') return;
 
     if (animationTimeoutRef.current) {
       clearTimeout(animationTimeoutRef.current);
@@ -188,15 +206,15 @@ const KenBurnsImage = ({
 
     animationTimeoutRef.current = setTimeout(() => {
       // Use a new callback to avoid infinite dependency loop
-      if (mode === 'autoplay' && isVisible) {
+      if (mode === 'autoplay' && isVisible && animationEnabled) {
         startAutoplayAnimation();
       }
     }, getCurrentDuration());
-  }, [isVisible, mode, directionIndex, getCurrentDuration]);
+  }, [isVisible, animationEnabled, mode, directionIndex, getCurrentDuration]);
 
   // Slideshow progression with smooth transitions
   const progressSlideshow = useCallback(() => {
-    if (!isVisible || mode !== 'slideshow') return;
+    if (!isVisible || !animationEnabled || mode !== 'slideshow') return;
 
     // For single images, still do transitions for visual effect
     // Check if all images are broken (for multi-image galleries)
@@ -237,17 +255,23 @@ const KenBurnsImage = ({
         
         // Continue slideshow
         setTimeout(() => {
-          if (mode === 'slideshow' && isVisible && (images.length >= 1 || src)) {
+          if (mode === 'slideshow' && isVisible && animationEnabled && (images.length >= 1 || src)) {
             progressSlideshow();
           }
         }, 200);
       }, crossfadeDuration);
       
     }, getCurrentDuration() - crossfadeDuration);
-  }, [isVisible, mode, images, src, currentImageIndex, nextImageIndex, directionIndex, crossfadeDuration, getCurrentDuration, onImageChange]);
+  }, [isVisible, animationEnabled, mode, images, src, currentImageIndex, nextImageIndex, directionIndex, crossfadeDuration, getCurrentDuration, onImageChange]);
 
   // Start autoplay or slideshow when component mounts or mode changes
   useEffect(() => {
+    if (!animationEnabled) {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+      return undefined;
+    }
     if (mode === 'autoplay') {
       startAutoplayAnimation();
     } else if (mode === 'slideshow' && (images.length >= 1 || src)) {
@@ -259,7 +283,7 @@ const KenBurnsImage = ({
         clearTimeout(animationTimeoutRef.current);
       }
     };
-  }, [mode, images.length, src]); // Only depend on mode and images.length, not the functions
+  }, [mode, images.length, src, animationEnabled]); // Only depend on mode and images.length, not the functions
 
   // Update image sources when they change
   useEffect(() => {
@@ -316,11 +340,65 @@ const KenBurnsImage = ({
     }
   }, [imageErrorCounter, images.length, src]);
 
+  const clearHoverInlineStyles = useCallback(() => {
+    const img = currentImageRef.current;
+    if (!img) return;
+    img.style.animation = '';
+    img.style.transition = '';
+    img.style.transform = '';
+  }, []);
+
+  const beginHoverUnwind = useCallback(() => {
+    if (hoverDwellTimeoutRef.current) {
+      clearTimeout(hoverDwellTimeoutRef.current);
+      hoverDwellTimeoutRef.current = null;
+    }
+    if (unwindTimeoutRef.current) {
+      clearTimeout(unwindTimeoutRef.current);
+      unwindTimeoutRef.current = null;
+    }
+
+    const img = currentImageRef.current;
+    const reduced = prefersReducedMotionRef.current;
+    const unwindMs = reduced ? KEN_BURNS_HOVER_UNWIND_MS_REDUCED : KEN_BURNS_HOVER_UNWIND_MS;
+
+    if (!img || !isHovered) {
+      setIsHovered(false);
+      setIsUnwinding(false);
+      clearHoverInlineStyles();
+      return;
+    }
+
+    const computed = window.getComputedStyle(img).transform;
+    img.style.animation = 'none';
+    img.style.transform = !computed || computed === 'none'
+      ? 'scale(1) translate(0%, 0%)'
+      : computed;
+    // Force style flush so the next transform transition starts from the captured matrix
+    void img.offsetWidth;
+    setIsHovered(false);
+    setIsUnwinding(true);
+    img.style.transition = `transform ${unwindMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    img.style.transform = 'scale(1) translate(0%, 0%)';
+
+    unwindTimeoutRef.current = setTimeout(() => {
+      clearHoverInlineStyles();
+      setIsUnwinding(false);
+      unwindTimeoutRef.current = null;
+    }, unwindMs);
+  }, [isHovered, clearHoverInlineStyles]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (animationTimeoutRef.current) {
         clearTimeout(animationTimeoutRef.current);
+      }
+      if (hoverDwellTimeoutRef.current) {
+        clearTimeout(hoverDwellTimeoutRef.current);
+      }
+      if (unwindTimeoutRef.current) {
+        clearTimeout(unwindTimeoutRef.current);
       }
       if (intersectionObserverRef.current) {
         intersectionObserverRef.current.disconnect();
@@ -331,17 +409,34 @@ const KenBurnsImage = ({
   // Get current pan direction
   const currentPan = PAN_DIRECTIONS[currentPanDirection];
 
-  // Handle mouse events for hover mode
+  // Handle mouse events for hover mode — dwell matches channel hover SFX
   const handleMouseEnter = () => {
-    if (mode === 'hover') {
-      setIsHovered(true);
+    if (mode !== 'hover') return;
+    if (hoverDwellTimeoutRef.current) {
+      clearTimeout(hoverDwellTimeoutRef.current);
+      hoverDwellTimeoutRef.current = null;
     }
+    if (unwindTimeoutRef.current) {
+      clearTimeout(unwindTimeoutRef.current);
+      unwindTimeoutRef.current = null;
+    }
+    clearHoverInlineStyles();
+    setIsUnwinding(false);
+
+    if (prefersReducedMotionRef.current) {
+      setIsHovered(true);
+      return;
+    }
+
+    hoverDwellTimeoutRef.current = setTimeout(() => {
+      hoverDwellTimeoutRef.current = null;
+      setIsHovered(true);
+    }, CHANNEL_HOVER_ENTER_DWELL_MS);
   };
 
   const handleMouseLeave = () => {
-    if (mode === 'hover') {
-      setIsHovered(false);
-    }
+    if (mode !== 'hover') return;
+    beginHoverUnwind();
   };
 
   // Convert easing name to CSS timing function
@@ -383,6 +478,9 @@ const KenBurnsImage = ({
       '--ken-burns-duration': `${duration}ms`,
       '--ken-burns-crossfade-duration': `${crossfadeDuration}ms`,
       '--ken-burns-easing': getEasingFunction(easing),
+      '--ken-burns-enter-ease': `cubic-bezier(0.33, 0, 0.2, 1)`,
+      '--ken-burns-enter-ms': `${CHANNEL_HOVER_FADE_IN_MS}ms`,
+      '--ken-burns-unwind-ms': `${KEN_BURNS_HOVER_UNWIND_MS}ms`,
       '--ken-burns-from-x': `${adjustedFromX}%`,
       '--ken-burns-from-y': `${adjustedFromY}%`,
       '--ken-burns-to-x': `${adjustedToX}%`,
@@ -418,18 +516,21 @@ const KenBurnsImage = ({
       if (isHovered) {
         classes.push('ken-burns-active');
       }
+      if (isUnwinding) {
+        classes.push('ken-burns-unwinding');
+      }
     } else if (mode === 'autoplay') {
       classes.push('ken-burns-autoplay-mode');
       // Always show images in autoplay mode
       classes.push('ken-burns-visible');
-      if (isVisible) {
+      if (isVisible && animationEnabled) {
         classes.push('ken-burns-active');
       }
     } else if (mode === 'slideshow') {
       classes.push('ken-burns-slideshow-mode');
       // Always show images in slideshow mode
       classes.push('ken-burns-visible');
-      if (isVisible) {
+      if (isVisible && animationEnabled) {
         classes.push('ken-burns-active');
       }
     }
@@ -641,6 +742,7 @@ KenBurnsImage.propTypes = {
   
   // Performance
   enableIntersectionObserver: PropTypes.bool,
+  animationEnabled: PropTypes.bool,
   
   // Callbacks
   onImageChange: PropTypes.func,

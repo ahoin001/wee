@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784569468.593123,
-    "ast_hash": "5f3c737edf4b31c379fd26f8f999e09b",
+    "mtime": 1784571213.8657513,
+    "ast_hash": "f907a2158dde98b47deede975ff161b5",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -175,13 +175,13 @@
     "semantic_hash": ""
   },
   "src/components/channels/ChannelMediaPreview.jsx": {
-    "mtime": 1784568452.9544,
-    "ast_hash": "e4caa6f2b4a8b06e3d74a18b073f6f73",
+    "mtime": 1784572111.448247,
+    "ast_hash": "f1f551dd36cb852aa635dc452e8d6367",
     "semantic_hash": ""
   },
   "src/components/channels/ChannelModal.jsx": {
-    "mtime": 1784560620.9181957,
-    "ast_hash": "52536804a6006deed8f7607071210e8f",
+    "mtime": 1784572033.6227772,
+    "ast_hash": "40713dc60f81b838878f22cdd8491461",
     "semantic_hash": ""
   },
   "src/components/channels/ChannelModalSuggestedGames.jsx": {
@@ -200,8 +200,8 @@
     "semantic_hash": "0f5ae064366c37ae6d1f445fb5a3853f"
   },
   "src/components/channels/KenBurnsImage.jsx": {
-    "mtime": 1784568462.902486,
-    "ast_hash": "e39062ce078b1b74dd32e71cc6c92e50",
+    "mtime": 1784572096.2692447,
+    "ast_hash": "e33a274ca8a49d799099156187337463",
     "semantic_hash": ""
   },
   "src/components/channels/WeeChannelModal.jsx": {
@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/channelModal/ChannelModalChannelArtPanel.jsx": {
-    "mtime": 1784568509.9855247,
-    "ast_hash": "e985f34c15646eac13a7e72871c55bd8",
+    "mtime": 1784572084.461654,
+    "ast_hash": "5748e6ad5d1ed8e6dc04d77a16fdae3e",
     "semantic_hash": ""
   },
   "src/components/channels/channelModal/ChannelModalImageSection.jsx": {
@@ -260,8 +260,8 @@
     "semantic_hash": "69fe8fb573282f3f63eb8f27990da7ee"
   },
   "src/components/channels/channelModal/ChannelModalUnifiedPathBlock.jsx": {
-    "mtime": 1783950691.9261663,
-    "ast_hash": "36ecb9d0aa54f7652aedea366c3c4222",
+    "mtime": 1784572040.9738846,
+    "ast_hash": "c1ae3045959e33e48dc480c134aa9ca1",
     "semantic_hash": ""
   },
   "src/components/channels/hooks/useChannelAdaptiveEmptyStyle.js": {
@@ -550,8 +550,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784568628.2964406,
-    "ast_hash": "291c4069cd2dd88c6ede6b1eefb26b64",
+    "mtime": 1784571948.1567023,
+    "ast_hash": "f01dc1467f89079d9cdb094d132f66bb",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -615,8 +615,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
-    "mtime": 1784568640.0318866,
-    "ast_hash": "a3dbaaed2bff2aaee094c4677b70d706",
+    "mtime": 1784572116.707868,
+    "ast_hash": "77359f5cd4b137e2bcff3255aa117419",
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
@@ -710,8 +710,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/SoundsSettingsTab.jsx": {
-    "mtime": 1784568534.9519753,
-    "ast_hash": "18253296c893d406ca2c790b6d14c9dd",
+    "mtime": 1784571839.2239296,
+    "ast_hash": "39c27bc84a883c0ea035516983d9ad33",
     "semantic_hash": ""
   },
   "src/components/settings/TimeSettingsTab.jsx": {
@@ -955,8 +955,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useChannelModalMedia.js": {
-    "mtime": 1784568475.613417,
-    "ast_hash": "06b39a86d738f155a58ce77b2217f70e",
+    "mtime": 1784572030.3426292,
+    "ast_hash": "6f08acbdcfbe8af525cb0f077c1f164a",
     "semantic_hash": ""
   },
   "src/hooks/useDialogExitPresence.js": {
@@ -2445,8 +2445,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/channelModal/ChannelHoverSoundPicker.jsx": {
-    "mtime": 1784562617.9264667,
-    "ast_hash": "a2700a7ade37c6d8b177e5227b931beb",
+    "mtime": 1784571838.1811306,
+    "ast_hash": "1234ded268ec89e4db3bc6b79d7c447f",
     "semantic_hash": ""
   },
   "src/components/home-grid/EpicLibrarySlot.jsx": {
@@ -2550,13 +2550,13 @@
     "semantic_hash": ""
   },
   "src/components/sounds/SoundTrimDialog.jsx": {
-    "mtime": 1784568502.607868,
-    "ast_hash": "d4892fd64e6928947f9608381bd6f56d",
+    "mtime": 1784571892.2845771,
+    "ast_hash": "3f4ae475e5d675309ab6ffda2bb764ec",
     "semantic_hash": ""
   },
   "src/utils/audioTrim.js": {
-    "mtime": 1784568469.3245585,
-    "ast_hash": "8ea019e3c9c0016047eac8ceb7cc599d",
+    "mtime": 1784571851.9247124,
+    "ast_hash": "d15763113de207507695d4b757d4478d",
     "semantic_hash": ""
   },
   "src/features/sceneFxBeta/SceneFxIntensityRow.jsx": {
@@ -2585,8 +2585,8 @@
     "semantic_hash": ""
   },
   "src/utils/channelMediaFit.js": {
-    "mtime": 1784568410.957229,
-    "ast_hash": "e5a6ce7b409e7bd71f1274af512c2e21",
+    "mtime": 1784571998.537427,
+    "ast_hash": "bfbc8269b54786bd31fa05fc6eb7bcf0",
     "semantic_hash": ""
   },
   "src/ui/wee/WeePopover.jsx": {
@@ -2595,8 +2595,8 @@
     "semantic_hash": ""
   },
   "src/utils/nowPlayingAlbumPaint.js": {
-    "mtime": 1784570153.6082053,
-    "ast_hash": "42f0993e2834d9fdeb14af91d7a248e0",
+    "mtime": 1784570191.680638,
+    "ast_hash": "ee131288b4cf7a45d1e2a3411192e85a",
     "semantic_hash": ""
   }
 }

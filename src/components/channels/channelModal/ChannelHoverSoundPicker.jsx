@@ -147,36 +147,41 @@ function ChannelHoverSoundPicker({
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-3">
-              <label
-                className="shrink-0 text-[12px] font-semibold text-[hsl(var(--text-secondary))]"
-                htmlFor="channel-hover-sound-volume"
-              >
-                Volume
-              </label>
-              <div className="min-w-0 flex-1">
-                <Slider
-                  id="channel-hover-sound-volume"
-                  aria-label="Channel hover sound volume"
+            <div className="mt-4 flex flex-col gap-1.5">
+              <div className="flex items-center gap-3">
+                <label
+                  className="shrink-0 text-[12px] font-semibold text-[hsl(var(--text-secondary))]"
+                  htmlFor="channel-hover-sound-volume"
+                >
+                  This channel&apos;s volume
+                </label>
+                <div className="min-w-0 flex-1">
+                  <Slider
+                    id="channel-hover-sound-volume"
+                    aria-label="This channel hover sound volume"
+                    value={hoverSoundVolume}
+                    onChange={handleHoverSoundVolumeChange}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    containerClassName="!mb-0"
+                    hideValue
+                  />
+                </div>
+                <WeeSliderValue
                   value={hoverSoundVolume}
-                  onChange={handleHoverSoundVolumeChange}
                   min={0}
                   max={1}
                   step={0.01}
-                  containerClassName="!mb-0"
-                  hideValue
+                  onChange={handleHoverSoundVolumeChange}
+                  format={(v) => String(Math.round(v * 100))}
+                  suffix="%"
+                  aria-label="This channel hover sound volume value"
                 />
               </div>
-              <WeeSliderValue
-                value={hoverSoundVolume}
-                min={0}
-                max={1}
-                step={0.01}
-                onChange={handleHoverSoundVolumeChange}
-                format={(v) => String(Math.round(v * 100))}
-                suffix="%"
-                aria-label="Channel hover sound volume value"
-              />
+              <Text variant="help" className="!m-0">
+                Independent of Sounds → global hover volume. Only this tile uses this level.
+              </Text>
             </div>
           </m.div>
         ) : (
@@ -190,7 +195,7 @@ function ChannelHoverSoundPicker({
           >
             <Text variant="help" className="!m-0">
               No override yet — pick a library sound below to replace the global hover track for this
-              tile. One volume controls every preview and play of your selection.
+              tile. You&apos;ll set a volume for this channel only (not the global hover slider).
             </Text>
           </m.div>
         )}
@@ -397,9 +402,9 @@ function ChannelHoverSoundPicker({
       ) : null}
 
       <Text variant="help" className="!m-0">
-        Applied sounds override the global hover track for this tile only. Still needs Sounds →
-        Enable hover sounds. Uploads are shared across channels (max 5MB for hover clips). Use Trim
-        for longer songs — previews stop after a few seconds.
+        Applied sounds override the global hover track for this tile only, with their own volume.
+        Still needs Sounds → Enable hover sounds. Uploads are shared across channels (max 5MB for
+        hover clips). Use Trim for longer songs — previews stop after a few seconds.
       </Text>
     </div>
   );

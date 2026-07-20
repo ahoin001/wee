@@ -322,8 +322,9 @@ const PaginatedChannelsInner = React.memo(() => {
   const isHomeActive = isHomeSpace && activeSpaceId === 'home';
 
   // Shared idle state machine: one clock for grid auto-fade, micro-delights, and attract.
-  // Pointer/keyboard activity on the grid feeds bumpActivity — not CSS :hover (a parked
-  // cursor over tiles must still allow fade).
+  // Pointerdown/wheel/move + channel mouseenter bump activity. A parked cursor over one
+  // tile does not keep firing enter, so idle/fade can still advance while skimming tiles
+  // (and Immersive Sound Mode auto-enter) stays suppressed while browsing.
   const idleExperience = useHomeIdleExperience({ enabled: isHomeActive });
   const isGridFaded = isHomeActive && idleExperience.isFaded;
 
@@ -867,7 +868,13 @@ const PaginatedChannelsInner = React.memo(() => {
     updateChannelConfig(channelId, config);
   }, [updateChannelConfig]);
 
-  const handleChannelHover = useCallback((_channelId, _isHovered) => {}, []);
+  /** Skimming channel tiles keeps Home idle at `active` so immersive auto-enter does not steal focus. */
+  const handleChannelHover = useCallback(() => {
+    const now = Date.now();
+    if (now - lastPointerThrottleRef.current < 200) return;
+    lastPointerThrottleRef.current = now;
+    bumpGridActivity();
+  }, [bumpGridActivity]);
 
   const handleDragStart = useCallback(
     (event) => {

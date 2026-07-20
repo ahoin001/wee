@@ -806,7 +806,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
         hoverAccent="none"
         titleClassName={TOGGLE_TITLE}
         title="Ken Burns effect"
-        desc="Add cinematic zoom and pan to still channel images."
+        desc="Add cinematic zoom and pan to still channel images. Channels with a multi-art slideshow or cinematic loop use their own presentation instead of this global mode."
         checked={settings.kenBurnsEnabled ?? false}
         onChange={handleKenBurnsEnabledChange}
         revealKeepMounted={false}

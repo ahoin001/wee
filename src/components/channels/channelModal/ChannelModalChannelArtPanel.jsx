@@ -1,15 +1,17 @@
 import React, { useState, useCallback, useEffect, useRef, useId, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Upload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Upload } from 'lucide-react';
 import Text from '../../../ui/Text';
 import {
   WeeButton,
   WeeContentCollapse,
   WeeMorphStack,
   WeeModalFieldCard,
+  WeeRevealWhen,
   WeeSegmentedControl,
   WeeSectionEyebrow,
+  WeeToggle,
 } from '../../../ui/wee';
 import { useWeeMotion } from '../../../design/weeMotion';
 import MediaLibraryBrowser from '../../media/MediaLibraryBrowser';
@@ -17,17 +19,27 @@ import ChannelModalInlineMediaSuggestions, {
   deriveChannelArtSearchQuery,
 } from './ChannelModalInlineMediaSuggestions';
 import ChannelTileArtFrame from '../ChannelTileArtFrame';
+import KenBurnsImage from '../KenBurnsImage';
 import { useMediaLibraryBrowser } from '../../../hooks/useMediaLibraryBrowser';
 import {
+  ACCEPT_GALLERY_STILLS,
   ACCEPT_IMAGE_OR_MP4,
   isSupportedImageOrVideoUpload,
+  SUPPORTED_GALLERY_HINT,
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../../utils/supportedUploadMedia';
 import {
   applyChannelMediaFocalPreset,
+  CHANNEL_ART_MOTION,
+  CHANNEL_GALLERY_MAX_STILLS,
   CHANNEL_MEDIA_FOCAL_PRESETS,
+  channelTileAspectRatioCss,
+  getChannelGalleryUrls,
+  isChannelGalleryStillType,
   matchChannelMediaFocalPresetId,
+  resolveChannelArtMotion,
 } from '../../../utils/channelMediaFit';
+import { isVideoMediaType } from '../../../utils/channelMediaType';
 
 const ART_SUBTAB_KEY = 'wee.channelArt.subtab';
 
@@ -51,6 +63,14 @@ function ChannelModalChannelArtPanel({
   onRemoveMedia: _onRemoveMedia,
   mediaUploadHint,
   setMediaUploadHint,
+  imageGallery = [],
+  artMotion,
+  onArtMotionChange,
+  galleryFileInputRef,
+  onGalleryFilesSelect,
+  onRemoveGalleryImage,
+  onReorderGallery,
+  onAddLibraryStillToGallery,
 }) {
   const initialSearch = deriveChannelArtSearchQuery({ path, type, matchingApp });
   const browser = useMediaLibraryBrowser({
@@ -86,6 +106,8 @@ function ChannelModalChannelArtPanel({
   const [artToolsExpanded, setArtToolsExpanded] = useState(
     () => !(media && !media?.loading)
   );
+  /** When adding from library: replace cover vs append slideshow still. */
+  const [libraryPickMode, setLibraryPickMode] = useState('cover');
 
   useEffect(() => {
     if (!media) {
@@ -194,6 +216,37 @@ function ChannelModalChannelArtPanel({
     [media, onApplySuggestedMedia]
   );
 
+  const resolvedArtMotion = resolveChannelArtMotion(media || { gallery: imageGallery, artMotion });
+  const galleryUrls = useMemo(
+    () => getChannelGalleryUrls(media || { gallery: imageGallery, url: media?.url, type: media?.type }),
+    [media, imageGallery]
+  );
+  const canUseGallery = Boolean(
+    media && !media.loading && !isVideoMediaType(media.type) && isChannelGalleryStillType(media.type)
+  );
+  const cinematicEnabled = resolvedArtMotion === CHANNEL_ART_MOTION.CINEMATIC;
+  const showGalleryPreview = galleryUrls.length > 1 || cinematicEnabled;
+
+  const handleLibrarySelect = useCallback(
+    (item) => {
+      if (libraryPickMode === 'gallery' && onAddLibraryStillToGallery) {
+        onAddLibraryStillToGallery(item);
+        return;
+      }
+      onSelectFromLibrary?.(item);
+    },
+    [libraryPickMode, onAddLibraryStillToGallery, onSelectFromLibrary]
+  );
+
+  const handleGalleryInputChange = useCallback(
+    (e) => {
+      const files = e.target.files;
+      if (e.target) e.target.value = '';
+      onGalleryFilesSelect?.(files);
+    },
+    [onGalleryFilesSelect]
+  );
+
   const artSummaryOnly = Boolean(media && !media.loading && !artToolsExpanded);
   const previewEnterInitial =
     reduceMotion || previewHasEnteredRef.current
@@ -209,9 +262,22 @@ function ChannelModalChannelArtPanel({
         onApplyMedia={onApplySuggestedMedia}
         appliedMedia={media}
       />
+      {canUseGallery ? (
+        <WeeSegmentedControl
+          ariaLabel="Library pick mode"
+          value={libraryPickMode}
+          onChange={setLibraryPickMode}
+          options={[
+            { value: 'cover', label: 'Set as cover' },
+            { value: 'gallery', label: 'Add to slideshow' },
+          ]}
+          size="sm"
+          className="!flex w-full max-w-full"
+        />
+      ) : null}
       <MediaLibraryBrowser
         {...browserForLibrary}
-        onSelect={onSelectFromLibrary}
+        onSelect={handleLibrarySelect}
         showDownload={false}
         compact
         channelPicker
@@ -389,6 +455,139 @@ function ChannelModalChannelArtPanel({
                   className="!flex w-full max-w-full"
                 />
               </div>
+
+              {canUseGallery ? (
+                <div className="space-y-3 border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Text
+                      variant="small"
+                      className="block font-bold uppercase tracking-wide text-[hsl(var(--text-secondary))]"
+                    >
+                      Slideshow stills
+                    </Text>
+                    <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                      {imageGallery.length}/{CHANNEL_GALLERY_MAX_STILLS}
+                    </Text>
+                  </div>
+                  <Text variant="help" className="!m-0">
+                    Add up to {CHANNEL_GALLERY_MAX_STILLS} stills for an idle crossfade loop.
+                    Channel presentation wins over global Ken Burns for this tile.
+                  </Text>
+
+                  {imageGallery.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {imageGallery.map((item, index) => (
+                        <div
+                          key={item.id || item.url || `g-${index}`}
+                          className="relative w-16 overflow-hidden rounded-lg border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-tertiary))]"
+                        >
+                          <img
+                            src={item.url}
+                            alt={item.name || `Still ${index + 1}`}
+                            className="h-14 w-full object-cover"
+                            draggable={false}
+                          />
+                          <div className="flex items-center justify-between gap-0.5 bg-[hsl(var(--surface-secondary)/0.9)] px-0.5 py-0.5">
+                            <button
+                              type="button"
+                              className="rounded p-0.5 text-[hsl(var(--text-secondary))] disabled:opacity-30"
+                              disabled={index === 0}
+                              aria-label="Move left"
+                              onClick={() => onReorderGallery?.(index, index - 1)}
+                            >
+                              <ChevronLeft size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded p-0.5 text-[hsl(var(--state-error))]"
+                              aria-label="Remove still"
+                              onClick={() => onRemoveGalleryImage?.(item.id || item.url)}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded p-0.5 text-[hsl(var(--text-secondary))] disabled:opacity-30"
+                              disabled={index >= imageGallery.length - 1}
+                              aria-label="Move right"
+                              onClick={() => onReorderGallery?.(index, index + 1)}
+                            >
+                              <ChevronRight size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    <WeeButton
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="!inline-flex !items-center !gap-1.5"
+                      disabled={imageGallery.length >= CHANNEL_GALLERY_MAX_STILLS}
+                      onClick={() => galleryFileInputRef?.current?.click()}
+                    >
+                      <Plus size={14} />
+                      Add stills
+                    </WeeButton>
+                    <input
+                      ref={galleryFileInputRef}
+                      type="file"
+                      accept={ACCEPT_GALLERY_STILLS}
+                      multiple
+                      className="sr-only"
+                      onChange={handleGalleryInputChange}
+                    />
+                  </div>
+                  <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                    {SUPPORTED_GALLERY_HINT}
+                  </Text>
+
+                  <WeeRevealWhen when={imageGallery.length > 1 || cinematicEnabled}>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <WeeToggle
+                          checked={cinematicEnabled}
+                          onChange={(checked) =>
+                            onArtMotionChange?.(
+                              checked
+                                ? CHANNEL_ART_MOTION.CINEMATIC
+                                : imageGallery.length > 1
+                                  ? CHANNEL_ART_MOTION.GALLERY_IDLE
+                                  : CHANNEL_ART_MOTION.COVER
+                            )
+                          }
+                          label="Cinematic loop"
+                        />
+                        <Text variant="help" className="!m-0">
+                          Continuous pan + crossfade. Off uses a soft idle slideshow.
+                        </Text>
+                      </div>
+                      {showGalleryPreview ? (
+                        <div
+                          className="overflow-hidden rounded-xl border border-[hsl(var(--border-primary)/0.35)]"
+                          style={{ aspectRatio: channelTileAspectRatioCss(), maxWidth: 280 }}
+                        >
+                          <KenBurnsImage
+                            images={galleryUrls}
+                            mode="slideshow"
+                            width="100%"
+                            height="100%"
+                            borderRadius="0"
+                            slideshowDuration={cinematicEnabled ? 9000 : 8000}
+                            slideshowScale={cinematicEnabled ? 1.12 : 1.06}
+                            crossfadeDuration={1400}
+                            enableIntersectionObserver={false}
+                            alt="Gallery preview"
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </WeeRevealWhen>
+                </div>
+              ) : null}
             </div>
           </motion.div>
         ) : media?.loading ? (
@@ -472,6 +671,14 @@ ChannelModalChannelArtPanel.propTypes = {
   onRemoveMedia: PropTypes.func.isRequired,
   mediaUploadHint: PropTypes.string,
   setMediaUploadHint: PropTypes.func,
+  imageGallery: PropTypes.array,
+  artMotion: PropTypes.string,
+  onArtMotionChange: PropTypes.func,
+  galleryFileInputRef: PropTypes.object,
+  onGalleryFilesSelect: PropTypes.func,
+  onRemoveGalleryImage: PropTypes.func,
+  onReorderGallery: PropTypes.func,
+  onAddLibraryStillToGallery: PropTypes.func,
 };
 
 ChannelModalChannelArtPanel.defaultProps = {
@@ -482,6 +689,14 @@ ChannelModalChannelArtPanel.defaultProps = {
   libraryUploading: false,
   mediaUploadHint: '',
   setMediaUploadHint: undefined,
+  imageGallery: [],
+  artMotion: undefined,
+  onArtMotionChange: undefined,
+  galleryFileInputRef: undefined,
+  onGalleryFilesSelect: undefined,
+  onRemoveGalleryImage: undefined,
+  onReorderGallery: undefined,
+  onAddLibraryStillToGallery: undefined,
 };
 
 export default React.memo(ChannelModalChannelArtPanel);

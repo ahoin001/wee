@@ -1,7 +1,7 @@
 /**
  * Trim a library or staged sound — Save over (user clips), Save as new, or Save to library (staged).
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Loader2, Pause, Play } from 'lucide-react';
 import { WeeModalShell, WeeButton } from '../../ui/wee';
@@ -15,6 +15,7 @@ import {
   decodeAudioUrl,
   encodeWav,
   estimateWavBytes,
+  extractWaveformPeaks,
   formatBytesMb,
   maxBytesForSoundType,
   probeAudioDuration,
@@ -53,6 +54,9 @@ function SoundTrimDialog({
   const [error, setError] = useState('');
   const [newName, setNewName] = useState('');
   const [wavMeta, setWavMeta] = useState({ sampleRate: 44100, channels: 2 });
+  const [peaks, setPeaks] = useState([]);
+  const [dragHandle, setDragHandle] = useState(null);
+  const waveRef = useRef(null);
 
   const isStaged = Boolean(sound?.staged || sound?.mustTrimReason === 'size');
   const mustTrimForSize = Boolean(sound?.mustTrimReason === 'size' || sound?.staged);
@@ -66,30 +70,37 @@ function SoundTrimDialog({
     setLoading(true);
     setError('');
     setPreviewing(false);
+    setPeaks([]);
     setNewName(`${sound.name || 'Sound'}${isStaged ? '' : ' (trim)'}`.slice(0, 50));
     (async () => {
       try {
         const d = await probeAudioDuration(sound.url);
         if (cancelled) return;
-        const dur = d > 0 ? d : 0;
-        setDuration(dur);
+        let dur = d > 0 ? d : 0;
         setStartSec(0);
-        const defaultEnd = Math.min(dur || HOVER_SFX_HARD_MAX_SEC, HOVER_SFX_HARD_MAX_SEC, 4);
-        setEndSec(dur > 0 ? Math.min(dur, Math.max(0.25, defaultEnd)) : 1);
 
-        if (mustTrimForSize) {
-          try {
-            const decoded = await decodeAudioUrl(sound.url);
-            if (!cancelled) {
-              setWavMeta({
-                sampleRate: decoded.sampleRate || 44100,
-                channels: decoded.numberOfChannels || 2,
-              });
-            }
-          } catch {
-            if (!cancelled) setWavMeta({ sampleRate: 44100, channels: 2 });
+        try {
+          const decoded = await decodeAudioUrl(sound.url);
+          if (cancelled) return;
+          if (!(dur > 0) && decoded?.duration > 0) {
+            dur = decoded.duration;
+          }
+          setWavMeta({
+            sampleRate: decoded.sampleRate || 44100,
+            channels: decoded.numberOfChannels || 2,
+          });
+          setPeaks(extractWaveformPeaks(decoded, 192));
+        } catch {
+          if (!cancelled) {
+            setWavMeta({ sampleRate: 44100, channels: 2 });
+            setPeaks([]);
           }
         }
+
+        if (cancelled) return;
+        setDuration(dur);
+        const defaultEnd = Math.min(dur || HOVER_SFX_HARD_MAX_SEC, HOVER_SFX_HARD_MAX_SEC, 4);
+        setEndSec(dur > 0 ? Math.min(dur, Math.max(0.25, defaultEnd)) : 1);
       } catch (e) {
         if (!cancelled) setError(e?.message || 'Failed to load audio');
       } finally {
@@ -100,7 +111,7 @@ function SoundTrimDialog({
       cancelled = true;
       stopPreview();
     };
-  }, [isOpen, sound?.url, sound?.name, sound?.id, isStaged, mustTrimForSize]);
+  }, [isOpen, sound?.url, sound?.name, sound?.id, isStaged]);
 
   useEffect(() => {
     if (!isOpen) stopPreview();
@@ -133,6 +144,48 @@ function SoundTrimDialog({
       setEndSec(v);
     },
     [duration, startSec]
+  );
+
+  const secFromClientX = useCallback(
+    (clientX) => {
+      const el = waveRef.current;
+      if (!el || !(duration > 0)) return 0;
+      const rect = el.getBoundingClientRect();
+      const t = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)));
+      return t * duration;
+    },
+    [duration]
+  );
+
+  useEffect(() => {
+    if (!dragHandle) return undefined;
+    const onMove = (e) => {
+      const sec = secFromClientX(e.clientX);
+      if (dragHandle === 'start') clampStart(sec);
+      else clampEnd(sec);
+    };
+    const onUp = () => setDragHandle(null);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [dragHandle, secFromClientX, clampStart, clampEnd]);
+
+  const handleWavePointerDown = useCallback(
+    (e) => {
+      if (!(duration > 0)) return;
+      const sec = secFromClientX(e.clientX);
+      const distStart = Math.abs(sec - startSec);
+      const distEnd = Math.abs(sec - endSec);
+      const handle = distStart <= distEnd ? 'start' : 'end';
+      setDragHandle(handle);
+      if (handle === 'start') clampStart(sec);
+      else clampEnd(sec);
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    },
+    [duration, secFromClientX, startSec, endSec, clampStart, clampEnd]
   );
 
   const handlePreviewSelection = useCallback(async () => {
@@ -225,13 +278,17 @@ function SoundTrimDialog({
     ]
   );
 
+  const startPct = duration > 0 ? (startSec / duration) * 100 : 0;
+  const endPct = duration > 0 ? (endSec / duration) * 100 : 100;
+  const selPct = Math.max(0, endPct - startPct);
+
   return (
     <WeeModalShell
       isOpen={isOpen}
       onClose={handleClose}
       headerTitle="Trim sound"
       showRail={false}
-      maxWidth="32rem"
+      maxWidth="48rem"
       footerContent={
         <div className="flex flex-wrap items-center justify-end gap-2">
           <WeeButton type="button" variant="secondary" onClick={handleClose} disabled={saving}>
@@ -286,7 +343,8 @@ function SoundTrimDialog({
           </div>
         ) : (
           <Text variant="desc" className="!m-0">
-            Choose the start and end of <span className="font-bold">{sound?.name || 'this sound'}</span>.
+            Drag the handles on the waveform to choose the start and end of{' '}
+            <span className="font-bold">{sound?.name || 'this sound'}</span>.
             {isHoverFamily ? ' Hover sounds feel best under a few seconds.' : ''}
           </Text>
         )}
@@ -298,7 +356,7 @@ function SoundTrimDialog({
           </div>
         ) : (
           <>
-            <div className="rounded-2xl border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.45)] px-4 py-3">
+            <div className="rounded-2xl border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.45)] px-4 py-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <Text variant="small" className="!m-0 font-black uppercase tracking-[0.1em] text-[hsl(var(--text-secondary))]">
                   Selection {formatTime(selectionLen)}
@@ -308,14 +366,54 @@ function SoundTrimDialog({
                 </Text>
               </div>
 
-              <div className="mb-4 h-2 overflow-hidden rounded-full bg-[hsl(var(--surface-tertiary))]">
+              <div
+                ref={waveRef}
+                role="slider"
+                aria-label="Trim selection waveform"
+                aria-valuemin={0}
+                aria-valuemax={duration || 0}
+                aria-valuenow={startSec}
+                tabIndex={0}
+                onPointerDown={handleWavePointerDown}
+                className="relative mb-4 h-24 cursor-ew-resize touch-none select-none overflow-hidden rounded-xl border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-tertiary)/0.65)]"
+              >
+                <div className="absolute inset-0 flex items-end justify-between gap-px px-1 py-2">
+                  {(peaks.length > 0 ? peaks : Array.from({ length: 48 }, () => 0.2)).map((p, i) => (
+                    <div
+                      key={`peak-${i}`}
+                      className="min-w-[2px] flex-1 rounded-sm bg-[hsl(var(--primary)/0.45)]"
+                      style={{ height: `${Math.round(p * 100)}%` }}
+                    />
+                  ))}
+                </div>
                 <div
-                  className="h-full rounded-full bg-[hsl(var(--primary)/0.75)]"
-                  style={{
-                    marginLeft: duration > 0 ? `${(startSec / duration) * 100}%` : 0,
-                    width: duration > 0 ? `${(selectionLen / duration) * 100}%` : '100%',
-                  }}
+                  className="pointer-events-none absolute inset-y-0 bg-[hsl(var(--primary)/0.22)]"
+                  style={{ left: `${startPct}%`, width: `${selPct}%` }}
                 />
+                <button
+                  type="button"
+                  aria-label="Selection start"
+                  className="absolute top-0 z-[1] h-full w-3 -translate-x-1/2 cursor-ew-resize border-0 bg-transparent p-0"
+                  style={{ left: `${startPct}%` }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    setDragHandle('start');
+                  }}
+                >
+                  <span className="mx-auto block h-full w-1 rounded-full bg-[hsl(var(--primary))] shadow-[var(--shadow-sm)]" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Selection end"
+                  className="absolute top-0 z-[1] h-full w-3 -translate-x-1/2 cursor-ew-resize border-0 bg-transparent p-0"
+                  style={{ left: `${endPct}%` }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    setDragHandle('end');
+                  }}
+                >
+                  <span className="mx-auto block h-full w-1 rounded-full bg-[hsl(var(--primary))] shadow-[var(--shadow-sm)]" />
+                </button>
               </div>
 
               <div className="flex flex-col gap-3">

@@ -30,6 +30,14 @@ function ChannelModalUnifiedPathBlock({
   media,
   mediaUploadHint,
   setMediaUploadHint,
+  imageGallery,
+  artMotion,
+  onArtMotionChange,
+  galleryFileInputRef,
+  onGalleryFilesSelect,
+  onRemoveGalleryImage,
+  onReorderGallery,
+  onAddLibraryStillToGallery,
 }) {
   const value = useMemo(
     () => ({
@@ -89,6 +97,14 @@ function ChannelModalUnifiedPathBlock({
                 onRemoveMedia={onRemoveMedia}
                 mediaUploadHint={mediaUploadHint}
                 setMediaUploadHint={setMediaUploadHint}
+                imageGallery={imageGallery}
+                artMotion={artMotion}
+                onArtMotionChange={onArtMotionChange}
+                galleryFileInputRef={galleryFileInputRef}
+                onGalleryFilesSelect={onGalleryFilesSelect}
+                onRemoveGalleryImage={onRemoveGalleryImage}
+                onReorderGallery={onReorderGallery}
+                onAddLibraryStillToGallery={onAddLibraryStillToGallery}
               />
             </div>
           </WeeModalFieldCard>
@@ -115,6 +131,14 @@ ChannelModalUnifiedPathBlock.propTypes = {
   media: PropTypes.object,
   mediaUploadHint: PropTypes.string,
   setMediaUploadHint: PropTypes.func.isRequired,
+  imageGallery: PropTypes.array,
+  artMotion: PropTypes.string,
+  onArtMotionChange: PropTypes.func,
+  galleryFileInputRef: PropTypes.object,
+  onGalleryFilesSelect: PropTypes.func,
+  onRemoveGalleryImage: PropTypes.func,
+  onReorderGallery: PropTypes.func,
+  onAddLibraryStillToGallery: PropTypes.func,
 };
 
 ChannelModalUnifiedPathBlock.defaultProps = {
@@ -126,6 +150,14 @@ ChannelModalUnifiedPathBlock.defaultProps = {
   libraryUploading: false,
   media: null,
   mediaUploadHint: '',
+  imageGallery: undefined,
+  artMotion: undefined,
+  onArtMotionChange: undefined,
+  galleryFileInputRef: undefined,
+  onGalleryFilesSelect: undefined,
+  onRemoveGalleryImage: undefined,
+  onReorderGallery: undefined,
+  onAddLibraryStillToGallery: undefined,
 };
 
 export default React.memo(ChannelModalUnifiedPathBlock);

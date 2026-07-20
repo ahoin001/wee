@@ -7,28 +7,119 @@ import {
   SUPPORTED_GALLERY_HINT,
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../utils/supportedUploadMedia';
-import { normalizeChannelMedia, replaceChannelMediaArt } from '../utils/channelMediaFit';
+import {
+  CHANNEL_ART_MOTION,
+  CHANNEL_GALLERY_MAX_STILLS,
+  isChannelGalleryStillType,
+  mediaFromChannelGallery,
+  normalizeChannelGallery,
+  normalizeChannelMedia,
+  replaceChannelMediaArt,
+} from '../utils/channelMediaFit';
+import { isVideoMediaType } from '../utils/channelMediaType';
+
+function galleryItemId() {
+  return `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
 
 /**
  * Channel image / gallery state and handlers for ChannelModal.
+ * SSOT: `media` (includes gallery + artMotion). `imageGallery` mirrors media.gallery for UI.
  */
 export function useChannelModalMedia({ currentMedia }) {
   const [media, setMediaState] = useState(() => normalizeChannelMedia(currentMedia));
-  const [imageGallery, setImageGallery] = useState(currentMedia?.gallery || []);
-  const [galleryMode, setGalleryMode] = useState(false);
+  const [imageGallery, setImageGalleryState] = useState(() =>
+    normalizeChannelGallery(currentMedia?.gallery)
+  );
+  const [galleryMode, setGalleryMode] = useState(
+    () => normalizeChannelGallery(currentMedia?.gallery).length > 1
+  );
   const fileInputRef = useRef();
   const galleryFileInputRef = useRef();
   const [mediaUploadHint, setMediaUploadHint] = useState('');
   const [libraryUploading, setLibraryUploading] = useState(false);
 
+  const syncMediaFromGallery = useCallback((gallery, artMotion) => {
+    const normalized = normalizeChannelGallery(gallery);
+    setImageGalleryState(normalized);
+    if (normalized.length === 0) {
+      setMediaState((prev) => {
+        if (!prev) return null;
+        return normalizeChannelMedia({
+          ...prev,
+          gallery: undefined,
+          artMotion: CHANNEL_ART_MOTION.COVER,
+        });
+      });
+      return;
+    }
+    setMediaState((prev) => {
+      const motion =
+        artMotion !== undefined
+          ? artMotion
+          : prev?.artMotion === CHANNEL_ART_MOTION.CINEMATIC
+            ? CHANNEL_ART_MOTION.CINEMATIC
+            : normalized.length > 1
+              ? CHANNEL_ART_MOTION.GALLERY_IDLE
+              : CHANNEL_ART_MOTION.COVER;
+      return mediaFromChannelGallery(
+        normalized.map((item, i) =>
+          i === 0 && prev
+            ? { ...item, focalX: prev.focalX, focalY: prev.focalY, name: prev.name || item.name }
+            : item
+        ),
+        motion
+      );
+    });
+  }, []);
+
   /** Preserve / reset focal framing through the shared media-fit contract. */
   const setMedia = useCallback((next) => {
     if (next == null) {
       setMediaState(null);
+      setImageGalleryState([]);
+      setGalleryMode(false);
       return;
     }
-    setMediaState((prev) => replaceChannelMediaArt(prev, next));
+    setMediaState((prev) => {
+      const replaced = replaceChannelMediaArt(prev, next);
+      if (isVideoMediaType(replaced?.type)) {
+        setImageGalleryState([]);
+        setGalleryMode(false);
+        return replaced;
+      }
+      const gal = normalizeChannelGallery(replaced?.gallery);
+      if (gal.length > 0) {
+        setImageGalleryState(gal);
+        setGalleryMode(gal.length > 1);
+      } else if (replaced?.url && isChannelGalleryStillType(replaced.type || 'image/png')) {
+        // Single cover replace — clear multi-gallery
+        setImageGalleryState([]);
+        setGalleryMode(false);
+      }
+      return replaced;
+    });
   }, []);
+
+  const setImageGallery = useCallback(
+    (next) => {
+      const value = typeof next === 'function' ? next(imageGallery) : next;
+      syncMediaFromGallery(value);
+    },
+    [imageGallery, syncMediaFromGallery]
+  );
+
+  const setArtMotion = useCallback((motion) => {
+    setMediaState((prev) => {
+      if (!prev) return prev;
+      const gallery = normalizeChannelGallery(prev.gallery?.length ? prev.gallery : imageGallery);
+      return normalizeChannelMedia({
+        ...prev,
+        gallery: gallery.length > 0 ? gallery : undefined,
+        artMotion: motion,
+      });
+    });
+  }, [imageGallery]);
 
   const clearMediaUploadHint = useCallback(() => setMediaUploadHint(''), []);
 
@@ -69,7 +160,7 @@ export function useChannelModalMedia({ currentMedia }) {
       console.error('Error saving media file:', error);
       setMedia({ url: tempUrl, type: file.type, name: file.name, loading: false, temporary: true });
     }
-  }, []);
+  }, [setMedia]);
 
   const handleGalleryFilesSelect = useCallback(async (files) => {
     if (!files || files.length === 0) return;
@@ -87,19 +178,46 @@ export function useChannelModalMedia({ currentMedia }) {
       }
       if (fileArray.length === 0) return;
 
-      const tempImages = fileArray.map((file) => ({
+      const room = Math.max(0, CHANNEL_GALLERY_MAX_STILLS - imageGallery.length);
+      const toAdd = fileArray.slice(0, room);
+      if (toAdd.length < fileArray.length) {
+        setMediaUploadHint(`Gallery holds up to ${CHANNEL_GALLERY_MAX_STILLS} stills.`);
+      }
+      if (toAdd.length === 0) return;
+
+      const tempImages = toAdd.map((file) => ({
         url: URL.createObjectURL(file),
         type: file.type,
         name: file.name,
-        id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: galleryItemId(),
         loading: true,
       }));
 
-      setImageGallery((prev) => [...prev, ...tempImages]);
+      let base = imageGallery;
+      if (
+        base.length === 0 &&
+        media?.url &&
+        isChannelGalleryStillType(media.type)
+      ) {
+        base = [
+          {
+            url: media.url,
+            type: media.type,
+            name: media.name,
+            id: galleryItemId(),
+            focalX: media.focalX,
+            focalY: media.focalY,
+          },
+        ];
+      }
+
+      const withTemps = [...base, ...tempImages].slice(0, CHANNEL_GALLERY_MAX_STILLS);
+      syncMediaFromGallery(withTemps);
+      setGalleryMode(true);
 
       const persistentImages = [];
-      for (let i = 0; i < fileArray.length; i++) {
-        const file = fileArray[i];
+      for (let i = 0; i < toAdd.length; i++) {
+        const file = toAdd[i];
         const tempImage = tempImages[i];
 
         try {
@@ -144,7 +262,7 @@ export function useChannelModalMedia({ currentMedia }) {
         }
       }
 
-      setImageGallery((prev) => {
+      setImageGalleryState((prev) => {
         const newGallery = [...prev];
         tempImages.forEach((tempImg) => {
           const index = newGallery.findIndex((img) => img.id === tempImg.id);
@@ -158,24 +276,90 @@ export function useChannelModalMedia({ currentMedia }) {
             }
           }
         });
+        syncMediaFromGallery(newGallery);
         return newGallery;
       });
     } catch (error) {
       console.error('Error processing gallery files:', error);
-      const newImages = Array.from(files).map((file) => ({
-        url: URL.createObjectURL(file),
-        type: file.type,
-        name: file.name,
-        id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        error: 'Could not save persistently',
-      }));
-      setImageGallery((prev) => [...prev, ...newImages]);
     }
-  }, []);
+  }, [imageGallery, media, syncMediaFromGallery]);
 
-  const handleRemoveGalleryImage = useCallback((imageId) => {
-    setImageGallery((prev) => prev.filter((img) => img.id !== imageId));
-  }, []);
+  const handleRemoveGalleryImage = useCallback(
+    (imageId) => {
+      const next = imageGallery.filter((img) => img.id !== imageId && img.url !== imageId);
+      syncMediaFromGallery(next);
+      if (next.length <= 1) setGalleryMode(false);
+    },
+    [imageGallery, syncMediaFromGallery]
+  );
+
+  const handleReorderGallery = useCallback(
+    (fromIndex, toIndex) => {
+      if (fromIndex === toIndex) return;
+      const next = [...imageGallery];
+      if (fromIndex < 0 || fromIndex >= next.length || toIndex < 0 || toIndex >= next.length) return;
+      const [item] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, item);
+      syncMediaFromGallery(next);
+    },
+    [imageGallery, syncMediaFromGallery]
+  );
+
+  const handleAddLibraryStillToGallery = useCallback(
+    (mediaItem) => {
+      if (!mediaItem) return;
+      if (mediaItem.file_type === 'video') {
+        setMediaUploadHint('Gallery stills only — videos stay single-cover.');
+        return;
+      }
+      if (imageGallery.length >= CHANNEL_GALLERY_MAX_STILLS) {
+        setMediaUploadHint(`Gallery holds up to ${CHANNEL_GALLERY_MAX_STILLS} stills.`);
+        return;
+      }
+      const mediaUrl = getStoragePublicObjectUrl('media-library', mediaItem.file_url);
+      let mimeType = 'image/png';
+      if (mediaItem.file_type === 'gif') mimeType = 'image/gif';
+      else if (mediaItem.mime_type) mimeType = mediaItem.mime_type;
+
+      if (!isChannelGalleryStillType(mimeType)) {
+        setMediaUploadHint(SUPPORTED_GALLERY_HINT);
+        return;
+      }
+
+      const next = [
+        ...imageGallery,
+        {
+          url: mediaUrl,
+          type: mimeType,
+          name: mediaItem.title || mediaItem.file_url,
+          id: galleryItemId(),
+        },
+      ];
+      // Seed gallery from current cover if empty
+      if (imageGallery.length === 0 && media?.url && isChannelGalleryStillType(media.type)) {
+        next.unshift({
+          url: media.url,
+          type: media.type,
+          name: media.name,
+          id: galleryItemId(),
+          focalX: media.focalX,
+          focalY: media.focalY,
+        });
+      }
+      // Avoid duplicating if library pick is the same as cover we just seeded
+      const deduped = [];
+      const seen = new Set();
+      for (const item of next) {
+        if (seen.has(item.url)) continue;
+        seen.add(item.url);
+        deduped.push(item);
+      }
+      syncMediaFromGallery(deduped.slice(0, CHANNEL_GALLERY_MAX_STILLS));
+      setGalleryMode(true);
+      setMediaUploadHint('');
+    },
+    [imageGallery, media, syncMediaFromGallery]
+  );
 
   const handleImageSelect = useCallback((mediaItem) => {
     const mediaUrl = getStoragePublicObjectUrl('media-library', mediaItem.file_url);
@@ -194,7 +378,7 @@ export function useChannelModalMedia({ currentMedia }) {
       name: mediaItem.title || mediaItem.file_url,
       isBuiltin: true,
     });
-  }, []);
+  }, [setMedia]);
 
   /**
    * Upload to Supabase media library, apply URL to channel, and refresh local library cache.
@@ -255,11 +439,11 @@ export function useChannelModalMedia({ currentMedia }) {
     } finally {
       setLibraryUploading(false);
     }
-  }, []);
+  }, [setMedia]);
 
   const handleRemoveImage = useCallback(() => {
     setMedia(null);
-  }, []);
+  }, [setMedia]);
 
   return {
     media,
@@ -268,11 +452,14 @@ export function useChannelModalMedia({ currentMedia }) {
     setImageGallery,
     galleryMode,
     setGalleryMode,
+    setArtMotion,
     fileInputRef,
     galleryFileInputRef,
     handleFileSelect,
     handleGalleryFilesSelect,
     handleRemoveGalleryImage,
+    handleReorderGallery,
+    handleAddLibraryStillToGallery,
     handleImageSelect,
     handleRemoveImage,
     mediaUploadHint,

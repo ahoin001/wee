@@ -2070,8 +2070,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784569842.265768,
-    "ast_hash": "1e7b46069d71fc434bfb839b9a317b56",
+    "mtime": 1784570134.6567242,
+    "ast_hash": "8e591e3942ebfed0d75ad96cc4d683e2",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2475,8 +2475,8 @@
     "semantic_hash": ""
   },
   "src/features/immersiveSoundMode/ImmersiveSoundModeStage.jsx": {
-    "mtime": 1784567443.4428365,
-    "ast_hash": "9050439c4bdcc51e713f1af6ea68276c",
+    "mtime": 1784570112.0867083,
+    "ast_hash": "5a4d2895a537a6f17f19dc23a14813bb",
     "semantic_hash": ""
   },
   "src/features/immersiveSoundMode/immersiveSoundModeApi.js": {
@@ -2592,6 +2592,11 @@
   "src/ui/wee/WeePopover.jsx": {
     "mtime": 1784569917.1165495,
     "ast_hash": "cb55afd1d6cbd2b12f4d49ad13537377",
+    "semantic_hash": ""
+  },
+  "src/utils/nowPlayingAlbumPaint.js": {
+    "mtime": 1784570153.6082053,
+    "ast_hash": "42f0993e2834d9fdeb14af91d7a248e0",
     "semantic_hash": ""
   }
 }

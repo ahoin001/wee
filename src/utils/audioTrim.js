@@ -179,6 +179,36 @@ export function encodeWav(audioBuffer) {
 }
 
 /**
+ * Downsample an AudioBuffer into peak magnitudes for a waveform strip (0–1).
+ * @param {AudioBuffer} audioBuffer
+ * @param {number} [bars=160]
+ * @returns {number[]}
+ */
+export function extractWaveformPeaks(audioBuffer, bars = 160) {
+  if (!audioBuffer?.length) return [];
+  const count = Math.max(16, Math.min(512, Math.floor(Number(bars) || 160)));
+  const channel = audioBuffer.getChannelData(0);
+  const block = Math.max(1, Math.floor(channel.length / count));
+  const peaks = new Array(count);
+  for (let i = 0; i < count; i += 1) {
+    const start = i * block;
+    const end = Math.min(channel.length, start + block);
+    let peak = 0;
+    for (let j = start; j < end; j += 1) {
+      const v = Math.abs(channel[j]);
+      if (v > peak) peak = v;
+    }
+    peaks[i] = peak;
+  }
+  let max = 0;
+  for (let i = 0; i < peaks.length; i += 1) {
+    if (peaks[i] > max) max = peaks[i];
+  }
+  if (max <= 0) return peaks.map(() => 0.05);
+  return peaks.map((p) => Math.max(0.04, p / max));
+}
+
+/**
  * @param {ArrayBuffer} arrayBuffer
  * @returns {string} base64
  */

@@ -1,17 +1,21 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import ReactFreezeframe from 'react-freezeframe-vite';
 import KenBurnsImage from './KenBurnsImage';
 import { isGifMediaType, isRasterImageMediaType, isVideoMediaType } from '../../utils/channelMediaType';
 import {
+  CHANNEL_ART_MOTION,
   CHANNEL_MEDIA_FIT,
   channelMediaFitStyle,
   channelMediaObjectPositionCss,
+  getChannelGalleryUrls,
+  resolveChannelArtMotion,
 } from '../../utils/channelMediaFit';
+import useAnimationActivity from '../../hooks/useAnimationActivity';
 
-function buildKenBurnsProps(channelSettings, effectiveKenBurnsMode, alt, media) {
+function buildKenBurnsProps(channelSettings, mode, alt, media, overrides = {}) {
   return {
-    mode: effectiveKenBurnsMode,
+    mode,
     width: '100%',
     height: '100%',
     // Match the tile's own radius (wii tiles are 14px) — a fixed value leaves a visible seam.
@@ -24,13 +28,14 @@ function buildKenBurnsProps(channelSettings, effectiveKenBurnsMode, alt, media) 
     autoplayDuration: channelSettings?.kenBurnsAutoplayDuration ?? 12000,
     autoplayScale: channelSettings?.kenBurnsAutoplayScale ?? 1.15,
     slideshowDuration: channelSettings?.kenBurnsSlideshowDuration ?? 10000,
-    slideshowScale: channelSettings?.kenBurnsSlideshowScale ?? 1.2,
-    crossfadeDuration: channelSettings?.kenBurnsCrossfadeDuration ?? 1000,
+    slideshowScale: channelSettings?.kenBurnsSlideshowScale ?? 1.08,
+    crossfadeDuration: Math.max(1000, channelSettings?.kenBurnsCrossfadeDuration ?? 1400),
     easing: channelSettings?.kenBurnsEasing || 'ease-out',
     animationType: channelSettings?.kenBurnsAnimationType || 'both',
     enableCrossfadeReturn: channelSettings?.kenBurnsCrossfadeReturn !== false,
     transitionType: channelSettings?.kenBurnsTransitionType || 'cross-dissolve',
     enableIntersectionObserver: true,
+    ...overrides,
   };
 }
 
@@ -52,6 +57,9 @@ function ChannelMediaPreview({
   fallbackIcon,
   setFallbackIcon,
 }) {
+  const { shouldAnimate } = useAnimationActivity({ activeFps: 8, lowPowerFps: 2 });
+  const [gallerySlideUrl, setGallerySlideUrl] = useState(null);
+
   const handleImageError = useCallback((e) => {
     setImageError(true);
     if (icon && icon !== effectiveMedia?.url) {
@@ -74,8 +82,58 @@ function ChannelMediaPreview({
     [effectiveMedia]
   );
 
+  const artMotion = resolveChannelArtMotion(effectiveMedia);
+  const galleryUrls = useMemo(() => getChannelGalleryUrls(effectiveMedia), [effectiveMedia]);
+  const channelOwnsPresentation =
+    artMotion === CHANNEL_ART_MOTION.GALLERY_IDLE ||
+    artMotion === CHANNEL_ART_MOTION.CINEMATIC ||
+    galleryUrls.length > 1;
+
+  const handleGalleryImageChange = useCallback((_index, url) => {
+    if (typeof url === 'string' && url) setGallerySlideUrl(url);
+  }, []);
+
   const mediaPreview = useMemo(() => {
     if (!(effectiveMedia && effectiveMedia.url && effectiveMedia.url.trim())) return null;
+
+    // Multi-art / cinematic: channel presentation wins over global Ken Burns settings.
+    if (channelOwnsPresentation && galleryUrls.length > 0) {
+      const cinematic = artMotion === CHANNEL_ART_MOTION.CINEMATIC;
+      if (isHovered && artMotion === CHANNEL_ART_MOTION.GALLERY_IDLE) {
+        return (
+          <KenBurnsImage
+            {...buildKenBurnsProps(
+              channelSettings,
+              'hover',
+              effectiveMedia.name || 'Channel Image',
+              effectiveMedia,
+              { animationEnabled: shouldAnimate }
+            )}
+            src={gallerySlideUrl || galleryUrls[0]}
+          />
+        );
+      }
+      return (
+        <KenBurnsImage
+          {...buildKenBurnsProps(
+            channelSettings,
+            'slideshow',
+            effectiveMedia.name || 'Channel gallery',
+            effectiveMedia,
+            {
+              animationEnabled: shouldAnimate,
+              slideshowDuration: cinematic ? 9000 : (channelSettings?.kenBurnsSlideshowDuration ?? 10000),
+              slideshowScale: cinematic
+                ? Math.max(1.1, channelSettings?.kenBurnsSlideshowScale ?? 1.12)
+                : Math.min(1.08, channelSettings?.kenBurnsSlideshowScale ?? 1.06),
+              crossfadeDuration: Math.max(1400, channelSettings?.kenBurnsCrossfadeDuration ?? 1400),
+            }
+          )}
+          images={galleryUrls}
+          onImageChange={handleGalleryImageChange}
+        />
+      );
+    }
 
     if (isGifMediaType(effectiveMedia.type) || effectiveMedia.url.match(/\.gif$/i)) {
       const kenBurnsForGifsEnabled = channelSettings?.kenBurnsForGifs ?? false;
@@ -86,7 +144,8 @@ function ChannelMediaPreview({
               channelSettings,
               effectiveKenBurnsMode,
               effectiveMedia.name || 'Channel GIF',
-              effectiveMedia
+              effectiveMedia,
+              { animationEnabled: shouldAnimate }
             )}
             src={effectiveMedia.url}
           />
@@ -125,7 +184,8 @@ function ChannelMediaPreview({
               channelSettings,
               effectiveKenBurnsMode,
               effectiveMedia.name || 'Channel Video',
-              effectiveMedia
+              effectiveMedia,
+              { animationEnabled: shouldAnimate }
             )}
             src={effectiveMedia.url}
           />
@@ -199,7 +259,8 @@ function ChannelMediaPreview({
               channelSettings,
               effectiveKenBurnsMode,
               effectiveMedia.name || 'Channel Image',
-              effectiveMedia
+              effectiveMedia,
+              { animationEnabled: shouldAnimate }
             )}
             src={effectiveMedia.url}
           />
@@ -236,6 +297,12 @@ function ChannelMediaPreview({
     handleImageLoad,
     setIsHovered,
     videoRef,
+    channelOwnsPresentation,
+    galleryUrls,
+    artMotion,
+    gallerySlideUrl,
+    shouldAnimate,
+    handleGalleryImageChange,
   ]);
 
   return (
@@ -282,6 +349,8 @@ ChannelMediaPreview.propTypes = {
     name: PropTypes.string,
     focalX: PropTypes.number,
     focalY: PropTypes.number,
+    gallery: PropTypes.array,
+    artMotion: PropTypes.string,
   }),
   effectiveAnimatedOnHover: PropTypes.bool,
   effectiveKenBurnsEnabled: PropTypes.bool,
@@ -300,12 +369,20 @@ ChannelMediaPreview.propTypes = {
   setFallbackIcon: PropTypes.func.isRequired,
 };
 
+function gallerySignature(media) {
+  const g = media?.gallery;
+  if (!Array.isArray(g) || g.length === 0) return '';
+  return g.map((item) => item?.url || '').join('\u241f');
+}
+
 function arePropsEqual(prev, next) {
   return (
     prev.effectiveMedia?.url === next.effectiveMedia?.url &&
     prev.effectiveMedia?.type === next.effectiveMedia?.type &&
     prev.effectiveMedia?.focalX === next.effectiveMedia?.focalX &&
     prev.effectiveMedia?.focalY === next.effectiveMedia?.focalY &&
+    prev.effectiveMedia?.artMotion === next.effectiveMedia?.artMotion &&
+    gallerySignature(prev.effectiveMedia) === gallerySignature(next.effectiveMedia) &&
     prev.effectiveAnimatedOnHover === next.effectiveAnimatedOnHover &&
     prev.effectiveKenBurnsEnabled === next.effectiveKenBurnsEnabled &&
     prev.effectiveKenBurnsMode === next.effectiveKenBurnsMode &&

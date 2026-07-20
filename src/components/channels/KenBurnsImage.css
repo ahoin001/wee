@@ -67,12 +67,18 @@
    ============================================================================= */
 
 .ken-burns-hover-mode .ken-burns-image {
-  transition: transform var(--ken-burns-duration) var(--ken-burns-easing, ease-out),
+  transition: transform var(--ken-burns-unwind-ms, 320ms) cubic-bezier(0.4, 0, 0.2, 1),
               opacity var(--ken-burns-crossfade-duration, 1500ms) ease-in-out;
 }
 
 .ken-burns-hover-mode.ken-burns-active .ken-burns-image {
-  animation: kenBurnsHover var(--ken-burns-duration) var(--ken-burns-easing, ease-out) forwards;
+  /* Soft enter ease aligns with hover SFX fade-in; then continue pan/zoom */
+  animation: kenBurnsHover var(--ken-burns-duration) var(--ken-burns-enter-ease, cubic-bezier(0.33, 0, 0.2, 1)) forwards;
+}
+
+/* Soft return: animation cancelled in JS; class keeps transition clock consistent */
+.ken-burns-hover-mode.ken-burns-unwinding .ken-burns-image {
+  animation: none !important;
 }
 
 @keyframes kenBurnsHover {
@@ -80,7 +86,7 @@
     transform: scale(1) translate(0%, 0%);
   }
   100% {
-    transform: scale(var(--ken-burns-scale)) 
+    transform: scale(var(--ken-burns-scale))
                translate(var(--ken-burns-to-x), var(--ken-burns-to-y));
   }
 }

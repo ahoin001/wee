@@ -20,6 +20,7 @@ import { preloadMediaLibrary } from '../../utils/mediaLibraryCache';
 import useSoundLibrary from '../../utils/useSoundLibrary';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { getChannelDataSlice } from '../../utils/channelSpaces';
+import { normalizeChannelMedia } from '../../utils/channelMediaFit';
 import SoundTrimDialog from '../sounds/SoundTrimDialog';
 import './ChannelModal.css';
 
@@ -39,8 +40,15 @@ function ChannelModal({
   const {
     media,
     setMedia,
+    imageGallery,
     setImageGallery,
     setGalleryMode,
+    setArtMotion,
+    galleryFileInputRef,
+    handleGalleryFilesSelect,
+    handleRemoveGalleryImage,
+    handleReorderGallery,
+    handleAddLibraryStillToGallery,
     handleImageSelect,
     handleRemoveImage,
     mediaUploadHint,
@@ -259,7 +267,7 @@ function ChannelModal({
     const persistedPath = trimmed ? normalizeChannelPath(trimmed, type) : null;
 
     const newChannel = {
-      media,
+      media: normalizeChannelMedia(media),
       path: persistedPath || null,
       type: persistedPath ? type : null,
       asAdmin,
@@ -427,6 +435,14 @@ function ChannelModal({
                   media={media}
                   mediaUploadHint={mediaUploadHint}
                   setMediaUploadHint={setMediaUploadHint}
+                  imageGallery={imageGallery}
+                  artMotion={media?.artMotion}
+                  onArtMotionChange={setArtMotion}
+                  galleryFileInputRef={galleryFileInputRef}
+                  onGalleryFilesSelect={handleGalleryFilesSelect}
+                  onRemoveGalleryImage={handleRemoveGalleryImage}
+                  onReorderGallery={handleReorderGallery}
+                  onAddLibraryStillToGallery={handleAddLibraryStillToGallery}
                 />
               }
             />
