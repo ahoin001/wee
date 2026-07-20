@@ -33,7 +33,7 @@ function registerAllIpcHandlers({
 }) {
   const { ipcMain, app, autoUpdater, BrowserWindow, shell, dialog, process, exec, ensureDataDir } = core;
   const { fs, fsPromises, fsExtra, ws, path } = runtime;
-  const { getMainWindow, createWindow, sendWindowState, setIsCurrentlyFullscreen, getIsFrameless, setIsFrameless } = state;
+  const { getMainWindow, createWindow, sendWindowState, setIsCurrentlyFullscreen, getIsFrameless, setIsFrameless, toggleFullscreenMode, setFullscreenMode, captureWindowedBounds } = state;
   const { unifiedData, wallpapersData, channelsData, channelConfigsPath } = services.data;
   const { gameSourceService, appScanService, launchChannelApp } = services.apps;
   const { createWallpaperThumbnail, getWallpaperMetadata, upsertWallpaperAssetInIndex, removeWallpaperAssetFromIndex, emitWallpapersUpdated } = wallpaper;
@@ -65,6 +65,9 @@ function registerAllIpcHandlers({
     setIsCurrentlyFullscreen,
     getIsFrameless,
     setIsFrameless,
+    toggleFullscreenMode,
+    setFullscreenMode,
+    captureWindowedBounds,
   });
 
   registerAppShellHandlers({

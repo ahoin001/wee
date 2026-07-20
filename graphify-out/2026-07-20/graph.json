@@ -3070,7 +3070,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_app_library_unifiedapppathcard",
-      "community": 169,
+      "community": 6,
       "norm_label": "unifiedapppathcard.jsx"
     },
     {
@@ -3090,7 +3090,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_app_library_unifiedapppathsearch",
-      "community": 169,
+      "community": 6,
       "norm_label": "unifiedapppathsearch.jsx"
     },
     {
@@ -3100,7 +3100,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_app_library_unifiedapppathsearch_unifiedapppathsearch",
-      "community": 169,
+      "community": 6,
       "norm_label": "unifiedapppathsearch()"
     },
     {
@@ -4210,7 +4210,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects",
-      "community": 17,
+      "community": 3,
       "norm_label": "ribbonchromeeffects.jsx"
     },
     {
@@ -4220,7 +4220,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_hsltorgb",
-      "community": 17,
+      "community": 3,
       "norm_label": "hsltorgb()"
     },
     {
@@ -4230,7 +4230,7 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_parseglowrgb",
-      "community": 17,
+      "community": 3,
       "norm_label": "parseglowrgb()"
     },
     {
@@ -4240,7 +4240,7 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_glowtorgba",
-      "community": 17,
+      "community": 3,
       "norm_label": "glowtorgba()"
     },
     {
@@ -4250,7 +4250,7 @@
       "source_location": "L188",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_duopartnerhex",
-      "community": 17,
+      "community": 3,
       "norm_label": "duopartnerhex()"
     },
     {
@@ -4260,7 +4260,7 @@
       "source_location": "L194",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffects_neonracelengths",
-      "community": 17,
+      "community": 3,
       "norm_label": "neonracelengths()"
     },
     {
@@ -4340,7 +4340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta",
-      "community": 17,
+      "community": 3,
       "norm_label": "ribbonchromeeffectmeta.js"
     },
     {
@@ -4350,7 +4350,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_ribbon_chrome_effects",
-      "community": 17,
+      "community": 3,
       "norm_label": "ribbon_chrome_effects"
     },
     {
@@ -4360,7 +4360,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_ribbon_chrome_glass_soft_modes",
-      "community": 17,
+      "community": 3,
       "norm_label": "ribbon_chrome_glass_soft_modes"
     },
     {
@@ -4370,7 +4370,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_ribbon_neon_color_modes",
-      "community": 17,
+      "community": 3,
       "norm_label": "ribbon_neon_color_modes"
     },
     {
@@ -4380,7 +4380,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_ribbon_neon_color_mode_options",
-      "community": 17,
+      "community": 3,
       "norm_label": "ribbon_neon_color_mode_options"
     },
     {
@@ -4390,7 +4390,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_meta_by_id",
-      "community": 17,
+      "community": 3,
       "norm_label": "meta_by_id"
     },
     {
@@ -4400,7 +4400,7 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_normalizeribbonchromeeffectid",
-      "community": 17,
+      "community": 3,
       "norm_label": "normalizeribbonchromeeffectid()"
     },
     {
@@ -4410,7 +4410,7 @@
       "source_location": "L172",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_getribbonchromeeffectmeta",
-      "community": 17,
+      "community": 3,
       "norm_label": "getribbonchromeeffectmeta()"
     },
     {
@@ -4420,7 +4420,7 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_isribbonneoncolormode",
-      "community": 17,
+      "community": 3,
       "norm_label": "isribbonneoncolormode()"
     },
     {
@@ -4430,7 +4430,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_getribbonchromeeffectdefaults",
-      "community": 17,
+      "community": 3,
       "norm_label": "getribbonchromeeffectdefaults()"
     },
     {
@@ -4440,7 +4440,7 @@
       "source_location": "L206",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_isribbonchromeglasssoftmode",
-      "community": 17,
+      "community": 3,
       "norm_label": "isribbonchromeglasssoftmode()"
     },
     {
@@ -4450,7 +4450,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_getribbonchromeeffectoptions",
-      "community": 17,
+      "community": 3,
       "norm_label": "getribbonchromeeffectoptions()"
     },
     {
@@ -4460,7 +4460,7 @@
       "source_location": "L218",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonchromeeffectmeta_isribbonchromeeffectid",
-      "community": 17,
+      "community": 3,
       "norm_label": "isribbonchromeeffectid()"
     },
     {
@@ -4470,7 +4470,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonsilhouette",
-      "community": 17,
+      "community": 26,
       "norm_label": "ribbonsilhouette.js"
     },
     {
@@ -4480,7 +4480,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonsilhouette_cubicpoint",
-      "community": 17,
+      "community": 26,
       "norm_label": "cubicpoint()"
     },
     {
@@ -4490,7 +4490,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_dock_ribbon_ribbonsilhouette_sampleribbontopedgepoints",
-      "community": 17,
+      "community": 26,
       "norm_label": "sampleribbontopedgepoints()"
     },
     {
@@ -4880,7 +4880,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_game_hub_gamehubminimaldock",
-      "community": 3,
+      "community": 14,
       "norm_label": "gamehubminimaldock.jsx"
     },
     {
@@ -4890,7 +4890,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_game_hub_gamehubminimaldock_gamehubminimaldock",
-      "community": 3,
+      "community": 14,
       "norm_label": "gamehubminimaldock()"
     },
     {
@@ -5610,7 +5610,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_homeslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "homeslot.jsx"
     },
     {
@@ -5620,7 +5620,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_home_grid_homeslot_widget_slot_components",
-      "community": 70,
+      "community": 31,
       "norm_label": "widget_slot_components"
     },
     {
@@ -5630,7 +5630,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_home_grid_homeslot_legacychannelconfigfromslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "legacychannelconfigfromslot()"
     },
     {
@@ -5640,7 +5640,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_components_home_grid_homeslot_homeslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "homeslot()"
     },
     {
@@ -5690,7 +5690,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetglasscontrols",
-      "community": 72,
+      "community": 53,
       "norm_label": "homewidgetglasscontrols.jsx"
     },
     {
@@ -5700,7 +5700,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetglasscontrols_homewidgetglasscontrols",
-      "community": 72,
+      "community": 53,
       "norm_label": "homewidgetglasscontrols()"
     },
     {
@@ -5760,7 +5760,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetsettingspanel_weatherwidgetsettings",
-      "community": 85,
+      "community": 76,
       "norm_label": "weatherwidgetsettings()"
     },
     {
@@ -5790,7 +5790,7 @@
       "source_location": "L405",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetsettingspanel_recentlyusedwidgetsettings",
-      "community": 0,
+      "community": 76,
       "norm_label": "recentlyusedwidgetsettings()"
     },
     {
@@ -5830,7 +5830,7 @@
       "source_location": "L995",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetsettingspanel_homeslotkindhaswidgetsettings",
-      "community": 31,
+      "community": 76,
       "norm_label": "homeslotkindhaswidgetsettings()"
     },
     {
@@ -5840,7 +5840,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetshell",
-      "community": 72,
+      "community": 53,
       "norm_label": "homewidgetshell.jsx"
     },
     {
@@ -5850,7 +5850,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_home_grid_homewidgetshell_homewidgetshell",
-      "community": 126,
+      "community": 11,
       "norm_label": "homewidgetshell"
     },
     {
@@ -5990,7 +5990,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfavoritesslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "steamfavoritesslot.jsx"
     },
     {
@@ -6000,7 +6000,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfavoritesslot_steamfavoritesslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "steamfavoritesslot()"
     },
     {
@@ -6010,7 +6010,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot",
-      "community": 126,
+      "community": 17,
       "norm_label": "steamfriendsslot.jsx"
     },
     {
@@ -6020,7 +6020,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_empty_friends_playing",
-      "community": 126,
+      "community": 17,
       "norm_label": "empty_friends_playing"
     },
     {
@@ -6030,7 +6030,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_persona_status",
-      "community": 126,
+      "community": 17,
       "norm_label": "persona_status"
     },
     {
@@ -6040,7 +6040,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_isfriendingame",
-      "community": 126,
+      "community": 17,
       "norm_label": "isfriendingame()"
     },
     {
@@ -6050,7 +6050,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_isfriendonline",
-      "community": 126,
+      "community": 17,
       "norm_label": "isfriendonline()"
     },
     {
@@ -6060,7 +6060,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_friendpresencerank",
-      "community": 126,
+      "community": 17,
       "norm_label": "friendpresencerank()"
     },
     {
@@ -6070,7 +6070,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_friendstatuslabel",
-      "community": 126,
+      "community": 17,
       "norm_label": "friendstatuslabel()"
     },
     {
@@ -6080,7 +6080,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_friendsectionlabel",
-      "community": 126,
+      "community": 17,
       "norm_label": "friendsectionlabel()"
     },
     {
@@ -6090,7 +6090,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_friendlistrow",
-      "community": 126,
+      "community": 17,
       "norm_label": "friendlistrow()"
     },
     {
@@ -6100,7 +6100,7 @@
       "source_location": "L259",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_friendshelfcard",
-      "community": 126,
+      "community": 17,
       "norm_label": "friendshelfcard()"
     },
     {
@@ -6110,7 +6110,7 @@
       "source_location": "L356",
       "_origin": "ast",
       "id": "src_components_home_grid_steamfriendsslot_steamfriendsslot",
-      "community": 126,
+      "community": 17,
       "norm_label": "steamfriendsslot()"
     },
     {
@@ -6270,7 +6270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_steammostplayedslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "steammostplayedslot.jsx"
     },
     {
@@ -6280,7 +6280,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_home_grid_steammostplayedslot_steammostplayedslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "steammostplayedslot()"
     },
     {
@@ -6290,7 +6290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_steamrecentslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "steamrecentslot.jsx"
     },
     {
@@ -6300,7 +6300,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_home_grid_steamrecentslot_steamrecentslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "steamrecentslot()"
     },
     {
@@ -6310,7 +6310,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_home_grid_steamtagsslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "steamtagsslot.jsx"
     },
     {
@@ -6320,7 +6320,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_home_grid_steamtagsslot_steamtagsslot",
-      "community": 70,
+      "community": 31,
       "norm_label": "steamtagsslot()"
     },
     {
@@ -7357,7 +7357,7 @@
       "label": "PaginatedChannels()",
       "file_type": "code",
       "source_file": "src/components/navigation/PaginatedChannels.jsx",
-      "source_location": "L1622",
+      "source_location": "L1625",
       "_origin": "ast",
       "id": "src_components_navigation_paginatedchannels_paginatedchannels",
       "community": 1,
@@ -7530,7 +7530,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_overlays_spotifyimmersiveoverlay",
-      "community": 3,
+      "community": 75,
       "norm_label": "spotifyimmersiveoverlay.jsx"
     },
     {
@@ -7540,7 +7540,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_components_overlays_spotifyimmersiveoverlay_spotifyimmersiveoverlay",
-      "community": 3,
+      "community": 75,
       "norm_label": "spotifyimmersiveoverlay()"
     },
     {
@@ -7570,7 +7570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_overlays_spotifytakeovercontroller",
-      "community": 12,
+      "community": 75,
       "norm_label": "spotifytakeovercontroller.jsx"
     },
     {
@@ -7580,7 +7580,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_overlays_spotifytakeovercontroller_spotifytakeovercontroller",
-      "community": 12,
+      "community": 75,
       "norm_label": "spotifytakeovercontroller()"
     },
     {
@@ -8760,7 +8760,7 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "src_components_settings_dock_ribbondockpanel_ribbondockpanel",
-      "community": 17,
+      "community": 3,
       "norm_label": "ribbondockpanel()"
     },
     {
@@ -9230,7 +9230,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_widgets_performancemonitor_performancemonitor",
-      "community": 3,
+      "community": 14,
       "norm_label": "performancemonitor()"
     },
     {
@@ -9460,7 +9460,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_design_channelidleanimations",
-      "community": 3,
+      "community": 14,
       "norm_label": "channelidleanimations.js"
     },
     {
@@ -9470,7 +9470,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_design_channelidleanimations_channel_idle_ms",
-      "community": 3,
+      "community": 14,
       "norm_label": "channel_idle_ms"
     },
     {
@@ -9480,7 +9480,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_design_channelidleanimations_getchannelidledurationms",
-      "community": 3,
+      "community": 14,
       "norm_label": "getchannelidledurationms()"
     },
     {
@@ -10620,7 +10620,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useactivityinterval",
-      "community": 3,
+      "community": 14,
       "norm_label": "useactivityinterval.js"
     },
     {
@@ -10630,7 +10630,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_hooks_useactivityinterval_useactivityinterval",
-      "community": 3,
+      "community": 14,
       "norm_label": "useactivityinterval()"
     },
     {
@@ -10640,7 +10640,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useanimationactivity",
-      "community": 3,
+      "community": 14,
       "norm_label": "useanimationactivity.js"
     },
     {
@@ -10660,7 +10660,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useappactivity",
-      "community": 3,
+      "community": 14,
       "norm_label": "useappactivity.js"
     },
     {
@@ -10670,7 +10670,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_hooks_useappactivity_getinitialactivity",
-      "community": 3,
+      "community": 14,
       "norm_label": "getinitialactivity()"
     },
     {
@@ -10680,7 +10680,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_hooks_useappactivity_getinitialmainwindowactivity",
-      "community": 3,
+      "community": 14,
       "norm_label": "getinitialmainwindowactivity()"
     },
     {
@@ -10690,7 +10690,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_hooks_useappactivity_useappactivity",
-      "community": 3,
+      "community": 14,
       "norm_label": "useappactivity()"
     },
     {
@@ -10950,7 +10950,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usefloatingwidgetframe",
-      "community": 97,
+      "community": 11,
       "norm_label": "usefloatingwidgetframe.js"
     },
     {
@@ -10960,7 +10960,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_hooks_usefloatingwidgetframe_defaultuncontrolledsize",
-      "community": 97,
+      "community": 11,
       "norm_label": "defaultuncontrolledsize()"
     },
     {
@@ -10970,7 +10970,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_usefloatingwidgetframe_viewportresizebounds",
-      "community": 97,
+      "community": 11,
       "norm_label": "viewportresizebounds()"
     },
     {
@@ -10980,7 +10980,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_hooks_usefloatingwidgetframe_usefloatingwidgetframe",
-      "community": 97,
+      "community": 11,
       "norm_label": "usefloatingwidgetframe()"
     },
     {
@@ -11060,7 +11060,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usehomeidleexperience",
-      "community": 3,
+      "community": 14,
       "norm_label": "usehomeidleexperience.js"
     },
     {
@@ -11070,7 +11070,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_hooks_usehomeidleexperience_usehomeidleexperience",
-      "community": 3,
+      "community": 14,
       "norm_label": "usehomeidleexperience()"
     },
     {
@@ -11280,7 +11280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usenowplayingcolormatch",
-      "community": 53,
+      "community": 19,
       "norm_label": "usenowplayingcolormatch.js"
     },
     {
@@ -11290,7 +11290,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_usenowplayingcolormatch_usenowplayingcolormatch",
-      "community": 53,
+      "community": 19,
       "norm_label": "usenowplayingcolormatch()"
     },
     {
@@ -11300,7 +11300,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usenowplayingsources",
-      "community": 53,
+      "community": 19,
       "norm_label": "usenowplayingsources.js"
     },
     {
@@ -11310,7 +11310,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_hooks_usenowplayingsources_tostoredsession",
-      "community": 53,
+      "community": 19,
       "norm_label": "tostoredsession()"
     },
     {
@@ -11320,7 +11320,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_hooks_usenowplayingsources_usenowplayingsources",
-      "community": 53,
+      "community": 19,
       "norm_label": "usenowplayingsources()"
     },
     {
@@ -11350,7 +11350,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usepowerpolicy",
-      "community": 3,
+      "community": 14,
       "norm_label": "usepowerpolicy.js"
     },
     {
@@ -11360,7 +11360,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_hooks_usepowerpolicy_usepowerpolicy",
-      "community": 3,
+      "community": 14,
       "norm_label": "usepowerpolicy()"
     },
     {
@@ -11390,7 +11390,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_userenderermediapowerstate",
-      "community": 3,
+      "community": 14,
       "norm_label": "userenderermediapowerstate.js"
     },
     {
@@ -11400,7 +11400,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_hooks_userenderermediapowerstate_userenderermediapowerstate",
-      "community": 3,
+      "community": 14,
       "norm_label": "userenderermediapowerstate()"
     },
     {
@@ -11550,7 +11550,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usespotifyplaybacksample",
-      "community": 3,
+      "community": 75,
       "norm_label": "usespotifyplaybacksample.js"
     },
     {
@@ -11560,7 +11560,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_usespotifyplaybacksample_usespotifyplaybacksample",
-      "community": 3,
+      "community": 75,
       "norm_label": "usespotifyplaybacksample()"
     },
     {
@@ -12180,7 +12180,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ui_wee_weecontentcollapse",
-      "community": 75,
+      "community": 52,
       "norm_label": "weecontentcollapse.jsx"
     },
     {
@@ -12190,7 +12190,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_ui_wee_weecontentcollapse_readcollapsedurationms",
-      "community": 75,
+      "community": 52,
       "norm_label": "readcollapsedurationms()"
     },
     {
@@ -12200,7 +12200,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_ui_wee_weecontentcollapse_weecontentcollapse",
-      "community": 75,
+      "community": 52,
       "norm_label": "weecontentcollapse()"
     },
     {
@@ -12280,7 +12280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ui_wee_weefadescroll",
-      "community": 126,
+      "community": 17,
       "norm_label": "weefadescroll.jsx"
     },
     {
@@ -12290,7 +12290,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_ui_wee_weefadescroll_weefadescroll",
-      "community": 126,
+      "community": 17,
       "norm_label": "weefadescroll"
     },
     {
@@ -12450,7 +12450,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ui_wee_weeinlinehelp",
-      "community": 169,
+      "community": 6,
       "norm_label": "weeinlinehelp.jsx"
     },
     {
@@ -12460,7 +12460,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_ui_wee_weeinlinehelp_weehelpparagraph",
-      "community": 169,
+      "community": 6,
       "norm_label": "weehelpparagraph()"
     },
     {
@@ -12670,7 +12670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ui_wee_weerevealwhen",
-      "community": 75,
+      "community": 52,
       "norm_label": "weerevealwhen.jsx"
     },
     {
@@ -12680,7 +12680,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_ui_wee_weerevealwhen_weerevealwhen",
-      "community": 75,
+      "community": 52,
       "norm_label": "weerevealwhen()"
     },
     {
@@ -12690,7 +12690,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ui_wee_weesectioneyebrow",
-      "community": 169,
+      "community": 84,
       "norm_label": "weesectioneyebrow.jsx"
     },
     {
@@ -12700,7 +12700,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_ui_wee_weesectioneyebrow_weesectioneyebrow",
-      "community": 169,
+      "community": 84,
       "norm_label": "weesectioneyebrow()"
     },
     {
@@ -12790,7 +12790,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ui_wee_weesettingssection",
-      "community": 169,
+      "community": 84,
       "norm_label": "weesettingssection.jsx"
     },
     {
@@ -12800,7 +12800,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_ui_wee_weesettingssection_weesettingssection",
-      "community": 169,
+      "community": 84,
       "norm_label": "weesettingssection()"
     },
     {
@@ -13960,7 +13960,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_utils_appearance_spaceappearance_createdefaultspaceappearance",
-      "community": 29,
+      "community": 82,
       "norm_label": "createdefaultspaceappearance()"
     },
     {
@@ -14500,7 +14500,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_utils_cacheregistry_listcachedomains",
-      "community": 12,
+      "community": 33,
       "norm_label": "listcachedomains()"
     },
     {
@@ -14530,7 +14530,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "src_utils_cacheregistry_refreshcachedomain",
-      "community": 33,
+      "community": 12,
       "norm_label": "refreshcachedomain()"
     },
     {
@@ -15320,7 +15320,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "src_utils_channelspaces_resolveactiveboardcurrentpage",
-      "community": 203,
+      "community": 97,
       "norm_label": "resolveactiveboardcurrentpage()"
     },
     {
@@ -15720,7 +15720,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_utils_extractcolorsfromalbumart_extractcolorsfromalbumart",
-      "community": 53,
+      "community": 19,
       "norm_label": "extractcolorsfromalbumart()"
     },
     {
@@ -15730,7 +15730,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_floatingwidgetgeometry",
-      "community": 97,
+      "community": 11,
       "norm_label": "floatingwidgetgeometry.js"
     },
     {
@@ -15740,7 +15740,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_utils_floatingwidgetgeometry_getviewportsize",
-      "community": 97,
+      "community": 11,
       "norm_label": "getviewportsize()"
     },
     {
@@ -15750,7 +15750,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_utils_floatingwidgetgeometry_clampfloatingwidgetposition",
-      "community": 97,
+      "community": 11,
       "norm_label": "clampfloatingwidgetposition()"
     },
     {
@@ -16280,7 +16280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_homenowplayingwidgetprefs",
-      "community": 76,
+      "community": 19,
       "norm_label": "homenowplayingwidgetprefs.js"
     },
     {
@@ -16300,7 +16300,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_utils_homenowplayingwidgetprefs_now_playing_backdrop_modes",
-      "community": 76,
+      "community": 19,
       "norm_label": "now_playing_backdrop_modes"
     },
     {
@@ -16310,7 +16310,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_utils_homenowplayingwidgetprefs_default_home_now_playing_widget",
-      "community": 76,
+      "community": 19,
       "norm_label": "default_home_now_playing_widget"
     },
     {
@@ -16320,7 +16320,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_utils_homenowplayingwidgetprefs_art_layout_ids",
-      "community": 76,
+      "community": 19,
       "norm_label": "art_layout_ids"
     },
     {
@@ -16330,7 +16330,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_utils_homenowplayingwidgetprefs_backdrop_mode_ids",
-      "community": 76,
+      "community": 19,
       "norm_label": "backdrop_mode_ids"
     },
     {
@@ -16340,7 +16340,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_utils_homenowplayingwidgetprefs_clampnumber",
-      "community": 76,
+      "community": 19,
       "norm_label": "clampnumber()"
     },
     {
@@ -16350,7 +16350,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_utils_homenowplayingwidgetprefs_normalizehomenowplayingwidget",
-      "community": 76,
+      "community": 19,
       "norm_label": "normalizehomenowplayingwidget()"
     },
     {
@@ -16370,7 +16370,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_utils_homerecentlyusedwidgetprefs_home_recent_launch_filters",
-      "community": 0,
+      "community": 76,
       "norm_label": "home_recent_launch_filters"
     },
     {
@@ -16390,7 +16390,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_utils_homerecentlyusedwidgetprefs_default_home_recently_used_widget",
-      "community": 0,
+      "community": 53,
       "norm_label": "default_home_recently_used_widget"
     },
     {
@@ -16420,7 +16420,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_homeslotsizepresets",
-      "community": 31,
+      "community": 0,
       "norm_label": "homeslotsizepresets.js"
     },
     {
@@ -16430,7 +16430,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_utils_homeslotsizepresets_home_slot_size_presets",
-      "community": 31,
+      "community": 0,
       "norm_label": "home_slot_size_presets"
     },
     {
@@ -16450,7 +16450,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_utils_homeslotsizepresets_matchsizepresetbyspan",
-      "community": 11,
+      "community": 0,
       "norm_label": "matchsizepresetbyspan()"
     },
     {
@@ -16500,7 +16500,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_utils_homesteamwidgetprefs_default_home_steam_widget",
-      "community": 76,
+      "community": 53,
       "norm_label": "default_home_steam_widget"
     },
     {
@@ -16590,7 +16590,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_utils_homeweather_home_weather_temp_units",
-      "community": 85,
+      "community": 76,
       "norm_label": "home_weather_temp_units"
     },
     {
@@ -16670,7 +16670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_homewidgetglass",
-      "community": 72,
+      "community": 53,
       "norm_label": "homewidgetglass.js"
     },
     {
@@ -16680,7 +16680,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_utils_homewidgetglass_default_home_widget_glass",
-      "community": 72,
+      "community": 53,
       "norm_label": "default_home_widget_glass"
     },
     {
@@ -16690,7 +16690,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_utils_homewidgetglass_normalizehomewidgetglass",
-      "community": 72,
+      "community": 53,
       "norm_label": "normalizehomewidgetglass()"
     },
     {
@@ -16700,7 +16700,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_utils_homewidgetglass_homewidgetglasscssvars",
-      "community": 72,
+      "community": 53,
       "norm_label": "homewidgetglasscssvars()"
     },
     {
@@ -16710,7 +16710,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_homewidgetlayout",
-      "community": 11,
+      "community": 85,
       "norm_label": "homewidgetlayout.js"
     },
     {
@@ -16720,7 +16720,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_utils_homewidgetlayout_resolvehomewidgetlayout",
-      "community": 11,
+      "community": 85,
       "norm_label": "resolvehomewidgetlayout()"
     },
     {
@@ -16800,7 +16800,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_utils_homewidgetsurface_resolvesteamheading",
-      "community": 126,
+      "community": 17,
       "norm_label": "resolvesteamheading()"
     },
     {
@@ -16920,7 +16920,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_utils_icontinting_cleartintediconcache",
-      "community": 39,
+      "community": 40,
       "norm_label": "cleartintediconcache()"
     },
     {
@@ -16967,7 +16967,7 @@
       "label": "IDLE_EXPERIENCE_MODES",
       "file_type": "code",
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L12",
+      "source_location": "L14",
       "_origin": "ast",
       "id": "src_utils_idleexperience_idle_experience_modes",
       "community": 35,
@@ -16977,7 +16977,7 @@
       "label": "IDLE_PERSONALITY_PACKS",
       "file_type": "code",
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L17",
+      "source_location": "L19",
       "_origin": "ast",
       "id": "src_utils_idleexperience_idle_personality_packs",
       "community": 35,
@@ -16987,7 +16987,7 @@
       "label": "matchIdlePersonality()",
       "file_type": "code",
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L27",
+      "source_location": "L29",
       "_origin": "ast",
       "id": "src_utils_idleexperience_matchidlepersonality",
       "community": 35,
@@ -16997,7 +16997,7 @@
       "label": "normalizeIdleExperienceSettings()",
       "file_type": "code",
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L46",
+      "source_location": "L49",
       "_origin": "ast",
       "id": "src_utils_idleexperience_normalizeidleexperiencesettings",
       "community": 35,
@@ -17220,7 +17220,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_launchwithfeedback",
-      "community": 126,
+      "community": 0,
       "norm_label": "launchwithfeedback.js"
     },
     {
@@ -17230,7 +17230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_launchwithfeedback_launchwithfeedback",
-      "community": 126,
+      "community": 0,
       "norm_label": "launchwithfeedback()"
     },
     {
@@ -17970,7 +17970,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_power_resolvepowerpolicy",
-      "community": 3,
+      "community": 14,
       "norm_label": "resolvepowerpolicy.js"
     },
     {
@@ -17980,7 +17980,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_utils_power_resolvepowerpolicy_resolvepowerprofile",
-      "community": 3,
+      "community": 14,
       "norm_label": "resolvepowerprofile()"
     },
     {
@@ -17990,7 +17990,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_utils_power_resolvepowerpolicy_powerprofileflags",
-      "community": 3,
+      "community": 14,
       "norm_label": "powerprofileflags()"
     },
     {
@@ -18300,7 +18300,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_presets_buildpresetsnapshot",
-      "community": 29,
+      "community": 97,
       "norm_label": "buildpresetsnapshot.js"
     },
     {
@@ -18310,7 +18310,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_utils_presets_buildpresetsnapshot_clonesafe",
-      "community": 29,
+      "community": 97,
       "norm_label": "clonesafe()"
     },
     {
@@ -18320,7 +18320,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_utils_presets_buildpresetsnapshot_clonechannelboardforpreset",
-      "community": 29,
+      "community": 97,
       "norm_label": "clonechannelboardforpreset()"
     },
     {
@@ -18330,7 +18330,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_utils_presets_buildpresetsnapshot_appearanceforspace",
-      "community": 29,
+      "community": 97,
       "norm_label": "appearanceforspace()"
     },
     {
@@ -18340,7 +18340,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_utils_presets_buildpresetsnapshot_buildpresetdatafromstore",
-      "community": 29,
+      "community": 97,
       "norm_label": "buildpresetdatafromstore()"
     },
     {
@@ -18350,7 +18350,7 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "src_utils_presets_buildpresetsnapshot_buildpresetfromcurrentstore",
-      "community": 29,
+      "community": 97,
       "norm_label": "buildpresetfromcurrentstore()"
     },
     {
@@ -18810,7 +18810,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_utils_settingsnavigation_openspotifywebapp",
-      "community": 126,
+      "community": 17,
       "norm_label": "openspotifywebapp()"
     },
     {
@@ -18820,7 +18820,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "src_utils_settingsnavigation_openexternalurl",
-      "community": 126,
+      "community": 17,
       "norm_label": "openexternalurl()"
     },
     {
@@ -19150,7 +19150,7 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "src_utils_soundplayback_stopbackgroundmusic",
-      "community": 3,
+      "community": 14,
       "norm_label": "stopbackgroundmusic()"
     },
     {
@@ -19500,7 +19500,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_spotifytakeover",
-      "community": 12,
+      "community": 75,
       "norm_label": "spotifytakeover.js"
     },
     {
@@ -19510,7 +19510,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_utils_spotifytakeover_now_playing_experience_modes",
-      "community": 12,
+      "community": 75,
       "norm_label": "now_playing_experience_modes"
     },
     {
@@ -19520,7 +19520,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_utils_spotifytakeover_normalizenowplayingexperience",
-      "community": 12,
+      "community": 75,
       "norm_label": "normalizenowplayingexperience()"
     },
     {
@@ -19530,7 +19530,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_utils_spotifytakeover_selectspotifytakeoveractive",
-      "community": 12,
+      "community": 75,
       "norm_label": "selectspotifytakeoveractive()"
     },
     {
@@ -19540,7 +19540,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_utils_spotifytakeover_selectspotifyimmersiveactive",
-      "community": 3,
+      "community": 75,
       "norm_label": "selectspotifyimmersiveactive()"
     },
     {
@@ -19550,7 +19550,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_utils_spotifytakeover_togglespotifytakeover",
-      "community": 12,
+      "community": 75,
       "norm_label": "togglespotifytakeover()"
     },
     {
@@ -19580,7 +19580,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_utils_steamgamesglance_steam_cdn_header",
-      "community": 126,
+      "community": 17,
       "norm_label": "steam_cdn_header()"
     },
     {
@@ -20660,7 +20660,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_utils_theme_extractimagepalette_colorstringtohex",
-      "community": 15,
+      "community": 82,
       "norm_label": "colorstringtohex()"
     },
     {
@@ -20720,7 +20720,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_theme_resolveeffectiveaccent",
-      "community": 15,
+      "community": 82,
       "norm_label": "resolveeffectiveaccent.js"
     },
     {
@@ -20730,7 +20730,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_utils_theme_resolveeffectiveaccent_resolveeffectiveaccent",
-      "community": 15,
+      "community": 82,
       "norm_label": "resolveeffectiveaccent()"
     },
     {
@@ -20740,7 +20740,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_utils_theme_resolveeffectiveaccent_resolvedisplaywallpaperurl",
-      "community": 203,
+      "community": 97,
       "norm_label": "resolvedisplaywallpaperurl()"
     },
     {
@@ -20860,17 +20860,17 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_usebackgroundmusiclifecycle",
-      "community": 3,
+      "community": 14,
       "norm_label": "usebackgroundmusiclifecycle.js"
     },
     {
       "label": "useBackgroundMusicLifecycle()",
       "file_type": "code",
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L20",
+      "source_location": "L21",
       "_origin": "ast",
       "id": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
-      "community": 3,
+      "community": 14,
       "norm_label": "usebackgroundmusiclifecycle()"
     },
     {
@@ -21020,7 +21020,7 @@
       "source_location": "L210",
       "_origin": "ast",
       "id": "src_utils_useconsolidatedapphooks_useunifiedappsstate",
-      "community": 169,
+      "community": 6,
       "norm_label": "useunifiedappsstate()"
     },
     {
@@ -21540,7 +21540,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_useconsolidatedappstore",
-      "community": 72,
+      "community": 53,
       "norm_label": "useconsolidatedappstore.js"
     },
     {
@@ -21570,7 +21570,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "src_utils_useconsolidatedappstore_shallowequalobjects",
-      "community": 72,
+      "community": 53,
       "norm_label": "shallowequalobjects()"
     },
     {
@@ -21580,7 +21580,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_utils_useconsolidatedappstore_channelspacepatchunchanged",
-      "community": 72,
+      "community": 53,
       "norm_label": "channelspacepatchunchanged()"
     },
     {
@@ -21590,7 +21590,7 @@
       "source_location": "L123",
       "_origin": "ast",
       "id": "src_utils_useconsolidatedappstore_mergewithundefineddeletes",
-      "community": 72,
+      "community": 53,
       "norm_label": "mergewithundefineddeletes()"
     },
     {
@@ -21600,7 +21600,7 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "src_utils_useconsolidatedappstore_applibrarymanager_unifiedappmanager_spotifymanager_iconmanager_navigationmanager_performancemanager_floatingwidgetmanager",
-      "community": 72,
+      "community": 53,
       "norm_label": "{\n  applibrarymanager,\n  unifiedappmanager,\n  spotifymanager,\n  iconmanager,\n  navigationmanager,\n  performancemanager,\n  floatingwidgetmanager,\n}"
     },
     {
@@ -21610,17 +21610,17 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_useidlechannelanimations",
-      "community": 3,
+      "community": 14,
       "norm_label": "useidlechannelanimations.js"
     },
     {
       "label": "useIdleChannelAnimations()",
       "file_type": "code",
       "source_file": "src/utils/useIdleChannelAnimations.js",
-      "source_location": "L7",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "src_utils_useidlechannelanimations_useidlechannelanimations",
-      "community": 3,
+      "community": 14,
       "norm_label": "useidlechannelanimations()"
     },
     {
@@ -21970,7 +21970,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_workspaces_runscenetransition",
-      "community": 203,
+      "community": 97,
       "norm_label": "runscenetransition.js"
     },
     {
@@ -21980,7 +21980,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_utils_workspaces_runscenetransition_sleep",
-      "community": 203,
+      "community": 97,
       "norm_label": "sleep()"
     },
     {
@@ -21990,7 +21990,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_utils_workspaces_runscenetransition_waitforwallpapervisualcommit",
-      "community": 203,
+      "community": 97,
       "norm_label": "waitforwallpapervisualcommit()"
     },
     {
@@ -22000,7 +22000,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_utils_workspaces_runscenetransition_runscenetransition",
-      "community": 203,
+      "community": 97,
       "norm_label": "runscenetransition()"
     },
     {
@@ -25680,7 +25680,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "agents",
-      "community": 196,
+      "community": 96,
       "norm_label": "agents.md"
     },
     {
@@ -25990,7 +25990,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "design",
-      "community": 196,
+      "community": 96,
       "norm_label": "design.md"
     },
     {
@@ -26020,7 +26020,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "design_2_colors",
-      "community": 197,
+      "community": 130,
       "norm_label": "2. colors"
     },
     {
@@ -26030,7 +26030,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "design_primary",
-      "community": 197,
+      "community": 130,
       "norm_label": "primary"
     },
     {
@@ -26040,7 +26040,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "design_neutral",
-      "community": 197,
+      "community": 130,
       "norm_label": "neutral"
     },
     {
@@ -26050,7 +26050,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "design_semantic_states",
-      "community": 197,
+      "community": 130,
       "norm_label": "semantic states"
     },
     {
@@ -26060,7 +26060,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "design_named_rules",
-      "community": 197,
+      "community": 130,
       "norm_label": "named rules"
     },
     {
@@ -26230,7 +26230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "product",
-      "community": 196,
+      "community": 96,
       "norm_label": "product.md"
     },
     {
@@ -26340,7 +26340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "readme",
-      "community": 132,
+      "community": 43,
       "norm_label": "readme.md"
     },
     {
@@ -26560,7 +26560,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_readme",
-      "community": 132,
+      "community": 43,
       "norm_label": "readme.md"
     },
     {
@@ -26570,7 +26570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_readme_documentation",
-      "community": 132,
+      "community": 43,
       "norm_label": "documentation"
     },
     {
@@ -26760,7 +26760,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "docs_installer_customization",
-      "community": 200,
+      "community": 50,
       "norm_label": "customization"
     },
     {
@@ -26770,7 +26770,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "docs_installer_adding_new_steps",
-      "community": 200,
+      "community": 50,
       "norm_label": "adding new steps"
     },
     {
@@ -26780,7 +26780,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "docs_installer_modifying_shortcuts",
-      "community": 200,
+      "community": 50,
       "norm_label": "modifying shortcuts"
     },
     {
@@ -26790,7 +26790,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "docs_installer_styling_changes",
-      "community": 200,
+      "community": 50,
       "norm_label": "styling changes"
     },
     {
@@ -26800,7 +26800,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "docs_installer_best_practices",
-      "community": 201,
+      "community": 50,
       "norm_label": "best practices"
     },
     {
@@ -26810,7 +26810,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "docs_installer_user_experience",
-      "community": 201,
+      "community": 50,
       "norm_label": "user experience"
     },
     {
@@ -26820,7 +26820,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "docs_installer_technical_considerations",
-      "community": 201,
+      "community": 50,
       "norm_label": "technical considerations"
     },
     {
@@ -26830,7 +26830,7 @@
       "source_location": "L116",
       "_origin": "ast",
       "id": "docs_installer_security",
-      "community": 201,
+      "community": 50,
       "norm_label": "security"
     },
     {
@@ -27230,7 +27230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_spaces_architecture",
-      "community": 132,
+      "community": 43,
       "norm_label": "spaces-architecture.md"
     },
     {
@@ -27340,7 +27340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_spotify_setup",
-      "community": 132,
+      "community": 43,
       "norm_label": "spotify-setup.md"
     },
     {
@@ -27580,7 +27580,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_style_architecture_map",
-      "community": 196,
+      "community": 43,
       "norm_label": "style-architecture-map.md"
     },
     {
@@ -27670,7 +27670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_supabase_setup",
-      "community": 132,
+      "community": 43,
       "norm_label": "supabase-setup.md"
     },
     {
@@ -27960,7 +27960,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference",
-      "community": 196,
+      "community": 43,
       "norm_label": "wee-chrome-style-reference.md"
     },
     {
@@ -28000,7 +28000,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_3_pill_morph_reveal_the_pattern",
-      "community": 198,
+      "community": 24,
       "norm_label": "3. pill morph reveal (the pattern)"
     },
     {
@@ -28010,7 +28010,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_recipe",
-      "community": 198,
+      "community": 24,
       "norm_label": "recipe"
     },
     {
@@ -28020,7 +28020,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_vertical_twin_space_rail",
-      "community": 198,
+      "community": 24,
       "norm_label": "vertical twin (space rail)"
     },
     {
@@ -28030,7 +28030,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_idle_life_side_nav_only",
-      "community": 198,
+      "community": 24,
       "norm_label": "idle life (side nav only)"
     },
     {
@@ -28040,7 +28040,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_content_swap_inside_the_pill",
-      "community": 198,
+      "community": 24,
       "norm_label": "content swap inside the pill"
     },
     {
@@ -28120,7 +28120,7 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_5_materials_color",
-      "community": 164,
+      "community": 24,
       "norm_label": "5. materials & color"
     },
     {
@@ -28130,7 +28130,7 @@
       "source_location": "L176",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_glass_chrome_tokens",
-      "community": 164,
+      "community": 24,
       "norm_label": "glass chrome tokens"
     },
     {
@@ -28140,7 +28140,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_wee_surface_radii_settings_modals_cards",
-      "community": 164,
+      "community": 24,
       "norm_label": "wee surface radii (settings / modals / cards)"
     },
     {
@@ -28150,7 +28150,7 @@
       "source_location": "L203",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_semantic_color_always",
-      "community": 164,
+      "community": 24,
       "norm_label": "semantic color (always)"
     },
     {
@@ -28160,7 +28160,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_interactive_glow",
-      "community": 164,
+      "community": 24,
       "norm_label": "interactive glow"
     },
     {
@@ -28170,7 +28170,7 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "docs_wee_chrome_style_reference_dynamic_runtime_colors",
-      "community": 164,
+      "community": 24,
       "norm_label": "dynamic runtime colors"
     },
     {
@@ -38505,7 +38505,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/channels/hooks/useChannelInteractions.js",
-      "source_location": "L228",
+      "source_location": "L248",
       "weight": 1.0,
       "source": "src_components_channels_hooks_usechannelinteractions_usechannelinteractions",
       "target": "src_hooks_usesessionpowersync_entersessionawayifintensive"
@@ -38527,7 +38527,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/channels/hooks/useChannelInteractions.js",
-      "source_location": "L214",
+      "source_location": "L234",
       "weight": 1.0,
       "source": "src_components_channels_hooks_usechannelinteractions_usechannelinteractions",
       "target": "src_utils_launchwithfeedback_launchwithfeedback"
@@ -38538,7 +38538,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/channels/hooks/useChannelInteractions.js",
-      "source_location": "L187",
+      "source_location": "L207",
       "weight": 1.0,
       "source": "src_components_channels_hooks_usechannelinteractions_usechannelinteractions",
       "target": "src_utils_soundplayback_playchannelclick"
@@ -38549,7 +38549,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/channels/hooks/useChannelInteractions.js",
-      "source_location": "L162",
+      "source_location": "L172",
       "weight": 1.0,
       "source": "src_components_channels_hooks_usechannelinteractions_usechannelinteractions",
       "target": "src_utils_soundplayback_playchannelhover"
@@ -38560,7 +38560,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/channels/hooks/useChannelInteractions.js",
-      "source_location": "L138",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "src_components_channels_hooks_usechannelinteractions_usechannelinteractions",
+      "target": "src_utils_soundplayback_stopchannelhover"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/channels/hooks/useChannelInteractions.js",
+      "source_location": "L142",
       "weight": 1.0,
       "source": "src_components_channels_hooks_usechannelinteractions_usechannelinteractions",
       "target": "src_utils_soundplayback_stopsfx"
@@ -54881,7 +54892,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/navigation/PaginatedChannels.jsx",
-      "source_location": "L1622",
+      "source_location": "L1625",
       "weight": 1.0,
       "source": "src_components_navigation_paginatedchannels",
       "target": "src_components_navigation_paginatedchannels_paginatedchannels",
@@ -67022,7 +67033,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/useIdleChannelAnimations.js",
-      "source_location": "L46",
+      "source_location": "L57",
       "weight": 1.0,
       "source": "src_utils_useidlechannelanimations_useidlechannelanimations",
       "target": "src_design_channelidleanimations_getchannelidledurationms",
@@ -71229,7 +71240,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle",
       "target": "src_hooks_useappactivity",
@@ -71372,7 +71383,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle",
       "target": "src_hooks_useappactivity_useappactivity",
@@ -71384,7 +71395,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
       "target": "src_hooks_useappactivity_useappactivity"
@@ -71405,7 +71416,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/useIdleChannelAnimations.js",
-      "source_location": "L14",
+      "source_location": "L25",
       "weight": 1.0,
       "source": "src_utils_useidlechannelanimations_useidlechannelanimations",
       "target": "src_hooks_useappactivity_useappactivity",
@@ -73669,7 +73680,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle",
       "target": "src_hooks_usepowerpolicy",
@@ -73724,7 +73735,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle",
       "target": "src_hooks_usepowerpolicy_usepowerpolicy",
@@ -73736,7 +73747,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
       "target": "src_hooks_usepowerpolicy_usepowerpolicy"
@@ -87147,7 +87158,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0,
       "source": "src_utils_idleexperience",
       "target": "src_utils_idleexperience_idle_experience_modes",
@@ -87157,7 +87168,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L17",
+      "source_location": "L19",
       "weight": 1.0,
       "source": "src_utils_idleexperience",
       "target": "src_utils_idleexperience_idle_personality_packs",
@@ -87167,7 +87178,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L27",
+      "source_location": "L29",
       "weight": 1.0,
       "source": "src_utils_idleexperience",
       "target": "src_utils_idleexperience_matchidlepersonality",
@@ -87177,7 +87188,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L46",
+      "source_location": "L49",
       "weight": 1.0,
       "source": "src_utils_idleexperience",
       "target": "src_utils_idleexperience_normalizeidleexperiencesettings",
@@ -87189,7 +87200,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/idleExperience.js",
-      "source_location": "L49",
+      "source_location": "L52",
       "weight": 1.0,
       "source": "src_utils_idleexperience_normalizeidleexperiencesettings",
       "target": "src_utils_idleexperience_idle_experience_modes"
@@ -91753,7 +91764,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L36",
+      "source_location": "L39",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
       "target": "src_utils_soundlibrarycache_subscribesoundlibrary"
@@ -91841,7 +91852,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L55",
+      "source_location": "L70",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
       "target": "src_utils_soundlibrarycache_hydratesoundlibrary"
@@ -92298,10 +92309,54 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L58",
+      "source_location": "L87",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
       "target": "src_utils_soundplayback_startbackgroundmusicfromsettings"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/useBackgroundMusicLifecycle.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "src_utils_usebackgroundmusiclifecycle",
+      "target": "src_utils_soundplayback_pausebackgroundmusic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/utils/useBackgroundMusicLifecycle.js",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
+      "target": "src_utils_soundplayback_pausebackgroundmusic"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/useBackgroundMusicLifecycle.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "src_utils_usebackgroundmusiclifecycle",
+      "target": "src_utils_soundplayback_resumeorstartbackgroundmusic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/utils/useBackgroundMusicLifecycle.js",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
+      "target": "src_utils_soundplayback_resumeorstartbackgroundmusic"
     },
     {
       "relation": "imports",
@@ -92320,7 +92375,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L59",
+      "source_location": "L74",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
       "target": "src_utils_soundplayback_stopbackgroundmusic"
@@ -95547,7 +95602,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/useBackgroundMusicLifecycle.js",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0,
       "source": "src_utils_usebackgroundmusiclifecycle",
       "target": "src_utils_usebackgroundmusiclifecycle_usebackgroundmusiclifecycle",
@@ -96356,7 +96411,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/useIdleChannelAnimations.js",
-      "source_location": "L7",
+      "source_location": "L16",
       "weight": 1.0,
       "source": "src_utils_useidlechannelanimations",
       "target": "src_utils_useidlechannelanimations_useidlechannelanimations",

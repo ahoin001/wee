@@ -12,6 +12,8 @@ function createWindowLifecycle({
   let mainWindow = null;
   let isCurrentlyFullscreen = false;
   let isFrameless = true;
+  /** Bounds to restore when leaving fullscreen / maximized chrome. */
+  let lastWindowedBounds = { width: 1280, height: 800 };
   const isDev = process.env.NODE_ENV === 'development';
 
   function getMainWindow() {
@@ -28,6 +30,101 @@ function createWindowLifecycle({
 
   function setIsCurrentlyFullscreen(value) {
     isCurrentlyFullscreen = Boolean(value);
+  }
+
+  function getIsCurrentlyFullscreen() {
+    return isCurrentlyFullscreen;
+  }
+
+  function captureWindowedBounds(win = mainWindow) {
+    if (!win || win.isDestroyed()) return;
+    try {
+      if (!win.isFullScreen() && !win.isMaximized()) {
+        lastWindowedBounds = win.getBounds();
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /**
+   * Leave exclusive fullscreen and any maximized cover so the shell is truly windowed.
+   * Frameless Windows builds often leave a maximized frame after setFullScreen(false),
+   * which looks like fullscreen and makes the next toggle re-enter FS.
+   */
+  function exitToWindowed(win = mainWindow) {
+    if (!win || win.isDestroyed()) return;
+    try {
+      if (win.isFullScreen()) {
+        win.setFullScreen(false);
+      }
+    } catch (error) {
+      console.warn('[WINDOW] setFullScreen(false) failed:', error?.message || error);
+    }
+    try {
+      if (win.isMaximized()) {
+        win.unmaximize();
+      }
+    } catch (error) {
+      console.warn('[WINDOW] unmaximize failed:', error?.message || error);
+    }
+    const bounds = lastWindowedBounds || { width: 1280, height: 800 };
+    try {
+      if (Number.isFinite(bounds.x) && Number.isFinite(bounds.y)) {
+        win.setBounds({
+          x: bounds.x,
+          y: bounds.y,
+          width: Math.max(900, bounds.width || 1280),
+          height: Math.max(600, bounds.height || 800),
+        });
+      } else {
+        win.setSize(Math.max(900, bounds.width || 1280), Math.max(600, bounds.height || 800));
+        win.center();
+      }
+    } catch (error) {
+      console.warn('[WINDOW] restore bounds failed:', error?.message || error);
+    }
+    isCurrentlyFullscreen = false;
+  }
+
+  function enterFullscreen(win = mainWindow) {
+    if (!win || win.isDestroyed()) return;
+    captureWindowedBounds(win);
+    try {
+      win.setFullScreen(true);
+    } catch (error) {
+      console.warn('[WINDOW] setFullScreen(true) failed:', error?.message || error);
+    }
+    isCurrentlyFullscreen = true;
+  }
+
+  function toggleFullscreenMode(win = mainWindow) {
+    if (!win || win.isDestroyed()) return false;
+    const effectivelyFullscreen = win.isFullScreen() || isCurrentlyFullscreen;
+    if (effectivelyFullscreen) {
+      exitToWindowed(win);
+      return false;
+    }
+    enterFullscreen(win);
+    return true;
+  }
+
+  function setFullscreenMode(shouldBeFullscreen, win = mainWindow) {
+    if (!win || win.isDestroyed()) return;
+    if (shouldBeFullscreen) {
+      if (!win.isFullScreen()) {
+        enterFullscreen(win);
+      } else {
+        isCurrentlyFullscreen = true;
+      }
+      return;
+    }
+    // Already a normal windowed frame — avoid a needless bounds reset on startup sync.
+    if (!win.isFullScreen() && !win.isMaximized() && !isCurrentlyFullscreen) {
+      isCurrentlyFullscreen = false;
+      return;
+    }
+    exitToWindowed(win);
   }
 
   function sendWindowState() {
@@ -91,6 +188,7 @@ function createWindowLifecycle({
 
   async function createWindow(opts = {}) {
     if (mainWindow && !mainWindow.isDestroyed()) {
+      captureWindowedBounds(mainWindow);
       mainWindow.close();
       mainWindow = null;
     }
@@ -105,15 +203,22 @@ function createWindowLifecycle({
       }
     }
 
+    const startBounds = opts.bounds || lastWindowedBounds || {};
+    const width = Math.max(900, startBounds.width || 1280);
+    const height = Math.max(600, startBounds.height || 800);
+
     mainWindow = new BrowserWindow({
-      width: 1280,
-      height: 800,
+      width,
+      height,
+      x: Number.isFinite(startBounds.x) ? startBounds.x : undefined,
+      y: Number.isFinite(startBounds.y) ? startBounds.y : undefined,
       minWidth: 900,
       minHeight: 600,
       show: true,
       backgroundColor: '#000000',
       frame: opts.frame === undefined ? !isFrameless : opts.frame,
       fullscreen: shouldStartFullscreen,
+      fullscreenable: true,
       title: appDisplayName || 'Wee',
       webPreferences: {
         preload: path.join(appBasePath, 'preload.cjs'),
@@ -125,6 +230,14 @@ function createWindowLifecycle({
         backgroundThrottling: true,
       },
     });
+
+    if (!shouldStartFullscreen && !Number.isFinite(startBounds.x)) {
+      try {
+        mainWindow.center();
+      } catch {
+        /* ignore */
+      }
+    }
 
     if (process.platform === 'win32' && typeof mainWindow.setAppDetails === 'function' && appUserModelId) {
       try {
@@ -156,7 +269,17 @@ function createWindowLifecycle({
       isCurrentlyFullscreen = false;
       sendWindowState();
     });
+    mainWindow.on('resize', () => {
+      captureWindowedBounds(mainWindow);
+    });
+    mainWindow.on('move', () => {
+      captureWindowedBounds(mainWindow);
+    });
     mainWindow.once('ready-to-show', () => {
+      isCurrentlyFullscreen = Boolean(shouldStartFullscreen || mainWindow.isFullScreen());
+      if (!shouldStartFullscreen) {
+        captureWindowedBounds(mainWindow);
+      }
       sendWindowState();
       sendAppWindowActivity();
     });
@@ -177,8 +300,14 @@ function createWindowLifecycle({
     getIsFrameless,
     setIsFrameless,
     setIsCurrentlyFullscreen,
+    getIsCurrentlyFullscreen,
     sendWindowState,
     createWindow,
+    toggleFullscreenMode,
+    setFullscreenMode,
+    captureWindowedBounds,
+    exitToWindowed,
+    enterFullscreen,
   };
 }
 

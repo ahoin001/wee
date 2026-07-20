@@ -550,8 +550,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784568307.0240664,
-    "ast_hash": "ff8a43506fd2a660349893ca4c32a66a",
+    "mtime": 1784568628.2964406,
+    "ast_hash": "291c4069cd2dd88c6ede6b1eefb26b64",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -615,8 +615,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
-    "mtime": 1784562752.9516735,
-    "ast_hash": "2f92b4d0752ac72e20f1f311f24f829e",
+    "mtime": 1784568640.0318866,
+    "ast_hash": "a3dbaaed2bff2aaee094c4677b70d706",
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
@@ -1510,14 +1510,14 @@
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784568305.0778363,
-    "ast_hash": "e248c84a2f3921b62fbb7aed0a3eb2a4",
+    "mtime": 1784568630.7115724,
+    "ast_hash": "6b3d289910ced88e9f079254e448984b",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
-    "mtime": 1776527208.4255826,
-    "ast_hash": "9bae3cc722b431c91804ab938946a863",
-    "semantic_hash": "9bae3cc722b431c91804ab938946a863"
+    "mtime": 1784568639.7433958,
+    "ast_hash": "9391329ca2bb21b258227c37d4a07941",
+    "semantic_hash": ""
   },
   "src/utils/useKeyboardShortcuts.js": {
     "mtime": 1784568561.0962522,
@@ -1650,8 +1650,8 @@
     "semantic_hash": ""
   },
   "src/utils/useBackgroundMusicLifecycle.js": {
-    "mtime": 1784568589.4063034,
-    "ast_hash": "14824c804a1442011e3f1252ca4ae62b",
+    "mtime": 1784568612.4495356,
+    "ast_hash": "767656056ca84eac77d9b604a5f3aa4c",
     "semantic_hash": ""
   },
   "src/utils/useSoundSettingsActions.js": {
@@ -2085,13 +2085,13 @@
     "semantic_hash": ""
   },
   "src/hooks/useHomeIdleExperience.js": {
-    "mtime": 1784139451.8846004,
-    "ast_hash": "4298cc9d33b6b37b4035fc38078dd179",
+    "mtime": 1784568617.470931,
+    "ast_hash": "58787e80345e62d79fc7c3586dd77acb",
     "semantic_hash": ""
   },
   "src/utils/idleExperience.js": {
-    "mtime": 1784139451.883068,
-    "ast_hash": "1f18113373e9b6768cf9007bf9d93b43",
+    "mtime": 1784568616.0501266,
+    "ast_hash": "2bd9a9089ca9757a075b91f5c06cf87c",
     "semantic_hash": ""
   },
   "src/utils/launchCinematic.js": {
@@ -2115,8 +2115,8 @@
     "semantic_hash": ""
   },
   "scripts/test/experience-roadmap-invariants.mjs": {
-    "mtime": 1784144858.536513,
-    "ast_hash": "f1a544d9102952975a892fcd89064731",
+    "mtime": 1784568636.969697,
+    "ast_hash": "33bd52712b6fd924d0ed7ff4776a3173",
     "semantic_hash": ""
   },
   "src/components/settings/SettingsDataCachesCard.jsx": {

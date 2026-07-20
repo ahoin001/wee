@@ -5,6 +5,12 @@ import { resolveEffectiveAccent } from '../utils/theme/resolveEffectiveAccent';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { handleShellEscapeKey } from '../utils/overlayEscape';
 
+/**
+ * Session-level guard so remounts / Strict Mode do not re-force the start-in-fullscreen
+ * preference after the user has toggled windowed via Quick Actions.
+ */
+let appliedStartInFullscreen = null;
+
 export const useCursorEffect = (useCustomCursor, cursorStyle) => {
   useEffect(() => {
     if (useCustomCursor) {
@@ -121,11 +127,18 @@ export const usePrimaryAccentThemeEffect = (input) => {
   ]);
 };
 
+/**
+ * Apply the "Start in fullscreen" preference when it first hydrates (or when the
+ * preference itself changes). Do not re-assert the same value — that fights Quick
+ * Action / F11 toggles that leave the preference unchanged.
+ */
 export const useFullscreenEffect = ({ appReady, startInFullscreen }) => {
   useEffect(() => {
-    if (appReady && window.api?.setFullscreen) {
-      window.api.setFullscreen(startInFullscreen);
-    }
+    if (!appReady || !window.api?.setFullscreen) return;
+    const desired = Boolean(startInFullscreen);
+    if (appliedStartInFullscreen === desired) return;
+    appliedStartInFullscreen = desired;
+    window.api.setFullscreen(desired);
   }, [appReady, startInFullscreen]);
 };
 

@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784565615.4005585,
-    "ast_hash": "f2c79eeb474e50511a05a0716feb7d30",
+    "mtime": 1784568805.318946,
+    "ast_hash": "6054cc1f6b551ffc30a76c2b5f8217a1",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -935,8 +935,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useAppShellEffects.js": {
-    "mtime": 1784251521.307753,
-    "ast_hash": "d4d0f90d6e5a200f141578f83f9f9bf0",
+    "mtime": 1784569070.791009,
+    "ast_hash": "c580ef374e43aa191bf11ad4fa5fc1b8",
     "semantic_hash": ""
   },
   "src/hooks/useAppUpdater.js": {

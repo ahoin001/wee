@@ -223,6 +223,9 @@ const {
   setIsCurrentlyFullscreen,
   sendWindowState,
   createWindow,
+  toggleFullscreenMode,
+  setFullscreenMode,
+  captureWindowedBounds,
 } = windowLifecycle;
 
 const systemMediaService = createSystemMediaService({
@@ -537,6 +540,9 @@ registerAllIpcHandlers({
     setIsCurrentlyFullscreen,
     getIsFrameless,
     setIsFrameless,
+    toggleFullscreenMode,
+    setFullscreenMode,
+    captureWindowedBounds,
   },
   paths: {
     userChannelHoverSoundsPath,

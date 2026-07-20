@@ -9,6 +9,9 @@ function registerWindowHandlers({
   setIsCurrentlyFullscreen,
   getIsFrameless,
   setIsFrameless,
+  toggleFullscreenMode,
+  setFullscreenMode,
+  captureWindowedBounds,
 }) {
   ipcMain.on('close-window', (event) => {
     if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
@@ -19,7 +22,9 @@ function registerWindowHandlers({
     if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
     const mainWindow = getMainWindow();
     if (!mainWindow) return;
-    if (mainWindow.isFullScreen()) {
+    if (typeof toggleFullscreenMode === 'function') {
+      toggleFullscreenMode(mainWindow);
+    } else if (mainWindow.isFullScreen()) {
       mainWindow.setFullScreen(false);
       setIsCurrentlyFullscreen(false);
     } else {
@@ -33,11 +38,13 @@ function registerWindowHandlers({
     if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
     const mainWindow = getMainWindow();
     if (!mainWindow) return;
-    if (shouldBeFullscreen !== mainWindow.isFullScreen()) {
+    if (typeof setFullscreenMode === 'function') {
+      setFullscreenMode(Boolean(shouldBeFullscreen), mainWindow);
+    } else if (shouldBeFullscreen !== mainWindow.isFullScreen()) {
       mainWindow.setFullScreen(shouldBeFullscreen);
       setIsCurrentlyFullscreen(shouldBeFullscreen);
-      sendWindowState();
     }
+    sendWindowState();
   });
 
   ipcMain.handle('set-fullscreen', (event, shouldBeFullscreen) => {
@@ -47,11 +54,13 @@ function registerWindowHandlers({
     const mainWindow = getMainWindow();
     if (!mainWindow) return { success: false, error: 'Window not available' };
     try {
-      if (shouldBeFullscreen !== mainWindow.isFullScreen()) {
+      if (typeof setFullscreenMode === 'function') {
+        setFullscreenMode(Boolean(shouldBeFullscreen), mainWindow);
+      } else if (shouldBeFullscreen !== mainWindow.isFullScreen()) {
         mainWindow.setFullScreen(shouldBeFullscreen);
         setIsCurrentlyFullscreen(shouldBeFullscreen);
-        sendWindowState();
       }
+      sendWindowState();
       return { success: true };
     } catch (error) {
       console.error('[SET-FULLSCREEN] Error setting fullscreen:', error);
@@ -63,14 +72,18 @@ function registerWindowHandlers({
     if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
     const mainWindow = getMainWindow();
     if (!mainWindow) return;
+    if (typeof captureWindowedBounds === 'function') {
+      captureWindowedBounds(mainWindow);
+    }
     const bounds = mainWindow.getBounds();
     const wasFullScreen = mainWindow.isFullScreen();
     const nextIsFrameless = !getIsFrameless();
     setIsFrameless(nextIsFrameless);
     createWindow({
       frame: !nextIsFrameless,
-      fullscreen: wasFullScreen,
-      bounds,
+      // Frame chrome toggle should not trap the user in fullscreen.
+      fullscreen: false,
+      bounds: wasFullScreen ? undefined : bounds,
     }).catch(console.error);
   });
 
