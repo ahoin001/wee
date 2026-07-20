@@ -3,6 +3,7 @@ export { WeeModalRail, WeeModalRailSection, WeeModalRailItem } from './WeeModalR
 export { default as WeeButton } from './WeeButton';
 export { default as WeeSpaceRailPillButton } from './WeeSpaceRailPillButton';
 export { default as WeeGlassPill } from './WeeGlassPill';
+export { default as WeePopover, WeeHoverTip } from './WeePopover';
 export { default as WeeGooeyIconButton, WEE_GOOEY_ICON_PRESS } from './WeeGooeyIconButton';
 export { default as WeeGooeyTileButton } from './WeeGooeyTileButton';
 export { default as WeeGooeySideNavButton, WEE_SIDE_NAV_PEEK_PX } from './WeeGooeySideNavButton';

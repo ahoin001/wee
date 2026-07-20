@@ -184,6 +184,7 @@ export const WEE_MOTION_INTENTS = Object.freeze({
   sheet: 'gooeyPanel',
   tab: 'tabBody',
   statusPill: 'pillOpen',
+  popover: 'pillOpen',
   pillOpen: 'pillOpen',
   pillClose: 'pillClose',
   channelDrag: 'channelDragOverlay',
@@ -490,6 +491,59 @@ export function getWeeStatusPillEntrance(reducedMotion, pillOpen) {
     animate: { opacity: 1, y: 0, scale: 1 },
     exit: { opacity: 0, y: -12, scale: 0.92, transition: close },
     transition: open,
+  };
+}
+
+/**
+ * Hover tip / tooltip popover — scales from the trigger edge (pillOpen / pillClose).
+ * @param {'top' | 'bottom' | 'left' | 'right'} [side]
+ * @param {boolean} [reducedMotion]
+ * @param {object} [pillOpen]
+ * @param {{ drift?: boolean }} [opts] — set `drift: false` when placement is handled by fixed positioning (portal)
+ */
+export function getWeePopoverEntrance(
+  side = 'top',
+  reducedMotion = false,
+  pillOpen,
+  opts = {}
+) {
+  const driftEnabled = opts.drift !== false;
+  if (reducedMotion) {
+    return {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
+      transition: { duration: 0.1 },
+      style: {},
+    };
+  }
+  const open = pillOpen || WEE_SPRINGS.pillOpen;
+  const close = WEE_SPRINGS.pillClose;
+  const origins = {
+    top: '50% 100%',
+    bottom: '50% 0%',
+    left: '100% 50%',
+    right: '0% 50%',
+  };
+  const drift = {
+    top: { x: 0, y: 10 },
+    bottom: { x: 0, y: -10 },
+    left: { x: 10, y: 0 },
+    right: { x: -10, y: 0 },
+  };
+  const d = driftEnabled ? drift[side] || drift.top : { x: 0, y: 0 };
+  return {
+    initial: { opacity: 0, scale: 0.86, x: d.x, y: d.y },
+    animate: { opacity: 1, scale: 1, x: 0, y: 0 },
+    exit: {
+      opacity: 0,
+      scale: 0.9,
+      x: d.x * 0.55,
+      y: d.y * 0.55,
+      transition: close,
+    },
+    transition: open,
+    style: { transformOrigin: origins[side] || origins.top },
   };
 }
 

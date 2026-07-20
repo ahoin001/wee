@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784565615.4005585,
-    "ast_hash": "f2c79eeb474e50511a05a0716feb7d30",
+    "mtime": 1784569468.593123,
+    "ast_hash": "5f3c737edf4b31c379fd26f8f999e09b",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -815,9 +815,9 @@
     "semantic_hash": "2e085c146009fc70ed27e18237bea89e"
   },
   "src/components/widgets/ResourceUsageIndicator.jsx": {
-    "mtime": 1776091690.1182027,
-    "ast_hash": "948f240d80a3c1890a5f9ffd9cd089f6",
-    "semantic_hash": "948f240d80a3c1890a5f9ffd9cd089f6"
+    "mtime": 1784569761.8175774,
+    "ast_hash": "7831593aaf05eed635faf6a38da8425b",
+    "semantic_hash": ""
   },
   "src/components/widgets/common/FloatingWidgetPresence.jsx": {
     "mtime": 1783872976.1221426,
@@ -905,8 +905,8 @@
     "semantic_hash": ""
   },
   "src/design/weeMotion.js": {
-    "mtime": 1784559368.3311608,
-    "ast_hash": "1dad53dd3d0750fc73962c73e0e5a7d9",
+    "mtime": 1784569863.4987955,
+    "ast_hash": "a8592b8276a569dddf0d4f50c76b7727",
     "semantic_hash": ""
   },
   "src/dev/hub-modal-overhaul-reference.jsx": {
@@ -935,8 +935,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useAppShellEffects.js": {
-    "mtime": 1784251521.307753,
-    "ast_hash": "d4d0f90d6e5a200f141578f83f9f9bf0",
+    "mtime": 1784569070.791009,
+    "ast_hash": "c580ef374e43aa191bf11ad4fa5fc1b8",
     "semantic_hash": ""
   },
   "src/hooks/useAppUpdater.js": {
@@ -1205,8 +1205,8 @@
     "semantic_hash": "6682d42d377aafaf0bbd79d797f21358"
   },
   "src/ui/wee/index.js": {
-    "mtime": 1784433776.6620195,
-    "ast_hash": "76026fd758eb6d6d28c8ac66eb438dfe",
+    "mtime": 1784569727.2611365,
+    "ast_hash": "c205cfe759cca6da982ea26ce9356a2e",
     "semantic_hash": ""
   },
   "src/utils/AudioManager.js": {
@@ -2070,8 +2070,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784567395.569552,
-    "ast_hash": "126021ea109734d795258c72bdb6a9a5",
+    "mtime": 1784569842.265768,
+    "ast_hash": "1e7b46069d71fc434bfb839b9a317b56",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2587,6 +2587,11 @@
   "src/utils/channelMediaFit.js": {
     "mtime": 1784568410.957229,
     "ast_hash": "e5a6ce7b409e7bd71f1274af512c2e21",
+    "semantic_hash": ""
+  },
+  "src/ui/wee/WeePopover.jsx": {
+    "mtime": 1784569917.1165495,
+    "ast_hash": "cb55afd1d6cbd2b12f4d49ad13537377",
     "semantic_hash": ""
   }
 }

@@ -19,6 +19,7 @@ import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
 import MusicReactiveBars from '../widgets/MusicReactiveBars';
 import { WEE_GOOEY_ICON_PRESS } from '../../ui/wee/WeeGooeyIconButton';
+import { WeeHoverTip } from '../../ui/wee';
 import { normalizeHomeNowPlayingWidget } from '../../utils/homeNowPlayingWidgetPrefs';
 import {
   EMPTY_NOW_PLAYING,
@@ -28,6 +29,10 @@ import {
 } from '../../utils/nowPlayingShape';
 import { normalizeImmersiveSoundMode } from '../../features/immersiveSoundMode/immersiveSoundModePrefs.js';
 import { enterImmersiveSoundMode } from '../../features/immersiveSoundMode/immersiveSoundModeApi.js';
+import {
+  defaultNowPlayingAlbumPaint,
+  resolveNowPlayingAlbumPaint,
+} from '../../utils/nowPlayingAlbumPaint.js';
 
 /** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
 const EMPTY_SYSTEM_SESSIONS = Object.freeze([]);
@@ -224,29 +229,28 @@ function AlbumCover({
   const tip = activateHint || 'Open Listening Stage';
 
   const shellClass = [
-    'group/cover relative overflow-hidden border border-[hsl(var(--color-pure-white)/0.28)]',
+    'relative h-full w-full overflow-hidden border border-[hsl(var(--color-pure-white)/0.28)]',
     'bg-[hsl(var(--surface-elevated)/0.35)] shadow-[var(--shadow-soft-hover)]',
     'ring-1 ring-[hsl(var(--color-pure-black)/0.16)]',
     interactive
       ? 'cursor-pointer transition-[transform,box-shadow,filter] duration-200 hover:scale-[1.04] hover:shadow-[var(--shadow-hover-glow)] hover:[filter:var(--filter-hover-glow)] active:scale-[0.97]'
       : '',
     radiusClass,
-    sizeClass,
   ]
     .filter(Boolean)
     .join(' ');
 
-  const tipNode = interactive ? (
-    <span
-      className="pointer-events-none absolute left-1/2 top-2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated)/0.92)] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-primary))] opacity-0 shadow-[var(--shadow-sm)] backdrop-blur-md transition-opacity duration-200 group-hover/cover:opacity-100"
-      aria-hidden
-    >
-      {tip}
-    </span>
-  ) : null;
+  const wrapInteractive = (node) =>
+    interactive ? (
+      <WeeHoverTip content={tip} side="top" className={sizeClass}>
+        {node}
+      </WeeHoverTip>
+    ) : (
+      node
+    );
 
   if (url) {
-    const inner = (
+    const media = (
       <>
         <img
           src={url}
@@ -259,12 +263,11 @@ function AlbumCover({
           className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_1px_0_hsl(var(--color-pure-white)/0.22)]"
           aria-hidden
         />
-        {tipNode}
       </>
     );
 
     if (interactive) {
-      return (
+      return wrapInteractive(
         <button
           type="button"
           className={shellClass}
@@ -273,27 +276,16 @@ function AlbumCover({
             onActivate(event);
           }}
           aria-label={tip}
-          title={tip}
         >
-          {inner}
+          {media}
         </button>
       );
     }
 
-    return <div className={shellClass}>{inner}</div>;
+    return (
+      <div className={[shellClass, sizeClass].filter(Boolean).join(' ')}>{media}</div>
+    );
   }
-
-  const placeholder = (
-    <>
-      <Music
-        size={placeholderIconSize}
-        strokeWidth={2.25}
-        className="text-[hsl(var(--color-pure-white)/0.88)]"
-        aria-hidden
-      />
-      {tipNode}
-    </>
-  );
 
   const placeholderStyle = extractedColors?.primary
     ? {
@@ -302,19 +294,27 @@ function AlbumCover({
     : undefined;
 
   const placeholderClass = [
-    'group/cover relative flex items-center justify-center overflow-hidden border border-[hsl(var(--border-primary)/0.3)]',
+    'relative flex h-full w-full items-center justify-center overflow-hidden border border-[hsl(var(--border-primary)/0.3)]',
     'bg-[hsl(var(--surface-elevated)/0.55)] shadow-[var(--shadow-soft)]',
     interactive
       ? 'cursor-pointer transition-[transform,box-shadow,filter] duration-200 hover:scale-[1.04] hover:shadow-[var(--shadow-hover-glow)] hover:[filter:var(--filter-hover-glow)] active:scale-[0.97]'
       : '',
     radiusClass,
-    sizeClass,
   ]
     .filter(Boolean)
     .join(' ');
 
+  const icon = (
+    <Music
+      size={placeholderIconSize}
+      strokeWidth={2.25}
+      className="text-[hsl(var(--color-pure-white)/0.88)]"
+      aria-hidden
+    />
+  );
+
   if (interactive) {
-    return (
+    return wrapInteractive(
       <button
         type="button"
         className={placeholderClass}
@@ -324,16 +324,18 @@ function AlbumCover({
           onActivate(event);
         }}
         aria-label={tip}
-        title={tip}
       >
-        {placeholder}
+        {icon}
       </button>
     );
   }
 
   return (
-    <div className={placeholderClass} style={placeholderStyle}>
-      {placeholder}
+    <div
+      className={[placeholderClass, sizeClass].filter(Boolean).join(' ')}
+      style={placeholderStyle}
+    >
+      {icon}
     </div>
   );
 }
@@ -624,22 +626,20 @@ function NowPlayingSlot({
   const playPauseEnabled = useSystemKeys;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
 
-  const accentStyle = useMemo(() => {
-    if (!extractedColors?.primary) return undefined;
-    return {
-      '--np-accent': extractedColors.primary,
-      '--np-accent-secondary': extractedColors.secondary || extractedColors.primary,
-      '--np-accent-glow': extractedColors.accent || extractedColors.primary,
-    };
-  }, [extractedColors]);
+  // Always-on album paint — same SSOT as Listening Stage (not gated by Color Match toggle).
+  const albumPaint = useMemo(
+    () => resolveNowPlayingAlbumPaint(extractedColors) || defaultNowPlayingAlbumPaint(),
+    [extractedColors]
+  );
+
+  const accentStyle = useMemo(() => albumPaint.cssVars, [albumPaint]);
 
   const progressRatio =
     durationMs > 0 ? Math.min(1, Math.max(0, progressMs / durationMs)) : 0;
   const showProgress =
     chrome.showProgress && hasTrack && durationMs > 0 && !interactionsLocked;
 
-  const accentColor =
-    extractedColors?.accent || extractedColors?.primary || 'hsl(var(--primary))';
+  const accentColor = albumPaint.accent;
 
   const pressTransition = createWeeTransition('press', { reducedMotion });
   const playMotion = reducedMotion
@@ -660,18 +660,18 @@ function NowPlayingSlot({
     'hover:[filter:var(--filter-hover-glow)] focus-visible:outline-none',
     'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary)/0.72)]',
     chrome.skipBox,
-    'text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--primary)/0.14)] hover:text-[hsl(var(--primary))]',
   ].join(' ');
 
   const glassPanelStyle = useMemo(() => {
     if (!extractedColors?.primary) return undefined;
-    const primary = extractedColors.primary;
-    const secondary = extractedColors.secondary || primary;
+    const primary = albumPaint.primary;
+    const secondary = albumPaint.secondary;
     return {
       background: `linear-gradient(155deg, color-mix(in srgb, ${primary} 22%, hsl(var(--surface-elevated) / 0.9)), color-mix(in srgb, ${secondary} 12%, hsl(var(--surface-elevated) / 0.86)))`,
       borderColor: `color-mix(in srgb, ${primary} 35%, hsl(var(--border-primary) / 0.45))`,
+      color: albumPaint.text,
     };
-  }, [extractedColors]);
+  }, [extractedColors, albumPaint]);
 
   const glassPanelClass = [
     'relative z-10 flex border shadow-[var(--shadow-soft)]',
@@ -693,6 +693,7 @@ function NowPlayingSlot({
         {...skipMotion}
         transition={pressTransition}
         className={skipButtonClass}
+        style={{ color: albumPaint.textSecondary }}
         title="Previous"
         aria-label="Previous track"
         disabled={!useSystemKeys}
@@ -707,9 +708,9 @@ function NowPlayingSlot({
         transition={pressTransition}
         className={`flex shrink-0 items-center justify-center border shadow-[var(--shadow-md)] disabled:cursor-not-allowed disabled:opacity-50 ${chrome.playBox}`}
         style={{
-          backgroundColor: 'hsl(var(--text-primary))',
-          color: 'hsl(var(--surface-primary))',
-          borderColor: 'hsl(var(--border-primary) / 0.45)',
+          backgroundColor: albumPaint.text,
+          color: albumPaint.primary,
+          borderColor: `color-mix(in srgb, ${albumPaint.text} 35%, transparent)`,
         }}
         title={isPlaying ? 'Pause' : 'Play'}
         aria-label={isPlaying ? 'Pause' : 'Play'}
@@ -728,6 +729,7 @@ function NowPlayingSlot({
         {...skipMotion}
         transition={pressTransition}
         className={skipButtonClass}
+        style={{ color: albumPaint.textSecondary }}
         title="Next"
         aria-label="Next track"
         disabled={!useSystemKeys}
@@ -747,14 +749,16 @@ function NowPlayingSlot({
       aria-label={`Now playing: ${trackName} by ${artistLine}`}
     >
       <span
-        className={`truncate font-black uppercase italic tracking-tighter text-[hsl(var(--text-primary))] ${chrome.title}`}
+        className={`truncate font-black uppercase italic tracking-tighter ${chrome.title}`}
+        style={{ color: albumPaint.text }}
       >
         {trackName}
       </span>
 
       {chrome.showArtist && artistLine ? (
         <span
-          className={`truncate font-black uppercase text-[hsl(var(--text-secondary))] ${chrome.artist}`}
+          className={`truncate font-black uppercase ${chrome.artist}`}
+          style={{ color: albumPaint.textSecondary }}
         >
           {artistLine}
         </span>
@@ -772,7 +776,10 @@ function NowPlayingSlot({
             />
           </div>
           {chrome.showTimestamps ? (
-            <div className="mt-0.5 flex justify-between text-[7px] font-bold uppercase tracking-wider text-[hsl(var(--text-tertiary))]">
+            <div
+              className="mt-0.5 flex justify-between text-[7px] font-bold uppercase tracking-wider"
+              style={{ color: albumPaint.textTertiary }}
+            >
               <span>{formatMs(progressMs)}</span>
               <span>{formatMs(durationMs)}</span>
             </div>

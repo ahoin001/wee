@@ -13,23 +13,33 @@ import {
   resolveImmersiveSoundLook,
 } from './immersiveSoundModePrefs.js';
 import { exitImmersiveSoundMode } from './immersiveSoundModeApi.js';
+import {
+  defaultNowPlayingAlbumPaint,
+  resolveNowPlayingAlbumPaint,
+} from '../../utils/nowPlayingAlbumPaint.js';
 
 const EMPTY_NOW_PLAYING = Object.freeze({});
 
 /**
  * Full-screen Listening Stage.
+ * Album-art palette text/accents are always applied (not toggleable).
  */
 function ImmersiveSoundModeStage() {
-  const { active, rawPrefs, np } = useConsolidatedAppStore(
+  const { active, rawPrefs, np, extractedColors } = useConsolidatedAppStore(
     useShallow((state) => ({
       active: Boolean(state.ui?.immersiveSoundModeActive),
       rawPrefs: state.ui?.immersiveSoundMode,
       np: state.nowPlaying || EMPTY_NOW_PLAYING,
+      extractedColors: state.spotify?.extractedColors || null,
     }))
   );
   const prefs = useMemo(() => normalizeImmersiveSoundMode(rawPrefs), [rawPrefs]);
 
   const look = useMemo(() => resolveImmersiveSoundLook(prefs.intensity), [prefs.intensity]);
+  const paint = useMemo(
+    () => resolveNowPlayingAlbumPaint(extractedColors) || defaultNowPlayingAlbumPaint(),
+    [extractedColors]
+  );
   const { reducedMotion, createTransition } = useWeeMotion();
   const { shouldAnimate } = useAnimationActivity({ activeFps: 30, lowPowerFps: 12 });
 
@@ -98,20 +108,19 @@ function ImmersiveSoundModeStage() {
           aria-modal="true"
           aria-label="Listening Stage"
           className="pointer-events-auto fixed inset-0 z-[80] flex flex-col items-center justify-center overflow-hidden"
+          style={paint.cssVars}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={stageTransition}
           onClick={handleExit}
         >
-          {/* Board dim — click target for dismiss */}
           <div
             className="absolute inset-0 bg-[hsl(var(--bg-primary))]"
             style={{ opacity: prefs.boardDim }}
             aria-hidden
           />
 
-          {/* Blurred album backdrop */}
           {prefs.coverBackdrop && albumArtUrl ? (
             <div
               className="pointer-events-none absolute inset-0 scale-110 bg-cover bg-center"
@@ -125,16 +134,14 @@ function ImmersiveSoundModeStage() {
             />
           ) : null}
 
-          {/* Soft primary glow veil */}
           <div
             className="pointer-events-none absolute inset-0"
             style={{
-              background: `radial-gradient(ellipse 70% 55% at 50% 42%, hsl(var(--primary) / ${look.glowStrength}), transparent 70%)`,
+              background: `radial-gradient(ellipse 70% 55% at 50% 42%, color-mix(in srgb, ${paint.primary} ${Math.round(look.glowStrength * 100)}%, transparent), transparent 70%)`,
             }}
             aria-hidden
           />
 
-          {/* Particles (Focus / Club) */}
           {particles.length > 0 && shouldAnimate ? (
             <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
               {particles.map((p) => (
@@ -153,7 +160,6 @@ function ImmersiveSoundModeStage() {
             </div>
           ) : null}
 
-          {/* Exit */}
           <div
             className="absolute right-6 top-6 z-10"
             onClick={(event) => event.stopPropagation()}
@@ -170,14 +176,13 @@ function ImmersiveSoundModeStage() {
             </WButton>
           </div>
 
-          {/* Hero cover + meta — click dismisses; transport stops propagation */}
           <div className="relative z-[1] flex max-w-[min(92vw,28rem)] flex-col items-center gap-6 px-6 text-center">
             <m.div
               className="relative overflow-hidden rounded-[1.75rem] shadow-[var(--shadow-soft-hover)]"
               style={{
                 width: `${look.coverSizeRem}rem`,
                 height: `${look.coverSizeRem}rem`,
-                boxShadow: `0 0 ${28 + look.glowStrength * 40}px hsl(var(--primary) / ${look.glowStrength * 0.85})`,
+                boxShadow: `0 0 ${28 + look.glowStrength * 40}px color-mix(in srgb, ${paint.primary} ${Math.round(look.glowStrength * 85)}%, transparent)`,
               }}
               animate={{ scale: breathScale }}
               transition={
@@ -200,32 +205,47 @@ function ImmersiveSoundModeStage() {
               )}
             </m.div>
 
-            <div className="min-w-0 space-y-1">
-              <p className="m-0 truncate text-[clamp(1.15rem,3.2vw,1.65rem)] font-black tracking-tight text-[hsl(var(--text-primary))]">
+            <div
+              className="min-w-0 max-w-full space-y-1.5 rounded-[1.35rem] px-5 py-3"
+              style={{
+                background: `color-mix(in srgb, ${paint.primary} 16%, hsl(var(--surface-elevated) / 0.42))`,
+                border: `1px solid color-mix(in srgb, ${paint.primary} 28%, hsl(var(--border-primary) / 0.35))`,
+                backdropFilter: 'blur(12px)',
+                boxShadow: 'var(--shadow-soft)',
+              }}
+            >
+              <p
+                className="m-0 truncate text-[clamp(1.15rem,3.2vw,1.65rem)] font-black tracking-tight"
+                style={{ color: paint.text, textShadow: paint.textShadow }}
+              >
                 {trackName || 'Nothing playing'}
               </p>
               {artistLine ? (
-                <p className="m-0 truncate text-[0.95rem] font-semibold text-[hsl(var(--text-secondary))]">
+                <p
+                  className="m-0 truncate text-[0.95rem] font-semibold"
+                  style={{ color: paint.textSecondary, textShadow: paint.textShadow }}
+                >
                   {artistLine}
                 </p>
               ) : null}
-              <p className="m-0 pt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--text-tertiary))]">
+              <p
+                className="m-0 pt-1 text-[10px] font-bold uppercase tracking-[0.2em]"
+                style={{ color: paint.textTertiary }}
+              >
                 {prefs.intensity} · Listening Stage
               </p>
             </div>
 
             {showBars ? (
-              <div
-                className="flex h-10 items-end justify-center gap-1"
-                aria-hidden
-              >
+              <div className="flex h-10 items-end justify-center gap-1" aria-hidden>
                 {vizLevels.map((level, i) => (
                   <span
                     key={i}
-                    className="w-1.5 rounded-full bg-[hsl(var(--primary))]"
+                    className="w-1.5 rounded-full"
                     style={{
                       height: `${Math.max(12, Math.round(level * 100))}%`,
                       opacity: 0.55 + level * 0.45,
+                      backgroundColor: paint.accent,
                     }}
                   />
                 ))}
@@ -253,6 +273,11 @@ function ImmersiveSoundModeStage() {
                 disabled={!useSystemKeys}
                 onClick={() => void runTransport('playPause')}
                 aria-label={isPlaying ? 'Pause' : 'Play'}
+                style={{
+                  backgroundColor: paint.text,
+                  color: paint.primary,
+                  borderColor: `color-mix(in srgb, ${paint.text} 40%, transparent)`,
+                }}
               >
                 {isPlaying ? <Pause size={20} aria-hidden /> : <Play size={20} aria-hidden />}
               </WButton>

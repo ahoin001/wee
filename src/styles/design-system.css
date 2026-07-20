@@ -727,7 +727,7 @@
   border-color: hsl(var(--border-primary));
 }
 
-/* Ensure tooltips and popovers work in dark mode */
+/* Dark-mode legacy .tooltip / .popover hooks — prefer WeePopover / WeeHoverTip. */
 .dark-mode .tooltip,
 .dark-mode .popover {
   background-color: hsl(var(--surface-elevated));
