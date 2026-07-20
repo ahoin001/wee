@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { normalizeImmersiveSoundMode } from './immersiveSoundModePrefs.js';
@@ -12,27 +12,28 @@ import ImmersiveSoundModeStage from './ImmersiveSoundModeStage.jsx';
  * - `autoIdle`: enter when music plays and Home idle reaches ambient/attract.
  * - Manual sessions stay until Exit / Escape / master off.
  * - Auto sessions exit on Escape, when idle returns to active, or playback stops.
+ *
+ * Do not call normalizeImmersiveSoundMode inside useShallow — fresh objects each
+ * getSnapshot trip React #185 (maximum update depth).
  */
 function ImmersiveSoundModeController() {
-  const { prefs, session, isPlaying, hasTrack, idleStage, blockingChrome } =
+  const { rawPrefs, session, isPlaying, hasTrack, idleStage, blockingChrome } =
     useConsolidatedAppStore(
-      useShallow((s) => {
-        const prefsNorm = normalizeImmersiveSoundMode(s.ui?.immersiveSoundMode);
-        return {
-          prefs: prefsNorm,
-          session: s.ui?.immersiveSoundModeActive || false,
-          isPlaying: Boolean(s.nowPlaying?.isPlaying),
-          hasTrack: Boolean(s.nowPlaying?.trackName),
-          idleStage: s.ui?.homeIdleStage || 'active',
-          blockingChrome: Boolean(
-            s.ui?.showSettingsModal ||
-              s.ui?.commandPaletteOpen ||
-              s.ui?.homeBoardArrangeMode ||
-              s.ui?.channelConfigureModalOpen
-          ),
-        };
-      })
+      useShallow((s) => ({
+        rawPrefs: s.ui?.immersiveSoundMode,
+        session: s.ui?.immersiveSoundModeActive || false,
+        isPlaying: Boolean(s.nowPlaying?.isPlaying),
+        hasTrack: Boolean(s.nowPlaying?.trackName),
+        idleStage: s.ui?.homeIdleStage || 'active',
+        blockingChrome: Boolean(
+          s.ui?.showSettingsModal ||
+            s.ui?.commandPaletteOpen ||
+            s.ui?.homeBoardArrangeMode ||
+            s.ui?.channelConfigureModalOpen
+        ),
+      }))
     );
+  const prefs = useMemo(() => normalizeImmersiveSoundMode(rawPrefs), [rawPrefs]);
   const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
 
   // Master off → never stay active.

@@ -41,6 +41,29 @@ export function estimateWiiTileAspect({
   return cellW / cellH;
 }
 
+/**
+ * Live Wii strip board tracks — keeps classic tile scale on 2–3 row boards.
+ * Rows use `min(1fr, --wii-row-max)` so 3/4-column layouts do not inflate into
+ * giant empty shelves when only a few rows are configured. `--wii-row-max` is
+ * resolved in CSS from the visible board column width ÷ {@link WII_TILE_ASPECT}.
+ *
+ * @param {{ columns?: number, rows?: number, totalPages?: number }} opts
+ * @returns {Record<string, string | number>}
+ */
+export function createWiiBoardTrackStyle({ columns = 4, rows = 3, totalPages = 1 } = {}) {
+  const cols = Math.max(1, Math.floor(Number(columns)) || 1);
+  const rws = Math.max(1, Math.floor(Number(rows)) || 1);
+  const pages = Math.max(1, Math.floor(Number(totalPages)) || 1);
+  return {
+    gridTemplateColumns: `repeat(${cols * pages}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${rws}, minmax(0, min(1fr, var(--wii-row-max, 1fr))))`,
+    '--wii-page-columns': cols,
+    '--wii-page-rows': rws,
+    '--wii-tile-aspect': String(WII_TILE_ASPECT),
+    alignContent: rws <= 3 ? 'center' : 'stretch',
+  };
+}
+
 /** Clamped ranges for settings geometry controls. */
 export const CHANNEL_LAYOUT_LIMITS = Object.freeze({
   columns: { min: 3, max: 4 },

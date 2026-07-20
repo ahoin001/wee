@@ -291,7 +291,7 @@ function FriendShelfCard({ friend, interactionsLocked, onLaunchGame, onOpenProfi
         if (friend.gameId) onLaunchGame?.(friend);
         else onOpenProfile?.(friend);
       }}
-      className={`group flex h-full w-[5.75rem] shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-[1rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.78)] px-2 py-2 text-center shadow-[var(--shadow-sm)] backdrop-blur-md transition-[transform,border-color,box-shadow,opacity] hover:border-[hsl(var(--primary)/0.55)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-70 ${
+      className={`group flex h-full max-h-[7.25rem] w-[5.75rem] shrink-0 snap-start flex-col items-center justify-center gap-1.5 self-center rounded-[1rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.78)] px-2 py-2 text-center shadow-[var(--shadow-sm)] backdrop-blur-md transition-[transform,border-color,box-shadow,opacity] hover:border-[hsl(var(--primary)/0.55)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-70 ${
         online ? '' : 'opacity-80'
       }`}
     >
@@ -672,7 +672,7 @@ function SteamFriendsSlot({
                 }
               }}
             >
-              <div className="flex h-full w-max min-w-full items-stretch gap-2 pr-5">
+              <div className="flex h-full w-max min-w-full items-center gap-2 pr-5">
                 {cappedFriends.map((friend) => (
                   <FriendShelfCard
                     key={friend.steamId}

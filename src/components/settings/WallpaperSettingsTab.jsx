@@ -38,6 +38,7 @@ import SpaceWallpaperAppearanceSection from './wallpaper/SpaceWallpaperAppearanc
 import SurfacesScenePreview from './wallpaper/SurfacesScenePreview';
 import WallpaperCyclingSection from './wallpaper/WallpaperCyclingSection';
 import WallpaperOverlaySection from './wallpaper/WallpaperOverlaySection';
+import { SceneFxSurfacesSection } from '../../features/sceneFxBeta';
 import {
   SPACE_WALLPAPER_OPTIONS,
 } from './wallpaper/wallpaperSettingsConstants';
@@ -46,14 +47,19 @@ import './settings-wee-panels.css';
 const SURFACES_SEGMENTS = [
   { value: 'library', label: 'Library', title: 'Upload, pick, apply, and delete wallpapers' },
   { value: 'look', label: 'Look', title: 'Source wallpaper and tune blur, brightness, saturation' },
-  { value: 'atmosphere', label: 'Atmosphere', title: 'Home cycling and particle overlays' },
+  {
+    value: 'atmosphere',
+    label: 'Atmosphere',
+    title: 'Scene effects, Home cycling, and particle overlays',
+  },
   { value: 'ribbon', label: 'Ribbon', title: 'Ribbon scope and wallpaper color match' },
 ];
 
 const SURFACES_TAB_TIPS = Object.freeze({
   library: 'Pick a tile to preview · Apply in the toolbar pins it to the space/page.',
   look: 'Sliders update the canvas live · Source and page pinning live in the toolbar.',
-  atmosphere: 'Cycling and particles are Home-only · Watch them play on the canvas.',
+  atmosphere:
+    'Scene effects work on every space · Cycling and particles are Home-only on the canvas.',
   ribbon: 'Match paints the ribbon from wallpaper · Edit exact colors in Dock.',
 });
 
@@ -1069,6 +1075,8 @@ const WallpaperSettingsTab = React.memo(() => {
   const studioBodyRef = useRef(null);
   const inspectorDragRef = useRef(null);
   const mediaHubEnabled = useConsolidatedAppStore((s) => s.spaces.mediaHubEnabled === true);
+  const surfacesSegmentHint = useConsolidatedAppStore((s) => s.ui?.surfacesSegment);
+  const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
   const spaceWallpaperOptions = SPACE_WALLPAPER_OPTIONS.filter(
     (space) => mediaHubEnabled || space.id !== 'mediahub'
   );
@@ -1174,6 +1182,13 @@ const WallpaperSettingsTab = React.memo(() => {
     const normalized = normalizeSurfacesSegment(surfacesSegment);
     if (normalized !== surfacesSegment) setSurfacesSegment(normalized);
   }, [surfacesSegment]);
+
+  // Deep-link from Beta Music Bloom → Surfaces → Atmosphere
+  useEffect(() => {
+    if (!surfacesSegmentHint) return;
+    setSurfacesSegment(normalizeSurfacesSegment(surfacesSegmentHint));
+    setUIState({ surfacesSegment: null });
+  }, [surfacesSegmentHint, setUIState]);
 
   const triggerApplyPulse = useCallback(() => {
     if (reduceMotion) return;
@@ -1285,7 +1300,7 @@ const WallpaperSettingsTab = React.memo(() => {
       return `Ribbon on ${where} — wallpaper dimmed so the ribbon can shine.`;
     }
     if (activeSurfacesSegment === 'atmosphere') {
-      return `Atmosphere on ${where} — particles and cycling play in this scene.`;
+      return `Atmosphere on ${where} — scene effects everywhere; particles and cycling are Home-only.`;
     }
     if (activeSurfacesSegment === 'look') {
       return `Look for ${where} — tone sliders update this scene live.`;
@@ -1570,55 +1585,59 @@ const WallpaperSettingsTab = React.memo(() => {
               ) : null}
 
               {activeSurfacesSegment === 'atmosphere' ? (
-                isHomeSpace ? (
                 <>
-                  <WallpaperCyclingSection
-                    cycling={cycling}
-                    handleCyclingChange={handleCyclingChange}
-                    cycleInterval={cycleInterval}
-                    handleCycleIntervalChange={handleCycleIntervalChange}
-                    cycleAnimation={cycleAnimation}
-                    handleCycleAnimationChange={handleCycleAnimationChange}
-                    slideRandomDirection={slideRandomDirection}
-                    handleSlideRandomDirectionChange={handleSlideRandomDirectionChange}
-                    slideDirection={slideDirection}
-                    handleSlideDirectionChange={handleSlideDirectionChange}
-                    slideDuration={slideDuration}
-                    handleSlideDurationChange={handleSlideDurationChange}
-                    slideEasing={slideEasing}
-                    handleSlideEasingChange={handleSlideEasingChange}
-                    crossfadeDuration={crossfadeDuration}
-                    handleCrossfadeDurationChange={handleCrossfadeDurationChange}
-                    crossfadeEasing={crossfadeEasing}
-                    handleCrossfadeEasingChange={handleCrossfadeEasingChange}
-                  />
+                  <SceneFxSurfacesSection />
 
-                  <WallpaperOverlaySection
-                    overlayEnabled={overlayEnabled}
-                    handleOverlayEnabledChange={handleOverlayEnabledChange}
-                    overlayEffect={overlayEffect}
-                    handleOverlayEffectChange={handleOverlayEffectChange}
-                    overlayIntensity={overlayIntensity}
-                    handleOverlayIntensityChange={handleOverlayIntensityChange}
-                    overlaySpeed={overlaySpeed}
-                    handleOverlaySpeedChange={handleOverlaySpeedChange}
-                    overlayWind={overlayWind}
-                    handleOverlayWindChange={handleOverlayWindChange}
-                    overlayGravity={overlayGravity}
-                    handleOverlayGravityChange={handleOverlayGravityChange}
-                  />
+                  {isHomeSpace ? (
+                    <>
+                      <WallpaperCyclingSection
+                        cycling={cycling}
+                        handleCyclingChange={handleCyclingChange}
+                        cycleInterval={cycleInterval}
+                        handleCycleIntervalChange={handleCycleIntervalChange}
+                        cycleAnimation={cycleAnimation}
+                        handleCycleAnimationChange={handleCycleAnimationChange}
+                        slideRandomDirection={slideRandomDirection}
+                        handleSlideRandomDirectionChange={handleSlideRandomDirectionChange}
+                        slideDirection={slideDirection}
+                        handleSlideDirectionChange={handleSlideDirectionChange}
+                        slideDuration={slideDuration}
+                        handleSlideDurationChange={handleSlideDurationChange}
+                        slideEasing={slideEasing}
+                        handleSlideEasingChange={handleSlideEasingChange}
+                        crossfadeDuration={crossfadeDuration}
+                        handleCrossfadeDurationChange={handleCrossfadeDurationChange}
+                        crossfadeEasing={crossfadeEasing}
+                        handleCrossfadeEasingChange={handleCrossfadeEasingChange}
+                      />
+
+                      <WallpaperOverlaySection
+                        overlayEnabled={overlayEnabled}
+                        handleOverlayEnabledChange={handleOverlayEnabledChange}
+                        overlayEffect={overlayEffect}
+                        handleOverlayEffectChange={handleOverlayEffectChange}
+                        overlayIntensity={overlayIntensity}
+                        handleOverlayIntensityChange={handleOverlayIntensityChange}
+                        overlaySpeed={overlaySpeed}
+                        handleOverlaySpeedChange={handleOverlaySpeedChange}
+                        overlayWind={overlayWind}
+                        handleOverlayWindChange={handleOverlayWindChange}
+                        overlayGravity={overlayGravity}
+                        handleOverlayGravityChange={handleOverlayGravityChange}
+                      />
+                    </>
+                  ) : (
+                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+                      <Text variant="h3" className="mb-1 playful-hero-text">
+                        Cycling & particles are Home-only
+                      </Text>
+                      <Text variant="desc" className="!m-0">
+                        Switch the toolbar to Home to edit wallpaper cycling and particle overlays.
+                        Scene effects above still apply on every space.
+                      </Text>
+                    </WeeModalFieldCard>
+                  )}
                 </>
-                ) : (
-                  <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
-                    <Text variant="h3" className="mb-1 playful-hero-text">
-                      Atmosphere is Home-only
-                    </Text>
-                    <Text variant="desc" className="!m-0">
-                      Switch the toolbar to Home to edit wallpaper cycling and particle overlays.
-                      Other spaces use their pinned look without Atmosphere.
-                    </Text>
-                  </WeeModalFieldCard>
-                )
               ) : null}
 
               {activeSurfacesSegment === 'ribbon' ? (

@@ -253,13 +253,14 @@ function ChannelHoverSoundPicker({
                   >
                     <WeePressSurface
                       as="div"
+                      variant="listRow"
                       enableHover={!pendingDelete}
                       onClick={() => {
                         if (!pendingDelete) handleHoverSoundSelect(sound.id);
                       }}
                       className={`relative flex cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 transition-colors ${
                         selected
-                          ? 'border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary)/0.12)] shadow-[var(--shadow-hover-glow)]'
+                          ? 'border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary)/0.12)] shadow-[var(--shadow-soft-hover),var(--shadow-hover-glow)]'
                           : 'border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.55)] hover:border-[hsl(var(--border-primary)/0.55)] hover:bg-[hsl(var(--surface-secondary)/0.85)]'
                       }`}
                     >

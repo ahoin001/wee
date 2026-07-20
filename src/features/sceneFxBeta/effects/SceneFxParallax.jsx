@@ -2,9 +2,10 @@
  * BETA Scene FX — wallpaper cursor parallax via CSS vars on `.wallpaper-space-parallax`.
  * Removable: delete this file + unmount from SceneFxBetaRoot (see feature README).
  */
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import useAnimationActivity from '../../../hooks/useAnimationActivity';
+import useRafResumeKick from '../../../hooks/useRafResumeKick';
 
 const ROOT_SELECTOR = '.wallpaper-space-parallax';
 const MAX_OFFSET_PX = 18;
@@ -15,14 +16,20 @@ function SceneFxParallax({ amount = 0.4 }) {
   const targetRef = useRef({ x: 0, y: 0 });
   const currentRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef(0);
+  const tickRef = useRef(() => {});
 
   useEffect(() => {
     if (!shouldAnimate) {
+      if (rafRef.current) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
+      }
       const root = document.querySelector(ROOT_SELECTOR);
       if (root instanceof HTMLElement) {
         root.style.removeProperty('--wee-scene-fx-px');
         root.style.removeProperty('--wee-scene-fx-py');
         root.style.removeProperty('--wee-scene-fx-ps');
+        root.style.willChange = '';
       }
       return undefined;
     }
@@ -53,13 +60,18 @@ function SceneFxParallax({ amount = 0.4 }) {
       }
       rafRef.current = window.requestAnimationFrame(tick);
     };
+    tickRef.current = tick;
 
     window.addEventListener('pointermove', onMove, { passive: true });
     rafRef.current = window.requestAnimationFrame(tick);
 
     return () => {
       window.removeEventListener('pointermove', onMove);
-      if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
+      }
+      tickRef.current = () => {};
       const el = root();
       if (el instanceof HTMLElement) {
         el.style.removeProperty('--wee-scene-fx-px');
@@ -69,6 +81,17 @@ function SceneFxParallax({ amount = 0.4 }) {
       }
     };
   }, [amount, shouldAnimate]);
+
+  const onKick = useCallback(() => {
+    if (!shouldAnimate) return;
+    if (rafRef.current) {
+      window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    }
+    rafRef.current = window.requestAnimationFrame(() => tickRef.current());
+  }, [shouldAnimate]);
+
+  useRafResumeKick({ enabled: shouldAnimate, onKick });
 
   return null;
 }

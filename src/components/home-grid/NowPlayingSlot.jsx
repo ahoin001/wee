@@ -1,7 +1,8 @@
 /**
  * Home-grid Now Playing — immersive album-matched player.
- * Hero: true-square floating cover over blurred art backdrop.
+ * Hero: true-square floating cover over atmosphere (or optional blur) backdrop.
  * Inline: square cover docked in the glass panel beside transport.
+ * Single-row (wide): large crisp cover + glass strip; atmosphere wash, not grainy blur.
  */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
@@ -184,8 +185,8 @@ function chromeForSize(sizeId) {
     default:
       return {
         layout: 'wide',
-        stackPad: 'gap-2 p-2',
-        glassPad: 'gap-0.5 px-2.5 py-1.5',
+        stackPad: 'gap-2.5 p-1.5 sm:p-2',
+        glassPad: 'gap-0.5 px-3 py-1.5',
         glassWidth: 'w-full min-w-0',
         title: 'text-[11px] leading-snug sm:text-xs',
         artist: 'text-[8px] tracking-[0.14em]',
@@ -197,10 +198,11 @@ function chromeForSize(sizeId) {
         playIcon: 13,
         skipIcon: 14,
         skipBox: 'h-7 w-7',
-        glassRadius: 'rounded-xl',
+        glassRadius: 'rounded-2xl',
         transportGap: 'gap-2.5',
-        artRadius: 'rounded-[1.15rem]',
-        artHeroClass: 'aspect-square h-[min(100%,5.5rem)] w-auto max-w-full',
+        artRadius: 'rounded-[1.25rem]',
+        /** Nearly fills the single board row so the cover is the hero, not a thumbnail. */
+        artHeroClass: 'aspect-square h-full max-h-full w-auto max-w-[min(100%,9.5rem)]',
         artInlineClass: 'aspect-square h-14 w-14 shrink-0',
         vizMaxH: 18,
       };
@@ -276,6 +278,107 @@ AlbumCover.propTypes = {
   sizeClass: PropTypes.string,
   extractedColors: PropTypes.object,
   placeholderIconSize: PropTypes.number,
+};
+
+/**
+ * Soft album-palette wash — lets wallpaper breathe; no grainy enlarged cover.
+ * Extracted Spotify/system colors are runtime hex from the API (allowed as paint inputs).
+ */
+function NowPlayingAtmosphere({ extractedColors }) {
+  const primary = extractedColors?.primary || null;
+  const secondary = extractedColors?.secondary || primary;
+  const accent = extractedColors?.accent || primary;
+
+  return (
+    <>
+      <div
+        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[hsl(var(--surface-primary)/0.22)]"
+        aria-hidden
+      />
+      {primary ? (
+        <>
+          <div
+            className="pointer-events-none absolute inset-0 rounded-[inherit]"
+            style={{
+              background: `radial-gradient(ellipse 95% 140% at 6% 50%, color-mix(in srgb, ${primary} 62%, transparent), transparent 64%)`,
+            }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0 rounded-[inherit]"
+            style={{
+              background: `radial-gradient(ellipse 75% 120% at 96% 42%, color-mix(in srgb, ${secondary} 40%, transparent), transparent 58%)`,
+            }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0 rounded-[inherit]"
+            style={{
+              background: `radial-gradient(ellipse 55% 90% at 58% 108%, color-mix(in srgb, ${accent} 30%, transparent), transparent 55%)`,
+            }}
+            aria-hidden
+          />
+        </>
+      ) : (
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[inherit]"
+          style={{
+            background:
+              'radial-gradient(ellipse 85% 110% at 18% 50%, hsl(var(--primary) / 0.32), transparent 62%)',
+          }}
+          aria-hidden
+        />
+      )}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-gradient-to-b from-[hsl(var(--color-pure-white)/0.14)] via-transparent to-[hsl(var(--color-pure-black)/0.14)]"
+        aria-hidden
+      />
+    </>
+  );
+}
+
+NowPlayingAtmosphere.propTypes = {
+  extractedColors: PropTypes.object,
+};
+
+/**
+ * Classic enlarged + blurred album wash (optional Looks mode).
+ */
+function NowPlayingBlurBackdrop({ albumArtUrl, blurPx, darken, extractedColors }) {
+  return (
+    <>
+      <img
+        src={albumArtUrl}
+        alt=""
+        className="pointer-events-none absolute inset-0 h-full w-full scale-[1.22] object-cover"
+        style={{ filter: `blur(${blurPx}px)` }}
+        draggable={false}
+        decoding="async"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 rounded-[inherit]"
+        style={{ backgroundColor: `hsl(var(--color-pure-black) / ${darken})` }}
+        aria-hidden
+      />
+      {extractedColors?.primary ? (
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-[0.22]"
+          style={{
+            background: `radial-gradient(ellipse 75% 60% at 50% 28%, ${extractedColors.primary}, transparent 70%)`,
+          }}
+          aria-hidden
+        />
+      ) : null}
+    </>
+  );
+}
+
+NowPlayingBlurBackdrop.propTypes = {
+  albumArtUrl: PropTypes.string.isRequired,
+  blurPx: PropTypes.number.isRequired,
+  darken: PropTypes.number.isRequired,
+  extractedColors: PropTypes.object,
 };
 
 function NowPlayingSlot({
@@ -630,46 +733,20 @@ function NowPlayingSlot({
 
   const blurPx = npLooks.backdropBlur;
   const darken = npLooks.backdropDarken;
+  const useBlurBackdrop = npLooks.backdropMode === 'blur';
 
-  /** Enlarged album art wash — blur/darken from Looks. Always tinted from art when present. */
+  /** Atmosphere (default) or optional blurred cover wash from Looks. */
   const ambientLayer = hasTrack ? (
-    <>
-      {hasArt ? (
-        <img
-          src={albumArtUrl}
-          alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full scale-[1.22] object-cover"
-          style={{ filter: `blur(${blurPx}px)` }}
-          draggable={false}
-          decoding="async"
-          aria-hidden
-        />
-      ) : (
-        <div
-          className="pointer-events-none absolute inset-0 rounded-[inherit]"
-          style={{
-            background: extractedColors?.primary
-              ? `radial-gradient(ellipse 80% 70% at 50% 35%, ${extractedColors.primary}, transparent 70%)`
-              : 'radial-gradient(ellipse 80% 65% at 50% 30%, hsl(var(--primary) / 0.22), transparent 70%)',
-          }}
-          aria-hidden
-        />
-      )}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-[inherit]"
-        style={{ backgroundColor: `hsl(var(--color-pure-black) / ${darken})` }}
-        aria-hidden
+    useBlurBackdrop && hasArt ? (
+      <NowPlayingBlurBackdrop
+        albumArtUrl={albumArtUrl}
+        blurPx={blurPx}
+        darken={darken}
+        extractedColors={extractedColors}
       />
-      {extractedColors?.primary ? (
-        <div
-          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-[0.22]"
-          style={{
-            background: `radial-gradient(ellipse 75% 60% at 50% 28%, ${extractedColors.primary}, transparent 70%)`,
-          }}
-          aria-hidden
-        />
-      ) : null}
-    </>
+    ) : (
+      <NowPlayingAtmosphere extractedColors={extractedColors} />
+    )
   ) : null;
 
   let body = null;
@@ -697,9 +774,9 @@ function NowPlayingSlot({
     );
   } else if (useInlineArt) {
     body = (
-      <div className={`relative z-10 flex h-full min-h-0 w-full flex-col justify-end ${chrome.stackPad}`}>
+      <div className={`relative z-10 flex h-full min-h-0 w-full flex-col justify-center ${chrome.stackPad}`}>
         {visualizerRow}
-        <div className="mt-auto flex w-full shrink-0">{chromeCard}</div>
+        <div className="flex w-full shrink-0">{chromeCard}</div>
       </div>
     );
   } else if (isImmersive) {
@@ -715,13 +792,15 @@ function NowPlayingSlot({
   } else if (isWide) {
     body = (
       <div
-        className={`relative z-10 flex h-full min-h-0 w-full items-center ${chrome.stackPad}`}
+        className={`relative z-10 flex h-full min-h-0 w-full items-stretch ${chrome.stackPad}`}
       >
-        <div className="flex h-full shrink-0 flex-col items-center justify-center gap-1">
+        <div className="flex h-full shrink-0 items-center justify-center">
           {heroArt}
-          {visualizerRow}
         </div>
-        <div className="flex min-h-0 min-w-0 flex-1 items-center pl-1">{chromeCard}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-1 pl-2 sm:pl-3">
+          {visualizerRow}
+          {chromeCard}
+        </div>
       </div>
     );
   } else {

@@ -38,8 +38,9 @@ export const SETTINGS_TAB_ID = {
 /**
  * Open the settings modal and select a tab (used from CTAs on toasts, widgets, etc.).
  * @param {string} tabId — see SETTINGS_TAB_ID
- * @param {{ dockSubTab?: string, integrationsSubTab?: string }} [options]
- *   — Dock deep-link (`wii-ribbon`, `classic-dock`, …) or Music/Steam/Widgets subtab
+ * @param {{ dockSubTab?: string, integrationsSubTab?: string, surfacesSegment?: string }} [options]
+ *   — Dock deep-link (`wii-ribbon`, `classic-dock`, …), Music/Steam/Widgets subtab,
+ *     or Surfaces inspector segment (`library` | `look` | `atmosphere` | `ribbon`)
  */
 export function openSettingsToTab(tabId, options = {}) {
   const patch = {
@@ -51,6 +52,12 @@ export function openSettingsToTab(tabId, options = {}) {
   }
   if (tabId === SETTINGS_TAB_ID.API_INTEGRATIONS && options.integrationsSubTab) {
     patch.integrationsSubTab = options.integrationsSubTab;
+  }
+  if (
+    (tabId === SETTINGS_TAB_ID.SURFACES || tabId === SETTINGS_TAB_ID.WALLPAPER) &&
+    options.surfacesSegment
+  ) {
+    patch.surfacesSegment = options.surfacesSegment;
   }
   useConsolidatedAppStore.getState().actions.setUIState(patch);
 }

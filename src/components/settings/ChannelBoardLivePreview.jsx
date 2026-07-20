@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { m, useReducedMotion } from 'framer-motion';
 import { EyeOff } from 'lucide-react';
 import SettingsLivePreviewFrame from './SettingsLivePreviewFrame';
-import { isSlotHidden } from '../../utils/channelLayoutSystem';
+import { isSlotHidden, WII_TILE_ASPECT } from '../../utils/channelLayoutSystem';
 import { SLOT_KIND_CHANNEL } from '../../utils/homeGridSlots';
 import { getHomeSlotKind } from '../home-grid/slotKindRegistry';
 import { createWeeTransition } from '../../design/weeMotion';
@@ -103,7 +103,8 @@ function ChannelBoardLivePreview({
         className="relative z-[1] mx-auto grid h-full w-full max-w-2xl gap-2.5 md:gap-3"
         style={{
           gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${layout.rows}, minmax(3rem, 1fr))`,
+          gridTemplateRows: `repeat(${layout.rows}, minmax(3rem, min(1fr, calc((100% / ${layout.columns}) / ${WII_TILE_ASPECT}))))`,
+          alignContent: layout.rows <= 3 ? 'center' : 'stretch',
         }}
         role="group"
         aria-label="Channel board preview"

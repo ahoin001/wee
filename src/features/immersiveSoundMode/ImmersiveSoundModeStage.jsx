@@ -21,13 +21,14 @@ const EMPTY_NOW_PLAYING = Object.freeze({});
  * Removable with `src/features/immersiveSoundMode/` (see README).
  */
 function ImmersiveSoundModeStage() {
-  const { active, prefs, np } = useConsolidatedAppStore(
+  const { active, rawPrefs, np } = useConsolidatedAppStore(
     useShallow((state) => ({
       active: Boolean(state.ui?.immersiveSoundModeActive),
-      prefs: normalizeImmersiveSoundMode(state.ui?.immersiveSoundMode),
+      rawPrefs: state.ui?.immersiveSoundMode,
       np: state.nowPlaying || EMPTY_NOW_PLAYING,
     }))
   );
+  const prefs = useMemo(() => normalizeImmersiveSoundMode(rawPrefs), [rawPrefs]);
 
   const look = useMemo(() => resolveImmersiveSoundLook(prefs.intensity), [prefs.intensity]);
   const { reducedMotion, createTransition } = useWeeMotion();

@@ -34,6 +34,7 @@ import {
 import {
   normalizeHomeNowPlayingWidget,
   NOW_PLAYING_ART_LAYOUTS,
+  NOW_PLAYING_BACKDROP_MODES,
 } from '../../utils/homeNowPlayingWidgetPrefs';
 import {
   DEFAULT_HOME_RECENTLY_USED_WIDGET,
@@ -493,8 +494,8 @@ function NowPlayingWidgetSettings() {
   return (
     <div className="flex flex-col items-center gap-2.5">
       <p className="m-0 max-w-[28rem] text-center text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-        Album art always color-matches this tile. Tune layout and backdrop, or tint ribbon and
-        wallpaper separately.
+        Cover stays crisp; backdrop paints album color (or optional blur). Ribbon and wallpaper tint
+        separately.
       </p>
 
       <div className="flex w-full max-w-[28rem] flex-col gap-2">
@@ -513,52 +514,77 @@ function NowPlayingWidgetSettings() {
               label: opt.label,
               title:
                 opt.id === 'hero'
-                  ? 'Large square cover above the playback panel'
+                  ? 'Large square cover beside or above the playback panel'
                   : 'Square cover inside the panel beside the controls',
             }))}
           />
           <p className="m-0 mt-1.5 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-            Hero floats the cover; Inline docks it next to transport
+            Hero floats a large cover; Inline docks it next to transport
           </p>
         </div>
 
         <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
-          <div className="mb-1.5 flex items-center justify-between gap-2">
-            <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
-              Backdrop blur
-            </p>
-            <span className="text-[9px] font-bold tabular-nums text-[hsl(var(--text-tertiary))]">
-              {Math.round(npLooks.backdropBlur)}px
-            </span>
-          </div>
-          <WeeSlider
-            aria-label="Backdrop blur"
-            min={0}
-            max={40}
-            step={1}
-            value={npLooks.backdropBlur}
-            onChange={(value) => patchLooks({ backdropBlur: value })}
+          <p className="m-0 mb-2 text-[11px] font-black text-[hsl(var(--text-primary))]">
+            Backdrop
+          </p>
+          <WeeSegmentedControl
+            size="sm"
+            ariaLabel="Now Playing backdrop"
+            layoutId="homeNowPlayingBackdropMode"
+            value={npLooks.backdropMode}
+            onChange={(next) => patchLooks({ backdropMode: next })}
+            options={Object.values(NOW_PLAYING_BACKDROP_MODES).map((opt) => ({
+              value: opt.id,
+              label: opt.label,
+              title: opt.title,
+            }))}
           />
+          <p className="m-0 mt-1.5 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+            Atmosphere uses album colors; Blur enlarges the cover behind
+          </p>
         </div>
 
-        <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
-          <div className="mb-1.5 flex items-center justify-between gap-2">
-            <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
-              Backdrop darken
-            </p>
-            <span className="text-[9px] font-bold tabular-nums text-[hsl(var(--text-tertiary))]">
-              {Math.round(npLooks.backdropDarken * 100)}%
-            </span>
+        <WeeRevealWhen when={npLooks.backdropMode === 'blur'}>
+          <div className="flex flex-col gap-2">
+            <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
+                  Backdrop blur
+                </p>
+                <span className="text-[9px] font-bold tabular-nums text-[hsl(var(--text-tertiary))]">
+                  {Math.round(npLooks.backdropBlur)}px
+                </span>
+              </div>
+              <WeeSlider
+                aria-label="Backdrop blur"
+                min={0}
+                max={40}
+                step={1}
+                value={npLooks.backdropBlur}
+                onChange={(value) => patchLooks({ backdropBlur: value })}
+              />
+            </div>
+
+            <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
+                  Backdrop darken
+                </p>
+                <span className="text-[9px] font-bold tabular-nums text-[hsl(var(--text-tertiary))]">
+                  {Math.round(npLooks.backdropDarken * 100)}%
+                </span>
+              </div>
+              <WeeSlider
+                aria-label="Backdrop darken"
+                min={0}
+                max={85}
+                step={1}
+                value={Math.round(npLooks.backdropDarken * 100)}
+                onChange={(value) => patchLooks({ backdropDarken: value / 100 })}
+              />
+            </div>
           </div>
-          <WeeSlider
-            aria-label="Backdrop darken"
-            min={0}
-            max={85}
-            step={1}
-            value={Math.round(npLooks.backdropDarken * 100)}
-            onChange={(value) => patchLooks({ backdropDarken: value / 100 })}
-          />
-        </div>
+        </WeeRevealWhen>
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
           <div className="min-w-0">

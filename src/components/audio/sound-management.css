@@ -764,26 +764,18 @@
   box-shadow: var(--wee-pill-shadow);
   backdrop-filter: blur(14px);
   transition:
-    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.22s ease,
     border-color 0.22s ease;
 }
 
 .sound-item-gooey:hover {
-  transform: translateY(-2px);
   border-color: hsl(var(--primary) / 0.38);
-  box-shadow:
-    var(--wee-pill-shadow),
-    0 0 0 1px hsl(var(--primary) / 0.12);
+  box-shadow: var(--shadow-soft-hover), var(--shadow-hover-glow);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sound-item-gooey {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .sound-item-gooey:hover {
-    transform: none;
   }
 }
 
@@ -793,7 +785,6 @@
 }
 
 .sound-item-gooey--disabled:hover {
-  transform: none;
   box-shadow: var(--wee-pill-shadow);
 }
 

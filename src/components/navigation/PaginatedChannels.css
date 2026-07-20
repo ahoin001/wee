@@ -132,6 +132,9 @@
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
+  /* Size container so --wii-row-max can key off visible board width (not the full strip). */
+  container-type: size;
+  container-name: wii-board;
   /* top right bottom left — right flush; left inset only when --wii-strip-current-page is 0 */
   padding: clamp(10px, 1.4vh, 20px) 0 var(--channel-dock-clearance)
     calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(12px, 1.8vw, 28px));
@@ -164,8 +167,17 @@
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
-  /* Stretch so equal 1fr row tracks fill the board; content scrolls inside widgets. */
-  align-content: stretch;
+  /*
+   * Cap each row to classic Wii tile height for the visible page column width.
+   * 100cqi = .wii-mode-grid content box (one page), not the multi-page strip.
+   * With few rows (2–3) this stops 3/4-column boards from ballooning into giant shelves.
+   */
+  --wii-col-width: calc(
+    (100cqi - (var(--wii-strip-channel-gap) * (var(--wii-page-columns, 4) - 1))) /
+      var(--wii-page-columns, 4)
+  );
+  --wii-row-max: calc(var(--wii-col-width) / var(--wii-tile-aspect, 1.95));
+  /* align-content comes from createWiiBoardTrackStyle (center when ≤3 rows). */
   justify-content: stretch;
 }
 

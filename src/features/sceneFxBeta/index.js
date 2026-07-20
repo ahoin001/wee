@@ -9,3 +9,4 @@ export {
 
 export { default as SceneFxBetaRoot } from './SceneFxBetaRoot.jsx';
 export { default as SceneFxBetaSettingsSection } from './SceneFxBetaSettingsSection.jsx';
+export { default as SceneFxSurfacesSection } from './SceneFxSurfacesSection.jsx';

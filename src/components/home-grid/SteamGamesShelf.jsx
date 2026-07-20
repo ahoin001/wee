@@ -90,7 +90,10 @@ export function SteamCoverTile({
   onActivate,
   footer = null,
   density = 'cozy',
-  /** When true, tile fills shelf row height and sizes width via 2∶3 aspect. */
+  /**
+   * When true, tile is a horizontal-shelf cover: width comes from the grid track
+   * (tileMaxPx), height from 2∶3 aspect — never height-fills a tall board row.
+   */
   shelfFill = false,
 }) {
   const id = String(appId || '');
@@ -110,7 +113,7 @@ export function SteamCoverTile({
       }}
       className={`home-widget-float-tile group relative overflow-hidden rounded-[0.85rem] border border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.88)] text-left shadow-[var(--shadow-sm)] transition-transform hover:scale-[1.03] active:scale-95 ${
         shelfFill
-          ? 'h-full w-auto shrink-0 snap-start aspect-[2/3]'
+          ? 'aspect-[2/3] w-full max-h-full shrink-0 snap-start'
           : 'aspect-[2/3] w-full min-w-0'
       }`}
     >
@@ -176,41 +179,56 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children, cov
   const isHorizontal = scrollAxis === 'horizontal';
   const isCinemaShelf = shelfLayout.mode === 'shelf';
   const density = coverDensity || shelfLayout.density || 'compact';
+  const tileMaxPx = shelfLayout.tileMaxPx || tileCfg.tileMaxPx;
+  const gridColumns = shelfLayout.columns || tileCfg.columns;
 
   // Single board-row shelves pack one cover row; taller horizontal (e.g. 3×2) keep Dense’s 2.
-  const horizontalRows = isCinemaShelf ? 1 : rowSpan <= 1 ? 1 : tileCfg.horizontalRows;
+  const horizontalRows = isCinemaShelf
+    ? 1
+    : rowSpan <= 1
+      ? 1
+      : shelfLayout.horizontalRows || tileCfg.horizontalRows;
 
   const gridStyle = useMemo(() => {
     if (isCinemaShelf) {
       return {
         gridAutoFlow: 'column',
-        gridTemplateRows: 'minmax(0, 1fr)',
-        gridAutoColumns: 'max-content',
+        gridTemplateRows: 'minmax(0, max-content)',
+        gridAutoColumns: `minmax(0, ${tileMaxPx}px)`,
         height: '100%',
+        alignContent: 'center',
+        justifyContent: 'start',
       };
     }
     if (isHorizontal) {
       return {
         gridAutoFlow: 'column',
         gridTemplateRows: `repeat(${horizontalRows}, minmax(0, auto))`,
-        gridAutoColumns: `minmax(0, ${tileCfg.tileMaxPx}px)`,
+        gridAutoColumns: `minmax(0, ${tileMaxPx}px)`,
+        alignContent: 'center',
       };
     }
+    // Fixed-size auto-fill — never stretch covers across a wide 3×/4× shelf.
     return {
-      gridTemplateColumns: `repeat(${tileCfg.columns}, minmax(0, 1fr))`,
+      gridTemplateColumns: `repeat(auto-fill, minmax(${tileMaxPx}px, ${tileMaxPx}px))`,
+      justifyContent: 'start',
+      alignContent: 'start',
     };
-  }, [isCinemaShelf, isHorizontal, horizontalRows, tileCfg.columns, tileCfg.tileMaxPx]);
+  }, [isCinemaShelf, isHorizontal, horizontalRows, tileMaxPx]);
 
   const enrichedChildren = useMemo(() => {
     return React.Children.map(children, (child) => {
       if (!React.isValidElement(child)) return child;
       const next = {};
       if (child.props?.density == null) next.density = density;
-      if (isCinemaShelf && child.props?.shelfFill == null) next.shelfFill = true;
+      // Cinema + horizontal shelves share width-capped tracks (shelfFill).
+      if ((isCinemaShelf || isHorizontal) && child.props?.shelfFill == null) {
+        next.shelfFill = true;
+      }
       if (Object.keys(next).length === 0) return child;
       return React.cloneElement(child, next);
     });
-  }, [children, density, isCinemaShelf]);
+  }, [children, density, isCinemaShelf, isHorizontal]);
 
   return (
     <WeeFadeScroll
@@ -235,14 +253,15 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children, cov
       }}
     >
       <div
-        className={`grid content-start ${gutterCfg.gapClass} ${
+        className={`grid ${gutterCfg.gapClass} ${
           isCinemaShelf
-            ? 'h-full w-max min-w-full items-stretch pr-6'
+            ? 'h-full w-max min-w-full content-center items-center pr-6'
             : isHorizontal
-              ? 'h-full w-max min-w-full pr-4'
-              : 'pb-4'
+              ? 'h-full w-max min-w-full content-center pr-4'
+              : 'content-start pb-4'
         }`}
         style={gridStyle}
+        data-steam-shelf-cols={gridColumns}
       >
         {enrichedChildren}
       </div>

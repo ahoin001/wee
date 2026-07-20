@@ -2,9 +2,10 @@
  * BETA Scene FX — click / move wake ripples (event-driven canvas).
  * Removable: delete this file + unmount from SceneFxBetaRoot.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import useAnimationActivity from '../../../hooks/useAnimationActivity';
+import useRafResumeKick from '../../../hooks/useRafResumeKick';
 
 function readPrimaryRgb() {
   try {
@@ -30,7 +31,10 @@ function SceneFxCursorWake({ intensity = 0.55, reducedMotion = false }) {
   const ripplesRef = useRef([]);
   const rafRef = useRef(0);
   const lastMoveSpawnRef = useRef(0);
+  const ensureTickRef = useRef(() => {});
   const { shouldAnimate } = useAnimationActivity({ activeFps: 45, lowPowerFps: 20 });
+  const shouldAnimateRef = useRef(shouldAnimate);
+  shouldAnimateRef.current = shouldAnimate;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -81,6 +85,7 @@ function SceneFxCursorWake({ intensity = 0.55, reducedMotion = false }) {
       };
       rafRef.current = window.requestAnimationFrame(tick);
     };
+    ensureTickRef.current = ensureTick;
 
     const spawn = (x, y, power = 1) => {
       if (ripplesRef.current.length > 18) ripplesRef.current.shift();
@@ -103,7 +108,7 @@ function SceneFxCursorWake({ intensity = 0.55, reducedMotion = false }) {
     };
 
     const onPointerMove = (e) => {
-      if (reducedMotion || !shouldAnimate) return;
+      if (reducedMotion || !shouldAnimateRef.current) return;
       const now = performance.now();
       if (now - lastMoveSpawnRef.current < 90) return;
       lastMoveSpawnRef.current = now;
@@ -117,10 +122,26 @@ function SceneFxCursorWake({ intensity = 0.55, reducedMotion = false }) {
       window.removeEventListener('resize', resize);
       window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
-      if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
+      }
       ripplesRef.current = [];
+      ensureTickRef.current = () => {};
     };
-  }, [intensity, reducedMotion, shouldAnimate]);
+  }, [intensity, reducedMotion]);
+
+  const onKick = useCallback(() => {
+    if (rafRef.current) {
+      window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    }
+    if (ripplesRef.current.length > 0) {
+      ensureTickRef.current();
+    }
+  }, []);
+
+  useRafResumeKick({ enabled: true, onKick });
 
   return <canvas ref={canvasRef} className="scene-fx-wake-canvas" aria-hidden />;
 }

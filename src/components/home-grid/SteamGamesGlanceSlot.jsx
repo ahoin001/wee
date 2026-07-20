@@ -166,7 +166,7 @@ function SteamGamesGlanceSlot({
     () => resolveHomeWidgetLayout(colSpan, rowSpan),
     [colSpan, rowSpan]
   );
-  // 1-row cinema shelves use cozy density; taller grids stay compact/dense.
+  // 1-row cinema shelves use cozy density + width caps; taller grids stay compact/dense.
   const coverDensity =
     shelfLayout.mode === 'shelf'
       ? shelfLayout.density

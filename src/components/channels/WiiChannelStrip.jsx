@@ -8,7 +8,7 @@ import {
   createWeeTransition,
 } from '../../design/weeMotion';
 import { SPACE_SHELL_ENTRANCE_TIERS } from '../../design/spaceShellMotion';
-import { isSlotHidden } from '../../utils/channelLayoutSystem';
+import { createWiiBoardTrackStyle, isSlotHidden } from '../../utils/channelLayoutSystem';
 import {
   buildOccupancyMap,
   getSlotSpan,
@@ -75,7 +75,6 @@ const WiiChannelStrip = ({
   );
   const channelsPerPage = safeColumns * safeRows;
   const totalChannelSlots = channelsPerPage * safeTotalPages;
-  const totalGridColumns = safeColumns * safeTotalPages;
   const pageStepPercent = 100 / safeTotalPages;
   const targetStripX = -safeCurrentPage * pageStepPercent;
   const isWrap =
@@ -107,14 +106,16 @@ const WiiChannelStrip = ({
   );
 
   // Columns are page×N tracks; rows are SHARED across every page in the continuous strip.
-  // Both axes must use fixed fr tracks (minmax(0,1fr)) — never `auto` max — so a tall/wide
-  // widget’s content cannot inflate tracks and distort 1×1 channels on this page or others.
+  // Tracks stay capped (`min(1fr, --wii-row-max)`) so 2–3 row × 3/4-col boards keep classic
+  // tile scale — never `auto` max, so widget content cannot inflate sibling channels.
   const boardStyle = useMemo(
-    () => ({
-      gridTemplateColumns: `repeat(${totalGridColumns}, minmax(0, 1fr))`,
-      gridTemplateRows: `repeat(${safeRows}, minmax(0, 1fr))`,
-    }),
-    [totalGridColumns, safeRows]
+    () =>
+      createWiiBoardTrackStyle({
+        columns: safeColumns,
+        rows: safeRows,
+        totalPages: safeTotalPages,
+      }),
+    [safeColumns, safeRows, safeTotalPages]
   );
 
   const handleStripAnimationComplete = useCallback(() => {

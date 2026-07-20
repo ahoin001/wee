@@ -115,38 +115,46 @@ export function resolveSteamShelfScrollAxis(_prefs, { colSpan = 2, rowSpan = 2 }
 
 /**
  * Cover layout for Steam game shelves.
- * 1-row (H2/H3/H4) → height-filling cinema strip; taller boards keep Dense grid.
+ * 1-row (H2/H3/H4) → width-capped cinema strip (never height-fills tall board rows).
+ * Taller / wider boards → Dense auto-fit grid; column count scales with colSpan so
+ * 3× / 4× shelves stay compact on 2–3 row boards instead of ballooning.
  * @param {{ colSpan?: number, rowSpan?: number }} span
  * @returns {{
  *   mode: 'shelf' | 'grid',
  *   horizontalRows: number,
  *   density: 'compact' | 'cozy' | 'roomy',
  *   capacityCap: number,
- *   tileMaxPx: number | null,
+ *   tileMaxPx: number,
  *   columns: number,
  * }}
  */
 export function resolveSteamShelfTileLayout({ colSpan = 2, rowSpan = 2 } = {}) {
+  const cols = Math.max(1, Number(colSpan) || 1);
   const rows = Math.max(1, Number(rowSpan) || 1);
+  const dense = HOME_STEAM_TILE_SIZES.S;
+
   if (rows <= 1) {
+    // Wider banners get a slightly larger cover; still capped so 2–3 board rows stay dense.
+    const tileMaxPx = cols >= 4 ? 76 : cols >= 3 ? 72 : 68;
     return {
       mode: 'shelf',
       horizontalRows: 1,
       density: 'cozy',
-      capacityCap: 16,
-      /** Height-driven covers — width comes from aspect-ratio, not a px cap. */
-      tileMaxPx: null,
+      capacityCap: 12 + cols * 2,
+      tileMaxPx,
       columns: 1,
     };
   }
-  const dense = HOME_STEAM_TILE_SIZES.S;
+
+  // Scale auto-fill columns with widget width so 3×2 / wide short shelves stay portrait-dense.
+  const columns = Math.min(14, Math.max(dense.columns, cols * 3 + (rows >= 3 ? 1 : 0)));
   return {
     mode: 'grid',
-    horizontalRows: dense.horizontalRows,
+    horizontalRows: rows <= 2 ? 2 : dense.horizontalRows,
     density: 'compact',
-    capacityCap: dense.capacity,
+    capacityCap: Math.min(40, dense.capacity + Math.max(0, cols - 2) * 6),
     tileMaxPx: dense.tileMaxPx,
-    columns: dense.columns,
+    columns,
   };
 }
 
