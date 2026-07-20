@@ -305,6 +305,9 @@ const selectPersistedChannels = (channels = {}) => {
     'secondaryChannelProfiles',
     'activeSecondaryChannelProfileId',
   ]);
+  // Tombstone nulls so main mergeSettingsPatch overwrites disk ghosts (omit alone keeps them).
+  next.secondaryChannelProfiles = null;
+  next.activeSecondaryChannelProfileId = null;
   next.recentLaunches = sanitizeRecentLaunches(migrated.recentLaunches);
   if (isPlainObject(migrated.dataBySpace)) {
     next.dataBySpace = {

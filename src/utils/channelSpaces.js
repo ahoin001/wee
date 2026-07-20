@@ -244,8 +244,8 @@ export function getChannelDataSlice(channels, spaceKey) {
 
 /**
  * One-shot migration from the removed Focus-profile layer.
- * The active legacy profile wins only when it contains a board; afterward the
- * profile keys are removed and `dataBySpace.workspaces` is the sole SSOT.
+ * When `dataBySpace.workspaces` already exists it is the sole SSOT (clears/edits must stick).
+ * Legacy `secondaryChannelProfiles` only seed Focus when workspaces is missing.
  */
 export function migrateLegacySecondaryChannelProfiles(channels) {
   if (!channels || typeof channels !== 'object') return channels;
@@ -263,11 +263,12 @@ export function migrateLegacySecondaryChannelProfiles(channels) {
     profiles?.[activeSecondaryChannelProfileId] ||
     (profiles ? Object.values(profiles)[0] : null);
   const legacyWs = channels.dataBySpace?.workspaces;
+  // Prefer workspaces whenever present — stale profiles on disk must not revive cleared slots.
   const source =
-    activeEntry?.channelSpace && typeof activeEntry.channelSpace === 'object'
-      ? activeEntry.channelSpace
-      : legacyWs && typeof legacyWs === 'object'
-        ? legacyWs
+    legacyWs && typeof legacyWs === 'object'
+      ? legacyWs
+      : activeEntry?.channelSpace && typeof activeEntry.channelSpace === 'object'
+        ? activeEntry.channelSpace
         : empty;
 
   return {
@@ -282,27 +283,60 @@ export function migrateLegacySecondaryChannelProfiles(channels) {
 
 /**
  * Copy legacy `channels.data` into both spaces (same starting point), or fill missing keys.
+ * When Focus `workspaces` is missing but legacy profiles exist, leave workspaces unset so
+ * {@link migrateLegacySecondaryChannelProfiles} can one-shot seed from profiles.
  */
 export function migrateLegacyChannelsToDataBySpace(channels) {
   if (!channels || typeof channels !== 'object') return channels;
   const empty = createDefaultChannelSpaceData();
-  const hasBoth = channels.dataBySpace?.home && channels.dataBySpace?.workspaces;
-  if (hasBoth) {
-    const { data: _drop, ...rest } = channels;
-    return migrateLegacySecondaryChannelProfiles(rest);
-  }
   const legacy = channels.data;
   const partialHome = channels.dataBySpace?.home;
   const partialWs = channels.dataBySpace?.workspaces;
+  const hasProfiles =
+    channels.secondaryChannelProfiles &&
+    typeof channels.secondaryChannelProfiles === 'object' &&
+    Object.keys(channels.secondaryChannelProfiles).length > 0;
+
+  if (partialHome && partialWs) {
+    const { data: _drop, ...rest } = channels;
+    return migrateLegacySecondaryChannelProfiles(rest);
+  }
+
+  // Profiles seed Focus only when workspaces is absent (do not synthesize empty first).
+  if (!partialWs && hasProfiles) {
+    return migrateLegacySecondaryChannelProfiles({
+      ...channels,
+      dataBySpace: {
+        ...(channels.dataBySpace && typeof channels.dataBySpace === 'object'
+          ? channels.dataBySpace
+          : {}),
+        home: partialHome
+          ? JSON.parse(JSON.stringify(partialHome))
+          : legacy
+            ? JSON.parse(JSON.stringify(legacy))
+            : empty,
+      },
+    });
+  }
+
   if (partialHome || partialWs) {
     return migrateLegacySecondaryChannelProfiles({
       ...channels,
       dataBySpace: {
-        home: partialHome ? JSON.parse(JSON.stringify(partialHome)) : legacy ? JSON.parse(JSON.stringify(legacy)) : empty,
-        workspaces: partialWs ? JSON.parse(JSON.stringify(partialWs)) : legacy ? JSON.parse(JSON.stringify(legacy)) : empty,
+        home: partialHome
+          ? JSON.parse(JSON.stringify(partialHome))
+          : legacy
+            ? JSON.parse(JSON.stringify(legacy))
+            : empty,
+        workspaces: partialWs
+          ? JSON.parse(JSON.stringify(partialWs))
+          : legacy
+            ? JSON.parse(JSON.stringify(legacy))
+            : empty,
       },
     });
   }
+
   return migrateLegacySecondaryChannelProfiles({
     ...channels,
     dataBySpace: {

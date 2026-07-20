@@ -78,6 +78,7 @@
     "test:ribbon-color": "node scripts/test/ribbon-color-invariants.mjs",
     "test:experience": "node scripts/test/experience-roadmap-invariants.mjs",
     "test:board-mutation": "npx vite-node scripts/test/board-mutation.cjs",
+    "test:focus-board-persist": "npx vite-node scripts/test/focus-board-persist.cjs",
     "test:smoke": "node scripts/smoke-check.cjs",
     "migrate:media": "node scripts/migrate-media-from-legacy-supabase.cjs",
     "seed:media": "node scripts/seed-media-library-from-folder.cjs",

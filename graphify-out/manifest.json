@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784571213.8657513,
-    "ast_hash": "f907a2158dde98b47deede975ff161b5",
+    "mtime": 1784573930.2444587,
+    "ast_hash": "750f5304d8982877650aaaf892c2d02e",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -955,8 +955,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useChannelModalMedia.js": {
-    "mtime": 1784572030.3426292,
-    "ast_hash": "6f08acbdcfbe8af525cb0f077c1f164a",
+    "mtime": 1784572141.629496,
+    "ast_hash": "be84f06f02aa3023b4050962d7f30d4a",
     "semantic_hash": ""
   },
   "src/hooks/useDialogExitPresence.js": {
@@ -1280,8 +1280,8 @@
     "semantic_hash": "337177928ec75e7f42c27682e6426e0b"
   },
   "src/utils/channelSpaces.js": {
-    "mtime": 1784565505.4630294,
-    "ast_hash": "a52cbecf439b409fb0a55c41308389ec",
+    "mtime": 1784573930.1223128,
+    "ast_hash": "d6351b26992c1047b9ec96b4d3887482",
     "semantic_hash": ""
   },
   "src/utils/colorHex.js": {
@@ -1475,8 +1475,8 @@
     "semantic_hash": ""
   },
   "src/utils/store/settingsPersistenceContract.js": {
-    "mtime": 1784559310.8179162,
-    "ast_hash": "0060a526cc811976692a2b59908e19c0",
+    "mtime": 1784573883.6521976,
+    "ast_hash": "be0d095f08afb883684277a57a013a55",
     "semantic_hash": ""
   },
   "src/utils/store/storeContracts.ts": {
