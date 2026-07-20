@@ -9,6 +9,10 @@ import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
+import {
+  filterRecentLaunches,
+  normalizeHomeRecentlyUsedWidget,
+} from '../../utils/homeRecentlyUsedWidgetPrefs';
 
 const EMPTY_RECENT_LAUNCHES = Object.freeze([]);
 
@@ -87,6 +91,11 @@ function RecentlyUsedSlot({
         : EMPTY_RECENT_LAUNCHES
     )
   );
+  const recentPrefsRaw = useConsolidatedAppStore((s) => s.ui?.homeRecentlyUsedWidget);
+  const recentPrefs = useMemo(
+    () => normalizeHomeRecentlyUsedWidget(recentPrefsRaw),
+    [recentPrefsRaw]
+  );
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
 
   const layout = useMemo(
@@ -101,10 +110,12 @@ function RecentlyUsedSlot({
   const isCompact = layout.isCompact || capacity === 0;
   const interactionsLocked = arrangeMode || punchMode;
 
-  const visible = useMemo(
-    () => recentLaunches.slice(0, isCompact ? 1 : capacity),
-    [recentLaunches, isCompact, capacity]
-  );
+  const visible = useMemo(() => {
+    const filtered = filterRecentLaunches(recentLaunches, recentPrefs.filter);
+    return filtered.slice(0, isCompact ? 1 : capacity);
+  }, [recentLaunches, recentPrefs.filter, isCompact, capacity]);
+
+  const showLabels = recentPrefs.showLabels;
 
   const handleLaunch = useCallback(
     async (entry) => {
@@ -210,7 +221,7 @@ function RecentlyUsedSlot({
                 entry={entry}
                 onLaunch={handleLaunch}
                 size={iconSize}
-                showLabel={false}
+                showLabel={showLabels}
               />
             ))}
           </div>
@@ -233,7 +244,7 @@ function RecentlyUsedSlot({
                 entry={entry}
                 onLaunch={handleLaunch}
                 size={iconSize}
-                showLabel={layout.showIconLabels}
+                showLabel={showLabels}
               />
             ))}
           </div>

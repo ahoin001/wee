@@ -1,3 +1,8 @@
+import { CHANNEL_PAGE_FLIP_MS } from '../../utils/channelLayoutSystem';
+
+/** Legacy CSS strip helper — duration must stay on CHANNEL_PAGE_FLIP_MS (same as Framer channelPageFlip). */
+const PAGE_FLIP_S = CHANNEL_PAGE_FLIP_MS / 1000;
+
 export const createSimplePageGridStyle = (columns, rows) => ({
   display: 'grid',
   gridTemplateColumns: `repeat(${columns}, minmax(180px, 1fr))`,
@@ -34,7 +39,9 @@ export const createWiiStripGridStyle = ({ columns, rows, totalPages, currentPage
     position: 'absolute',
     inset: 0,
     transform: `translateX(-${safeCurrentPage * pageStepPercent}%)`,
-    transition: isAnimating ? 'transform 0.48s cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
+    transition: isAnimating
+      ? `transform ${PAGE_FLIP_S}s cubic-bezier(0.22, 0.61, 0.36, 1)`
+      : 'none',
     willChange: 'transform',
   };
 };

@@ -13,6 +13,9 @@ import {
   normalizeAdminPanelConfig,
 } from './adminPanelCommands';
 import { normalizeNowPlayingExperience, toggleSpotifyTakeover } from './spotifyTakeover';
+/** BETA: Immersive Sound Mode — remove with `src/features/immersiveSoundMode/`. */
+import { normalizeImmersiveSoundMode } from '../features/immersiveSoundMode/immersiveSoundModePrefs.js';
+import { toggleImmersiveSoundMode } from '../features/immersiveSoundMode/immersiveSoundModeApi.js';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { clearAllCacheDomains, listCacheDomains, refreshCacheDomain } from './cacheRegistry';
 import { CHANNEL_SPACE_LABELS, MEDIA_HUB_ARCHIVED } from './channelSpaces';
@@ -202,6 +205,23 @@ export function buildCommandCatalog(state, handlers = {}) {
       icon: '🎵',
       keywords: ['spotify', 'immersive', 'music', 'takeover'],
       run: () => toggleSpotifyTakeover(useConsolidatedAppStore, 'manual'),
+    });
+  }
+
+  // —— BETA: Immersive Sound Mode Listening Stage (remove with feature folder) ——
+  if (
+    normalizeImmersiveSoundMode(state?.ui?.immersiveSoundMode).enabled &&
+    Boolean(state?.nowPlaying?.trackName || state?.nowPlaying?.isPlaying)
+  ) {
+    const stageOn = Boolean(state?.ui?.immersiveSoundModeActive);
+    commands.push({
+      id: 'action:immersive-sound-mode',
+      group: 'actions',
+      title: stageOn ? 'Exit Listening Stage' : 'Enter Listening Stage',
+      subtitle: 'Immersive Sound Mode (Beta)',
+      icon: '🎧',
+      keywords: ['immersive', 'listening', 'stage', 'sound mode', 'music', 'beta'],
+      run: () => toggleImmersiveSoundMode(useConsolidatedAppStore, 'manual'),
     });
   }
 

@@ -1,10 +1,10 @@
 /**
- * Home-grid Steam glance tile — recent or most-played from enrichment cache.
+ * Home-grid Steam glance tile — recent / most-played / favorites / tagged shelves.
  * Portrait library covers; denser scrollable shelf with shared display prefs.
  */
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, Star, Tags } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { SteamCoverTile, SteamGamesShelf } from './SteamGamesShelf';
@@ -21,14 +21,20 @@ import {
   normalizeHomeSteamWidget,
 } from '../../utils/homeSteamWidgetPrefs';
 import {
+  sortFavoriteSteamGames,
   sortMostPlayedSteamGames,
   sortRecentSteamGames,
+  sortTaggedSteamGames,
   steamEnrichmentIpcArgs,
 } from '../../utils/steamGamesGlance';
 
 /** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
 const EMPTY_ENRICHED_GAMES = Object.freeze([]);
 const EMPTY_HIDDEN_GAME_IDS = Object.freeze([]);
+const EMPTY_FAVORITES = Object.freeze([]);
+const EMPTY_TAGS_MAP = Object.freeze({});
+
+const CLIENT_META_TTL_MS = 5 * 60 * 1000;
 
 const VARIANT_META = {
   recent: {
@@ -37,7 +43,9 @@ const VARIANT_META = {
     ariaLabel: 'Steam Recently Played',
     launchSource: 'steamRecent',
     emptyNoData: 'No recent Steam play yet',
-    sort: sortRecentSteamGames,
+    needsClientMeta: false,
+    needsApi: true,
+    icon: Gamepad2,
     playtimeField: 'playtimeRecent',
   },
   mostPlayed: {
@@ -46,7 +54,31 @@ const VARIANT_META = {
     ariaLabel: 'Steam Most Played',
     launchSource: 'steamMostPlayed',
     emptyNoData: 'No playtime data yet',
-    sort: sortMostPlayedSteamGames,
+    needsClientMeta: false,
+    needsApi: true,
+    icon: Gamepad2,
+    playtimeField: 'playtimeForever',
+  },
+  favorites: {
+    title: 'Favorites',
+    kindId: 'steamFavorites',
+    ariaLabel: 'Steam Favorites',
+    launchSource: 'steamFavorites',
+    emptyNoData: 'Star favorites in Steam, then reopen this shelf',
+    needsClientMeta: true,
+    needsApi: false,
+    icon: Star,
+    playtimeField: 'playtimeForever',
+  },
+  tagged: {
+    title: 'Tags',
+    kindId: 'steamTags',
+    ariaLabel: 'Steam Tagged Games',
+    launchSource: 'steamTags',
+    emptyNoData: 'Pick a Steam library tag in Looks',
+    needsClientMeta: true,
+    needsApi: false,
+    icon: Tags,
     playtimeField: 'playtimeForever',
   },
 };
@@ -70,28 +102,36 @@ function SteamGamesGlanceSlot({
     lastSyncedAt,
     homeSteamWidgetRaw,
   } = useConsolidatedAppStore(
-      useShallow((state) => ({
-        // Never allocate || [] / normalize() inside useShallow — new refs → React #185.
-        enrichedGames: state.gameHub?.library?.enrichedGames,
-        hiddenGameIds: Array.isArray(state.gameHub?.ui?.hiddenGameIds)
-          ? state.gameHub.ui.hiddenGameIds
-          : EMPTY_HIDDEN_GAME_IDS,
-        steamId: state.gameHub?.profile?.steamId || '',
-        apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
-        apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
-        lastSyncedAt: state.gameHub?.library?.lastSyncedAt || 0,
-        homeSteamWidgetRaw: state.ui?.homeSteamWidget,
-      }))
-    );
+    useShallow((state) => ({
+      // Never allocate || [] / normalize() inside useShallow — new refs → React #185.
+      enrichedGames: state.gameHub?.library?.enrichedGames,
+      hiddenGameIds: Array.isArray(state.gameHub?.ui?.hiddenGameIds)
+        ? state.gameHub.ui.hiddenGameIds
+        : EMPTY_HIDDEN_GAME_IDS,
+      steamId: state.gameHub?.profile?.steamId || '',
+      apiKeyConfigured: Boolean(String(state.gameHub?.profile?.steamWebApiKey || '').trim()),
+      apiEnabled: state.gameHub?.profile?.useSteamWebApi !== false,
+      lastSyncedAt: state.gameHub?.library?.lastSyncedAt || 0,
+      homeSteamWidgetRaw: state.ui?.homeSteamWidget,
+    }))
+  );
   const setGameHubState = useConsolidatedAppStore((s) => s.actions.setGameHubState);
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
   const softRefreshTried = useRef(false);
+  const clientMetaSteamIdRef = useRef('');
+  const [clientMeta, setClientMeta] = useState({
+    favoritesAppIds: EMPTY_FAVORITES,
+    appIdToTags: EMPTY_TAGS_MAP,
+    fetchedAt: 0,
+    error: null,
+  });
 
   const steamPrefs = useMemo(
     () => normalizeHomeSteamWidget(homeSteamWidgetRaw),
     [homeSteamWidgetRaw]
   );
   const enrichedList = Array.isArray(enrichedGames) ? enrichedGames : EMPTY_ENRICHED_GAMES;
+  const selectedTag = String(slot?.widget?.tag || '').trim();
 
   const sizePreset = useMemo(
     () =>
@@ -117,15 +157,79 @@ function SteamGamesGlanceSlot({
   // Covers are always Dense; density follows widget footprint for chrome only.
   const coverDensity = layout.density === 'roomy' ? 'cozy' : 'compact';
 
-  const games = useMemo(
-    () => meta.sort(enrichedList, hiddenGameIds).slice(0, capacity),
-    [enrichedList, hiddenGameIds, capacity, meta]
-  );
+  useEffect(() => {
+    if (!meta.needsClientMeta) return;
+    if (!steamId || !window.api?.steam?.getClientLibraryMetadata) return;
+    const age = Date.now() - Number(clientMeta.fetchedAt || 0);
+    const sameUser = clientMetaSteamIdRef.current === steamId;
+    if (sameUser && clientMeta.fetchedAt && age < CLIENT_META_TTL_MS) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await window.api.steam.getClientLibraryMetadata({ steamId });
+        if (cancelled) return;
+        clientMetaSteamIdRef.current = steamId;
+        setClientMeta({
+          favoritesAppIds: Array.isArray(res?.favoritesAppIds) ? res.favoritesAppIds : EMPTY_FAVORITES,
+          appIdToTags:
+            res?.appIdToTags && typeof res.appIdToTags === 'object'
+              ? res.appIdToTags
+              : EMPTY_TAGS_MAP,
+          fetchedAt: Date.now(),
+          error: res?.ok === false ? res?.error || 'client-meta-failed' : null,
+        });
+      } catch (error) {
+        if (cancelled) return;
+        clientMetaSteamIdRef.current = steamId;
+        setClientMeta((prev) => ({
+          ...prev,
+          fetchedAt: Date.now(),
+          error: error?.message || 'client-meta-failed',
+        }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meta.needsClientMeta, steamId, clientMeta.fetchedAt]);
+
+  const games = useMemo(() => {
+    if (variant === 'favorites') {
+      return sortFavoriteSteamGames(
+        enrichedList,
+        clientMeta.favoritesAppIds,
+        hiddenGameIds
+      ).slice(0, capacity);
+    }
+    if (variant === 'tagged') {
+      return sortTaggedSteamGames(
+        enrichedList,
+        selectedTag,
+        clientMeta.appIdToTags,
+        hiddenGameIds
+      ).slice(0, capacity);
+    }
+    if (variant === 'mostPlayed') {
+      return sortMostPlayedSteamGames(enrichedList, hiddenGameIds).slice(0, capacity);
+    }
+    return sortRecentSteamGames(enrichedList, hiddenGameIds).slice(0, capacity);
+  }, [
+    variant,
+    enrichedList,
+    hiddenGameIds,
+    capacity,
+    clientMeta.favoritesAppIds,
+    clientMeta.appIdToTags,
+    selectedTag,
+  ]);
 
   useEffect(() => {
     if (softRefreshTried.current) return;
     if (!steamId || !apiEnabled) return;
     if (games.length > 0) return;
+    if (meta.needsClientMeta && !meta.needsApi) return;
     if (!window.api?.steam?.getEnrichedGames) return;
     softRefreshTried.current = true;
     let cancelled = false;
@@ -153,7 +257,7 @@ function SteamGamesGlanceSlot({
     return () => {
       cancelled = true;
     };
-  }, [steamId, apiEnabled, games.length, setGameHubState]);
+  }, [steamId, apiEnabled, games.length, setGameHubState, meta.needsClientMeta, meta.needsApi]);
 
   const handleLaunch = useCallback(
     async (game) => {
@@ -207,15 +311,28 @@ function SteamGamesGlanceSlot({
     ]
   );
 
-  const emptyHint = !steamId
-    ? 'Set Steam ID in Now Playing, Steam & Widgets'
-    : !apiEnabled
-      ? 'Enable Steam Web API in Now Playing, Steam & Widgets'
-      : !apiKeyConfigured && !lastSyncedAt
-        ? 'Add Steam API key in Now Playing, Steam & Widgets'
-        : lastSyncedAt
-          ? meta.emptyNoData
-          : 'Sync Steam from Now Playing, Steam & Widgets';
+  const headingTitle =
+    variant === 'tagged' && selectedTag ? selectedTag : meta.title;
+  const HeadingIcon = meta.icon || Gamepad2;
+
+  let emptyHint = meta.emptyNoData;
+  if (!steamId) {
+    emptyHint = 'Set Steam ID in Now Playing, Steam & Widgets';
+  } else if (meta.needsClientMeta && clientMeta.error === 'steam-not-found') {
+    emptyHint = 'Steam install not found on this PC';
+  } else if (meta.needsClientMeta && clientMeta.error === 'sharedconfig-missing') {
+    emptyHint = 'Open Steam once so favorites/tags can sync';
+  } else if (variant === 'tagged' && !selectedTag) {
+    emptyHint = 'Pick a Steam library tag in Looks';
+  } else if (variant === 'favorites' && clientMeta.fetchedAt && !clientMeta.favoritesAppIds.length) {
+    emptyHint = meta.emptyNoData;
+  } else if (meta.needsApi && !apiEnabled) {
+    emptyHint = 'Enable Steam Web API in Now Playing, Steam & Widgets';
+  } else if (meta.needsApi && !apiKeyConfigured && !lastSyncedAt) {
+    emptyHint = 'Add Steam API key in Now Playing, Steam & Widgets';
+  } else if (meta.needsApi && !lastSyncedAt) {
+    emptyHint = 'Sync Steam from Now Playing, Steam & Widgets';
+  }
 
   return (
     <HomeWidgetShell
@@ -241,7 +358,7 @@ function SteamGamesGlanceSlot({
           }}
           disabled={interactionsLocked && !arrangeMode}
         >
-          <Gamepad2
+          <HeadingIcon
             size={layout.iconPx + 4}
             strokeWidth={2.25}
             className="text-[hsl(var(--primary))]"
@@ -255,8 +372,8 @@ function SteamGamesGlanceSlot({
         <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
           {layout.showHeader ? (
             <SteamWidgetHeading
-              title={meta.title}
-              icon={Gamepad2}
+              title={headingTitle}
+              icon={HeadingIcon}
               compact={rowSpan <= 1}
             />
           ) : null}
@@ -287,7 +404,7 @@ function SteamGamesGlanceSlot({
 }
 
 SteamGamesGlanceSlot.propTypes = {
-  variant: PropTypes.oneOf(['recent', 'mostPlayed']),
+  variant: PropTypes.oneOf(['recent', 'mostPlayed', 'favorites', 'tagged']),
   slot: PropTypes.object,
   channelId: PropTypes.string,
   arrangeMode: PropTypes.bool,

@@ -2,7 +2,7 @@
  * Edit Home — per-kind widget settings for the selected tile.
  * Extend the switch when a new placeable kind needs arrange-tray controls.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -36,15 +36,39 @@ import {
   NOW_PLAYING_ART_LAYOUTS,
 } from '../../utils/homeNowPlayingWidgetPrefs';
 import {
+  DEFAULT_HOME_RECENTLY_USED_WIDGET,
+  HOME_RECENT_LAUNCH_FILTERS,
+  normalizeHomeRecentlyUsedWidget,
+} from '../../utils/homeRecentlyUsedWidgetPrefs';
+import {
   defaultFrozenSpotifyLookName,
   saveFrozenSpotifyLookPreset,
 } from '../../utils/presets/saveFrozenSpotifyLookPreset';
 import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import { normalizeNowPlayingExperience } from '../../utils/spotifyTakeover';
 import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings';
-import { useTimeColor } from '../../utils/useConsolidatedAppHooks';
+import { useFloatingWidgetsState, useTimeColor } from '../../utils/useConsolidatedAppHooks';
+import {
+  applyAdminPanelPowerActions,
+  normalizeAdminPanelConfig,
+} from '../../utils/adminPanelCommands';
+import { listSteamClientTags } from '../../utils/steamGamesGlance';
+import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
+import { AdminPanel } from '../admin';
 
-const STEAM_KIND_IDS = new Set(['steamRecent', 'steamMostPlayed', 'steamFriends']);
+const STEAM_KIND_IDS = new Set([
+  'steamRecent',
+  'steamMostPlayed',
+  'steamFavorites',
+  'steamTags',
+  'steamFriends',
+]);
+const STEAM_SHELF_KIND_IDS = new Set([
+  'steamRecent',
+  'steamMostPlayed',
+  'steamFavorites',
+  'steamTags',
+]);
 
 function WeatherWidgetSettings() {
   const tempUnitRaw = useConsolidatedAppStore((s) => s.ui?.homeWeatherTempUnit);
@@ -86,14 +110,17 @@ function WeatherWidgetSettings() {
   );
 }
 
-function SteamWidgetSettings({ kindId }) {
+function SteamWidgetSettings({ kindId, slot, onPatchWidget }) {
   const homeSteamWidgetRaw = useConsolidatedAppStore((s) => s.ui?.homeSteamWidget);
+  const steamId = useConsolidatedAppStore((s) => s.gameHub?.profile?.steamId || '');
   const prefs = useMemo(
     () => normalizeHomeSteamWidget(homeSteamWidgetRaw),
     [homeSteamWidgetRaw]
   );
   const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
-  const showPlaytimeToggle = kindId === 'steamRecent' || kindId === 'steamMostPlayed';
+  const showShelfToggles = STEAM_SHELF_KIND_IDS.has(kindId);
+  const [tagOptions, setTagOptions] = useState([]);
+  const selectedTag = String(slot?.widget?.tag || '').trim();
 
   const patchPrefs = useCallback(
     (partial) => {
@@ -107,8 +134,72 @@ function SteamWidgetSettings({ kindId }) {
     [setUIState]
   );
 
+  useEffect(() => {
+    if (kindId !== 'steamTags' || !steamId || !window.api?.steam?.getClientLibraryMetadata) {
+      setTagOptions([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await window.api.steam.getClientLibraryMetadata({ steamId });
+        if (cancelled) return;
+        const tags = listSteamClientTags(res?.appIdToTags);
+        setTagOptions(tags);
+        if (!selectedTag && tags[0]) {
+          onPatchWidget?.({ tag: tags[0] });
+        }
+      } catch {
+        if (!cancelled) setTagOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [kindId, steamId, selectedTag, onPatchWidget]);
+
+  const tagControlOptions = useMemo(() => {
+    const opts = tagOptions.map((tag) => ({
+      value: tag,
+      label: tag.length > 12 ? `${tag.slice(0, 10)}…` : tag,
+      title: tag,
+    }));
+    if (selectedTag && !tagOptions.includes(selectedTag)) {
+      opts.unshift({
+        value: selectedTag,
+        label: selectedTag.length > 12 ? `${selectedTag.slice(0, 10)}…` : selectedTag,
+        title: selectedTag,
+      });
+    }
+    return opts;
+  }, [tagOptions, selectedTag]);
+
   return (
     <div className="flex w-full flex-col gap-2">
+      {kindId === 'steamTags' ? (
+        <div className="flex w-full flex-col gap-1.5">
+          <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+            Library tag
+          </span>
+          {tagControlOptions.length > 0 ? (
+            <WeeSegmentedControl
+              size="sm"
+              ariaLabel="Steam library tag"
+              layoutId="homeArrangeSteamTag"
+              value={selectedTag || tagControlOptions[0].value}
+              onChange={(tag) => onPatchWidget?.({ tag: String(tag || '').trim() })}
+              options={tagControlOptions.slice(0, 8)}
+            />
+          ) : (
+            <p className="m-0 text-[10px] font-bold text-[hsl(var(--text-tertiary))]">
+              {steamId
+                ? 'No Steam client tags found yet. Tag games in Steam, then reopen Looks.'
+                : 'Set your Steam ID in Now Playing, Steam & Widgets first.'}
+            </p>
+          )}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[auto_1fr] sm:gap-x-3">
         <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))] sm:text-right">
           Gutters
@@ -127,7 +218,7 @@ function SteamWidgetSettings({ kindId }) {
         />
       </div>
 
-      {showPlaytimeToggle ? (
+      {showShelfToggles ? (
         <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start sm:pl-[4.5rem]">
           <WeeToggle
             checked={prefs.showPlaytime}
@@ -166,7 +257,129 @@ function SteamWidgetSettings({ kindId }) {
 
 SteamWidgetSettings.propTypes = {
   kindId: PropTypes.string,
+  slot: PropTypes.object,
+  onPatchWidget: PropTypes.func,
 };
+
+function QuickAccessWidgetSettings() {
+  const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
+  const [panelOpen, setPanelOpen] = useState(false);
+  const adminConfig = useMemo(
+    () => normalizeAdminPanelConfig(floatingWidgets?.adminPanel?.config),
+    [floatingWidgets?.adminPanel?.config]
+  );
+  const actionCount = adminConfig.powerActions.length;
+
+  const handleSave = useCallback(
+    (powerActionsOrConfig) => {
+      setFloatingWidgetsState({
+        adminPanel: applyAdminPanelPowerActions(
+          floatingWidgets?.adminPanel || {},
+          powerActionsOrConfig
+        ),
+      });
+      setPanelOpen(false);
+    },
+    [floatingWidgets?.adminPanel, setFloatingWidgetsState]
+  );
+
+  return (
+    <div className="flex w-full flex-col items-center gap-2 sm:items-start">
+      <p className="m-0 text-[10px] font-bold text-[hsl(var(--text-secondary))]">
+        {actionCount} action{actionCount === 1 ? '' : 's'} pinned
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+        <WeeButton size="sm" variant="primary" onClick={() => setPanelOpen(true)}>
+          Edit actions
+        </WeeButton>
+        <WeeButton
+          size="sm"
+          variant="secondary"
+          onClick={() => openSettingsToIntegrationsSubtab('widgets')}
+        >
+          Open Widgets settings
+        </WeeButton>
+      </div>
+      <AdminPanel
+        isOpen={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        onSave={handleSave}
+        config={adminConfig}
+      />
+    </div>
+  );
+}
+
+function RecentlyUsedWidgetSettings() {
+  const prefsRaw = useConsolidatedAppStore((s) => s.ui?.homeRecentlyUsedWidget);
+  const prefs = useMemo(() => normalizeHomeRecentlyUsedWidget(prefsRaw), [prefsRaw]);
+  const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
+  const recentCount = useConsolidatedAppStore((s) =>
+    Array.isArray(s.channels?.recentLaunches) ? s.channels.recentLaunches.length : 0
+  );
+
+  const patchPrefs = useCallback(
+    (partial) => {
+      const prev = normalizeHomeRecentlyUsedWidget(
+        useConsolidatedAppStore.getState().ui?.homeRecentlyUsedWidget
+      );
+      setUIState({
+        homeRecentlyUsedWidget: normalizeHomeRecentlyUsedWidget({ ...prev, ...partial }),
+      });
+    },
+    [setUIState]
+  );
+
+  const clearHistory = useCallback(() => {
+    useConsolidatedAppStore.getState().actions.setChannelState({ recentLaunches: [] });
+  }, []);
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[auto_1fr] sm:gap-x-3">
+        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))] sm:text-right">
+          Show
+        </span>
+        <WeeSegmentedControl
+          size="sm"
+          ariaLabel="Recently Used launch filter"
+          layoutId="homeArrangeRecentFilter"
+          value={prefs.filter}
+          onChange={(filter) => patchPrefs({ filter })}
+          options={Object.values(HOME_RECENT_LAUNCH_FILTERS).map((item) => ({
+            value: item.id,
+            label: item.label,
+            title: `Show ${item.label.toLowerCase()} launches`,
+          }))}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start sm:pl-[4.5rem]">
+        <WeeToggle
+          checked={prefs.showLabels}
+          onChange={(showLabels) => patchPrefs({ showLabels })}
+          label="Labels"
+          title="Show app names under icons when space allows"
+        />
+        <button
+          type="button"
+          className="text-[9px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))] underline-offset-2 hover:text-[hsl(var(--text-secondary))] hover:underline"
+          onClick={() => patchPrefs({ ...DEFAULT_HOME_RECENTLY_USED_WIDGET })}
+        >
+          Reset
+        </button>
+        <button
+          type="button"
+          className="text-[9px] font-black uppercase tracking-[0.12em] text-[hsl(var(--state-error))] underline-offset-2 hover:underline disabled:opacity-40"
+          onClick={clearHistory}
+          disabled={recentCount === 0}
+          title="Clear Recently Used history"
+        >
+          Clear ({recentCount})
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function NowPlayingWidgetSettings() {
   const {
@@ -604,7 +817,7 @@ function ClockWidgetSettings() {
   );
 }
 
-function HomeWidgetSettingsPanel({ kindId, nested = false }) {
+function HomeWidgetSettingsPanel({ kindId, slot = null, onPatchWidget, nested = false }) {
   let title = null;
   let body = null;
 
@@ -613,13 +826,21 @@ function HomeWidgetSettingsPanel({ kindId, nested = false }) {
     body = <WeatherWidgetSettings />;
   } else if (STEAM_KIND_IDS.has(kindId)) {
     title = 'Steam';
-    body = <SteamWidgetSettings kindId={kindId} />;
+    body = (
+      <SteamWidgetSettings kindId={kindId} slot={slot} onPatchWidget={onPatchWidget} />
+    );
   } else if (kindId === 'nowPlaying') {
     title = 'Now Playing';
     body = <NowPlayingWidgetSettings />;
   } else if (kindId === 'clock') {
     title = 'Clock';
     body = <ClockWidgetSettings />;
+  } else if (kindId === 'adminQuickAccess') {
+    title = 'Quick Access';
+    body = <QuickAccessWidgetSettings />;
+  } else if (kindId === 'recentlyUsed') {
+    title = 'Recently Used';
+    body = <RecentlyUsedWidgetSettings />;
   }
 
   if (!body) return null;
@@ -646,6 +867,8 @@ function HomeWidgetSettingsPanel({ kindId, nested = false }) {
 
 HomeWidgetSettingsPanel.propTypes = {
   kindId: PropTypes.string,
+  slot: PropTypes.object,
+  onPatchWidget: PropTypes.func,
   nested: PropTypes.bool,
 };
 
@@ -655,6 +878,8 @@ export function homeSlotKindHasWidgetSettings(kindId) {
     kindId === 'weather' ||
     kindId === 'nowPlaying' ||
     kindId === 'clock' ||
+    kindId === 'adminQuickAccess' ||
+    kindId === 'recentlyUsed' ||
     STEAM_KIND_IDS.has(kindId)
   );
 }

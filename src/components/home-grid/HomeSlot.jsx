@@ -14,7 +14,11 @@ import ClockSlot from './ClockSlot';
 import WeatherSlot from './WeatherSlot';
 import SteamRecentSlot from './SteamRecentSlot';
 import SteamMostPlayedSlot from './SteamMostPlayedSlot';
+import SteamFavoritesSlot from './SteamFavoritesSlot';
+import SteamTagsSlot from './SteamTagsSlot';
 import SteamFriendsSlot from './SteamFriendsSlot';
+import EpicLibrarySlot from './EpicLibrarySlot';
+import SystemPadSlot from './SystemPadSlot';
 
 /** Non-channel widget renderers, keyed by registry `render` ids. */
 const WIDGET_SLOT_COMPONENTS = {
@@ -25,7 +29,11 @@ const WIDGET_SLOT_COMPONENTS = {
   WeatherSlot,
   SteamRecentSlot,
   SteamMostPlayedSlot,
+  SteamFavoritesSlot,
+  SteamTagsSlot,
   SteamFriendsSlot,
+  EpicLibrarySlot,
+  SystemPadSlot,
 };
 
 /**

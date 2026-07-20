@@ -1,5 +1,9 @@
 import { useReducedMotion } from 'framer-motion';
-import { SPACE_SHELL_ENTRANCE_TIERS } from './spaceShellMotion';
+import {
+  SPACE_SHELL_ENTRANCE_TIERS,
+  SPACE_SHELL_TRANSITION_MS_DEFAULT,
+  SPACE_SHELL_TRANSITION_MS_RAPID,
+} from './spaceShellMotion';
 import { CHANNEL_PAGE_FLIP_MS } from '../utils/channelLayoutSystem';
 
 /**
@@ -335,6 +339,8 @@ export function createWeeSideNavShellMotion(
     reducedMotion = false,
     tuckPx = 40,
     peekPx = 14,
+    /** When false (unfocused / low-power), idle stays tucked without infinite peek RAF. */
+    idlePeek = true,
   } = {}
 ) {
   const dir = side === 'left' ? -1 : 1;
@@ -348,10 +354,10 @@ export function createWeeSideNavShellMotion(
     };
   }
 
-  if (reducedMotion) {
+  if (reducedMotion || !idlePeek) {
     return {
-      animate: { opacity: 0.88, scale: 1, x: tuck, y: '-50%' },
-      transition: { duration: 0.12 },
+      animate: { opacity: reducedMotion ? 0.88 : 1, scale: 1, x: tuck, y: '-50%' },
+      transition: reducedMotion ? { duration: 0.12 } : createWeeTransition('railNudge'),
     };
   }
 
@@ -670,6 +676,9 @@ export function createHubEntranceOrchestratorVariants(tier, reducedMotion) {
       },
     };
   }
+  /** Budget staggered assemble against the space-shell slide clock (no parallel domain). */
+  const shellS = SPACE_SHELL_TRANSITION_MS_DEFAULT / 1000;
+  const rapidS = SPACE_SHELL_TRANSITION_MS_RAPID / 1000;
   const isFull = isFirstVisitTier(tier);
   if (isFull) {
     return {
@@ -677,8 +686,8 @@ export function createHubEntranceOrchestratorVariants(tier, reducedMotion) {
       show: {
         opacity: 1,
         transition: {
-          staggerChildren: 0.19,
-          delayChildren: 0.2,
+          staggerChildren: shellS * 0.35,
+          delayChildren: shellS * 0.35,
         },
       },
     };
@@ -689,8 +698,8 @@ export function createHubEntranceOrchestratorVariants(tier, reducedMotion) {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.11,
-        delayChildren: 0.1,
+        staggerChildren: rapidS * 0.35,
+        delayChildren: rapidS * 0.2,
       },
     },
   };

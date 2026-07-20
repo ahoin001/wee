@@ -98,6 +98,7 @@ function ChannelModal({
     soundLibrary,
     loading: soundLibraryLoading,
     addSound,
+    removeSound,
     selectSoundFile,
     getSoundsByCategory,
     loadSoundLibrary
@@ -115,10 +116,13 @@ function ChannelModal({
     hoverSoundEnabled,
     setHoverSoundEnabled,
     hoverSoundPreviewPlaying,
+    previewingSoundId,
     selectedHoverSoundId,
     uploadingHoverSound,
+    deletingHoverSoundId,
     handleHoverSoundSelect,
     handleHoverSoundUpload,
+    handleHoverSoundDelete,
     handleTestHoverSound,
     handleTestLibraryHoverSound,
     handleHoverSoundVolumeChange,
@@ -128,6 +132,7 @@ function ChannelModal({
     currentHoverSound,
     isOpen,
     addSound,
+    removeSound,
     selectSoundFile,
     getSoundsByCategory,
     loadSoundLibrary,
@@ -456,8 +461,10 @@ function ChannelModal({
               hoverSoundName={hoverSoundName}
               hoverSoundVolume={hoverSoundVolume}
               hoverSoundPreviewPlaying={hoverSoundPreviewPlaying}
+              previewingSoundId={previewingSoundId}
               selectedHoverSoundId={selectedHoverSoundId}
               uploadingHoverSound={uploadingHoverSound}
+              deletingHoverSoundId={deletingHoverSoundId}
               soundLibraryLoading={soundLibraryLoading}
               getSoundsByCategory={getSoundsByCategory}
               clearHoverSoundSelection={clearHoverSoundSelection}
@@ -466,6 +473,7 @@ function ChannelModal({
               handleHoverSoundVolumeChange={handleHoverSoundVolumeChange}
               handleHoverSoundSelect={handleHoverSoundSelect}
               handleHoverSoundUpload={handleHoverSoundUpload}
+              handleHoverSoundDelete={handleHoverSoundDelete}
             />
           )}
         </div>

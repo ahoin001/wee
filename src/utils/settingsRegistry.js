@@ -185,6 +185,23 @@ export const SETTINGS_TAB_META = Object.freeze([
     categoryId: 'system',
     keywords: ['version', 'update', 'release', 'changelog'],
   },
+  /**
+   * BETA experiments tab — currently hosts Immersive Sound Mode.
+   * Removable with `src/features/immersiveSoundMode/` + BetaSettingsTab (see feature README).
+   */
+  {
+    id: 'beta',
+    label: 'Beta',
+    icon: '🧪',
+    color: 'hsl(var(--settings-tab-beta))',
+    description: 'Experimental features',
+    categoryId: 'system',
+    keywords: [
+      'beta', 'experimental', 'immersive sound', 'listening stage',
+      'album stage', 'music stage', 'idle listening',
+    ],
+    beta: true,
+  },
 ]);
 
 /** Legacy route aliases — kept for deep links and persisted `ui.settingsActiveTab`. */

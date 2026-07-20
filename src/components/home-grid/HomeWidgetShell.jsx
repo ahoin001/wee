@@ -1,7 +1,8 @@
 import React, { forwardRef, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { WeeGlassPill } from '../../ui/wee';
+import { WeeGlassPill, WeeLayoutActiveDisc } from '../../ui/wee';
 import {
   DEFAULT_HOME_WIDGET_SURFACE,
   normalizeHomeWidgetSurface,
@@ -38,6 +39,14 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
   const mode = normalizeHomeWidgetSurface(surface);
   const steamBasic = brandTone === 'steam' && mode === 'basic';
   const customTextColor = normalizeHomeWidgetTextColor(textColor);
+  const osReducedMotion = useReducedMotion();
+  const selectionDisc = selected ? (
+    <WeeLayoutActiveDisc
+      layoutId="homeArrangeSelection"
+      className="!rounded-[1.35rem] !bg-[hsl(var(--primary)/0.16)] !shadow-[var(--shadow-selection-glow)]"
+      reducedMotion={Boolean(osReducedMotion)}
+    />
+  ) : null;
   const { glassRaw, lowPowerMode } = useConsolidatedAppStore(
     useShallow((state) => ({
       glassRaw: state.ui?.homeWidgetGlass,
@@ -92,6 +101,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
           .join(' ')}
         {...rest}
       >
+        {selectionDisc}
         {content}
       </div>
     );
@@ -119,6 +129,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
           .join(' ')}
         {...rest}
       >
+        {selectionDisc}
         <span className="home-widget-liquid-glass__shine pointer-events-none absolute inset-0" aria-hidden />
         <span className="home-widget-liquid-glass__edge pointer-events-none absolute inset-0" aria-hidden />
         {content}
@@ -149,6 +160,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
         .join(' ')}
       {...rest}
     >
+      {selectionDisc}
       {content}
     </WeeGlassPill>
   );

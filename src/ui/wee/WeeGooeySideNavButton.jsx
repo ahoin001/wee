@@ -9,6 +9,7 @@ import {
 } from '../../design/weeMotion';
 import { PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import useAnimationActivity from '../../hooks/useAnimationActivity';
 import WeeGlassPill from './WeeGlassPill';
 import WeePillFloorShadow from './WeePillFloorShadow';
 import { WEE_GOOEY_ICON_PRESS } from './WeeGooeyIconButton';
@@ -49,11 +50,16 @@ const WeeGooeySideNavButton = forwardRef(function WeeGooeySideNavButton(
 ) {
   const osReduced = useReducedMotion();
   const { gooey, ribbonTap } = useMotionFeedback();
+  const { shouldAnimate, isLowPowerMode } = useAnimationActivity({
+    activeFps: 30,
+    lowPowerFps: 12,
+  });
   const { pillSurfacePress, pillOpen, pillClose } = useWeeMotion();
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
 
   const reducedMotion = Boolean(osReduced || !gooey?.enabled);
+  const idlePeek = shouldAnimate && !isLowPowerMode;
   const revealed = (hovered || focused) && !disabled;
   const isClassic = variant === 'classic';
   const peekX = side === 'left' ? -WEE_SIDE_NAV_PEEK_PX : WEE_SIDE_NAV_PEEK_PX;
@@ -91,10 +97,11 @@ const WeeGooeySideNavButton = forwardRef(function WeeGooeySideNavButton(
       createWeeSideNavShellMotion(side, {
         revealed,
         reducedMotion,
+        idlePeek,
         tuckPx: PLAYFUL_AMPLITUDE.sideNavIdleTuckPx,
         peekPx: PLAYFUL_AMPLITUDE.sideNavIdlePeekPx,
       }),
-    [side, revealed, reducedMotion]
+    [side, revealed, reducedMotion, idlePeek]
   );
 
   const presenceInitial = useMemo(() => {

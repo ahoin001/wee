@@ -51,6 +51,7 @@ import {
 } from './homeSteamWidgetPrefs';
 import { DEFAULT_HOME_CLOCK_WIDGET } from './homeClockWidgetPrefs';
 import { DEFAULT_HOME_NOW_PLAYING_WIDGET } from './homeNowPlayingWidgetPrefs';
+import { DEFAULT_HOME_RECENTLY_USED_WIDGET } from './homeRecentlyUsedWidgetPrefs';
 import { recordRecentLaunchEntry } from './recentLaunches';
 import {
   mergeChannelsSlice,
@@ -207,6 +208,7 @@ useConsolidatedAppStore = create(
           homeSteamWidget: { ...DEFAULT_HOME_STEAM_WIDGET },
           homeClockWidget: { ...DEFAULT_HOME_CLOCK_WIDGET },
           homeNowPlayingWidget: { ...DEFAULT_HOME_NOW_PLAYING_WIDGET },
+          homeRecentlyUsedWidget: { ...DEFAULT_HOME_RECENTLY_USED_WIDGET },
           // Modal states
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
@@ -244,6 +246,30 @@ useConsolidatedAppStore = create(
           homeIdleStage: 'active',
           /** Now Playing takeover visibility: false | 'manual' | 'auto'. Transient — not persisted. */
           spotifyTakeoverActive: false,
+          /**
+           * BETA: Immersive Sound Mode prefs (Listening Stage). Persisted.
+           * Removable with `src/features/immersiveSoundMode/` — see feature README.
+           */
+          immersiveSoundMode: {
+            enabled: false,
+            intensity: 'focus',
+            autoIdle: true,
+            coverBackdrop: true,
+            boardDim: 0.78,
+          },
+          /** BETA: Listening Stage session — false | 'manual' | 'auto'. Transient — not persisted. */
+          immersiveSoundModeActive: false,
+          /**
+           * BETA: Scene FX (parallax / atmosphere / wake / music bloom). Persisted.
+           * Removable with `src/features/sceneFxBeta/` — see feature README.
+           */
+          sceneFxBeta: {
+            enabled: false,
+            parallax: { enabled: true, amount: 0.4 },
+            atmosphere: { enabled: true, vignette: 0.38, shafts: 0.28 },
+            cursorWake: { enabled: true, intensity: 0.55 },
+            musicBloom: { enabled: false, intensity: 0.32 },
+          },
           /** Launch cinematic origin: { token, channelId, source, startedAt } | null. Written only by LaunchFeedbackContext. Transient. */
           launchCinematic: null,
           /** Unified board context menu → Configure request: { spaceKey, channelId }. Transient. */
@@ -546,6 +572,7 @@ useConsolidatedAppStore = create(
           status: 'idle',
           current: null,
           daily: null,
+          hourly: null,
           coords: null,
           locationSource: null,
           fetchedAt: 0,
@@ -2037,6 +2064,7 @@ useConsolidatedAppStore = create(
               homeSteamWidget: { ...DEFAULT_HOME_STEAM_WIDGET },
               homeClockWidget: { ...DEFAULT_HOME_CLOCK_WIDGET },
               homeNowPlayingWidget: { ...DEFAULT_HOME_NOW_PLAYING_WIDGET },
+              homeRecentlyUsedWidget: { ...DEFAULT_HOME_RECENTLY_USED_WIDGET },
               showUpdateModal: false,
               updateDismissedVersion: '',
               isAuthModalOpen: false,
@@ -2051,6 +2079,21 @@ useConsolidatedAppStore = create(
               commandPaletteRecent: [],
               homeIdleStage: 'active',
               spotifyTakeoverActive: false,
+              immersiveSoundMode: {
+                enabled: false,
+                intensity: 'focus',
+                autoIdle: true,
+                coverBackdrop: true,
+                boardDim: 0.78,
+              },
+              immersiveSoundModeActive: false,
+              sceneFxBeta: {
+                enabled: false,
+                parallax: { enabled: true, amount: 0.4 },
+                atmosphere: { enabled: true, vignette: 0.38, shafts: 0.28 },
+                cursorWake: { enabled: true, intensity: 0.55 },
+                musicBloom: { enabled: false, intensity: 0.32 },
+              },
               launchCinematic: null,
               sceneTransition: {
                 active: false,

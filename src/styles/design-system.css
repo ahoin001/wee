@@ -371,6 +371,7 @@
   --settings-tab-wallpaper: 174 62% 55%;
   --settings-tab-surfaces: 198 78% 48%;
   --settings-tab-workspaces: 205 86% 58%;
+  --settings-tab-beta: 262 72% 62%;
 
   /* Card.jsx — accent families not covered by state/wii tokens */
   --palette-purple: 291 47% 51%;

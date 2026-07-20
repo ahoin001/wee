@@ -1,5 +1,5 @@
 /**
- * Home-grid Weather tile — Open-Meteo current + short forecast (shared TTL cache).
+ * Home-grid Weather tile — Open-Meteo current + daily/hourly forecast (shared TTL cache).
  * Temps stored as °C; display unit from `ui.homeWeatherTempUnit` (default °F).
  */
 import React, { useCallback, useMemo } from 'react';
@@ -16,6 +16,12 @@ import {
   normalizeHomeWeatherTempUnit,
 } from '../../utils/homeWeather';
 
+function formatHourLabel(isoTime) {
+  const ms = Date.parse(isoTime);
+  if (!Number.isFinite(ms)) return '';
+  return new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric' });
+}
+
 function WeatherSlot({
   slot,
   channelId,
@@ -27,7 +33,7 @@ function WeatherSlot({
   const tempUnit = useConsolidatedAppStore((s) =>
     normalizeHomeWeatherTempUnit(s.ui?.homeWeatherTempUnit)
   );
-  const { status, current, daily, error, locationSource, refresh } = useHomeWeather({
+  const { status, current, daily, hourly, error, locationSource, refresh } = useHomeWeather({
     enabled: true,
   });
 
@@ -38,7 +44,14 @@ function WeatherSlot({
   const { isCompact, isTall, isWide, showHeader, shellPadClass, gapClass, kickerClass, density } =
     layout;
   const showMeta = !isCompact;
-  const showForecast = isTall && Array.isArray(daily) && daily.length > 1;
+  const dailyList = Array.isArray(daily) ? daily : [];
+  const hourlyList = Array.isArray(hourly) ? hourly : [];
+  /** Larger footprints unlock forecast depth (daily always; hourly on tall/wide). */
+  const showDailyForecast =
+    !isCompact && dailyList.length > 1 && (isTall || isWide || (slot?.colSpan ?? 1) >= 2);
+  const showHourlyForecast =
+    !isCompact && hourlyList.length > 0 && (isTall || (isWide && (slot?.rowSpan ?? 1) >= 2));
+  const dailyVisible = density === 'roomy' || isTall ? 4 : isWide ? 3 : 2;
   const interactionsLocked = arrangeMode || punchMode;
   const surface = normalizeHomeWidgetSurface(slot?.surface);
 
@@ -133,8 +146,8 @@ function WeatherSlot({
           ) : null}
 
           <div
-            className={`flex min-h-0 flex-1 items-center ${gapClass} ${
-              isTall ? 'flex-col' : 'flex-row'
+            className={`flex min-h-0 flex-1 ${gapClass} ${
+              isTall ? 'flex-col' : 'flex-row flex-wrap content-start'
             }`}
           >
             <div
@@ -189,9 +202,34 @@ function WeatherSlot({
               </div>
             ) : null}
 
-            {showForecast ? (
-              <div className={`grid w-full gap-1.5 ${density === 'roomy' ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                {daily.slice(1, density === 'roomy' ? 4 : 3).map((day) => (
+            {showHourlyForecast ? (
+              <div className="flex w-full gap-1.5 overflow-hidden">
+                {hourlyList.slice(0, isWide ? 6 : 4).map((hour) => (
+                  <div
+                    key={hour.time}
+                    className="home-widget-float-chip flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.58)] px-1 py-1.5 shadow-[var(--shadow-soft)]"
+                  >
+                    <span className="text-[8px] font-black uppercase tracking-wider text-[var(--hw-text-tertiary)]">
+                      {formatHourLabel(hour.time)}
+                    </span>
+                    <span className="text-sm leading-none" aria-hidden>
+                      {hour.emoji}
+                    </span>
+                    <span className="text-[10px] font-bold tabular-nums text-[var(--hw-text-primary)]">
+                      {formatTemp(hour.temperature, { includeUnit: false })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {showDailyForecast ? (
+              <div
+                className={`grid w-full gap-1.5 ${
+                  dailyVisible >= 4 ? 'grid-cols-4' : dailyVisible === 3 ? 'grid-cols-3' : 'grid-cols-2'
+                }`}
+              >
+                {dailyList.slice(1, dailyVisible + 1).map((day) => (
                   <div
                     key={day.date}
                     className="home-widget-float-chip flex items-center gap-1.5 rounded-xl border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.58)] px-2 py-1.5 shadow-[var(--shadow-soft)]"

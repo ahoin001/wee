@@ -450,6 +450,9 @@ function IsolatedWallpaperBackgroundInner({
         inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
+        /* Optional Scene FX Beta parallax — identity defaults when unset / feature removed */
+        transform:
+          'translate3d(var(--wee-scene-fx-px, 0px), var(--wee-scene-fx-py, 0px), 0) scale(var(--wee-scene-fx-ps, 1))',
       }}
     >
       {baseWallpaperUrl ? (

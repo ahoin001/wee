@@ -100,7 +100,13 @@ function WeeSettingsCollapsibleSection({
         </m.span>
       </m.button>
 
-      <WeeContentCollapse open={open} id={panelId} role="region" aria-labelledby={headingId}>
+      <WeeContentCollapse
+        open={open}
+        keepMounted={false}
+        id={panelId}
+        role="region"
+        aria-labelledby={headingId}
+      >
         <div
           className={`space-y-6 border-t border-[hsl(var(--border-primary)/0.28)] px-5 pb-7 pt-5 md:px-7 md:pb-8 ${
             open ? 'pointer-events-auto' : 'pointer-events-none'

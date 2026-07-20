@@ -3,7 +3,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Lock, Users } from 'lucide-react';
+import { ExternalLink, Lock, Users } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import SteamWidgetHeading from './SteamWidgetHeading';
@@ -42,6 +42,13 @@ function isFriendInGame(friend) {
 function isFriendOnline(friend) {
   if (typeof friend?.online === 'boolean') return friend.online;
   return isFriendInGame(friend) || Number(friend?.personaState || 0) >= 1;
+}
+
+/** Higher rank sorts first: in-game → online → offline. */
+function friendPresenceRank(friend) {
+  if (isFriendInGame(friend)) return 2;
+  if (isFriendOnline(friend)) return 1;
+  return 0;
 }
 
 function friendStatusLabel(friend) {
@@ -98,8 +105,9 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
     : 'bg-[hsl(var(--border-primary))] opacity-50';
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={interactionsLocked ? -1 : 0}
       title={
         friend.gameName
           ? `${friend.personaName} · ${friend.gameName}`
@@ -110,16 +118,24 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
           ? `${friend.personaName} playing ${friend.gameName}`
           : `${friend.personaName}${statusOnly ? `, ${statusOnly}` : ''}`
       }
-      disabled={interactionsLocked}
+      aria-disabled={interactionsLocked || undefined}
       onClick={(event) => {
         event.stopPropagation();
         if (interactionsLocked) return;
         if (friend.gameId) onLaunchGame?.(friend);
         else onOpenProfile?.(friend);
       }}
-      className={`group relative flex w-full min-w-0 items-center overflow-hidden border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.72)] text-left shadow-[var(--shadow-sm)] backdrop-blur-md transition-[transform,background-color,border-color,box-shadow,opacity] hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-elevated)/0.92)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.985] disabled:pointer-events-none disabled:opacity-70 ${
-        online ? '' : 'opacity-80'
-      } ${layout.listRowClass}`}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (interactionsLocked) return;
+        if (friend.gameId) onLaunchGame?.(friend);
+        else onOpenProfile?.(friend);
+      }}
+      className={`group relative flex w-full min-w-0 items-center overflow-hidden border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-elevated)/0.72)] text-left shadow-[var(--shadow-sm)] backdrop-blur-md transition-[transform,background-color,border-color,box-shadow,opacity] hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-elevated)/0.92)] hover:shadow-[var(--shadow-hover-glow)] active:scale-[0.985] ${
+        interactionsLocked ? 'pointer-events-none opacity-70' : ''
+      } ${online ? '' : 'opacity-80'} ${layout.listRowClass}`}
     >
       <span
         className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${accentBar}`}
@@ -198,7 +214,25 @@ function FriendListRow({ friend, interactionsLocked, onLaunchGame, onOpenProfile
           />
         </div>
       ) : null}
-    </button>
+
+      {inGame ? (
+        <button
+          type="button"
+          tabIndex={interactionsLocked ? -1 : 0}
+          title={`Open ${friend.personaName}'s Steam profile`}
+          aria-label={`Open ${friend.personaName}'s Steam profile`}
+          disabled={interactionsLocked}
+          className="ml-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.9)] text-[hsl(var(--text-secondary))] opacity-80 transition-[opacity,background-color,border-color,box-shadow] hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-elevated))] hover:text-[hsl(var(--primary))] hover:opacity-100 hover:shadow-[var(--shadow-hover-glow)] disabled:pointer-events-none"
+          onClick={(event) => {
+            event.stopPropagation();
+            if (interactionsLocked) return;
+            onOpenProfile?.(friend);
+          }}
+        >
+          <ExternalLink size={12} strokeWidth={2.5} aria-hidden />
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -277,21 +311,34 @@ function SteamFriendsSlot({
     friendsPlayingStatusCode === 'private-friends' ||
     /private/i.test(String(friendsPlayingError || ''));
 
-  const { onlineFriends, offlineFriends, visibleCount, onlineCount } = useMemo(() => {
-    const capped = friendsList.slice(0, capacity);
-    const online = [];
-    const offline = [];
-    for (const friend of capped) {
-      if (isFriendOnline(friend)) online.push(friend);
-      else offline.push(friend);
-    }
-    return {
-      onlineFriends: online,
-      offlineFriends: offline,
-      visibleCount: capped.length,
-      onlineCount: friendsList.filter(isFriendOnline).length,
-    };
-  }, [friendsList, capacity]);
+  const { inGameFriends, onlineFriends, offlineFriends, visibleCount, onlineCount, inGameCount } =
+    useMemo(() => {
+      // Sort before capacity so in-game friends never get truncated by offline rows.
+      const sorted = [...friendsList].sort((a, b) => {
+        const rank = friendPresenceRank(b) - friendPresenceRank(a);
+        if (rank !== 0) return rank;
+        return String(a?.personaName || '').localeCompare(String(b?.personaName || ''), undefined, {
+          sensitivity: 'base',
+        });
+      });
+      const capped = sorted.slice(0, capacity);
+      const inGame = [];
+      const online = [];
+      const offline = [];
+      for (const friend of capped) {
+        if (isFriendInGame(friend)) inGame.push(friend);
+        else if (isFriendOnline(friend)) online.push(friend);
+        else offline.push(friend);
+      }
+      return {
+        inGameFriends: inGame,
+        onlineFriends: online,
+        offlineFriends: offline,
+        visibleCount: capped.length,
+        onlineCount: friendsList.filter(isFriendOnline).length,
+        inGameCount: friendsList.filter(isFriendInGame).length,
+      };
+    }, [friendsList, capacity]);
 
   useEffect(() => {
     if (!steamId || !apiEnabled || !window.api?.steam?.getFriendsPlaying) return;
@@ -492,6 +539,7 @@ function SteamFriendsSlot({
           <SteamWidgetHeading title="Friends" icon={Users} compact={rowSpan <= 1} />
           {layout.density !== 'compact' ? (
             <p className="-mt-0.5 mb-0 px-0.5 text-[9px] font-bold text-[var(--hw-text-tertiary)]">
+              {inGameCount > 0 ? `${inGameCount} in game · ` : ''}
               {onlineCount} online
               {friendsList.length > onlineCount
                 ? ` · ${friendsList.length - onlineCount} offline`
@@ -504,6 +552,14 @@ function SteamFriendsSlot({
                 layout.listColumns > 1 ? 'grid grid-cols-2' : 'flex flex-col'
               }`}
             >
+              {inGameFriends.length > 0 ? (
+                <>
+                  <FriendSectionLabel spanGrid={layout.listColumns > 1}>
+                    In game · {inGameFriends.length}
+                  </FriendSectionLabel>
+                  {renderFriendRows(inGameFriends)}
+                </>
+              ) : null}
               {onlineFriends.length > 0 ? (
                 <>
                   <FriendSectionLabel spanGrid={layout.listColumns > 1}>

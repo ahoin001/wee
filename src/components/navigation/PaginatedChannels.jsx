@@ -588,6 +588,15 @@ const PaginatedChannelsInner = React.memo(() => {
     [homeBoardSelectedSlotIndex, setHomeSlotWidgetForSpace, channelSpaceKey]
   );
 
+  const handlePatchSelectedWidget = useCallback(
+    (widgetPatch) => {
+      if (homeBoardSelectedSlotIndex == null) return;
+      if (!widgetPatch || typeof widgetPatch !== 'object') return;
+      setHomeSlotWidgetForSpace(channelSpaceKey, homeBoardSelectedSlotIndex, widgetPatch);
+    },
+    [homeBoardSelectedSlotIndex, setHomeSlotWidgetForSpace, channelSpaceKey]
+  );
+
   /** Free-form span commit from the corner resize grabber. */
   const handleSetSlotSpan = useCallback(
     (channelIndex, colSpan, rowSpan) => {
@@ -1519,6 +1528,7 @@ const PaginatedChannelsInner = React.memo(() => {
             onSetSurface={handleSetSurface}
             onSetTextColor={handleSetTextColor}
             onSetListenApp={handleSetListenApp}
+            onPatchWidget={handlePatchSelectedWidget}
             blockedPresetIds={blockedSizePresetIds}
             pickerOpen={arrangePickerOpen}
             onPickerOpenChange={setArrangePickerOpen}

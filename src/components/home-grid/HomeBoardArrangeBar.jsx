@@ -48,6 +48,7 @@ function HomeBoardArrangeBar({
   onSetSurface,
   onSetTextColor,
   onSetListenApp,
+  onPatchWidget,
   blockedPresetIds = [],
   pickerOpen = false,
   onPickerOpenChange,
@@ -387,7 +388,12 @@ function HomeBoardArrangeBar({
                   </div>
                 ) : null}
                 {hasWidgetSettings ? (
-                  <HomeWidgetSettingsPanel kindId={selectedSlot?.kind} nested />
+                  <HomeWidgetSettingsPanel
+                    kindId={selectedSlot?.kind}
+                    slot={selectedSlot}
+                    onPatchWidget={onPatchWidget}
+                    nested
+                  />
                 ) : null}
               </div>
             </WeeContentCollapse>
@@ -416,6 +422,7 @@ HomeBoardArrangeBar.propTypes = {
   onSetSurface: PropTypes.func,
   onSetTextColor: PropTypes.func,
   onSetListenApp: PropTypes.func,
+  onPatchWidget: PropTypes.func,
   blockedPresetIds: PropTypes.arrayOf(PropTypes.string),
   pickerOpen: PropTypes.bool,
   onPickerOpenChange: PropTypes.func,

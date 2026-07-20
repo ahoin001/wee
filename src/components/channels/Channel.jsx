@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { m } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import './Channel.css';
 import { getStoragePublicObjectUrl } from '../../utils/supabase';
 import { isVideoMediaType } from '../../utils/channelMediaType';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { useChannelSpaceKey } from '../../contexts/ChannelSpaceContext';
-import { WeeTapLayer } from '../../ui/wee';
+import { WeeLayoutActiveDisc, WeeTapLayer } from '../../ui/wee';
 import { useRendererMediaPowerState } from '../../hooks/useRendererMediaPowerState';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -57,6 +57,7 @@ const Channel = React.memo(({
   const channelSpaceKey = useChannelSpaceKey();
   const { gooey, channelTap, launchFeedbackMode } = useMotionFeedback();
   const channelGooeyHover = gooey.channelHover;
+  const osReducedMotion = useReducedMotion();
   const [isLaunchPressed, setIsLaunchPressed] = useState(false);
   const {
     updateChannelConfig,
@@ -350,10 +351,15 @@ const Channel = React.memo(({
       onContextMenu={tileContextMenuHandler}
       title={showRecentLaunchHint ? 'Recently used — tap again to open or focus.' : undefined}
       style={adaptiveEmptyStyle}
-      whileHover={channelGooeyHover.enabled ? channelGooeyHover.whileHover : undefined}
-      transition={channelGooeyHover.enabled ? channelGooeyHover.transition : undefined}
     >
-      <WeeTapLayer className="channel-tap-layer h-full w-full min-h-0 min-w-0">
+      {selected ? (
+        <WeeLayoutActiveDisc
+          layoutId="homeArrangeSelection"
+          className="!rounded-[1.35rem] !bg-[hsl(var(--primary)/0.16)] !shadow-[var(--shadow-selection-glow)]"
+          reducedMotion={Boolean(osReducedMotion)}
+        />
+      ) : null}
+      <WeeTapLayer className="channel-tap-layer relative z-[1] h-full w-full min-h-0 min-w-0">
         <ChannelMediaPreview
           effectiveMedia={effectiveMedia}
           effectiveAnimatedOnHover={effectiveAnimatedOnHover}

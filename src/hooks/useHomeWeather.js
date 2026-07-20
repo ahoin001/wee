@@ -13,7 +13,7 @@ import { useActivityInterval } from './useActivityInterval';
  * Shared Home weather tile data — one Open-Meteo path, store TTL cache, activity-gated poll.
  */
 export function useHomeWeather({ enabled = true } = {}) {
-  const { status, current, daily, coords, fetchedAt, error, locationSource } =
+  const { status, current, daily, hourly, coords, fetchedAt, error, locationSource } =
     useConsolidatedAppStore(
       useShallow((state) => {
         const w = state.homeWeather || {};
@@ -21,6 +21,7 @@ export function useHomeWeather({ enabled = true } = {}) {
           status: w.status || 'idle',
           current: w.current || null,
           daily: w.daily || null,
+          hourly: w.hourly || null,
           coords: w.coords || null,
           fetchedAt: w.fetchedAt || 0,
           error: w.error || null,
@@ -56,6 +57,7 @@ export function useHomeWeather({ enabled = true } = {}) {
           status: 'ready',
           current: forecast.current,
           daily: forecast.daily,
+          hourly: forecast.hourly,
           coords: nextCoords,
           locationSource,
           fetchedAt: forecast.fetchedAt,
@@ -92,6 +94,7 @@ export function useHomeWeather({ enabled = true } = {}) {
     status,
     current,
     daily,
+    hourly,
     coords,
     fetchedAt,
     error,

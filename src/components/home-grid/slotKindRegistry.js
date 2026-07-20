@@ -13,7 +13,7 @@ export { HOME_SLOT_SIZE_PRESETS };
 
 /** Picker section order + labels for Edit Home “Add widget”. */
 export const HOME_SLOT_PICKER_CATEGORIES = Object.freeze([
-  Object.freeze({ id: 'steam', label: 'Steam' }),
+  Object.freeze({ id: 'steam', label: 'Games' }),
   Object.freeze({ id: 'media', label: 'Media' }),
   Object.freeze({ id: 'glance', label: 'Glance' }),
   Object.freeze({ id: 'system', label: 'System' }),
@@ -30,11 +30,22 @@ const NOW_PLAYING_SIZE_PRESETS = Object.freeze({
   XL: Object.freeze({ id: 'XL', label: '3×3', colSpan: 3, rowSpan: 3, capacity: 12 }),
 });
 
-/** Clock / weather — keep S for compact glance. */
+/** Clock — keep S for compact glance. */
 const GLANCE_TILE_SIZE_PRESETS = Object.freeze({
   S: HOME_SLOT_SIZE_PRESETS.S,
   M: HOME_SLOT_SIZE_PRESETS.M,
   L: HOME_SLOT_SIZE_PRESETS.L,
+});
+
+/** Weather — taller / wider boards unlock daily + hourly depth. */
+const WEATHER_TILE_SIZE_PRESETS = Object.freeze({
+  S: HOME_SLOT_SIZE_PRESETS.S,
+  M: HOME_SLOT_SIZE_PRESETS.M,
+  L: HOME_SLOT_SIZE_PRESETS.L,
+  /** Wide 3×1 shelf for daily chips beside current. */
+  W: Object.freeze({ id: 'W', label: '3×1', colSpan: 3, rowSpan: 1, capacity: 0 }),
+  V: Object.freeze({ id: 'V', label: '2×3', colSpan: 2, rowSpan: 3, capacity: 0 }),
+  XL: HOME_SLOT_SIZE_PRESETS.XL,
 });
 
 /**
@@ -135,7 +146,7 @@ export const HOME_SLOT_KINDS = {
     colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
     rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
     defaultSizePreset: 'M',
-    sizePresets: GLANCE_TILE_SIZE_PRESETS,
+    sizePresets: WEATHER_TILE_SIZE_PRESETS,
     render: 'WeatherSlot',
     placeable: true,
   },
@@ -165,6 +176,32 @@ export const HOME_SLOT_KINDS = {
     render: 'SteamMostPlayedSlot',
     placeable: true,
   },
+  steamFavorites: {
+    id: 'steamFavorites',
+    label: 'Steam Favorites',
+    description: 'Games you starred in the Steam client',
+    icon: '⭐',
+    category: 'steam',
+    colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
+    rowSpan: STEAM_TILE_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: STEAM_TILE_SIZE_PRESETS,
+    render: 'SteamFavoritesSlot',
+    placeable: true,
+  },
+  steamTags: {
+    id: 'steamTags',
+    label: 'Steam Tags',
+    description: 'A shelf for one of your Steam library tags',
+    icon: '🏷️',
+    category: 'steam',
+    colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
+    rowSpan: STEAM_TILE_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: STEAM_TILE_SIZE_PRESETS,
+    render: 'SteamTagsSlot',
+    placeable: true,
+  },
   steamFriends: {
     id: 'steamFriends',
     label: 'Steam Friends',
@@ -176,6 +213,32 @@ export const HOME_SLOT_KINDS = {
     defaultSizePreset: 'M',
     sizePresets: STEAM_FRIENDS_SIZE_PRESETS,
     render: 'SteamFriendsSlot',
+    placeable: true,
+  },
+  epicLibrary: {
+    id: 'epicLibrary',
+    label: 'Epic Library',
+    description: 'Installed Epic Games titles',
+    icon: '🎯',
+    category: 'steam',
+    colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
+    rowSpan: STEAM_TILE_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: STEAM_TILE_SIZE_PRESETS,
+    render: 'EpicLibrarySlot',
+    placeable: true,
+  },
+  systemPad: {
+    id: 'systemPad',
+    label: 'System Pad',
+    description: 'Power status plus Lock, Task Manager, Explorer',
+    icon: '🔋',
+    category: 'system',
+    colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
+    rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: HOME_SLOT_SIZE_PRESETS,
+    render: 'SystemPadSlot',
     placeable: true,
   },
 };

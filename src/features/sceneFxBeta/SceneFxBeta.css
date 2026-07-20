@@ -1,0 +1,115 @@
+/**
+ * Scene FX Beta — visual layers only.
+ * Delete with `src/features/sceneFxBeta/`.
+ */
+
+.scene-fx-beta-root {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* —— Atmosphere (vignette + shafts) —— */
+.scene-fx-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scene-fx-atmosphere__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 78% 72% at 50% 45%,
+    transparent 42%,
+    hsl(0 0% 0% / var(--scene-fx-vignette-alpha, 0.28)) 100%
+  );
+}
+
+.scene-fx-atmosphere__shafts {
+  position: absolute;
+  inset: -12%;
+  opacity: var(--scene-fx-shafts-opacity, 0.22);
+  background:
+    linear-gradient(
+      118deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.08) 28%,
+      transparent 36%,
+      transparent 52%,
+      hsl(var(--ambient-secondary, var(--primary)) / 0.1) 64%,
+      transparent 74%
+    );
+  mix-blend-mode: soft-light;
+  transform: translate3d(0, 0, 0) rotate(0.001deg);
+  animation: scene-fx-shafts-drift var(--scene-fx-shafts-duration, 22s)
+    var(--wee-collapse-ease, ease-in-out) infinite alternate;
+  will-change: transform;
+}
+
+@keyframes scene-fx-shafts-drift {
+  from {
+    transform: translate3d(-2.5%, 1%, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(2.5%, -1.5%, 0) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-fx-atmosphere__shafts {
+    animation: none !important;
+  }
+}
+
+/* —— Cursor wake —— */
+.scene-fx-wake-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* —— Music bloom —— */
+.scene-fx-music-bloom {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 40%,
+    hsl(var(--primary) / var(--scene-fx-bloom-alpha, 0.12)) 0%,
+    transparent 68%
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 0.55s var(--wee-collapse-ease, ease);
+}
+
+.scene-fx-music-bloom--active {
+  opacity: 1;
+}
+
+.scene-fx-music-bloom--pulse {
+  animation: scene-fx-bloom-breathe 3.6s var(--wee-collapse-ease, ease-in-out) infinite;
+}
+
+@keyframes scene-fx-bloom-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.03);
+    filter: brightness(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-fx-music-bloom--pulse {
+    animation: none !important;
+  }
+}

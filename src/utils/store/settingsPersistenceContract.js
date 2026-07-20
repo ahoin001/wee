@@ -2,7 +2,12 @@ import { mergeMotionFeedback } from '../motionFeedbackDefaults.js';
 import { normalizeHomeWidgetGlass } from '../homeWidgetGlass.js';
 import { normalizeHomeSteamWidget } from '../homeSteamWidgetPrefs.js';
 import { normalizeHomeClockWidget } from '../homeClockWidgetPrefs.js';
+import { normalizeHomeRecentlyUsedWidget } from '../homeRecentlyUsedWidgetPrefs.js';
 import { normalizeHomeNowPlayingWidget } from '../homeNowPlayingWidgetPrefs.js';
+/** BETA: Immersive Sound Mode — remove with `src/features/immersiveSoundMode/`. */
+import { normalizeImmersiveSoundMode } from '../../features/immersiveSoundMode/immersiveSoundModePrefs.js';
+/** BETA: Scene FX — remove with `src/features/sceneFxBeta/`. */
+import { normalizeSceneFxBeta } from '../../features/sceneFxBeta/sceneFxBetaPrefs.js';
 import {
   createDefaultChannelSpaceData,
   migrateLegacyChannelsToDataBySpace,
@@ -212,6 +217,11 @@ const selectPersistedUi = (ui = {}) => ({
   homeSteamWidget: normalizeHomeSteamWidget(ui.homeSteamWidget),
   homeClockWidget: normalizeHomeClockWidget(ui.homeClockWidget),
   homeNowPlayingWidget: normalizeHomeNowPlayingWidget(ui.homeNowPlayingWidget),
+  homeRecentlyUsedWidget: normalizeHomeRecentlyUsedWidget(ui.homeRecentlyUsedWidget),
+  /* BETA: Immersive Sound Mode — remove with feature folder */
+  immersiveSoundMode: normalizeImmersiveSoundMode(ui.immersiveSoundMode),
+  /* BETA: Scene FX — remove with feature folder */
+  sceneFxBeta: normalizeSceneFxBeta(ui.sceneFxBeta),
 });
 
 /** Strip modal / loading chrome — prefs only. Side peeks are always Wee. */

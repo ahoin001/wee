@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { m } from 'framer-motion';
+import { LayoutGroup, m } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import {
   useWeeMotion,
@@ -181,6 +181,7 @@ const WiiChannelStrip = ({
       onPointerDown={onGridPointerDown}
       onWheel={onGridWheel}
     >
+      <LayoutGroup id="homeArrangeSelectionGroup">
       <m.div
         className="wii-strip-continuous"
         initial={false}
@@ -276,6 +277,7 @@ const WiiChannelStrip = ({
           })}
         </div>
       </m.div>
+      </LayoutGroup>
     </div>
   );
 };

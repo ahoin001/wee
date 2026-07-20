@@ -58,6 +58,7 @@ export function createHomeWidgetSlot(kindId, span = {}) {
     widget: {
       widgetId: kindId,
       ...(kindId === 'nowPlaying' ? { listenApp: 'any' } : {}),
+      ...(kindId === 'steamTags' ? { tag: '' } : {}),
     },
   };
 }

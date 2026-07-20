@@ -91,6 +91,14 @@ const LazyMediaHubSpace = lazyNamedExport(() => import('./components/media-hub')
 const LazySpotifyLiveGradientWallpaper = React.lazy(() => import('./components/overlays/SpotifyLiveGradientWallpaper'));
 const LazySpotifyImmersiveOverlay = React.lazy(() => import('./components/overlays/SpotifyImmersiveOverlay'));
 const LazySpotifyGradientOverlay = React.lazy(() => import('./components/overlays/SpotifyGradientOverlay'));
+/** BETA: Immersive Sound Mode — remove with `src/features/immersiveSoundMode/`. */
+const LazyImmersiveSoundModeController = React.lazy(() =>
+  import('./features/immersiveSoundMode/ImmersiveSoundModeController.jsx')
+);
+/** BETA: Scene FX — remove with `src/features/sceneFxBeta/`. */
+const LazySceneFxBetaRoot = React.lazy(() =>
+  import('./features/sceneFxBeta/SceneFxBetaRoot.jsx')
+);
 const prefetchSettingsModules = () => import('./components/settings');
 
 
@@ -370,6 +378,15 @@ function App() {
       );
     })
   );
+
+  /** BETA: Immersive Sound Mode — only mount when enabled or mid-session. */
+  const mountImmersiveSoundMode = useConsolidatedAppStore(
+    (s) =>
+      Boolean(s.ui?.immersiveSoundMode?.enabled) ||
+      Boolean(s.ui?.immersiveSoundModeActive)
+  );
+  /** BETA: Scene FX — only mount when master toggle is on. */
+  const mountSceneFxBeta = useConsolidatedAppStore((s) => Boolean(s.ui?.sceneFxBeta?.enabled));
 
   const [visitedSpaces, setVisitedSpaces] = useState(null);
   useEffect(() => {
@@ -883,6 +900,20 @@ function App() {
             <LazySpotifyImmersiveOverlay />
             <LazySpotifyGradientOverlay />
             <SpotifyTakeoverController />
+          </Suspense>
+        ) : null}
+
+        {/* BETA: Immersive Sound Mode — delete feature folder + this block to remove */}
+        {mountImmersiveSoundMode && enableDeferredMounts ? (
+          <Suspense fallback={null}>
+            <LazyImmersiveSoundModeController />
+          </Suspense>
+        ) : null}
+
+        {/* BETA: Scene FX — delete feature folder + this block to remove */}
+        {mountSceneFxBeta && enableDeferredMounts ? (
+          <Suspense fallback={null}>
+            <LazySceneFxBetaRoot />
           </Suspense>
         ) : null}
 

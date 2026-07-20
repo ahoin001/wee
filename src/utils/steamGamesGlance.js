@@ -69,6 +69,95 @@ export function sortMostPlayedSteamGames(games, hiddenGameIds) {
 }
 
 /**
+ * Resolve enriched (or stub) rows for Steam client favorite app ids.
+ * Preserves client favorite order; fills gaps with CDN stubs when enrichment is missing.
+ * @param {unknown[]} games
+ * @param {unknown[]} favoriteAppIds
+ * @param {unknown} [hiddenGameIds]
+ * @returns {object[]}
+ */
+export function sortFavoriteSteamGames(games, favoriteAppIds, hiddenGameIds) {
+  const ids = Array.isArray(favoriteAppIds)
+    ? favoriteAppIds.map((id) => String(id || '').trim()).filter(Boolean)
+    : [];
+  if (ids.length === 0) return [];
+
+  const byAppId = new Map();
+  for (const g of excludeHiddenSteamGames(games, hiddenGameIds)) {
+    if (!g?.appId) continue;
+    byAppId.set(String(g.appId), g);
+  }
+
+  const out = [];
+  for (const appId of ids) {
+    const hubId = steamHubGameIdFromAppId(appId);
+    if (Array.isArray(hiddenGameIds) && hiddenGameIds.map(String).includes(hubId)) continue;
+    const known = byAppId.get(appId);
+    if (known) {
+      out.push(known);
+      continue;
+    }
+    out.push({
+      appId,
+      name: `Steam ${appId}`,
+      imageUrl: STEAM_CDN_LIBRARY_COVER(appId),
+      playtimeForever: 0,
+      playtimeRecent: 0,
+      lastPlayedAt: 0,
+    });
+  }
+  return out;
+}
+
+/**
+ * Games that carry a Steam client tag (case-insensitive match).
+ * @param {unknown[]} games
+ * @param {string} tag
+ * @param {Record<string, string[]> | null | undefined} appIdToTags
+ * @param {unknown} [hiddenGameIds]
+ * @returns {object[]}
+ */
+export function sortTaggedSteamGames(games, tag, appIdToTags, hiddenGameIds) {
+  const needle = String(tag || '').trim().toLowerCase();
+  if (!needle || !appIdToTags || typeof appIdToTags !== 'object') return [];
+
+  const taggedIds = new Set();
+  for (const [appId, tags] of Object.entries(appIdToTags)) {
+    if (!Array.isArray(tags)) continue;
+    if (tags.some((t) => String(t || '').trim().toLowerCase() === needle)) {
+      taggedIds.add(String(appId));
+    }
+  }
+  if (taggedIds.size === 0) return [];
+
+  return sortFavoriteSteamGames(games, [...taggedIds], hiddenGameIds).sort((a, b) => {
+    const pt = Number(b.playtimeForever || 0) - Number(a.playtimeForever || 0);
+    if (pt !== 0) return pt;
+    return String(a.name || '').localeCompare(String(b.name || ''), undefined, {
+      sensitivity: 'base',
+    });
+  });
+}
+
+/**
+ * Unique Steam client tags across the library (sorted A–Z).
+ * @param {Record<string, string[]> | null | undefined} appIdToTags
+ * @returns {string[]}
+ */
+export function listSteamClientTags(appIdToTags) {
+  if (!appIdToTags || typeof appIdToTags !== 'object') return [];
+  const set = new Set();
+  for (const tags of Object.values(appIdToTags)) {
+    if (!Array.isArray(tags)) continue;
+    for (const t of tags) {
+      const label = String(t || '').trim();
+      if (label) set.add(label);
+    }
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+}
+
+/**
  * Args for `window.api.steam.getEnrichedGames` from current store profile.
  * @param {{ steamId?: string, steamWebApiKey?: string } | null | undefined} profile
  * @returns {{ steamId: string, apiKey?: string } | null}

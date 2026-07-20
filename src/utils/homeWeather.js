@@ -97,9 +97,10 @@ export async function fetchOpenMeteoForecast(coords) {
     latitude: String(lat),
     longitude: String(lon),
     current: 'temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m',
+    hourly: 'temperature_2m,weather_code',
     daily: 'weather_code,temperature_2m_max,temperature_2m_min',
     timezone: 'auto',
-    forecast_days: '3',
+    forecast_days: '5',
   });
 
   const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
@@ -109,12 +110,13 @@ export async function fetchOpenMeteoForecast(coords) {
   const data = await res.json();
   const current = data?.current || {};
   const daily = data?.daily || {};
+  const hourly = data?.hourly || {};
   const code = Number(current.weather_code);
   const desc = describeWmoWeatherCode(code);
 
   const days = [];
   const times = Array.isArray(daily.time) ? daily.time : [];
-  for (let i = 0; i < Math.min(3, times.length); i += 1) {
+  for (let i = 0; i < Math.min(5, times.length); i += 1) {
     const dayCode = Number(daily.weather_code?.[i]);
     const dayDesc = describeWmoWeatherCode(dayCode);
     days.push({
@@ -124,6 +126,25 @@ export async function fetchOpenMeteoForecast(coords) {
       emoji: dayDesc.emoji,
       tempMax: Number(daily.temperature_2m_max?.[i]),
       tempMin: Number(daily.temperature_2m_min?.[i]),
+    });
+  }
+
+  /** Next ~6 hours from “now” (skip past hours in the local forecast series). */
+  const hours = [];
+  const hourTimes = Array.isArray(hourly.time) ? hourly.time : [];
+  const nowMs = Date.now();
+  for (let i = 0; i < hourTimes.length && hours.length < 6; i += 1) {
+    const t = hourTimes[i];
+    const ms = Date.parse(t);
+    if (!Number.isFinite(ms) || ms < nowMs - 30 * 60 * 1000) continue;
+    const hourCode = Number(hourly.weather_code?.[i]);
+    const hourDesc = describeWmoWeatherCode(hourCode);
+    hours.push({
+      time: t,
+      weatherCode: hourCode,
+      label: hourDesc.label,
+      emoji: hourDesc.emoji,
+      temperature: Number(hourly.temperature_2m?.[i]),
     });
   }
 
@@ -140,6 +161,7 @@ export async function fetchOpenMeteoForecast(coords) {
       windSpeed: Number(current.wind_speed_10m),
     },
     daily: days,
+    hourly: hours,
     fetchedAt: Date.now(),
   };
 }

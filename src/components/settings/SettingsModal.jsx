@@ -33,6 +33,7 @@ import {
   UpdatesSettingsTab,
   NavigationPillSettingsTab,
   MotionFeedbackSettingsTab,
+  BetaSettingsTab,
 } from './index';
 
 const TabPanel = m.div;
@@ -52,6 +53,7 @@ const SETTINGS_TAB_COMPONENTS = {
   wallpaper: WallpaperSettingsTab,
   monitor: MonitorSettingsTab,
   shortcuts: ShortcutsSettingsTab,
+  beta: BetaSettingsTab,
 };
 
 /** Flat registry order for keyboard nav and lookups. */

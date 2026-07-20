@@ -1,22 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { Shield, Volume2 } from 'lucide-react';
-import Slider from '../../../ui/Slider';
 import Text from '../../../ui/Text';
-import WButton from '../../../ui/WButton';
 import WToggle from '../../../ui/WToggle';
 import {
   WeeDescriptionToggleRow,
-  WeeHelpLinkButton,
   WeeModalFieldCard,
-  WeePressSurface,
+  WeeRevealWhen,
   WeeSectionEyebrow,
   WeeSettingsCollapsibleSection,
 } from '../../../ui/wee';
-import { createWeeTransition } from '../../../design/weeMotion';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
-import { openSettingsToTab, SETTINGS_TAB_ID } from '../../../utils/settingsNavigation';
+import ChannelHoverSoundPicker from './ChannelHoverSoundPicker';
 
 /**
  * Per-channel Behavior tab — only tile-specific options:
@@ -33,8 +28,10 @@ function ChannelModalBehaviorTab({
   hoverSoundName,
   hoverSoundVolume,
   hoverSoundPreviewPlaying,
+  previewingSoundId,
   selectedHoverSoundId,
   uploadingHoverSound,
+  deletingHoverSoundId,
   soundLibraryLoading,
   getSoundsByCategory,
   clearHoverSoundSelection,
@@ -43,126 +40,11 @@ function ChannelModalBehaviorTab({
   handleHoverSoundVolumeChange,
   handleHoverSoundSelect,
   handleHoverSoundUpload,
+  handleHoverSoundDelete,
 }) {
   const channelHoverSounds = getSoundsByCategory('channelHover') || [];
-  const reduceMotion = useReducedMotion();
-  const hoverBodyTransition = createWeeTransition('tab', { reducedMotion: !!reduceMotion });
   const globalHoverEnabled = useConsolidatedAppStore(
     (s) => s.sounds?.channelHoverEnabled !== false
-  );
-
-  const renderHoverSoundSection = () => (
-    <div className="channel-stack-16">
-      {!globalHoverEnabled ? (
-        <div className="channel-surface-block">
-          <Text variant="p" className="!m-0 !font-semibold">
-            Hover sounds are muted globally
-          </Text>
-          <Text variant="help" className="!mb-2 !mt-1">
-            Custom sounds for this channel stay saved, but won&apos;t play until hover SFX are
-            enabled in Sounds.
-          </Text>
-          <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SOUNDS)}>
-            Open Sounds settings
-          </WeeHelpLinkButton>
-        </div>
-      ) : null}
-
-      {hoverSoundEnabled && hoverSoundUrl && (
-        <div className="channel-surface-block">
-          <div className="channel-header-row">
-            <Text variant="p" className="!font-semibold !m-0">
-              Selected Sound: {hoverSoundName}
-            </Text>
-            <WButton variant="tertiary" size="sm" onClick={clearHoverSoundSelection}>
-              Use global default
-            </WButton>
-          </div>
-
-          <div className="channel-row-gap-12">
-            <WButton variant="secondary" size="sm" onClick={handleTestHoverSound} disabled={!hoverSoundUrl}>
-              {hoverSoundPreviewPlaying ? 'Stop' : 'Test'}
-            </WButton>
-
-            <div className="channel-row-gap-8 channel-fill">
-              <span className="channel-volume-label">Volume:</span>
-              <Slider
-                value={hoverSoundVolume}
-                onChange={(value) => handleHoverSoundVolumeChange(value)}
-                min={0}
-                max={1}
-                step={0.01}
-                className="channel-fill"
-              />
-              <span className="channel-volume-value">{Math.round(hoverSoundVolume * 100)}%</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div>
-        <div className="channel-row-gap-12 channel-row-between channel-mb-12">
-          <Text variant="p" className="!font-semibold !m-0">
-            Choose from Sound Library
-          </Text>
-          <WButton variant="primary" size="sm" onClick={handleHoverSoundUpload} disabled={uploadingHoverSound}>
-            {uploadingHoverSound ? 'Uploading...' : 'Upload New Sound'}
-          </WButton>
-        </div>
-
-        {soundLibraryLoading ? (
-          <div className="channel-surface-block channel-surface-centered channel-surface-p20 channel-text-tertiary">
-            Loading sound library...
-          </div>
-        ) : channelHoverSounds.length === 0 ? (
-          <div className="channel-surface-block channel-surface-centered channel-surface-p20 channel-text-tertiary">
-            No hover sounds available. Upload your first sound above.
-          </div>
-        ) : (
-          <div className="channel-sound-grid">
-            {channelHoverSounds.map((sound) => (
-              <WeePressSurface
-                key={sound.id}
-                as="div"
-                onClick={() => handleHoverSoundSelect(sound.id)}
-                className={`channel-sound-card ${selectedHoverSoundId === sound.id ? 'channel-sound-card-selected' : ''}`}
-              >
-                <div className="channel-header-row">
-                  <Text variant="p" className="!font-medium !m-0 !text-[14px]">
-                    {sound.name}
-                  </Text>
-                  {selectedHoverSoundId === sound.id && <span className="channel-checkmark">✓</span>}
-                </div>
-
-                <div className="channel-row-gap-8">
-                  <WButton
-                    variant="tertiary"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleTestLibraryHoverSound?.(sound);
-                    }}
-                    className="channel-min-w-60"
-                  >
-                    {hoverSoundPreviewPlaying && selectedHoverSoundId === sound.id ? 'Stop' : 'Test'}
-                  </WButton>
-
-                  <div className="channel-row-gap-4 channel-fill">
-                    <span className="channel-tiny-label">Vol:</span>
-                    <span className="channel-tiny-label">{Math.round((sound.volume ?? 0.5) * 100)}%</span>
-                  </div>
-                </div>
-              </WeePressSurface>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Text variant="help" className="channel-help-sm">
-        Overrides the global hover track for this tile only. Still needs Sounds → Enable hover
-        sounds. Uploads are shared across channels. Fades out on leave or click.
-      </Text>
-    </div>
   );
 
   return (
@@ -222,11 +104,11 @@ function ChannelModalBehaviorTab({
           key={`hover-sound-${channelId}`}
           icon={Volume2}
           title="Custom hover sound"
-          description="Override the global hover sound for this tile — expand to pick or upload."
+          description="Override the global hover sound for this tile — expand to preview, pick, or upload."
           defaultOpen={hoverSoundEnabled}
           className="w-full"
         >
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <WeeDescriptionToggleRow
               description={
                 <div className="space-y-1">
@@ -234,7 +116,7 @@ function ChannelModalBehaviorTab({
                     Enable hover sound
                   </Text>
                   <Text variant="help" className="!m-0">
-                    Plays when the cursor enters this channel; fades out on leave. Pick a library sound or upload your own.
+                    Plays when the cursor enters this channel; fades out on leave.
                   </Text>
                 </div>
               }
@@ -249,32 +131,35 @@ function ChannelModalBehaviorTab({
               </div>
             </WeeDescriptionToggleRow>
 
-            <AnimatePresence mode="wait" initial={false}>
-              {hoverSoundEnabled ? (
-                <m.div
-                  key="hover-sound-body"
-                  initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                  transition={hoverBodyTransition}
-                  className="rounded-[2rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.65)] p-5 md:p-6"
-                >
-                  {renderHoverSoundSection()}
-                </m.div>
-              ) : (
-                <m.div
-                  key="hover-sound-off"
-                  initial={reduceMotion ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={createWeeTransition('tab', { reducedMotion: !!reduceMotion })}
-                >
-                  <Text variant="help" className="!m-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-5">
-                    Turn on the toggle above to choose a sound, adjust volume, and test playback.
-                  </Text>
-                </m.div>
-              )}
-            </AnimatePresence>
+            <WeeRevealWhen when={hoverSoundEnabled} keepMounted={false}>
+              <ChannelHoverSoundPicker
+                hoverSoundUrl={hoverSoundUrl}
+                hoverSoundName={hoverSoundName}
+                hoverSoundVolume={hoverSoundVolume}
+                hoverSoundPreviewPlaying={hoverSoundPreviewPlaying}
+                previewingSoundId={previewingSoundId}
+                selectedHoverSoundId={selectedHoverSoundId}
+                uploadingHoverSound={uploadingHoverSound}
+                deletingHoverSoundId={deletingHoverSoundId}
+                soundLibraryLoading={soundLibraryLoading}
+                channelHoverSounds={channelHoverSounds}
+                globalHoverEnabled={globalHoverEnabled}
+                clearHoverSoundSelection={clearHoverSoundSelection}
+                handleTestHoverSound={handleTestHoverSound}
+                handleTestLibraryHoverSound={handleTestLibraryHoverSound}
+                handleHoverSoundVolumeChange={handleHoverSoundVolumeChange}
+                handleHoverSoundSelect={handleHoverSoundSelect}
+                handleHoverSoundUpload={handleHoverSoundUpload}
+                handleHoverSoundDelete={handleHoverSoundDelete}
+              />
+            </WeeRevealWhen>
+
+            {!hoverSoundEnabled ? (
+              <Text variant="help" className="!m-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
+                Turn on the toggle above to open the sound deck — preview the library, set one volume,
+                and apply an override for this tile.
+              </Text>
+            ) : null}
           </div>
         </WeeSettingsCollapsibleSection>
       </section>
@@ -292,8 +177,10 @@ ChannelModalBehaviorTab.propTypes = {
   hoverSoundName: PropTypes.string,
   hoverSoundVolume: PropTypes.number,
   hoverSoundPreviewPlaying: PropTypes.bool,
+  previewingSoundId: PropTypes.string,
   selectedHoverSoundId: PropTypes.string,
   uploadingHoverSound: PropTypes.bool,
+  deletingHoverSoundId: PropTypes.string,
   soundLibraryLoading: PropTypes.bool,
   getSoundsByCategory: PropTypes.func.isRequired,
   clearHoverSoundSelection: PropTypes.func.isRequired,
@@ -302,6 +189,7 @@ ChannelModalBehaviorTab.propTypes = {
   handleHoverSoundVolumeChange: PropTypes.func.isRequired,
   handleHoverSoundSelect: PropTypes.func.isRequired,
   handleHoverSoundUpload: PropTypes.func.isRequired,
+  handleHoverSoundDelete: PropTypes.func,
 };
 
 export default React.memo(ChannelModalBehaviorTab);
