@@ -9,7 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { SteamCoverTile, SteamGamesShelf } from './SteamGamesShelf';
 import SteamWidgetHeading from './SteamWidgetHeading';
-import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
+import { normalizeHomeWidgetSurface, resolveSteamHeading } from '../../utils/homeWidgetSurface';
 import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
@@ -40,7 +40,7 @@ const CLIENT_META_TTL_MS = 5 * 60 * 1000;
 const VARIANT_META = {
   recent: {
     title: 'Recent',
-    kindId: 'steamRecent',
+    kindId: 'steamGames',
     ariaLabel: 'Steam Recently Played',
     launchSource: 'steamRecent',
     emptyNoData: 'No recent Steam play yet',
@@ -51,7 +51,7 @@ const VARIANT_META = {
   },
   mostPlayed: {
     title: 'Most Played',
-    kindId: 'steamMostPlayed',
+    kindId: 'steamGames',
     ariaLabel: 'Steam Most Played',
     launchSource: 'steamMostPlayed',
     emptyNoData: 'No playtime data yet',
@@ -62,7 +62,7 @@ const VARIANT_META = {
   },
   favorites: {
     title: 'Favorites',
-    kindId: 'steamFavorites',
+    kindId: 'steamGames',
     ariaLabel: 'Steam Favorites',
     launchSource: 'steamFavorites',
     emptyNoData: 'Star games in Game Hub to fill this shelf',
@@ -163,8 +163,8 @@ function SteamGamesGlanceSlot({
   const colSpan = slot?.colSpan ?? sizePreset.colSpan ?? 2;
   const rowSpan = slot?.rowSpan ?? sizePreset.rowSpan ?? 2;
   const layout = useMemo(
-    () => resolveHomeWidgetLayout(colSpan, rowSpan),
-    [colSpan, rowSpan]
+    () => resolveHomeWidgetLayout(colSpan, rowSpan, { textSize: slot?.textSize }),
+    [colSpan, rowSpan, slot?.textSize]
   );
   // 1-row cinema shelves use cozy density + width caps; taller grids stay compact/dense.
   const coverDensity =
@@ -329,8 +329,9 @@ function SteamGamesGlanceSlot({
     ]
   );
 
-  const headingTitle =
+  const defaultHeading =
     variant === 'tagged' && selectedTag ? selectedTag : meta.title;
+  const headingTitle = resolveSteamHeading(defaultHeading, slot?.widget?.heading);
   const HeadingIcon = meta.icon || Gamepad2;
 
   let emptyHint = meta.emptyNoData;
@@ -388,11 +389,12 @@ function SteamGamesGlanceSlot({
         </button>
       ) : (
         <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
-          {layout.showHeader ? (
+          {layout.showHeader && headingTitle ? (
             <SteamWidgetHeading
               title={headingTitle}
               icon={HeadingIcon}
               compact={rowSpan <= 1}
+              textSize={slot?.textSize}
             />
           ) : null}
           <SteamGamesShelf

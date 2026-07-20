@@ -14,6 +14,7 @@ import { isChannelSlotEmpty, isNonChannelSlot } from '../../utils/homeGridSlots'
 import {
   normalizeHomeWidgetSurface,
   normalizeHomeWidgetTextColor,
+  normalizeHomeWidgetTextSize,
 } from '../../utils/homeWidgetSurface';
 import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings';
 import { getHomeSlotKind, listPlaceableHomeSlotKindsGrouped, matchHomeSlotSizePreset } from './slotKindRegistry';
@@ -47,6 +48,7 @@ function HomeBoardArrangeBar({
   onSetSizePreset,
   onSetSurface,
   onSetTextColor,
+  onSetTextSize,
   onSetListenApp,
   onPatchWidget,
   blockedPresetIds = [],
@@ -107,13 +109,16 @@ function HomeBoardArrangeBar({
   const showGlassLooks = selectedIsWidget && activeSurface === 'glass';
   const showListenLooks = Boolean(selectedIsNowPlaying && typeof onSetListenApp === 'function');
   /* Now Playing text follows album-art palette — a manual color would be a dead control. */
-  const showTextColorLooks = Boolean(
+  const showTextLooks = Boolean(
     selectedIsWidget && !selectedIsNowPlaying && typeof onSetTextColor === 'function'
   );
   const hasLooksPanel =
-    showGlassLooks || hasWidgetSettings || showListenLooks || showTextColorLooks;
-  const activeTextColor = showTextColorLooks
+    showGlassLooks || hasWidgetSettings || showListenLooks || showTextLooks;
+  const activeTextColor = showTextLooks
     ? normalizeHomeWidgetTextColor(selectedSlot?.textColor)
+    : null;
+  const activeTextSize = showTextLooks
+    ? normalizeHomeWidgetTextSize(selectedSlot?.textSize)
     : null;
 
   useEffect(() => {
@@ -341,34 +346,56 @@ function HomeBoardArrangeBar({
 
             <WeeContentCollapse open={looksOpen && hasLooksPanel} keepMounted={false}>
               <div className="flex max-h-[min(34vh,16rem)] flex-col gap-2.5 overflow-y-auto border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
-                {showTextColorLooks ? (
-                  <div className="flex flex-wrap items-center gap-2 px-0.5">
-                    <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
-                      Text color
-                    </span>
-                    <label className="inline-flex cursor-pointer items-center gap-2">
-                      <input
-                        type="color"
-                        value={activeTextColor || INPUT_COLOR_DEFAULT_HEX}
-                        onChange={(e) => onSetTextColor?.(e.target.value)}
-                        className="h-7 w-9 cursor-pointer rounded-md border-2 border-[hsl(var(--border-primary)/0.45)] bg-transparent p-0.5"
-                        title="Widget text color"
-                        aria-label="Widget text color"
-                      />
-                      <span className="font-mono text-[10px] font-semibold text-[hsl(var(--text-secondary))]">
-                        {activeTextColor ? activeTextColor.toUpperCase() : 'Auto'}
+                {showTextLooks ? (
+                  <div className="flex flex-col gap-2 px-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
+                        Text color
                       </span>
-                    </label>
-                    {activeTextColor ? (
-                      <button
-                        type="button"
-                        className="text-[9px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))] underline-offset-2 hover:text-[hsl(var(--text-secondary))] hover:underline"
-                        onClick={() => onSetTextColor?.(null)}
-                        title="Follow the theme text colors"
-                      >
-                        Auto
-                      </button>
-                    ) : null}
+                      <label className="inline-flex cursor-pointer items-center gap-2">
+                        <input
+                          type="color"
+                          value={activeTextColor || INPUT_COLOR_DEFAULT_HEX}
+                          onChange={(e) => onSetTextColor?.(e.target.value)}
+                          className="h-7 w-9 cursor-pointer rounded-md border-2 border-[hsl(var(--border-primary)/0.45)] bg-transparent p-0.5"
+                          title="Widget text color"
+                          aria-label="Widget text color"
+                        />
+                        <span className="font-mono text-[10px] font-semibold text-[hsl(var(--text-secondary))]">
+                          {activeTextColor ? activeTextColor.toUpperCase() : 'Auto'}
+                        </span>
+                      </label>
+                      {activeTextColor ? (
+                        <button
+                          type="button"
+                          className="text-[9px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))] underline-offset-2 hover:text-[hsl(var(--text-secondary))] hover:underline"
+                          onClick={() => onSetTextColor?.(null)}
+                          title="Follow the theme text colors"
+                        >
+                          Auto
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-tertiary))]">
+                        Text size
+                      </span>
+                      <WeeSegmentedControl
+                        size="sm"
+                        ariaLabel="Widget text size"
+                        layoutId="homeArrangeTextSize"
+                        value={activeTextSize || 'auto'}
+                        onChange={(value) =>
+                          onSetTextSize?.(value === 'auto' ? null : value)
+                        }
+                        options={[
+                          { value: 'auto', label: 'Auto', title: 'Match tile density' },
+                          { value: 'sm', label: 'S', title: 'Smaller text' },
+                          { value: 'md', label: 'M', title: 'Medium text' },
+                          { value: 'lg', label: 'L', title: 'Larger text' },
+                        ]}
+                      />
+                    </div>
                   </div>
                 ) : null}
                 {showGlassLooks ? <HomeWidgetGlassControls nested /> : null}
@@ -421,6 +448,7 @@ HomeBoardArrangeBar.propTypes = {
   onSetSizePreset: PropTypes.func,
   onSetSurface: PropTypes.func,
   onSetTextColor: PropTypes.func,
+  onSetTextSize: PropTypes.func,
   onSetListenApp: PropTypes.func,
   onPatchWidget: PropTypes.func,
   blockedPresetIds: PropTypes.arrayOf(PropTypes.string),

@@ -35,6 +35,7 @@ import {
   setHomeSlotSpanInSpaceData,
   setHomeSlotSurfaceInSpaceData,
   setHomeSlotTextColorInSpaceData,
+  setHomeSlotTextSizeInSpaceData,
   setHomeSlotWidgetPatchInSpaceData,
   syncSpaceDataFromLegacyMaps,
 } from './homeGridSlots';
@@ -266,17 +267,17 @@ useConsolidatedAppStore = create(
           /** Now Playing takeover visibility: false | 'manual' | 'auto'. Transient — not persisted. */
           spotifyTakeoverActive: false,
           /**
-           * BETA: Immersive Sound Mode prefs (Listening Stage). Persisted.
-           * Removable with `src/features/immersiveSoundMode/` — see feature README.
+           * Immersive Sound Mode prefs (Listening Stage). Persisted.
+           * Controls also live in Now Playing widget Looks.
            */
           immersiveSoundMode: {
-            enabled: false,
+            enabled: true,
             intensity: 'focus',
-            autoIdle: true,
+            autoIdle: false,
             coverBackdrop: true,
             boardDim: 0.78,
           },
-          /** BETA: Listening Stage session — false | 'manual' | 'auto'. Transient — not persisted. */
+          /** Listening Stage session — false | 'manual' | 'auto'. Transient — not persisted. */
           immersiveSoundModeActive: false,
           /**
            * BETA: Scene FX (parallax / atmosphere / wake / music bloom). Persisted.
@@ -409,6 +410,8 @@ useConsolidatedAppStore = create(
             idleAnimationEnabled: false,
             idleAnimationTypes: ['pulse', 'bounce', 'glow'],
             idleAnimationInterval: 8,
+            /** Micro-delights while browsing (not only after idle) — see idleExperience.js */
+            idleDelightsWhileActive: false,
             kenBurnsEnabled: false,
             kenBurnsMode: 'hover',
             kenBurnsHoverScale: 1.1,
@@ -1277,6 +1280,18 @@ useConsolidatedAppStore = create(
             return { channels: patchHomeChannelSpace(state, key, apply) };
           }),
 
+          setHomeSlotTextSizeForSpace: (spaceKey, channelIndex, textSize) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const index = channelIndex | 0;
+            if (index < 0) return state;
+            const apply = (channelsData) =>
+              setHomeSlotTextSizeInSpaceData(channelsData, index, textSize);
+            if (key === 'workspaces') {
+              return { channels: patchFocusChannelSpace(state, apply) };
+            }
+            return { channels: patchHomeChannelSpace(state, key, apply) };
+          }),
+
           setHomeSlotWidgetForSpace: (spaceKey, channelIndex, widgetPatch) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
             const index = channelIndex | 0;
@@ -2109,9 +2124,9 @@ useConsolidatedAppStore = create(
               homeIdleStage: 'active',
               spotifyTakeoverActive: false,
               immersiveSoundMode: {
-                enabled: false,
+                enabled: true,
                 intensity: 'focus',
-                autoIdle: true,
+                autoIdle: false,
                 coverBackdrop: true,
                 boardDim: 0.78,
               },
@@ -2213,6 +2228,7 @@ useConsolidatedAppStore = create(
                 idleAnimationEnabled: false,
                 idleAnimationTypes: ['pulse', 'bounce', 'glow'],
                 idleAnimationInterval: 8,
+                idleDelightsWhileActive: false,
                 kenBurnsEnabled: false,
                 kenBurnsMode: 'hover',
                 kenBurnsHoverScale: 1.1,

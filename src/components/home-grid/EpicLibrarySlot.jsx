@@ -7,7 +7,7 @@ import { Gamepad2 } from 'lucide-react';
 import HomeWidgetShell from './HomeWidgetShell';
 import { SteamCoverTile, SteamGamesShelf } from './SteamGamesShelf';
 import SteamWidgetHeading from './SteamWidgetHeading';
-import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
+import { normalizeHomeWidgetSurface, resolveSteamHeading } from '../../utils/homeWidgetSurface';
 import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
@@ -75,10 +75,11 @@ function EpicLibrarySlot({
   const colSpan = slot?.colSpan ?? sizePreset.colSpan ?? 2;
   const rowSpan = slot?.rowSpan ?? sizePreset.rowSpan ?? 2;
   const layout = useMemo(
-    () => resolveHomeWidgetLayout(colSpan, rowSpan),
-    [colSpan, rowSpan]
+    () => resolveHomeWidgetLayout(colSpan, rowSpan, { textSize: slot?.textSize }),
+    [colSpan, rowSpan, slot?.textSize]
   );
   const coverDensity = layout.density === 'roomy' ? 'cozy' : 'compact';
+  const headingTitle = resolveSteamHeading('Epic', slot?.widget?.heading);
 
   const visible = useMemo(() => games.slice(0, capacity), [games, capacity]);
 
@@ -208,8 +209,13 @@ function EpicLibrarySlot({
         </button>
       ) : (
         <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
-          {layout.showHeader ? (
-            <SteamWidgetHeading title="Epic" icon={Gamepad2} compact={rowSpan <= 1} />
+          {layout.showHeader && headingTitle ? (
+            <SteamWidgetHeading
+              title={headingTitle}
+              icon={Gamepad2}
+              compact={rowSpan <= 1}
+              textSize={slot?.textSize}
+            />
           ) : null}
           <SteamGamesShelf
             prefs={steamPrefs}

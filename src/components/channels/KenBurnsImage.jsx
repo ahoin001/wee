@@ -49,6 +49,7 @@ const KenBurnsImage = ({
   height = '200px',
   borderRadius = '8px',
   objectFit = 'cover',
+  objectPosition = '50% 50%',
   
   // Performance
   enableIntersectionObserver = true,
@@ -515,6 +516,7 @@ const KenBurnsImage = ({
           className="ken-burns-image ken-burns-current"
         style={{
           objectFit,
+          objectPosition,
           opacity: currentImageSrc ? 1 : 0,
         }}
         loading="lazy"
@@ -556,6 +558,7 @@ const KenBurnsImage = ({
             className="ken-burns-image ken-burns-next"
           style={{
             objectFit,
+            objectPosition,
             opacity: nextImageSrc && mode === 'slideshow' ? 0 : (nextImageSrc ? 1 : 0),
           }}
           loading="lazy"
@@ -634,6 +637,7 @@ KenBurnsImage.propTypes = {
   height: PropTypes.string,
   borderRadius: PropTypes.string,
   objectFit: PropTypes.string,
+  objectPosition: PropTypes.string,
   
   // Performance
   enableIntersectionObserver: PropTypes.bool,

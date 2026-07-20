@@ -99,8 +99,11 @@ function AdminQuickAccessSlot({
     [slot?.colSpan, slot?.rowSpan]
   );
   const layout = useMemo(
-    () => resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1),
-    [slot?.colSpan, slot?.rowSpan]
+    () =>
+      resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1, {
+        textSize: slot?.textSize,
+      }),
+    [slot?.colSpan, slot?.rowSpan, slot?.textSize]
   );
   const capacity = sizePreset?.capacity ?? 0;
   const isCompact = capacity === 0 || layout.isCompact;

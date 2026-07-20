@@ -7,18 +7,28 @@ import {
   SUPPORTED_GALLERY_HINT,
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../utils/supportedUploadMedia';
+import { normalizeChannelMedia, replaceChannelMediaArt } from '../utils/channelMediaFit';
 
 /**
  * Channel image / gallery state and handlers for ChannelModal.
  */
 export function useChannelModalMedia({ currentMedia }) {
-  const [media, setMedia] = useState(currentMedia);
+  const [media, setMediaState] = useState(() => normalizeChannelMedia(currentMedia));
   const [imageGallery, setImageGallery] = useState(currentMedia?.gallery || []);
   const [galleryMode, setGalleryMode] = useState(false);
   const fileInputRef = useRef();
   const galleryFileInputRef = useRef();
   const [mediaUploadHint, setMediaUploadHint] = useState('');
   const [libraryUploading, setLibraryUploading] = useState(false);
+
+  /** Preserve / reset focal framing through the shared media-fit contract. */
+  const setMedia = useCallback((next) => {
+    if (next == null) {
+      setMediaState(null);
+      return;
+    }
+    setMediaState((prev) => replaceChannelMediaArt(prev, next));
+  }, []);
 
   const clearMediaUploadHint = useCallback(() => setMediaUploadHint(''), []);
 

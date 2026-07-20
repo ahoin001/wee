@@ -42,8 +42,11 @@ function SystemPadSlot({
   );
 
   const layout = useMemo(
-    () => resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1),
-    [slot?.colSpan, slot?.rowSpan]
+    () =>
+      resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1, {
+        textSize: slot?.textSize,
+      }),
+    [slot?.colSpan, slot?.rowSpan, slot?.textSize]
   );
   const sizePreset = useMemo(
     () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),

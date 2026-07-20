@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { playPreview, setPreviewVolume, stopPreview } from '../utils/soundPlayback';
 import {
   SOUND_PREVIEW_MAX_SEC,
+  assessSoundUploadSize,
   probeAudioDuration,
   validateSoundDuration,
-  validateSoundUploadSize,
 } from '../utils/audioTrim';
 
 const DEFAULT_HOVER_VOLUME = 0.5;
@@ -136,8 +136,11 @@ export function useChannelModalHoverSound({
   }, [stopHoverPreview]);
 
   const closeTrimDialog = useCallback(() => {
+    if (trimSound?.staged) {
+      void window.api?.sounds?.clearStaging?.();
+    }
     setTrimSound(null);
-  }, []);
+  }, [trimSound?.staged]);
 
   const handleTrimSaved = useCallback(
     async (savedSound) => {
@@ -165,9 +168,21 @@ export function useChannelModalHoverSound({
       }
 
       const { file } = fileResult;
-      const sizeError = validateSoundUploadSize('channelHover', file.size);
-      if (sizeError) {
-        throw new Error(sizeError);
+      const sizeCheck = assessSoundUploadSize('channelHover', file.size);
+      if (sizeCheck.mustTrim) {
+        if (!window.api?.sounds?.stageForTrim) {
+          throw new Error(sizeCheck.message || 'File is too large to upload.');
+        }
+        const staged = await window.api.sounds.stageForTrim({ file });
+        if (!staged?.success || !staged.sound?.url) {
+          throw new Error(staged?.error || sizeCheck.message || 'Failed to prepare file for trim');
+        }
+        setHoverSoundHint(sizeCheck.message);
+        openTrimForSound(staged.sound);
+        return;
+      }
+      if (!sizeCheck.ok) {
+        throw new Error(sizeCheck.message || 'File is too large');
       }
 
       const name = file.name.replace(/\.[^/.]+$/, '');

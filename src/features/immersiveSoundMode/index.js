@@ -1,6 +1,5 @@
 /**
- * Immersive Sound Mode (Beta) — public exports.
- * Delete this folder to remove the feature (see README.md).
+ * Immersive Sound Mode — Listening Stage public exports.
  */
 
 export {

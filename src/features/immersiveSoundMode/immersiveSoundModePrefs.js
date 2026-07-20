@@ -1,17 +1,17 @@
 /**
- * Immersive Sound Mode prefs — isolated beta feature.
- * Delete with `src/features/immersiveSoundMode/` (see README).
+ * Immersive Sound Mode (Listening Stage) prefs.
+ * First-class Now Playing companion — controls live in Home widget Looks.
  */
 
 export const IMMERSIVE_SOUND_INTENSITIES = Object.freeze(['calm', 'focus', 'club']);
 
 export const DEFAULT_IMMERSIVE_SOUND_MODE = Object.freeze({
   /** Master gate — when false, stage never mounts work beyond prefs UI. */
-  enabled: false,
+  enabled: true,
   /** Visual intensity preset. */
   intensity: 'focus',
   /** Enter stage when music plays and Home idle reaches ambient/attract. */
-  autoIdle: true,
+  autoIdle: false,
   /** Show blurred album art as the session backdrop. */
   coverBackdrop: true,
   /** How strongly the stage dims the home board (0–1). */
@@ -60,9 +60,9 @@ export function normalizeImmersiveSoundMode(raw) {
     : DEFAULT_IMMERSIVE_SOUND_MODE.intensity;
   const boardDim = Number(src.boardDim);
   return {
-    enabled: Boolean(src.enabled),
+    enabled: typeof src.enabled === 'boolean' ? src.enabled : DEFAULT_IMMERSIVE_SOUND_MODE.enabled,
     intensity,
-    autoIdle: src.autoIdle !== false,
+    autoIdle: Boolean(src.autoIdle),
     coverBackdrop: src.coverBackdrop !== false,
     boardDim: Number.isFinite(boardDim)
       ? Math.min(0.92, Math.max(0.35, boardDim))

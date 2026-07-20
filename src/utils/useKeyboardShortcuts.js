@@ -96,23 +96,16 @@ const useKeyboardShortcuts = () => {
       const stepped = resolveSteppedChannelPage(currentPage, 1, totalPages);
       if (stepped.direction === 'none' || stepped.page === currentPage) return;
 
+      // Settle via Framer onAnimationComplete + PaginatedChannels safety timer only.
+      // Fire-and-forget clears race with chained flips (wheel / rapid shortcuts).
       const { setChannelNavigationForSpace } = getState().actions;
       setChannelNavigationForSpace?.(key, {
         currentPage: stepped.page,
         isAnimating: true,
         animationDirection: stepped.direction,
         animationWrapped: stepped.wrapped,
+        animationDuration: CHANNEL_PAGE_FLIP_MS,
       });
-      window.setTimeout(() => {
-        const latest = getState();
-        const latestSpaceKey = resolveActiveChannelSpaceKey(latest.spaces?.activeSpaceId);
-        if (latestSpaceKey !== key) return;
-        latest.actions.setChannelNavigationForSpace?.(key, {
-          isAnimating: false,
-          animationDirection: 'none',
-          animationWrapped: false,
-        });
-      }, CHANNEL_PAGE_FLIP_MS);
     };
 
     window.prevPage = () => {
@@ -134,17 +127,8 @@ const useKeyboardShortcuts = () => {
         isAnimating: true,
         animationDirection: stepped.direction,
         animationWrapped: stepped.wrapped,
+        animationDuration: CHANNEL_PAGE_FLIP_MS,
       });
-      window.setTimeout(() => {
-        const latest = getState();
-        const latestSpaceKey = resolveActiveChannelSpaceKey(latest.spaces?.activeSpaceId);
-        if (latestSpaceKey !== key) return;
-        latest.actions.setChannelNavigationForSpace?.(key, {
-          isAnimating: false,
-          animationDirection: 'none',
-          animationWrapped: false,
-        });
-      }, CHANNEL_PAGE_FLIP_MS);
     };
 
     window.toggleDock = () => {

@@ -123,6 +123,9 @@ const PaginatedChannelsInner = React.memo(() => {
   const setHomeSlotTextColorForSpace = useConsolidatedAppStore(
     (s) => s.actions.setHomeSlotTextColorForSpace
   );
+  const setHomeSlotTextSizeForSpace = useConsolidatedAppStore(
+    (s) => s.actions.setHomeSlotTextSizeForSpace
+  );
   const setHomeSlotWidgetForSpace = useConsolidatedAppStore(
     (s) => s.actions.setHomeSlotWidgetForSpace
   );
@@ -587,6 +590,14 @@ const PaginatedChannelsInner = React.memo(() => {
       setHomeSlotTextColorForSpace(channelSpaceKey, homeBoardSelectedSlotIndex, textColor);
     },
     [homeBoardSelectedSlotIndex, setHomeSlotTextColorForSpace, channelSpaceKey]
+  );
+
+  const handleSetTextSize = useCallback(
+    (textSize) => {
+      if (homeBoardSelectedSlotIndex == null) return;
+      setHomeSlotTextSizeForSpace(channelSpaceKey, homeBoardSelectedSlotIndex, textSize);
+    },
+    [homeBoardSelectedSlotIndex, setHomeSlotTextSizeForSpace, channelSpaceKey]
   );
 
   const handleSetListenApp = useCallback(
@@ -1118,19 +1129,21 @@ const PaginatedChannelsInner = React.memo(() => {
     finishAnimation();
   }, [finishAnimation]);
 
-  // Micro-delights run only in the shared idle stages (ambient/attract);
-  // attract raises the cadence so a populated tile gets spotlighted more often.
+  // Micro-delights: idle ambient/attract by default; optional “while browsing” via config.
+  // Attract raises the cadence so a populated tile gets spotlighted more often.
   const idleAnimationProps = useMemo(() => ({
     enabled: idleExperience.delightsActive,
     types: idleExperience.config.delightTypes,
     interval: idleExperience.attractActive
       ? Math.max(4, Math.round(idleExperience.config.delightIntervalSec / 2))
       : idleExperience.config.delightIntervalSec,
+    allowWhenUnfocused: idleExperience.config.delightsWhileActive,
   }), [
     idleExperience.delightsActive,
     idleExperience.attractActive,
     idleExperience.config.delightTypes,
     idleExperience.config.delightIntervalSec,
+    idleExperience.config.delightsWhileActive,
   ]);
 
   // Use idle channel animations hook
@@ -1138,7 +1151,8 @@ const PaginatedChannelsInner = React.memo(() => {
     idleAnimationProps.enabled,
     idleAnimationProps.types,
     idleAnimationProps.interval,
-    currentPageChannels
+    currentPageChannels,
+    { allowWhenUnfocused: idleAnimationProps.allowWhenUnfocused }
   );
 
   const renderChannelInner = useCallback(
@@ -1539,6 +1553,7 @@ const PaginatedChannelsInner = React.memo(() => {
             onSetSizePreset={handleSetSizePreset}
             onSetSurface={handleSetSurface}
             onSetTextColor={handleSetTextColor}
+            onSetTextSize={handleSetTextSize}
             onSetListenApp={handleSetListenApp}
             onPatchWidget={handlePatchSelectedWidget}
             blockedPresetIds={blockedSizePresetIds}

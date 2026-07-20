@@ -187,7 +187,8 @@ export const SETTINGS_TAB_META = Object.freeze([
   },
   /**
    * BETA experiments tab — currently hosts Immersive Sound Mode.
-   * Removable with `src/features/immersiveSoundMode/` + BetaSettingsTab (see feature README).
+   * Listening Stage settings live in Now Playing widget Looks.
+   * Removable Scene FX remains here with `src/features/sceneFxBeta/`.
    */
   {
     id: 'beta',

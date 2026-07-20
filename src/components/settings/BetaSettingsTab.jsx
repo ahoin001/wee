@@ -3,7 +3,6 @@ import { FlaskConical } from 'lucide-react';
 import Text from '../../ui/Text';
 import { WeeModalFieldCard, WeeSectionEyebrow } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import ImmersiveSoundModeSettingsSection from '../../features/immersiveSoundMode/ImmersiveSoundModeSettingsSection.jsx';
 /** BETA: Scene FX — remove with `src/features/sceneFxBeta/`. */
 import SceneFxBetaSettingsSection from '../../features/sceneFxBeta/SceneFxBetaSettingsSection.jsx';
 import './surfaceStyles.css';
@@ -12,8 +11,9 @@ import './surfaceStyles.css';
  * Beta experiments tab.
  *
  * REMOVABLE modules (each has its own README):
- * - `src/features/immersiveSoundMode/`
  * - `src/features/sceneFxBeta/`
+ *
+ * Listening Stage lives in Now Playing widget Looks (no longer beta-gated).
  */
 const BetaSettingsTab = React.memo(() => {
   return (
@@ -37,9 +37,6 @@ const BetaSettingsTab = React.memo(() => {
           </Text>
         </div>
       </WeeModalFieldCard>
-
-      {/* BETA: Immersive Sound Mode — delete feature folder + this import to remove */}
-      <ImmersiveSoundModeSettingsSection />
 
       {/* BETA: Scene FX — delete feature folder + this import to remove */}
       <SceneFxBetaSettingsSection />

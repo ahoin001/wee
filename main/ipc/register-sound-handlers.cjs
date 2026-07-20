@@ -42,6 +42,89 @@ function registerSoundHandlers({
     return 10 * 1024 * 1024;
   };
 
+  const stagingDirName = '.staging';
+  const getStagingDir = () => path.join(userSoundsPath, stagingDirName);
+
+  const clearSoundStaging = async () => {
+    const stagingDir = getStagingDir();
+    try {
+      const entries = await fsPromises.readdir(stagingDir);
+      await Promise.all(
+        entries.map((entry) =>
+          fsPromises.unlink(path.join(stagingDir, entry)).catch(() => {})
+        )
+      );
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        console.warn(`[SOUNDS] Failed to clear staging: ${error.message}`);
+      }
+    }
+  };
+
+  ipcMain.handle('sounds:clear-staging', async () => {
+    try {
+      await clearSoundStaging();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error?.message || 'Failed to clear staging' };
+    }
+  });
+
+  /**
+   * Copy a selected file into sounds/.staging for SoundTrimDialog — not a library entry.
+   * Payload: { file: { path, name, size? } }
+   */
+  ipcMain.handle('sounds:stage-for-trim', async (_event, payload = {}) => {
+    try {
+      const file = payload?.file;
+      if (!file?.path || !file?.name) {
+        return { success: false, error: 'Invalid file object provided' };
+      }
+      try {
+        await fsPromises.access(file.path);
+      } catch {
+        return { success: false, error: `Source file not found: ${file.path}` };
+      }
+      const validExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
+      const fileExtension = path.extname(file.name).toLowerCase();
+      if (!validExtensions.includes(fileExtension)) {
+        return {
+          success: false,
+          error: `Invalid file type: ${fileExtension}. Supported formats: ${validExtensions.join(', ')}`,
+        };
+      }
+      const stats = await fsPromises.stat(file.path).catch(() => null);
+      if (!stats || stats.size <= 0) {
+        return { success: false, error: 'File is empty or unreadable.' };
+      }
+      if (stats.size > 15 * 1024 * 1024) {
+        return { success: false, error: 'File is too large. Maximum selectable size is 15MB.' };
+      }
+
+      await fsPromises.mkdir(userSoundsPath, { recursive: true });
+      await clearSoundStaging();
+      const stagingDir = getStagingDir();
+      await fsPromises.mkdir(stagingDir, { recursive: true });
+
+      const timestamp = Date.now();
+      const filename = `stage-${timestamp}${fileExtension}`;
+      await copyFileToUserDirectory(file.path, stagingDir, filename);
+      const baseName = path.basename(file.name, fileExtension);
+      return {
+        success: true,
+        sound: {
+          url: `userdata://sounds/${stagingDirName}/${filename}`,
+          name: baseName,
+          size: stats.size,
+          staged: true,
+          mustTrimReason: 'size',
+        },
+      };
+    } catch (error) {
+      return { success: false, error: error?.message || 'Failed to stage sound for trim' };
+    }
+  });
+
   ipcMain.handle('select-sound-file', async () => {
     try {
       const result = await dialog.showOpenDialog(getMainWindow(), {

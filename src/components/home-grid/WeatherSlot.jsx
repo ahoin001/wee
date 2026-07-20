@@ -38,8 +38,11 @@ function WeatherSlot({
   });
 
   const layout = useMemo(
-    () => resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1),
-    [slot?.colSpan, slot?.rowSpan]
+    () =>
+      resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1, {
+        textSize: slot?.textSize,
+      }),
+    [slot?.colSpan, slot?.rowSpan, slot?.textSize]
   );
   const { isCompact, isTall, isWide, showHeader, shellPadClass, gapClass, kickerClass, density } =
     layout;

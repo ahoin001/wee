@@ -36,6 +36,7 @@ import {
   NOW_PLAYING_ART_LAYOUTS,
   NOW_PLAYING_BACKDROP_MODES,
 } from '../../utils/homeNowPlayingWidgetPrefs';
+import ImmersiveSoundModeSettingsSection from '../../features/immersiveSoundMode/ImmersiveSoundModeSettingsSection.jsx';
 import {
   DEFAULT_HOME_RECENTLY_USED_WIDGET,
   HOME_RECENT_LAUNCH_FILTERS,
@@ -58,18 +59,41 @@ import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation
 import { AdminPanel } from '../admin';
 
 const STEAM_KIND_IDS = new Set([
+  'steamGames',
   'steamRecent',
   'steamMostPlayed',
   'steamFavorites',
   'steamTags',
   'steamFriends',
+  'epicLibrary',
 ]);
 const STEAM_SHELF_KIND_IDS = new Set([
+  'steamGames',
   'steamRecent',
   'steamMostPlayed',
   'steamFavorites',
   'steamTags',
+  'epicLibrary',
 ]);
+
+const STEAM_GAMES_MODE_OPTIONS = [
+  { value: 'recent', label: 'Recent', title: 'Recently played' },
+  { value: 'mostPlayed', label: 'Most played', title: 'Highest lifetime playtime' },
+  { value: 'favorites', label: 'Favorites', title: 'Starred in Game Hub' },
+];
+
+function defaultSteamHeadingLabel(kindId, slot) {
+  if (kindId === 'steamFriends') return 'Friends';
+  if (kindId === 'epicLibrary') return 'Epic';
+  if (kindId === 'steamTags') {
+    const tag = String(slot?.widget?.tag || '').trim();
+    return tag || 'Tags';
+  }
+  const mode = String(slot?.widget?.mode || '').trim();
+  if (kindId === 'steamRecent' || mode === 'recent') return 'Recent';
+  if (kindId === 'steamFavorites' || mode === 'favorites') return 'Favorites';
+  return 'Most Played';
+}
 
 function WeatherWidgetSettings() {
   const tempUnitRaw = useConsolidatedAppStore((s) => s.ui?.homeWeatherTempUnit);
@@ -175,8 +199,75 @@ function SteamWidgetSettings({ kindId, slot, onPatchWidget }) {
     return opts;
   }, [tagOptions, selectedTag]);
 
+  const defaultHeading = defaultSteamHeadingLabel(kindId, slot);
+  const headingRaw = slot?.widget?.heading;
+  const headingHidden = headingRaw === '';
+  const headingCustom =
+    typeof headingRaw === 'string' && headingRaw !== '' ? headingRaw : '';
+
   return (
     <div className="flex w-full flex-col gap-2">
+      <div className="flex w-full flex-col gap-1.5">
+        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+          Heading
+        </span>
+        <WInput
+          variant="wee"
+          value={headingHidden ? '' : headingCustom}
+          placeholder={defaultHeading}
+          disabled={headingHidden}
+          aria-label="Widget heading"
+          onChange={(e) => {
+            const next = e.target.value;
+            // Empty field → default title; Hide button sets '' for no title.
+            onPatchWidget?.({ heading: next === '' ? null : next });
+          }}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <WeeButton
+            size="sm"
+            variant={headingHidden ? 'primary' : 'secondary'}
+            onClick={() => onPatchWidget?.({ heading: '' })}
+            title="Hide the shelf title"
+          >
+            Hide
+          </WeeButton>
+          <WeeButton
+            size="sm"
+            variant="secondary"
+            onClick={() => onPatchWidget?.({ heading: null })}
+            title={`Use default “${defaultHeading}”`}
+          >
+            Default
+          </WeeButton>
+          {headingHidden ? (
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
+              Title hidden
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {kindId === 'steamGames' ? (
+        <div className="flex w-full flex-col gap-1.5">
+          <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+            Shelf mode
+          </span>
+          <WeeSegmentedControl
+            size="sm"
+            ariaLabel="Steam games shelf mode"
+            layoutId="homeArrangeSteamGamesMode"
+            value={
+              ['recent', 'mostPlayed', 'favorites'].includes(String(slot?.widget?.mode || ''))
+                ? String(slot.widget.mode)
+                : 'mostPlayed'
+            }
+            onChange={(mode) => onPatchWidget?.({ mode: String(mode || 'mostPlayed') })}
+            options={STEAM_GAMES_MODE_OPTIONS}
+          />
+        </div>
+      ) : null}
+
       {kindId === 'steamTags' ? (
         <div className="flex w-full flex-col gap-1.5">
           <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
@@ -623,6 +714,8 @@ function NowPlayingWidgetSettings() {
           />
         </div>
 
+        <ImmersiveSoundModeSettingsSection compact />
+
         <WeeMorphStack open={spotifyMatchEnabled} gapOpen="gap-2">
           <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
             <div className="min-w-0">
@@ -851,7 +944,7 @@ function HomeWidgetSettingsPanel({ kindId, slot = null, onPatchWidget, nested = 
     title = 'Weather';
     body = <WeatherWidgetSettings />;
   } else if (STEAM_KIND_IDS.has(kindId)) {
-    title = 'Steam';
+    title = kindId === 'epicLibrary' ? 'Epic' : 'Steam';
     body = (
       <SteamWidgetSettings kindId={kindId} slot={slot} onPatchWidget={onPatchWidget} />
     );

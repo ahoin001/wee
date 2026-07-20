@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef, useId } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useId, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Upload } from 'lucide-react';
@@ -16,12 +16,18 @@ import MediaLibraryBrowser from '../../media/MediaLibraryBrowser';
 import ChannelModalInlineMediaSuggestions, {
   deriveChannelArtSearchQuery,
 } from './ChannelModalInlineMediaSuggestions';
+import ChannelTileArtFrame from '../ChannelTileArtFrame';
 import { useMediaLibraryBrowser } from '../../../hooks/useMediaLibraryBrowser';
 import {
   ACCEPT_IMAGE_OR_MP4,
   isSupportedImageOrVideoUpload,
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../../utils/supportedUploadMedia';
+import {
+  applyChannelMediaFocalPreset,
+  CHANNEL_MEDIA_FOCAL_PRESETS,
+  matchChannelMediaFocalPresetId,
+} from '../../../utils/channelMediaFit';
 
 const ART_SUBTAB_KEY = 'wee.channelArt.subtab';
 
@@ -171,6 +177,23 @@ function ChannelModalChannelArtPanel({
   const mediaLabel =
     media?.name || (typeof media?.type === 'string' && media.type.startsWith('video') ? 'Video' : 'Image');
 
+  const focalPresetId = useMemo(
+    () => matchChannelMediaFocalPresetId(media),
+    [media]
+  );
+  const focalPresetOptions = useMemo(
+    () => CHANNEL_MEDIA_FOCAL_PRESETS.map((p) => ({ value: p.id, label: p.label })),
+    []
+  );
+
+  const handleFocalPresetChange = useCallback(
+    (presetId) => {
+      if (!media || media.loading) return;
+      onApplySuggestedMedia(applyChannelMediaFocalPreset(media, presetId));
+    },
+    [media, onApplySuggestedMedia]
+  );
+
   const artSummaryOnly = Boolean(media && !media.loading && !artToolsExpanded);
   const previewEnterInitial =
     reduceMotion || previewHasEnteredRef.current
@@ -266,18 +289,20 @@ function ChannelModalChannelArtPanel({
           >
             {uploadFile.name}
           </Text>
-          <div className="flex max-h-[220px] justify-center p-4">
-            {uploadFile.type.startsWith('video/') || /\.mp4$/i.test(uploadFile.name) ? (
-              <video
-                src={uploadPreviewUrl}
-                className="max-h-[200px] max-w-full rounded-xl object-contain"
-                controls
-                muted
-                playsInline
-              />
-            ) : (
-              <img src={uploadPreviewUrl} alt="" className="max-h-[200px] max-w-full rounded-xl object-contain" />
-            )}
+          <div className="p-4">
+            <Text variant="desc" className="mb-2 block text-[hsl(var(--text-secondary))]">
+              Channel tile preview
+            </Text>
+            <ChannelTileArtFrame
+              media={{
+                url: uploadPreviewUrl,
+                type: uploadFile.type,
+                focalX: 0.5,
+                focalY: 0.5,
+              }}
+              className="max-w-[280px]"
+              autoPlayVideo={false}
+            />
           </div>
         </motion.div>
       ) : null}
@@ -312,37 +337,58 @@ function ChannelModalChannelArtPanel({
             exit={reduceMotion ? undefined : { opacity: 0, y: -8, scale: 0.98 }}
             transition={tabTransition}
           >
-            <div className="flex min-w-0 flex-nowrap items-center gap-3 sm:gap-5">
-              <div className="relative h-[72px] w-[140px] max-h-[28vh] shrink-0 -rotate-2 overflow-hidden rounded-[16px] border-4 border-[hsl(var(--wee-border-outer))] shadow-[var(--shadow-card)] sm:h-[80px] sm:w-[156px]">
-                {media.type?.startsWith?.('image/') || media.type === 'image' ? (
-                  <img src={media.url} alt="" className="h-full w-full object-cover" />
-                ) : media.type?.startsWith?.('video/') || media.type === 'video' || media.type === 'gif' ? (
-                  <video src={media.url} className="h-full w-full object-cover" autoPlay loop muted playsInline />
-                ) : null}
-              </div>
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <div className="mb-0.5 flex flex-nowrap items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[hsl(var(--primary))]">
-                    Active asset
-                  </span>
-                  {media.temporary ? (
-                    <span className="shrink-0 rounded bg-[hsl(var(--state-warning)/0.2)] px-1.5 py-0.5 text-[0.6rem] font-bold text-[hsl(var(--state-warning))]">
-                      Temp
+            <div className="flex min-w-0 flex-col gap-4">
+              <div className="flex min-w-0 flex-nowrap items-center gap-3 sm:gap-5">
+                <div className="w-[140px] shrink-0 sm:w-[168px]">
+                  <ChannelTileArtFrame
+                    media={media}
+                    className="-rotate-2"
+                    roundedClassName="rounded-[16px]"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <div className="mb-0.5 flex flex-nowrap items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[hsl(var(--primary))]">
+                      Active asset
                     </span>
-                  ) : null}
+                    {media.temporary ? (
+                      <span className="shrink-0 rounded bg-[hsl(var(--state-warning)/0.2)] px-1.5 py-0.5 text-[0.6rem] font-bold text-[hsl(var(--state-warning))]">
+                        Temp
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="truncate text-lg font-black italic leading-tight text-[hsl(var(--text-primary))] sm:text-xl">
+                    {mediaLabel}
+                  </div>
                 </div>
-                <div className="truncate text-lg font-black italic leading-tight text-[hsl(var(--text-primary))] sm:text-xl">
-                  {mediaLabel}
-                </div>
+                <WeeButton
+                  type="button"
+                  variant="primary"
+                  onClick={() => setArtToolsExpanded(true)}
+                  className="shrink-0 !px-4 !py-2.5 sm:!px-5 sm:!py-3"
+                >
+                  Change channel art
+                </WeeButton>
               </div>
-              <WeeButton
-                type="button"
-                variant="primary"
-                onClick={() => setArtToolsExpanded(true)}
-                className="shrink-0 !px-4 !py-2.5 sm:!px-5 sm:!py-3"
-              >
-                Change channel art
-              </WeeButton>
+
+              <div className="space-y-2">
+                <Text
+                  variant="small"
+                  className="block font-bold uppercase tracking-wide text-[hsl(var(--text-secondary))]"
+                >
+                  Frame on tile
+                </Text>
+                <WeeSegmentedControl
+                  ariaLabel="Channel art framing"
+                  value={focalPresetId}
+                  onChange={handleFocalPresetChange}
+                  options={focalPresetOptions}
+                  size="sm"
+                  wrap
+                  layoutId="channelArtFocalPreset"
+                  className="!flex w-full max-w-full"
+                />
+              </div>
             </div>
           </motion.div>
         ) : media?.loading ? (

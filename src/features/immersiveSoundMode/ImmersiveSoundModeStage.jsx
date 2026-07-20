@@ -17,8 +17,7 @@ import { exitImmersiveSoundMode } from './immersiveSoundModeApi.js';
 const EMPTY_NOW_PLAYING = Object.freeze({});
 
 /**
- * Full-screen Listening Stage — isolated beta UI.
- * Removable with `src/features/immersiveSoundMode/` (see README).
+ * Full-screen Listening Stage.
  */
 function ImmersiveSoundModeStage() {
   const { active, rawPrefs, np } = useConsolidatedAppStore(
@@ -103,8 +102,9 @@ function ImmersiveSoundModeStage() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={stageTransition}
+          onClick={handleExit}
         >
-          {/* Board dim */}
+          {/* Board dim — click target for dismiss */}
           <div
             className="absolute inset-0 bg-[hsl(var(--bg-primary))]"
             style={{ opacity: prefs.boardDim }}
@@ -114,7 +114,7 @@ function ImmersiveSoundModeStage() {
           {/* Blurred album backdrop */}
           {prefs.coverBackdrop && albumArtUrl ? (
             <div
-              className="absolute inset-0 scale-110 bg-cover bg-center"
+              className="pointer-events-none absolute inset-0 scale-110 bg-cover bg-center"
               style={{
                 backgroundImage: `url(${albumArtUrl})`,
                 filter: `blur(${look.artBlurPx}px) saturate(1.15)`,
@@ -127,7 +127,7 @@ function ImmersiveSoundModeStage() {
 
           {/* Soft primary glow veil */}
           <div
-            className="absolute inset-0"
+            className="pointer-events-none absolute inset-0"
             style={{
               background: `radial-gradient(ellipse 70% 55% at 50% 42%, hsl(var(--primary) / ${look.glowStrength}), transparent 70%)`,
             }}
@@ -154,7 +154,10 @@ function ImmersiveSoundModeStage() {
           ) : null}
 
           {/* Exit */}
-          <div className="absolute right-6 top-6 z-10">
+          <div
+            className="absolute right-6 top-6 z-10"
+            onClick={(event) => event.stopPropagation()}
+          >
             <WButton
               variant="secondary"
               size="sm"
@@ -167,7 +170,7 @@ function ImmersiveSoundModeStage() {
             </WButton>
           </div>
 
-          {/* Hero cover + meta */}
+          {/* Hero cover + meta — click dismisses; transport stops propagation */}
           <div className="relative z-[1] flex max-w-[min(92vw,28rem)] flex-col items-center gap-6 px-6 text-center">
             <m.div
               className="relative overflow-hidden rounded-[1.75rem] shadow-[var(--shadow-soft-hover)]"
@@ -229,7 +232,12 @@ function ImmersiveSoundModeStage() {
               </div>
             ) : null}
 
-            <div className="flex items-center gap-3">
+            <div
+              className="flex items-center gap-3"
+              onClick={(event) => event.stopPropagation()}
+              role="group"
+              aria-label="Playback controls"
+            >
               <WButton
                 variant="secondary"
                 size="sm"

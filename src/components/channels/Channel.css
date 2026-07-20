@@ -311,7 +311,7 @@
   box-shadow: var(--shadow-soft-hover), var(--shadow-hover-glow) !important;
 }
 
-/* Channel media */
+/* Channel media — fill mode SSOT is cover; object-position comes from media.focal* via inline style */
 .channel-media {
   position: absolute;
   top: 0;
@@ -319,6 +319,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% 50%;
   border-radius: 32px;
   display: block;
   z-index: 1;

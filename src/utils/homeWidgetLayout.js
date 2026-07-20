@@ -1,7 +1,10 @@
 /**
  * Shared responsive layout tokens for Home-grid widgets.
  * Driven by live colSpan × rowSpan so every size preset gets a deliberate look.
+ * Optional `textSize` (`sm` | `md` | `lg`) steps typography up/down from density defaults.
  */
+
+import { normalizeHomeWidgetTextSize } from './homeWidgetSurface';
 
 /**
  * @typedef {'compact' | 'cozy' | 'roomy'} HomeWidgetDensity
@@ -29,17 +32,20 @@
  * @property {number} iconGridCols
  * @property {boolean} showIconLabels
  * @property {number} listColumns — friend / row lists
+ * @property {'sm' | 'md' | 'lg' | null} textSize
  */
 
 /**
  * @param {number} [colSpan]
  * @param {number} [rowSpan]
+ * @param {{ textSize?: unknown }} [options]
  * @returns {HomeWidgetLayout}
  */
-export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1) {
+export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1, options = {}) {
   const cols = Math.max(1, Math.floor(Number(colSpan) || 1));
   const rows = Math.max(1, Math.floor(Number(rowSpan) || 1));
   const cells = cols * rows;
+  const textSize = normalizeHomeWidgetTextSize(options?.textSize);
 
   const isCompact = cells <= 1;
   const isWide = cols > rows;
@@ -58,12 +64,22 @@ export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1) {
   const gapClass =
     density === 'compact' ? 'gap-1' : density === 'roomy' ? 'gap-2' : 'gap-1.5';
 
-  const kickerClass =
+  let kickerClass =
     density === 'roomy'
       ? 'text-[10px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]'
       : 'text-[9px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]';
+  if (textSize === 'sm') {
+    kickerClass =
+      'text-[8px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]';
+  } else if (textSize === 'md') {
+    kickerClass =
+      'text-[10px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]';
+  } else if (textSize === 'lg') {
+    kickerClass =
+      'text-[11px] font-black uppercase tracking-[0.14em] text-[var(--hw-text-secondary)]';
+  }
 
-  const titleClass =
+  let titleClass =
     density === 'compact'
       ? 'text-base font-black tabular-nums leading-none'
       : density === 'roomy'
@@ -74,10 +90,46 @@ export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1) {
           ? 'text-3xl font-black tabular-nums leading-none'
           : 'text-3xl font-black tabular-nums leading-none';
 
-  const bodyClass =
+  if (textSize === 'sm') {
+    titleClass =
+      density === 'compact'
+        ? 'text-sm font-black tabular-nums leading-none'
+        : density === 'roomy'
+          ? isTall
+            ? 'text-4xl font-black tabular-nums leading-none'
+            : 'text-3xl font-black tabular-nums leading-none'
+          : 'text-2xl font-black tabular-nums leading-none';
+  } else if (textSize === 'md') {
+    titleClass =
+      density === 'compact'
+        ? 'text-lg font-black tabular-nums leading-none'
+        : density === 'roomy'
+          ? isTall
+            ? 'text-5xl font-black tabular-nums leading-none'
+            : 'text-4xl font-black tabular-nums leading-none'
+          : 'text-3xl font-black tabular-nums leading-none';
+  } else if (textSize === 'lg') {
+    titleClass =
+      density === 'compact'
+        ? 'text-xl font-black tabular-nums leading-none'
+        : density === 'roomy'
+          ? isTall
+            ? 'text-6xl font-black tabular-nums leading-none'
+            : 'text-5xl font-black tabular-nums leading-none'
+          : 'text-4xl font-black tabular-nums leading-none';
+  }
+
+  let bodyClass =
     density === 'roomy'
       ? 'text-[11px] font-bold text-[var(--hw-text-secondary)]'
       : 'text-[10px] font-bold text-[var(--hw-text-secondary)]';
+  if (textSize === 'sm') {
+    bodyClass = 'text-[9px] font-bold text-[var(--hw-text-secondary)]';
+  } else if (textSize === 'md') {
+    bodyClass = 'text-[11px] font-bold text-[var(--hw-text-secondary)]';
+  } else if (textSize === 'lg') {
+    bodyClass = 'text-xs font-bold text-[var(--hw-text-secondary)]';
+  }
 
   const iconPx = density === 'compact' ? 22 : density === 'roomy' ? 28 : 24;
 
@@ -132,6 +184,7 @@ export function resolveHomeWidgetLayout(colSpan = 1, rowSpan = 1) {
     iconGridCols,
     showIconLabels,
     listColumns,
+    textSize,
   };
 }
 

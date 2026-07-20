@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import { useChannelSpaceKey } from '../../../contexts/ChannelSpaceContext';
 import {
+  CHANNEL_HOVER_ENTER_DWELL_MS,
+  CHANNEL_HOVER_FADE_OUT_MS,
   playChannelClick,
   playChannelHover,
+  stopChannelHover,
   stopSfx,
 } from '../../../utils/soundPlayback';
 import { launchWithFeedback } from '../../../utils/launchWithFeedback';
@@ -34,6 +37,14 @@ export function useChannelInteractions({
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [channelModalMounted, setChannelModalMounted] = useState(false);
   const [showImageSearch, setShowImageSearch] = useState(false);
+  const hoverDwellTimerRef = useRef(null);
+
+  const clearHoverDwell = useCallback(() => {
+    if (hoverDwellTimerRef.current != null) {
+      window.clearTimeout(hoverDwellTimerRef.current);
+      hoverDwellTimerRef.current = null;
+    }
+  }, []);
 
   const openHint = useConsolidatedAppStore((state) => state.ui.channelOpenHints?.[id]);
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
@@ -124,7 +135,14 @@ export function useChannelInteractions({
     };
   }, [showChannelModal, setUIState]);
 
-  useEffect(() => () => stopSfx({ fadeMs: 0 }), []);
+  useEffect(
+    () => () => {
+      clearHoverDwell();
+      stopChannelHover({ fadeMs: 0 });
+      stopSfx({ fadeMs: 0 });
+    },
+    [clearHoverDwell]
+  );
 
   const handleConfigure = useCallback(() => {
     if (interactionsLocked) return;
@@ -144,17 +162,28 @@ export function useChannelInteractions({
     openChannelModal();
   }, [interactionsLocked, openChannelModal]);
 
-  const handleMouseEnter = useCallback(async () => {
+  const handleMouseEnter = useCallback(() => {
     if (onHover) onHover();
     const hasContent = effectivePath || effectiveConfig?.isApiChannel || effectiveMedia;
-    if (hasContent) {
-      await playChannelHover(effectiveHoverSound);
-    }
-  }, [onHover, effectivePath, effectiveConfig?.isApiChannel, effectiveMedia, effectiveHoverSound]);
+    if (!hasContent) return;
+    clearHoverDwell();
+    hoverDwellTimerRef.current = window.setTimeout(() => {
+      hoverDwellTimerRef.current = null;
+      void playChannelHover(effectiveHoverSound);
+    }, CHANNEL_HOVER_ENTER_DWELL_MS);
+  }, [
+    onHover,
+    effectivePath,
+    effectiveConfig?.isApiChannel,
+    effectiveMedia,
+    effectiveHoverSound,
+    clearHoverDwell,
+  ]);
 
   const handleMouseLeave = useCallback(() => {
-    stopSfx({ fadeMs: 120 });
-  }, []);
+    clearHoverDwell();
+    stopChannelHover({ fadeMs: CHANNEL_HOVER_FADE_OUT_MS });
+  }, [clearHoverDwell]);
 
   const handleClick = useCallback(async () => {
     if (interactionsLocked) return;
@@ -169,6 +198,8 @@ export function useChannelInteractions({
       return;
     }
 
+    clearHoverDwell();
+    stopChannelHover({ fadeMs: 0 });
     stopSfx({ fadeMs: 0 });
     const isChannelEmpty = !effectiveConfig || !effectiveConfig.path;
 
@@ -261,6 +292,7 @@ export function useChannelInteractions({
     effectiveAsAdmin,
     effectivePerformancePauseMode,
     handleConfigure,
+    clearHoverDwell,
   ]);
 
   return {

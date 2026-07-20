@@ -152,6 +152,20 @@ export const HOME_SLOT_KINDS = {
     render: 'WeatherSlot',
     placeable: true,
   },
+  steamGames: {
+    id: 'steamGames',
+    label: 'Steam Games',
+    description: 'Recent, most played, or favorites — switch in Looks',
+    icon: '🎮',
+    category: 'steam',
+    colSpan: STEAM_TILE_SIZE_PRESETS.M.colSpan,
+    rowSpan: STEAM_TILE_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: STEAM_TILE_SIZE_PRESETS,
+    render: 'SteamGamesSlot',
+    placeable: true,
+  },
+  /** @deprecated Migrated to steamGames + widget.mode — kept for normalize aliases only. */
   steamRecent: {
     id: 'steamRecent',
     label: 'Steam Recent',
@@ -163,8 +177,9 @@ export const HOME_SLOT_KINDS = {
     defaultSizePreset: 'M',
     sizePresets: STEAM_TILE_SIZE_PRESETS,
     render: 'SteamRecentSlot',
-    placeable: true,
+    placeable: false,
   },
+  /** @deprecated Migrated to steamGames + widget.mode */
   steamMostPlayed: {
     id: 'steamMostPlayed',
     label: 'Steam Most Played',
@@ -176,8 +191,9 @@ export const HOME_SLOT_KINDS = {
     defaultSizePreset: 'M',
     sizePresets: STEAM_TILE_SIZE_PRESETS,
     render: 'SteamMostPlayedSlot',
-    placeable: true,
+    placeable: false,
   },
+  /** @deprecated Migrated to steamGames + widget.mode */
   steamFavorites: {
     id: 'steamFavorites',
     label: 'Steam Favorites',
@@ -189,7 +205,7 @@ export const HOME_SLOT_KINDS = {
     defaultSizePreset: 'M',
     sizePresets: STEAM_TILE_SIZE_PRESETS,
     render: 'SteamFavoritesSlot',
-    placeable: true,
+    placeable: false,
   },
   steamTags: {
     id: 'steamTags',

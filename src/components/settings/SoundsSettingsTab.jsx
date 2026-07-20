@@ -12,11 +12,13 @@ import {
   stopSfx,
 } from '../../utils/soundPlayback';
 import { findEnabledSound } from '../../utils/soundLibraryCache';
+import { assessSoundUploadSize, probeAudioDuration, validateSoundDuration } from '../../utils/audioTrim';
 import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
 import { ResourceUsageIndicator } from '../widgets';
 import Slider from '../../ui/Slider';
+import SoundTrimDialog from '../sounds/SoundTrimDialog';
 import '../audio/sound-management.css';
 import './surfaceStyles.css';
 import {
@@ -86,6 +88,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   const [testing, setTesting] = useState({});
   const [draggedItem, setDraggedItem] = useState(null);
   const [_dragOverItem, setDragOverItem] = useState(null);
+  const [trimState, setTrimState] = useState(null);
 
   /** When `undefined`, treat as active (standalone / tests). */
   const isSoundsTabActive = settingsActiveTabId == null || settingsActiveTabId === 'sounds';
@@ -157,6 +160,46 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
     setMessage({ type, text });
   }, []);
 
+  const activateHoverClickSound = useCallback(
+    async (category, newSound) => {
+      if (!newSound?.id || (category !== 'channelHover' && category !== 'channelClick')) return;
+      const siblings = getSoundsByCategory(category);
+      for (const s of siblings) {
+        if (s.id !== newSound.id && s.enabled) {
+          await updateSound(category, s.id, { enabled: false });
+        }
+      }
+      await updateSound(category, newSound.id, { enabled: true });
+      const volume = newSound.volume ?? 0.5;
+      if (category === 'channelHover') {
+        updateChannelHoverSound(true, volume);
+      } else {
+        updateChannelClickSound(true, volume);
+      }
+    },
+    [getSoundsByCategory, updateSound, updateChannelHoverSound, updateChannelClickSound]
+  );
+
+  const closeTrimDialog = useCallback(() => {
+    if (trimState?.sound?.staged) {
+      void window.api?.sounds?.clearStaging?.();
+    }
+    setTrimState(null);
+  }, [trimState?.sound?.staged]);
+
+  const handleTrimSaved = useCallback(
+    async (savedSound) => {
+      const category = trimState?.soundType;
+      setTrimState(null);
+      await loadSoundLibrary();
+      if (savedSound && category) {
+        await activateHoverClickSound(category, savedSound);
+      }
+      showMessage('success', 'Trimmed sound saved to library');
+    },
+    [trimState?.soundType, loadSoundLibrary, activateHoverClickSound, showMessage]
+  );
+
   // Handle file upload
   const handleUploadClick = useCallback(async (category) => {
     try {
@@ -171,6 +214,23 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
       }
 
       const { file } = fileResult;
+      const sizeCheck = assessSoundUploadSize(category, file.size);
+      if (sizeCheck.mustTrim) {
+        if (!window.api?.sounds?.stageForTrim) {
+          throw new Error(sizeCheck.message || 'File is too large to upload.');
+        }
+        const staged = await window.api.sounds.stageForTrim({ file });
+        if (!staged?.success || !staged.sound?.url) {
+          throw new Error(staged?.error || sizeCheck.message || 'Failed to prepare file for trim');
+        }
+        showMessage('info', sizeCheck.message);
+        setTrimState({ sound: staged.sound, soundType: category });
+        return;
+      }
+      if (!sizeCheck.ok) {
+        throw new Error(sizeCheck.message || 'File is too large');
+      }
+
       const name = file.name.replace(/\.[^/.]+$/, '');
 
       const addResult = await addSound(category, file, name);
@@ -179,20 +239,15 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
       }
 
       const newSound = addResult.sound;
-      // Hover/click: make the upload the Active track so users hear it immediately.
-      if (newSound?.id && (category === 'channelHover' || category === 'channelClick')) {
-        const siblings = getSoundsByCategory(category);
-        for (const s of siblings) {
-          if (s.id !== newSound.id && s.enabled) {
-            await updateSound(category, s.id, { enabled: false });
-          }
-        }
-        await updateSound(category, newSound.id, { enabled: true });
-        const volume = newSound.volume ?? 0.5;
-        if (category === 'channelHover') {
-          updateChannelHoverSound(true, volume);
-        } else {
-          updateChannelClickSound(true, volume);
+      await activateHoverClickSound(category, newSound);
+
+      if (newSound?.url && (category === 'channelHover' || category === 'channelClick')) {
+        const duration = await probeAudioDuration(newSound.url);
+        const check = validateSoundDuration(category, duration);
+        if (!check.ok || check.warn) {
+          showMessage(check.ok ? 'info' : 'error', check.error || check.warn || 'Trim recommended');
+          setTrimState({ sound: newSound, soundType: category });
+          return;
         }
       }
 
@@ -206,10 +261,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   }, [
     selectSoundFile,
     addSound,
-    getSoundsByCategory,
-    updateSound,
-    updateChannelHoverSound,
-    updateChannelClickSound,
+    activateHoverClickSound,
     showMessage,
   ]);
 
@@ -959,6 +1011,14 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
           </WeeModalFieldCard>
         </WeeSettingsCollapsibleSection>
       ) : null}
+
+      <SoundTrimDialog
+        isOpen={Boolean(trimState?.sound)}
+        onClose={closeTrimDialog}
+        sound={trimState?.sound}
+        soundType={trimState?.soundType || 'channelHover'}
+        onSaved={handleTrimSaved}
+      />
     </div>
   );
 });

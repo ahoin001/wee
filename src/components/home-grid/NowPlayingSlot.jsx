@@ -26,6 +26,8 @@ import {
   pickPrimarySystemSession,
   resolveNowPlaying,
 } from '../../utils/nowPlayingShape';
+import { normalizeImmersiveSoundMode } from '../../features/immersiveSoundMode/immersiveSoundModePrefs.js';
+import { enterImmersiveSoundMode } from '../../features/immersiveSoundMode/immersiveSoundModeApi.js';
 
 /** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
 const EMPTY_SYSTEM_SESSIONS = Object.freeze([]);
@@ -215,20 +217,37 @@ function AlbumCover({
   sizeClass,
   extractedColors,
   placeholderIconSize = 28,
+  onActivate = null,
+  activateHint = 'Open Listening Stage',
 }) {
+  const interactive = typeof onActivate === 'function';
+  const tip = activateHint || 'Open Listening Stage';
+
+  const shellClass = [
+    'group/cover relative overflow-hidden border border-[hsl(var(--color-pure-white)/0.28)]',
+    'bg-[hsl(var(--surface-elevated)/0.35)] shadow-[var(--shadow-soft-hover)]',
+    'ring-1 ring-[hsl(var(--color-pure-black)/0.16)]',
+    interactive
+      ? 'cursor-pointer transition-[transform,box-shadow,filter] duration-200 hover:scale-[1.04] hover:shadow-[var(--shadow-hover-glow)] hover:[filter:var(--filter-hover-glow)] active:scale-[0.97]'
+      : '',
+    radiusClass,
+    sizeClass,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const tipNode = interactive ? (
+    <span
+      className="pointer-events-none absolute left-1/2 top-2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated)/0.92)] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-primary))] opacity-0 shadow-[var(--shadow-sm)] backdrop-blur-md transition-opacity duration-200 group-hover/cover:opacity-100"
+      aria-hidden
+    >
+      {tip}
+    </span>
+  ) : null;
+
   if (url) {
-    return (
-      <div
-        className={[
-          'relative overflow-hidden border border-[hsl(var(--color-pure-white)/0.28)]',
-          'bg-[hsl(var(--surface-elevated)/0.35)] shadow-[var(--shadow-soft-hover)]',
-          'ring-1 ring-[hsl(var(--color-pure-black)/0.16)]',
-          radiusClass,
-          sizeClass,
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
+    const inner = (
+      <>
         <img
           src={url}
           alt=""
@@ -240,34 +259,81 @@ function AlbumCover({
           className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_1px_0_hsl(var(--color-pure-white)/0.22)]"
           aria-hidden
         />
-      </div>
+        {tipNode}
+      </>
     );
+
+    if (interactive) {
+      return (
+        <button
+          type="button"
+          className={shellClass}
+          onClick={(event) => {
+            event.stopPropagation();
+            onActivate(event);
+          }}
+          aria-label={tip}
+          title={tip}
+        >
+          {inner}
+        </button>
+      );
+    }
+
+    return <div className={shellClass}>{inner}</div>;
   }
 
-  return (
-    <div
-      className={[
-        'relative flex items-center justify-center overflow-hidden border border-[hsl(var(--border-primary)/0.3)]',
-        'bg-[hsl(var(--surface-elevated)/0.55)] shadow-[var(--shadow-soft)]',
-        radiusClass,
-        sizeClass,
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      style={
-        extractedColors?.primary
-          ? {
-              background: `linear-gradient(145deg, ${extractedColors.primary}, ${extractedColors.secondary || extractedColors.primary})`,
-            }
-          : undefined
-      }
-    >
+  const placeholder = (
+    <>
       <Music
         size={placeholderIconSize}
         strokeWidth={2.25}
         className="text-[hsl(var(--color-pure-white)/0.88)]"
         aria-hidden
       />
+      {tipNode}
+    </>
+  );
+
+  const placeholderStyle = extractedColors?.primary
+    ? {
+        background: `linear-gradient(145deg, ${extractedColors.primary}, ${extractedColors.secondary || extractedColors.primary})`,
+      }
+    : undefined;
+
+  const placeholderClass = [
+    'group/cover relative flex items-center justify-center overflow-hidden border border-[hsl(var(--border-primary)/0.3)]',
+    'bg-[hsl(var(--surface-elevated)/0.55)] shadow-[var(--shadow-soft)]',
+    interactive
+      ? 'cursor-pointer transition-[transform,box-shadow,filter] duration-200 hover:scale-[1.04] hover:shadow-[var(--shadow-hover-glow)] hover:[filter:var(--filter-hover-glow)] active:scale-[0.97]'
+      : '',
+    radiusClass,
+    sizeClass,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  if (interactive) {
+    return (
+      <button
+        type="button"
+        className={placeholderClass}
+        style={placeholderStyle}
+        onClick={(event) => {
+          event.stopPropagation();
+          onActivate(event);
+        }}
+        aria-label={tip}
+        title={tip}
+      >
+        {placeholder}
+      </button>
+    );
+  }
+
+  return (
+    <div className={placeholderClass} style={placeholderStyle}>
+      {placeholder}
     </div>
   );
 }
@@ -278,6 +344,8 @@ AlbumCover.propTypes = {
   sizeClass: PropTypes.string,
   extractedColors: PropTypes.object,
   placeholderIconSize: PropTypes.number,
+  onActivate: PropTypes.func,
+  activateHint: PropTypes.string,
 };
 
 /**
@@ -400,6 +468,7 @@ function NowPlayingSlot({
     systemAvailable,
     extractedColors,
     nowPlayingLooksRaw,
+    immersiveSoundModeRaw,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       globalNp: state.nowPlaying || EMPTY_NOW_PLAYING,
@@ -410,12 +479,17 @@ function NowPlayingSlot({
       systemAvailable: Boolean(state.systemMedia?.available),
       extractedColors: state.spotify?.extractedColors || null,
       nowPlayingLooksRaw: state.ui?.homeNowPlayingWidget,
+      immersiveSoundModeRaw: state.ui?.immersiveSoundMode,
     }))
   );
 
   const npLooks = useMemo(
     () => normalizeHomeNowPlayingWidget(nowPlayingLooksRaw),
     [nowPlayingLooksRaw]
+  );
+  const immersivePrefs = useMemo(
+    () => normalizeImmersiveSoundMode(immersiveSoundModeRaw),
+    [immersiveSoundModeRaw]
   );
 
   const np = useMemo(() => {
@@ -524,6 +598,27 @@ function NowPlayingSlot({
     },
     [interactionsLocked, runTransport]
   );
+
+  const handleOpenListeningStage = useCallback(
+    (event) => {
+      event?.stopPropagation?.();
+      if (interactionsLocked) return;
+      if (!hasTrack) return;
+      if (!immersivePrefs.enabled) return;
+      enterImmersiveSoundMode(useConsolidatedAppStore, 'manual');
+    },
+    [interactionsLocked, hasTrack, immersivePrefs.enabled]
+  );
+
+  const artActivateProps =
+    hasTrack && !interactionsLocked
+      ? {
+          onActivate: handleOpenListeningStage,
+          activateHint: immersivePrefs.enabled
+            ? 'Open Listening Stage'
+            : 'Enable Listening Stage in Looks',
+        }
+      : {};
 
   const showTransport = hasTrack && !interactionsLocked && useSystemKeys;
   const playPauseEnabled = useSystemKeys;
@@ -694,6 +789,7 @@ function NowPlayingSlot({
       sizeClass={chrome.artHeroClass}
       extractedColors={extractedColors}
       placeholderIconSize={isImmersive ? 36 : isWide ? 22 : 18}
+      {...artActivateProps}
     />
   );
 
@@ -704,6 +800,7 @@ function NowPlayingSlot({
       sizeClass={`${chrome.artInlineClass} self-center`}
       extractedColors={extractedColors}
       placeholderIconSize={22}
+      {...artActivateProps}
     />
   );
 

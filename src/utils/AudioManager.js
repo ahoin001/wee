@@ -42,6 +42,10 @@ function waitForAudioReady(audio, { timeoutMs = 12000 } = {}) {
 
 const BGM_DUCK_FACTOR = 0.35;
 const DEFAULT_SFX_FADE_MS = 120;
+/** Channel hover voice — soft edges for skim / leave. */
+export const CHANNEL_HOVER_FADE_IN_MS = 80;
+export const CHANNEL_HOVER_FADE_OUT_MS = 160;
+export const CHANNEL_HOVER_ENTER_DWELL_MS = 60;
 
 class AudioManager {
   constructor() {
@@ -50,6 +54,8 @@ class AudioManager {
     /** Single reusable BGM element — never orphan parallel Audio() instances. */
     this.backgroundAudio = null;
     this.previewAudio = null;
+    /** Single channel-hover voice — not stacked in activeSounds. */
+    this.hoverAudio = null;
     this.maxConcurrentSounds = 6;
     /** @type {Set<HTMLAudioElement>} */
     this.activeSounds = new Set();
@@ -62,12 +68,20 @@ class AudioManager {
     this._bgmGeneration = 0;
     /** Bumped on every preview start/stop so ended callbacks stay scoped to the active preview. */
     this._previewGeneration = 0;
+    /** Bumped on every hover start/stop so stale async play() calls abort. */
+    this._hoverGeneration = 0;
     /** True while exclusive preview is ducking BGM. */
     this._previewDuckActive = false;
+    /** True while hover voice is ducking BGM. */
+    this._hoverDuckActive = false;
     /** Optional auto-stop timer for long preview clips. */
     this._previewStopTimer = null;
+    /** @type {ReturnType<typeof setInterval> | null} */
+    this._hoverFadeTimer = null;
     /** @type {((this: HTMLAudioElement, ev: Event) => void) | null} */
     this._bgmEndedHandler = null;
+    /** Last BGM target volume for resume-from-pause fades. */
+    this._bgmResumeVolume = 0.5;
   }
 
   _clearPreviewStopTimer() {
@@ -92,6 +106,172 @@ class AudioManager {
     if (!this._previewDuckActive) return;
     this._previewDuckActive = false;
     this._releaseDuck();
+  }
+
+  _releaseHoverDuck() {
+    if (!this._hoverDuckActive) return;
+    this._hoverDuckActive = false;
+    this._releaseDuck();
+  }
+
+  _clearHoverFadeTimer() {
+    if (this._hoverFadeTimer == null) return;
+    clearInterval(this._hoverFadeTimer);
+    this._hoverFadeTimer = null;
+  }
+
+  _disposeHoverAudio(audio) {
+    if (!audio) return;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch {
+      /* ignore */
+    }
+    if (this.hoverAudio === audio) this.hoverAudio = null;
+  }
+
+  /**
+   * @param {HTMLAudioElement} audio
+   * @param {number} fromVol
+   * @param {number} toVol
+   * @param {number} fadeMs
+   * @param {number} generation
+   * @returns {Promise<void>}
+   */
+  _fadeHoverVolume(audio, fromVol, toVol, fadeMs, generation) {
+    this._clearHoverFadeTimer();
+    if (!audio || fadeMs <= 0) {
+      if (audio) audio.volume = Math.max(0, Math.min(1, toVol));
+      return Promise.resolve();
+    }
+    const steps = Math.max(4, Math.round(fadeMs / 25));
+    let step = 0;
+    return new Promise((resolve) => {
+      this._hoverFadeTimer = setInterval(() => {
+        if (generation !== this._hoverGeneration || this.hoverAudio !== audio) {
+          this._clearHoverFadeTimer();
+          resolve();
+          return;
+        }
+        step += 1;
+        const t = step / steps;
+        audio.volume = Math.max(0, Math.min(1, fromVol + (toVol - fromVol) * t));
+        if (step >= steps) {
+          this._clearHoverFadeTimer();
+          resolve();
+        }
+      }, fadeMs / steps);
+    });
+  }
+
+  /**
+   * Soft-stop the dedicated hover voice only.
+   * @param {{ fadeMs?: number }} [options]
+   */
+  stopHoverSound({ fadeMs = CHANNEL_HOVER_FADE_OUT_MS } = {}) {
+    this._hoverGeneration += 1;
+    const generation = this._hoverGeneration;
+    void this._stopHoverInternal({ fadeMs, generation });
+  }
+
+  /**
+   * @param {{ fadeMs?: number, generation: number }} options
+   */
+  async _stopHoverInternal({ fadeMs = CHANNEL_HOVER_FADE_OUT_MS, generation }) {
+    this._clearHoverFadeTimer();
+    const audio = this.hoverAudio;
+    if (!audio) {
+      this._releaseHoverDuck();
+      return;
+    }
+    const startVol = audio.volume;
+    if (fadeMs <= 0 || startVol <= 0) {
+      this._disposeHoverAudio(audio);
+      this._releaseHoverDuck();
+      return;
+    }
+    await this._fadeHoverVolume(audio, startVol, 0, fadeMs, generation);
+    if (generation !== this._hoverGeneration) return;
+    this._disposeHoverAudio(audio);
+    this._releaseHoverDuck();
+  }
+
+  /**
+   * Single-voice channel hover with fade-in; cancels stale plays via generation.
+   * @param {string} url
+   * @param {number} [volume]
+   * @param {{ fadeInMs?: number, fadeOutMs?: number }} [options]
+   */
+  async playHoverSound(url, volume = 0.5, options = {}) {
+    if (!url) return;
+    const fadeInMs = Number.isFinite(options?.fadeInMs)
+      ? Math.max(0, options.fadeInMs)
+      : CHANNEL_HOVER_FADE_IN_MS;
+    const fadeOutMs = Number.isFinite(options?.fadeOutMs)
+      ? Math.max(0, options.fadeOutMs)
+      : Math.min(100, CHANNEL_HOVER_FADE_OUT_MS);
+    const targetVol = Math.max(0, Math.min(1, Number(volume) || 0));
+
+    this._hoverGeneration += 1;
+    const generation = this._hoverGeneration;
+
+    if (this.hoverAudio) {
+      await this._stopHoverInternal({ fadeMs: fadeOutMs, generation });
+    }
+    if (generation !== this._hoverGeneration) return;
+
+    let audio = null;
+    try {
+      const template = this.getTemplate(url);
+      await waitForAudioReady(template);
+      if (generation !== this._hoverGeneration) return;
+
+      audio = /** @type {HTMLAudioElement} */ (template.cloneNode(true));
+      audio.loop = false;
+      audio.currentTime = 0;
+      audio.volume = fadeInMs > 0 ? 0 : targetVol;
+
+      this._applyDuck();
+      this._hoverDuckActive = true;
+      this.hoverAudio = audio;
+
+      const cleanup = () => {
+        if (this.hoverAudio === audio) {
+          this.hoverAudio = null;
+          this._releaseHoverDuck();
+        }
+      };
+      audio.addEventListener('ended', cleanup, { once: true });
+      audio.addEventListener('error', cleanup, { once: true });
+
+      await audio.play();
+      if (generation !== this._hoverGeneration) {
+        this._disposeHoverAudio(audio);
+        this._releaseHoverDuck();
+        return;
+      }
+
+      if (fadeInMs > 0) {
+        await this._fadeHoverVolume(audio, 0, targetVol, fadeInMs, generation);
+      }
+      this._claimMediaSession('Hover sound');
+    } catch (error) {
+      console.error('[AudioManager] Failed to play hover sound:', error);
+      if (audio) this._disposeHoverAudio(audio);
+      this._releaseHoverDuck();
+    }
+  }
+
+  /**
+   * True when BGM is loaded, paused, and can continue from currentTime (focus return).
+   * @param {string} [expectedUrl]
+   */
+  canResumeBackgroundMusic(expectedUrl) {
+    const audio = this.backgroundAudio;
+    if (!audio?.src || !audio.paused) return false;
+    if (expectedUrl && !this._urlsMatch(audio.src, expectedUrl)) return false;
+    return Number.isFinite(audio.currentTime) && audio.currentTime >= 0;
   }
 
   _ensureBackgroundAudio() {
@@ -158,10 +338,17 @@ class AudioManager {
     }
   }
 
-  /** Soft pause for temporary inactivity — keeps src so lifecycle can resume via start. */
+  /** Soft pause for temporary inactivity — keeps src + currentTime for resume. */
   pauseBackgroundMusic() {
-    if (this.backgroundAudio && !this.backgroundAudio.paused) {
-      this.backgroundAudio.pause();
+    const audio = this.backgroundAudio;
+    if (!audio?.src) return;
+    if (this._bgmUnduckedVolume != null) {
+      this._bgmResumeVolume = this._bgmUnduckedVolume;
+    } else if (audio.volume > 0) {
+      this._bgmResumeVolume = audio.volume;
+    }
+    if (!audio.paused) {
+      audio.pause();
     }
   }
 
@@ -374,6 +561,7 @@ class AudioManager {
 
     audio.loop = false;
     audio.volume = track.volume ?? 0.4;
+    this._bgmResumeVolume = audio.volume;
     if (this._duckCount > 0) {
       this._bgmUnduckedVolume = audio.volume;
       audio.volume = Math.max(0, audio.volume * BGM_DUCK_FACTOR);
@@ -431,6 +619,7 @@ class AudioManager {
     const audio = this._ensureBackgroundAudio();
     audio.volume = volume;
     audio.loop = !!loop;
+    this._bgmResumeVolume = volume;
 
     try {
       audio.pause();
@@ -565,19 +754,24 @@ class AudioManager {
 
   async resumeBackgroundMusic(targetVolume = 0.4) {
     const audio = this.backgroundAudio;
-    if (!audio?.src) return;
+    if (!audio?.src) return false;
     const generation = this._bgmGeneration;
+    const goal = Math.max(
+      0,
+      Math.min(1, Number(targetVolume) || this._bgmResumeVolume || 0.4)
+    );
+    this._bgmResumeVolume = goal;
     audio.volume = 0;
     try {
       await waitForAudioReady(audio);
-      if (generation !== this._bgmGeneration) return;
+      if (generation !== this._bgmGeneration) return false;
       await audio.play();
       if (generation !== this._bgmGeneration) {
         audio.pause();
-        return;
+        return false;
       }
     } catch {
-      return;
+      return false;
     }
     let v = 0;
     const fade = setInterval(() => {
@@ -585,17 +779,20 @@ class AudioManager {
         clearInterval(fade);
         return;
       }
-      v += targetVolume / 15;
-      if (v < targetVolume) {
-        audio.volume = Math.min(v, targetVolume);
+      v += goal / 15;
+      if (v < goal) {
+        audio.volume = Math.min(v, goal);
       } else {
-        audio.volume = targetVolume;
+        audio.volume = goal;
         clearInterval(fade);
       }
     }, 100);
+    this._claimMediaSession('Background music');
+    return true;
   }
 
   stopAllSounds({ fadeMs = 0 } = {}) {
+    this.stopHoverSound({ fadeMs });
     const snapshot = [...this.activeSounds];
     snapshot.forEach((audio) => {
       if (fadeMs > 0) {
@@ -610,6 +807,7 @@ class AudioManager {
     if (fadeMs <= 0) {
       this.activeSounds.clear();
       this._duckCount = 0;
+      this._hoverDuckActive = false;
       if (this.backgroundAudio && this._bgmUnduckedVolume != null) {
         this.backgroundAudio.volume = this._bgmUnduckedVolume;
         this._bgmUnduckedVolume = null;
@@ -620,6 +818,7 @@ class AudioManager {
   cleanup() {
     this.stopAllSounds();
     this.stopPreview();
+    this.stopHoverSound({ fadeMs: 0 });
     this.hardStopBackgroundMusic();
     this.backgroundAudio = null;
     this.clearCache();

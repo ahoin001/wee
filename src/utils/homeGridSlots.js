@@ -2,15 +2,21 @@ import { channelIdAtIndex } from './channelReorder';
 import {
   HOME_WIDGET_SURFACES,
   DEFAULT_HOME_WIDGET_SURFACE,
+  HOME_WIDGET_TEXT_SIZES,
   normalizeHomeWidgetSurface,
   normalizeHomeWidgetTextColor,
+  normalizeHomeWidgetTextSize,
+  normalizeSteamWidgetHeading,
 } from './homeWidgetSurface';
 
 export {
   HOME_WIDGET_SURFACES,
   DEFAULT_HOME_WIDGET_SURFACE,
+  HOME_WIDGET_TEXT_SIZES,
   normalizeHomeWidgetSurface,
   normalizeHomeWidgetTextColor,
+  normalizeHomeWidgetTextSize,
+  normalizeSteamWidgetHeading,
 };
 
 export const SLOT_KIND_CHANNEL = 'channel';
@@ -54,10 +60,12 @@ export function createHomeWidgetSlot(kindId, span = {}) {
     rowSpan: span.rowSpan ?? 1,
     surface: normalizeHomeWidgetSurface(span.surface),
     textColor: normalizeHomeWidgetTextColor(span.textColor),
+    textSize: normalizeHomeWidgetTextSize(span.textSize),
     channel: null,
     widget: {
       widgetId: kindId,
       ...(kindId === 'nowPlaying' ? { listenApp: 'any' } : {}),
+      ...(kindId === 'steamGames' ? { mode: 'mostPlayed' } : {}),
       ...(kindId === 'steamTags' ? { tag: '' } : {}),
     },
   };
@@ -73,6 +81,7 @@ export function createAdminQuickAccessSlot(span = {}) {
 
 /**
  * Normalize legacy `widget` stubs → adminQuickAccess.
+ * Migrates steamRecent / steamMostPlayed / steamFavorites → steamGames + mode.
  * @param {import('./homeGridSlots').HomeGridSlot | null | undefined} slot
  */
 export function normalizeHomeGridSlot(slot) {
@@ -87,14 +96,85 @@ export function normalizeHomeGridSlot(slot) {
       hidden: Boolean(slot.hidden),
     };
   }
-  if (isNonChannelSlot(slot)) {
+
+  const LEGACY_STEAM_MODE = {
+    steamRecent: 'recent',
+    steamMostPlayed: 'mostPlayed',
+    steamFavorites: 'favorites',
+  };
+  const legacyMode = LEGACY_STEAM_MODE[slot.kind];
+  if (legacyMode) {
+    const mode =
+      typeof slot.widget?.mode === 'string' && slot.widget.mode.trim()
+        ? slot.widget.mode.trim()
+        : legacyMode;
+    const prevWidget =
+      slot.widget && typeof slot.widget === 'object' ? slot.widget : {};
+    return {
+      ...slot,
+      kind: 'steamGames',
+      surface: normalizeHomeWidgetSurface(slot.surface),
+      textColor: normalizeHomeWidgetTextColor(slot.textColor),
+      textSize: normalizeHomeWidgetTextSize(slot.textSize),
+      hidden: Boolean(slot.hidden),
+      colSpan: Math.max(1, Number(slot.colSpan) || 1),
+      rowSpan: Math.max(1, Number(slot.rowSpan) || 1),
+      widget: {
+        ...prevWidget,
+        widgetId: 'steamGames',
+        mode,
+        heading: normalizeSteamWidgetHeading(prevWidget.heading),
+      },
+    };
+  }
+
+  if (slot.kind === 'steamGames') {
+    const modeRaw = typeof slot.widget?.mode === 'string' ? slot.widget.mode.trim() : '';
+    const mode = ['recent', 'mostPlayed', 'favorites'].includes(modeRaw)
+      ? modeRaw
+      : 'mostPlayed';
+    const prevWidget =
+      slot.widget && typeof slot.widget === 'object' ? slot.widget : {};
     return {
       ...slot,
       surface: normalizeHomeWidgetSurface(slot.surface),
       textColor: normalizeHomeWidgetTextColor(slot.textColor),
+      textSize: normalizeHomeWidgetTextSize(slot.textSize),
       hidden: Boolean(slot.hidden),
       colSpan: Math.max(1, Number(slot.colSpan) || 1),
       rowSpan: Math.max(1, Number(slot.rowSpan) || 1),
+      widget: {
+        ...prevWidget,
+        widgetId: 'steamGames',
+        mode,
+        heading: normalizeSteamWidgetHeading(prevWidget.heading),
+      },
+    };
+  }
+
+  if (isNonChannelSlot(slot)) {
+    const prevWidget =
+      slot.widget && typeof slot.widget === 'object' ? slot.widget : null;
+    const isSteamish =
+      slot.kind === 'steamTags' ||
+      slot.kind === 'steamFriends' ||
+      slot.kind === 'epicLibrary';
+    return {
+      ...slot,
+      surface: normalizeHomeWidgetSurface(slot.surface),
+      textColor: normalizeHomeWidgetTextColor(slot.textColor),
+      textSize: normalizeHomeWidgetTextSize(slot.textSize),
+      hidden: Boolean(slot.hidden),
+      colSpan: Math.max(1, Number(slot.colSpan) || 1),
+      rowSpan: Math.max(1, Number(slot.rowSpan) || 1),
+      ...(isSteamish && prevWidget
+        ? {
+            widget: {
+              ...prevWidget,
+              heading: normalizeSteamWidgetHeading(prevWidget.heading),
+            },
+          }
+        : {}),
     };
   }
   return slot;
@@ -537,6 +617,27 @@ export function setHomeSlotTextColorInSpaceData(spaceData, channelIndex, textCol
 }
 
 /**
+ * Update widget text size (`sm` | `md` | `lg` | null = auto) on a non-channel slot.
+ * @param {Record<string, unknown>} spaceData
+ * @param {number} channelIndex
+ * @param {'sm' | 'md' | 'lg' | null} textSize
+ */
+export function setHomeSlotTextSizeInSpaceData(spaceData, channelIndex, textSize) {
+  const input = spaceData && typeof spaceData === 'object' ? spaceData : {};
+  const slots = Array.isArray(input.slots) ? [...input.slots] : [];
+  const index = channelIndex | 0;
+  if (index < 0 || index >= slots.length || !slots[index]) return input;
+  if (!isNonChannelSlot(slots[index])) return input;
+
+  slots[index] = {
+    ...slots[index],
+    textSize: normalizeHomeWidgetTextSize(textSize),
+  };
+  const legacy = projectSlotsToLegacyMaps(slots);
+  return { ...input, slots, ...legacy };
+}
+
+/**
  * Patch `slot.widget` on a non-channel Home tile (e.g. Now Playing `listenApp`).
  * @param {Record<string, unknown>} spaceData
  * @param {number} channelIndex
@@ -553,9 +654,13 @@ export function setHomeSlotWidgetPatchInSpaceData(spaceData, channelIndex, widge
   const prev = slots[index];
   const prevWidget =
     prev.widget && typeof prev.widget === 'object' ? prev.widget : { widgetId: prev.kind };
+  const nextWidget = { ...prevWidget, ...widgetPatch };
+  if (Object.prototype.hasOwnProperty.call(widgetPatch, 'heading')) {
+    nextWidget.heading = normalizeSteamWidgetHeading(widgetPatch.heading);
+  }
   slots[index] = {
     ...prev,
-    widget: { ...prevWidget, ...widgetPatch },
+    widget: nextWidget,
   };
   const legacy = projectSlotsToLegacyMaps(slots);
   return { ...input, slots, ...legacy };

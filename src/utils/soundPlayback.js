@@ -3,7 +3,11 @@
  * Reads settings from Zustand getState() + soundLibraryCache.
  */
 
-import audioManager from './AudioManager';
+import audioManager, {
+  CHANNEL_HOVER_ENTER_DWELL_MS,
+  CHANNEL_HOVER_FADE_IN_MS,
+  CHANNEL_HOVER_FADE_OUT_MS,
+} from './AudioManager';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import {
   findEnabledSound,
@@ -11,6 +15,12 @@ import {
   getSoundLibrarySync,
   hydrateSoundLibrary,
 } from './soundLibraryCache';
+
+export {
+  CHANNEL_HOVER_ENTER_DWELL_MS,
+  CHANNEL_HOVER_FADE_IN_MS,
+  CHANNEL_HOVER_FADE_OUT_MS,
+};
 
 function getSoundsSettings() {
   return useConsolidatedAppStore.getState().sounds || {};
@@ -50,9 +60,10 @@ export async function playChannelHover(customHoverSound = null) {
   await ensureSoundRuntimeReady();
 
   if (customHoverSound?.url) {
-    await audioManager.playSound(
+    await audioManager.playHoverSound(
       customHoverSound.url,
-      customHoverSound.volume ?? sounds.channelHoverVolume ?? 0.5
+      customHoverSound.volume ?? sounds.channelHoverVolume ?? 0.5,
+      { fadeInMs: CHANNEL_HOVER_FADE_IN_MS, fadeOutMs: 100 }
     );
     return { played: true };
   }
@@ -61,8 +72,17 @@ export async function playChannelHover(customHoverSound = null) {
   if (!enabled?.url) {
     return { played: false, reason: 'no-track' };
   }
-  await audioManager.playSound(enabled.url, enabled.volume ?? sounds.channelHoverVolume ?? 0.5);
+  await audioManager.playHoverSound(
+    enabled.url,
+    enabled.volume ?? sounds.channelHoverVolume ?? 0.5,
+    { fadeInMs: CHANNEL_HOVER_FADE_IN_MS, fadeOutMs: 100 }
+  );
   return { played: true };
+}
+
+/** Soft-stop dedicated hover voice only (tile leave). */
+export function stopChannelHover({ fadeMs = CHANNEL_HOVER_FADE_OUT_MS } = {}) {
+  audioManager.stopHoverSound({ fadeMs });
 }
 
 export function stopSfx({ fadeMs = 120 } = {}) {
@@ -136,6 +156,49 @@ export async function startBackgroundMusicFromSettings() {
   if (!getSoundsSettings().backgroundMusicEnabled) {
     audioManager.hardStopBackgroundMusic();
   }
+}
+
+/**
+ * Soft-pause BGM (keeps position) when the app loses focus.
+ */
+export function pauseBackgroundMusic() {
+  audioManager.pauseBackgroundMusic();
+}
+
+/**
+ * Resume paused BGM from currentTime when possible; otherwise start from settings.
+ */
+export async function resumeOrStartBackgroundMusic() {
+  const sounds = getSoundsSettings();
+  if (!sounds.backgroundMusicEnabled) {
+    audioManager.hardStopBackgroundMusic();
+    return;
+  }
+  await ensureSoundRuntimeReady();
+
+  const enabledMusic = getEnabledBackgroundTracks();
+  if (enabledMusic.length === 0) {
+    audioManager.hardStopBackgroundMusic();
+    return;
+  }
+
+  let expectedUrl = enabledMusic[0]?.url;
+  let resumeVolume = enabledMusic[0]?.volume ?? 0.5;
+  if (sounds.backgroundMusicPlaylistMode) {
+    const liked = enabledMusic.filter((s) => s.liked);
+    const tracks = liked.length > 0 ? liked : enabledMusic;
+    const idx = Math.max(0, audioManager.currentPlaylistIndex || 0);
+    const track = tracks[Math.min(idx, tracks.length - 1)];
+    expectedUrl = track?.url || expectedUrl;
+    resumeVolume = track?.volume ?? resumeVolume;
+  }
+
+  if (audioManager.canResumeBackgroundMusic(expectedUrl)) {
+    const ok = await audioManager.resumeBackgroundMusic(resumeVolume);
+    if (ok) return;
+  }
+
+  await startBackgroundMusicFromSettings();
 }
 
 export function stopBackgroundMusic() {

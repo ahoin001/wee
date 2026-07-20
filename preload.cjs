@@ -86,6 +86,8 @@ contextBridge.exposeInMainWorld('api', {
     selectFile: () => ipcRenderer.invoke('select-sound-file'),
     toggleLike: (args) => ipcRenderer.invoke('sounds:toggleLike', args),
     saveTrimmed: (args) => ipcRenderer.invoke('sounds:save-trimmed', args),
+    stageForTrim: (args) => ipcRenderer.invoke('sounds:stage-for-trim', args),
+    clearStaging: () => ipcRenderer.invoke('sounds:clear-staging'),
   },
   steam: {
     getInstalledGames: () => ipcRenderer.invoke('steam:getInstalledGames'),

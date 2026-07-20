@@ -139,6 +139,25 @@ test('normalizeIdleExperienceSettings clamps delays and honors canonical mode', 
   assert.ok(IDLE_EXPERIENCE_MODES.includes(idle.mode));
 });
 
+test('normalizeIdleExperienceSettings delightsWhileActive requires delights on', () => {
+  assert.equal(
+    normalizeIdleExperienceSettings({
+      idleExperienceMode: 'subtle',
+      idleAnimationEnabled: true,
+      idleDelightsWhileActive: true,
+    }).delightsWhileActive,
+    true
+  );
+  assert.equal(
+    normalizeIdleExperienceSettings({
+      idleExperienceMode: 'subtle',
+      idleAnimationEnabled: false,
+      idleDelightsWhileActive: true,
+    }).delightsWhileActive,
+    false
+  );
+});
+
 test('matchIdlePersonality round-trips every pack', () => {
   Object.entries(IDLE_PERSONALITY_PACKS).forEach(([packId, types]) => {
     assert.equal(matchIdlePersonality([...types]), packId);

@@ -7,6 +7,8 @@
  * - `autoFadeTimeout`: seconds of no interaction before the ambient stage (fade)
  * - `idleAttractDelaySec`: extra seconds in ambient before the attract stage
  * - `idleAnimationEnabled` / `idleAnimationTypes` / `idleAnimationInterval`: micro-delights
+ * - `idleDelightsWhileActive`: when true, micro-delights run on Home without waiting for idle
+ *   (and keep running if the window briefly loses focus)
  */
 
 export const IDLE_EXPERIENCE_MODES = Object.freeze(['off', 'subtle', 'attract']);
@@ -39,6 +41,7 @@ export function matchIdlePersonality(types) {
  *   idleDelaySec: number,
  *   attractDelaySec: number,
  *   delightsEnabled: boolean,
+ *   delightsWhileActive: boolean,
  *   delightTypes: string[],
  *   delightIntervalSec: number,
  * }}
@@ -59,12 +62,15 @@ export function normalizeIdleExperienceSettings(channelSettings = {}) {
     900,
     Math.max(30, Number(s.idleAttractDelaySec) || DEFAULT_IDLE_ATTRACT_DELAY_SEC)
   );
+  const delightsEnabled = mode !== 'off' && Boolean(s.idleAnimationEnabled);
 
   return {
     mode,
     idleDelaySec,
     attractDelaySec,
-    delightsEnabled: mode !== 'off' && Boolean(s.idleAnimationEnabled),
+    delightsEnabled,
+    /** Play tile micro-delights while browsing Home — not only after idle timeout. */
+    delightsWhileActive: delightsEnabled && Boolean(s.idleDelightsWhileActive),
     delightTypes: Array.isArray(s.idleAnimationTypes) && s.idleAnimationTypes.length > 0
       ? s.idleAnimationTypes
       : ['pulse', 'bounce', 'glow'],

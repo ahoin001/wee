@@ -4,12 +4,23 @@ import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { useAppActivity } from '../hooks/useAppActivity';
 import { getChannelIdleDurationMs } from '../design/channelIdleAnimations';
 
+/**
+ * @param {boolean} enabled
+ * @param {string[]} [animationTypes]
+ * @param {number} [interval]
+ * @param {unknown[]} [channels]
+ * @param {{ allowWhenUnfocused?: boolean }} [options]
+ *   — when true, keep micro-delights running if the window briefly loses focus
+ *     (used with Idle experience → “Play while browsing”).
+ */
 const useIdleChannelAnimations = (
   enabled,
   animationTypes = ['pulse', 'bounce', 'glow'],
   interval = 8,
-  channels = []
+  channels = [],
+  options = {}
 ) => {
+  const allowWhenUnfocused = options.allowWhenUnfocused === true;
   const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
   const { isAppActive } = useAppActivity();
   const reducedMotion = useReducedMotion();
@@ -81,6 +92,7 @@ const useIdleChannelAnimations = (
   const effectiveInterval = lowPowerMode ? Math.max(interval, 20) : interval;
 
   const idleAllowed = enabled && !reducedMotion;
+  const focusOk = allowWhenUnfocused || isAppActive;
 
   useEffect(() => {
     if (reducedMotion) {
@@ -92,7 +104,7 @@ const useIdleChannelAnimations = (
   }, [reducedMotion]);
 
   useEffect(() => {
-    if (!idleAllowed || animationTypes.length === 0 || !isAppActive) {
+    if (!idleAllowed || animationTypes.length === 0 || !focusOk) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -132,7 +144,15 @@ const useIdleChannelAnimations = (
         intervalRef.current = null;
       }
     };
-  }, [idleAllowed, effectiveInterval, animationTypes.length, getChannelsWithContent, animationTypes, startAnimation, isAppActive]);
+  }, [
+    idleAllowed,
+    focusOk,
+    effectiveInterval,
+    animationTypes.length,
+    getChannelsWithContent,
+    animationTypes,
+    startAnimation,
+  ]);
 
   useEffect(
     () => () => {
@@ -180,8 +200,8 @@ const useIdleChannelAnimations = (
     getChannelAnimationClass,
     isChannelAnimating,
     activeAnimations: activeAnimations.size,
-    isThrottled: lowPowerMode || !isAppActive,
-    triggerRandomAnimation: idleAllowed ? triggerRandomAnimation : null,
+    isThrottled: lowPowerMode || !focusOk,
+    triggerRandomAnimation: idleAllowed && focusOk ? triggerRandomAnimation : null,
   };
 };
 

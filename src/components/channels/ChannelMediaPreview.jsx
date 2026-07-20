@@ -3,15 +3,21 @@ import PropTypes from 'prop-types';
 import ReactFreezeframe from 'react-freezeframe-vite';
 import KenBurnsImage from './KenBurnsImage';
 import { isGifMediaType, isRasterImageMediaType, isVideoMediaType } from '../../utils/channelMediaType';
+import {
+  CHANNEL_MEDIA_FIT,
+  channelMediaFitStyle,
+  channelMediaObjectPositionCss,
+} from '../../utils/channelMediaFit';
 
-function buildKenBurnsProps(channelSettings, effectiveKenBurnsMode, alt) {
+function buildKenBurnsProps(channelSettings, effectiveKenBurnsMode, alt, media) {
   return {
     mode: effectiveKenBurnsMode,
     width: '100%',
     height: '100%',
     // Match the tile's own radius (wii tiles are 14px) — a fixed value leaves a visible seam.
     borderRadius: 'inherit',
-    objectFit: 'cover',
+    objectFit: CHANNEL_MEDIA_FIT,
+    objectPosition: channelMediaObjectPositionCss(media),
     alt,
     hoverDuration: channelSettings?.kenBurnsHoverDuration ?? 8000,
     hoverScale: channelSettings?.kenBurnsHoverScale ?? 1.1,
@@ -59,6 +65,15 @@ function ChannelMediaPreview({
     setFallbackIcon(null);
   }, [setImageError, setFallbackIcon]);
 
+  const fitStyle = useMemo(
+    () => ({
+      width: '100%',
+      height: '100%',
+      ...channelMediaFitStyle(effectiveMedia),
+    }),
+    [effectiveMedia]
+  );
+
   const mediaPreview = useMemo(() => {
     if (!(effectiveMedia && effectiveMedia.url && effectiveMedia.url.trim())) return null;
 
@@ -67,7 +82,12 @@ function ChannelMediaPreview({
       if (effectiveKenBurnsEnabled && kenBurnsForGifsEnabled) {
         return (
           <KenBurnsImage
-            {...buildKenBurnsProps(channelSettings, effectiveKenBurnsMode, effectiveMedia.name || 'Channel GIF')}
+            {...buildKenBurnsProps(
+              channelSettings,
+              effectiveKenBurnsMode,
+              effectiveMedia.name || 'Channel GIF',
+              effectiveMedia
+            )}
             src={effectiveMedia.url}
           />
         );
@@ -79,19 +99,19 @@ function ChannelMediaPreview({
             src={effectiveMedia.url}
             alt="Channel media"
             className="channel-media"
-            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+            style={fitStyle}
             options={{ trigger: 'hover', overlay: false, responsive: true, warnings: false }}
           />
         );
       }
       return (
-          <img
+        <img
           src={effectiveMedia.url}
           alt="Channel media"
           className="channel-media"
-            loading="lazy"
-            decoding="async"
-          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+          loading="lazy"
+          decoding="async"
+          style={fitStyle}
         />
       );
     }
@@ -101,7 +121,12 @@ function ChannelMediaPreview({
       if (effectiveKenBurnsEnabled && kenBurnsForVideosEnabled) {
         return (
           <KenBurnsImage
-            {...buildKenBurnsProps(channelSettings, effectiveKenBurnsMode, effectiveMedia.name || 'Channel Video')}
+            {...buildKenBurnsProps(
+              channelSettings,
+              effectiveKenBurnsMode,
+              effectiveMedia.name || 'Channel Video',
+              effectiveMedia
+            )}
             src={effectiveMedia.url}
           />
         );
@@ -116,7 +141,7 @@ function ChannelMediaPreview({
               className="channel-media"
               loading="lazy"
               decoding="async"
-              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+              style={fitStyle}
               onMouseEnter={() => setIsHovered(true)}
               onFocus={() => setIsHovered(true)}
               tabIndex={0}
@@ -133,7 +158,7 @@ function ChannelMediaPreview({
             muted
             playsInline
             preload="metadata"
-            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+            style={fitStyle}
             onMouseLeave={() => {
               setIsHovered(false);
               if (videoRef.current) {
@@ -161,7 +186,7 @@ function ChannelMediaPreview({
           loop
           muted
           playsInline
-          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+          style={fitStyle}
         />
       );
     }
@@ -170,7 +195,12 @@ function ChannelMediaPreview({
       if (effectiveKenBurnsEnabled) {
         return (
           <KenBurnsImage
-            {...buildKenBurnsProps(channelSettings, effectiveKenBurnsMode, effectiveMedia.name || 'Channel Image')}
+            {...buildKenBurnsProps(
+              channelSettings,
+              effectiveKenBurnsMode,
+              effectiveMedia.name || 'Channel Image',
+              effectiveMedia
+            )}
             src={effectiveMedia.url}
           />
         );
@@ -184,7 +214,10 @@ function ChannelMediaPreview({
           decoding="async"
           onError={handleImageError}
           onLoad={handleImageLoad}
-          style={{ display: imageError ? 'none' : 'block' }}
+          style={{
+            ...fitStyle,
+            display: imageError ? 'none' : 'block',
+          }}
         />
       );
     }
@@ -198,6 +231,11 @@ function ChannelMediaPreview({
     isHovered,
     mp4Preview,
     imageError,
+    fitStyle,
+    handleImageError,
+    handleImageLoad,
+    setIsHovered,
+    videoRef,
   ]);
 
   return (
@@ -211,6 +249,7 @@ function ChannelMediaPreview({
           className="channel-media"
           loading="lazy"
           decoding="async"
+          style={fitStyle}
           onError={(e) => {
             setIconLoadError(true);
             e.target.style.display = 'none';
@@ -225,6 +264,7 @@ function ChannelMediaPreview({
           className="channel-media"
           loading="lazy"
           decoding="async"
+          style={fitStyle}
           onError={(e) => {
             setIconLoadError(true);
             e.target.style.display = 'none';
@@ -240,6 +280,8 @@ ChannelMediaPreview.propTypes = {
     url: PropTypes.string,
     type: PropTypes.string,
     name: PropTypes.string,
+    focalX: PropTypes.number,
+    focalY: PropTypes.number,
   }),
   effectiveAnimatedOnHover: PropTypes.bool,
   effectiveKenBurnsEnabled: PropTypes.bool,
@@ -262,6 +304,8 @@ function arePropsEqual(prev, next) {
   return (
     prev.effectiveMedia?.url === next.effectiveMedia?.url &&
     prev.effectiveMedia?.type === next.effectiveMedia?.type &&
+    prev.effectiveMedia?.focalX === next.effectiveMedia?.focalX &&
+    prev.effectiveMedia?.focalY === next.effectiveMedia?.focalY &&
     prev.effectiveAnimatedOnHover === next.effectiveAnimatedOnHover &&
     prev.effectiveKenBurnsEnabled === next.effectiveKenBurnsEnabled &&
     prev.effectiveKenBurnsMode === next.effectiveKenBurnsMode &&

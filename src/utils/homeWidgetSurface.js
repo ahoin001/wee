@@ -1,6 +1,6 @@
 /**
- * Per-widget board look: surface mode + optional text color.
- * Persisted on `slots[].surface` / `slots[].textColor` (Home grid SSOT).
+ * Per-widget board look: surface mode + optional text color / size.
+ * Persisted on `slots[].surface` / `slots[].textColor` / `slots[].textSize` (Home grid SSOT).
  *
  * - `clear` — floating default: no plate; wallpaper shows through (lock-screen / low-blur time-pill)
  * - `glass` — same floating content + shared light frost/tint (`ui.homeWidgetGlass`)
@@ -10,6 +10,9 @@
 export const HOME_WIDGET_SURFACES = Object.freeze(['clear', 'glass', 'basic']);
 
 export const DEFAULT_HOME_WIDGET_SURFACE = 'clear';
+
+/** Per-tile text size override. `null` → Auto (density-driven). */
+export const HOME_WIDGET_TEXT_SIZES = Object.freeze(['sm', 'md', 'lg']);
 
 /**
  * @param {unknown} value
@@ -32,6 +35,42 @@ export function normalizeHomeWidgetTextColor(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : null;
+}
+
+/**
+ * Optional per-tile text size. `null` → Auto (layout density).
+ * @param {unknown} value
+ * @returns {'sm' | 'md' | 'lg' | null}
+ */
+export function normalizeHomeWidgetTextSize(value) {
+  if (value === 'sm' || value === 'md' || value === 'lg') return value;
+  return null;
+}
+
+/**
+ * Steam / Epic shelf heading override on `slot.widget.heading`.
+ * `null` → use default title; `''` → hide; other string → custom label.
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+export function normalizeSteamWidgetHeading(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return null;
+  if (value === '') return '';
+  const trimmed = value.trim();
+  return trimmed === '' ? '' : trimmed;
+}
+
+/**
+ * @param {string} defaultTitle
+ * @param {unknown} heading
+ * @returns {string | null} Resolved title, or `null` when hidden
+ */
+export function resolveSteamHeading(defaultTitle, heading) {
+  const normalized = normalizeSteamWidgetHeading(heading);
+  if (normalized === '') return null;
+  if (typeof normalized === 'string' && normalized) return normalized;
+  return defaultTitle || null;
 }
 
 function isNonChannelSlotLike(slot) {

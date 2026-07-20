@@ -270,6 +270,11 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     [actions]
   );
 
+  const setDelightsWhileActive = useCallback(
+    (checked) => actions.setChannelSettings({ idleDelightsWhileActive: Boolean(checked) }),
+    [actions]
+  );
+
   const settings = channels?.settings || {};
   const idle = useMemo(() => normalizeIdleExperienceSettings(settings), [settings]);
   const idlePersonality = idle.delightsEnabled ? matchIdlePersonality(idle.delightTypes) : 'off';
@@ -690,7 +695,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
       <WeeSettingsCollapsibleSection
         icon={Moon}
         title="Idle experience"
-        description="What Home does when you step away — fade, micro-delights, attract."
+        description="Fade, micro-delights, and attract — idle by default, or playful while you browse."
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6 space-y-5">
@@ -747,7 +752,21 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                     { value: 'showy', label: 'Showy' },
                   ]}
                 />
+                <Text variant="caption" className="!mt-2 block text-[hsl(var(--text-tertiary))]">
+                  Soft pulse / bounce / glow on channel tiles. By default this waits until Home is
+                  idle; turn on Play while browsing to keep the board playful as you look around.
+                </Text>
               </div>
+
+              <WeeRevealWhen when={idle.delightsEnabled}>
+                <SettingsToggleFieldCard
+                  hoverAccent="none"
+                  title="Play while browsing"
+                  desc="Run tile micro-delights without waiting for idle, and keep them going if you glance away from the window."
+                  checked={Boolean(settings.idleDelightsWhileActive)}
+                  onChange={setDelightsWhileActive}
+                />
+              </WeeRevealWhen>
 
               <WeeRevealWhen when={idle.mode === 'attract'}>
                 <div className="w-full min-w-0">

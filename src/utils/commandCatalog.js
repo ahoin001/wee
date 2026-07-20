@@ -13,7 +13,7 @@ import {
   normalizeAdminPanelConfig,
 } from './adminPanelCommands';
 import { normalizeNowPlayingExperience, toggleSpotifyTakeover } from './spotifyTakeover';
-/** BETA: Immersive Sound Mode — remove with `src/features/immersiveSoundMode/`. */
+/** Immersive Sound Mode — Listening Stage helpers. */
 import { normalizeImmersiveSoundMode } from '../features/immersiveSoundMode/immersiveSoundModePrefs.js';
 import { toggleImmersiveSoundMode } from '../features/immersiveSoundMode/immersiveSoundModeApi.js';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
@@ -208,7 +208,7 @@ export function buildCommandCatalog(state, handlers = {}) {
     });
   }
 
-  // —— BETA: Immersive Sound Mode Listening Stage (remove with feature folder) ——
+  // —— Immersive Sound Mode Listening Stage ——
   if (
     normalizeImmersiveSoundMode(state?.ui?.immersiveSoundMode).enabled &&
     Boolean(state?.nowPlaying?.trackName || state?.nowPlaying?.isPlaying)
@@ -218,9 +218,9 @@ export function buildCommandCatalog(state, handlers = {}) {
       id: 'action:immersive-sound-mode',
       group: 'actions',
       title: stageOn ? 'Exit Listening Stage' : 'Enter Listening Stage',
-      subtitle: 'Immersive Sound Mode (Beta)',
+      subtitle: 'Immersive Sound Mode',
       icon: '🎧',
-      keywords: ['immersive', 'listening', 'stage', 'sound mode', 'music', 'beta'],
+      keywords: ['immersive', 'listening', 'stage', 'sound mode', 'music'],
       run: () => toggleImmersiveSoundMode(useConsolidatedAppStore, 'manual'),
     });
   }

@@ -17,6 +17,7 @@ import SteamMostPlayedSlot from './SteamMostPlayedSlot';
 import SteamFavoritesSlot from './SteamFavoritesSlot';
 import SteamTagsSlot from './SteamTagsSlot';
 import SteamFriendsSlot from './SteamFriendsSlot';
+import SteamGamesSlot from './SteamGamesSlot';
 import EpicLibrarySlot from './EpicLibrarySlot';
 import SystemPadSlot from './SystemPadSlot';
 
@@ -27,6 +28,7 @@ const WIDGET_SLOT_COMPONENTS = {
   RecentlyUsedSlot,
   ClockSlot,
   WeatherSlot,
+  SteamGamesSlot,
   SteamRecentSlot,
   SteamMostPlayedSlot,
   SteamFavoritesSlot,

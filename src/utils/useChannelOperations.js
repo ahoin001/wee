@@ -18,6 +18,7 @@ import {
   normalizeChannelSpaceKey,
   resolveActiveChannelSpaceKey,
 } from './channelSpaces';
+import { normalizeChannelMedia } from './channelMediaFit';
 
 /**
  * Channel grid operations scoped to one shell space (`home` | `workspaces`).
@@ -123,7 +124,9 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
 
   const updateChannelMedia = useCallback(
     (channelId, media) => {
-      updateChannelForSpace(spaceKey, channelId, { media });
+      updateChannelForSpace(spaceKey, channelId, {
+        media: media == null ? null : normalizeChannelMedia(media),
+      });
     },
     [updateChannelForSpace, spaceKey]
   );

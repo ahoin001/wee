@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import {
   hydrateSoundLibrary,
   subscribeSoundLibrary,
 } from './soundLibraryCache';
 import {
+  pauseBackgroundMusic,
+  resumeOrStartBackgroundMusic,
   startBackgroundMusicFromSettings,
   stopBackgroundMusic,
 } from './soundPlayback';
@@ -12,10 +14,9 @@ import { useAppActivity } from '../hooks/useAppActivity';
 import { usePowerPolicy } from '../hooks/usePowerPolicy';
 
 /**
- * Mount once from App shell. Sole owner of BGM start/stop.
- * Activity (focus) flows through useAppActivity → isAppActive → allowBgm;
- * session away through usePowerPolicy → shouldRunBgm.
- * Library mutations notify via soundLibraryCache so playlist/track changes re-sync here.
+ * Mount once from App shell. Sole owner of BGM start/stop/pause.
+ * Focus loss soft-pauses (keeps currentTime); return fades in from where it left off.
+ * Settings / library changes restart from settings when audible.
  */
 export function useBackgroundMusicLifecycle({ appReady }) {
   const { isAppActive } = useAppActivity();
@@ -30,6 +31,8 @@ export function useBackgroundMusicLifecycle({ appReady }) {
     (s) => s.sounds?.backgroundMusicPlaylistMode
   );
   const [libraryEpoch, setLibraryEpoch] = useState(0);
+  const prevConfigKeyRef = useRef('');
+  const prevActiveRef = useRef(null);
 
   useEffect(() => {
     let prevKey = '';
@@ -44,35 +47,60 @@ export function useBackgroundMusicLifecycle({ appReady }) {
     });
   }, []);
 
-  const allowBgm = Boolean(
-    appReady && backgroundMusicEnabled && isAppActive && shouldRunBgm
-  );
+  const configKey = [
+    appReady ? 1 : 0,
+    backgroundMusicEnabled ? 1 : 0,
+    shouldRunBgm ? 1 : 0,
+    backgroundMusicLooping ? 1 : 0,
+    backgroundMusicPlaylistMode ? 1 : 0,
+    libraryEpoch,
+  ].join(':');
 
   useEffect(() => {
     if (!appReady) return undefined;
+
+    const configChanged = prevConfigKeyRef.current !== configKey;
+    const focusChanged =
+      prevActiveRef.current != null && prevActiveRef.current !== isAppActive;
+    prevConfigKeyRef.current = configKey;
+    prevActiveRef.current = isAppActive;
+
     let cancelled = false;
     (async () => {
       await hydrateSoundLibrary();
       if (cancelled) return;
-      if (allowBgm) {
-        await startBackgroundMusicFromSettings();
-        if (cancelled) stopBackgroundMusic();
-      } else {
+
+      if (!backgroundMusicEnabled || !shouldRunBgm) {
         stopBackgroundMusic();
+        return;
       }
+
+      if (!isAppActive) {
+        pauseBackgroundMusic();
+        return;
+      }
+
+      // Focus return with unchanged settings → resume from currentTime.
+      if (focusChanged && !configChanged) {
+        await resumeOrStartBackgroundMusic();
+      } else {
+        await startBackgroundMusicFromSettings();
+      }
+      if (cancelled) pauseBackgroundMusic();
     })();
+
     return () => {
       cancelled = true;
-      stopBackgroundMusic();
     };
   }, [
     appReady,
-    allowBgm,
+    configKey,
+    isAppActive,
     backgroundMusicEnabled,
-    backgroundMusicLooping,
-    backgroundMusicPlaylistMode,
-    libraryEpoch,
+    shouldRunBgm,
   ]);
+
+  useEffect(() => () => stopBackgroundMusic(), []);
 }
 
 export default useBackgroundMusicLifecycle;

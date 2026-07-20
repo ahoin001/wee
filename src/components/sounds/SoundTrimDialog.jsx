@@ -1,5 +1,5 @@
 /**
- * Trim a library sound — Save over (user clips) or Save as new.
+ * Trim a library or staged sound — Save over (user clips), Save as new, or Save to library (staged).
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
@@ -14,6 +14,9 @@ import {
   arrayBufferToBase64,
   decodeAudioUrl,
   encodeWav,
+  estimateWavBytes,
+  formatBytesMb,
+  maxBytesForSoundType,
   probeAudioDuration,
   sliceAudioBuffer,
   validateSoundDuration,
@@ -24,6 +27,14 @@ function formatTime(sec) {
   const m = Math.floor(s / 60);
   const r = (s % 60).toFixed(1);
   return `${m}:${r.padStart(4, '0')}`;
+}
+
+async function clearSoundStaging() {
+  try {
+    await window.api?.sounds?.clearStaging?.();
+  } catch {
+    /* ignore */
+  }
 }
 
 function SoundTrimDialog({
@@ -41,8 +52,13 @@ function SoundTrimDialog({
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState('');
   const [newName, setNewName] = useState('');
+  const [wavMeta, setWavMeta] = useState({ sampleRate: 44100, channels: 2 });
 
-  const canReplace = Boolean(sound?.id && !sound?.isDefault);
+  const isStaged = Boolean(sound?.staged || sound?.mustTrimReason === 'size');
+  const mustTrimForSize = Boolean(sound?.mustTrimReason === 'size' || sound?.staged);
+  const canReplace = Boolean(sound?.id && !sound?.isDefault && !isStaged);
+  const maxBytes = maxBytesForSoundType(soundType);
+  const isHoverFamily = soundType === 'channelHover' || soundType === 'channelClick';
 
   useEffect(() => {
     if (!isOpen || !sound?.url) return undefined;
@@ -50,7 +66,7 @@ function SoundTrimDialog({
     setLoading(true);
     setError('');
     setPreviewing(false);
-    setNewName(`${sound.name || 'Sound'} (trim)`.slice(0, 50));
+    setNewName(`${sound.name || 'Sound'}${isStaged ? '' : ' (trim)'}`.slice(0, 50));
     (async () => {
       try {
         const d = await probeAudioDuration(sound.url);
@@ -60,6 +76,20 @@ function SoundTrimDialog({
         setStartSec(0);
         const defaultEnd = Math.min(dur || HOVER_SFX_HARD_MAX_SEC, HOVER_SFX_HARD_MAX_SEC, 4);
         setEndSec(dur > 0 ? Math.min(dur, Math.max(0.25, defaultEnd)) : 1);
+
+        if (mustTrimForSize) {
+          try {
+            const decoded = await decodeAudioUrl(sound.url);
+            if (!cancelled) {
+              setWavMeta({
+                sampleRate: decoded.sampleRate || 44100,
+                channels: decoded.numberOfChannels || 2,
+              });
+            }
+          } catch {
+            if (!cancelled) setWavMeta({ sampleRate: 44100, channels: 2 });
+          }
+        }
       } catch (e) {
         if (!cancelled) setError(e?.message || 'Failed to load audio');
       } finally {
@@ -70,7 +100,7 @@ function SoundTrimDialog({
       cancelled = true;
       stopPreview();
     };
-  }, [isOpen, sound?.url, sound?.name, sound?.id]);
+  }, [isOpen, sound?.url, sound?.name, sound?.id, isStaged, mustTrimForSize]);
 
   useEffect(() => {
     if (!isOpen) stopPreview();
@@ -81,6 +111,13 @@ function SoundTrimDialog({
     () => validateSoundDuration(soundType, selectionLen),
     [soundType, selectionLen]
   );
+
+  const estimatedBytes = useMemo(
+    () => estimateWavBytes(selectionLen, wavMeta.sampleRate, wavMeta.channels),
+    [selectionLen, wavMeta.sampleRate, wavMeta.channels]
+  );
+  const sizeOk = !mustTrimForSize || estimatedBytes <= maxBytes;
+  const canSave = durationCheck.ok && sizeOk && !loading && selectionLen > 0;
 
   const clampStart = useCallback(
     (value) => {
@@ -117,11 +154,21 @@ function SoundTrimDialog({
     }
   }, [sound?.url, previewing, startSec, endSec]);
 
+  const handleClose = useCallback(() => {
+    stopPreview();
+    if (isStaged) void clearSoundStaging();
+    onClose?.();
+  }, [isStaged, onClose]);
+
   const saveTrimmed = useCallback(
     async (mode) => {
       if (!sound?.url) return;
       if (!durationCheck.ok) {
         setError(durationCheck.error || 'Selection is too long');
+        return;
+      }
+      if (mustTrimForSize && !sizeOk) {
+        setError(`Selection is still too large (~${formatBytesMb(estimatedBytes)}). Shorten it under ${formatBytesMb(maxBytes)}.`);
         return;
       }
       setSaving(true);
@@ -132,21 +179,28 @@ function SoundTrimDialog({
         const decoded = await decodeAudioUrl(sound.url);
         const sliced = sliceAudioBuffer(decoded, startSec, endSec);
         const wav = encodeWav(sliced);
+        if (wav.byteLength > maxBytes) {
+          throw new Error(
+            `Trimmed file is too large (${formatBytesMb(wav.byteLength)}). Shorten the selection under ${formatBytesMb(maxBytes)}.`
+          );
+        }
         const wavBase64 = arrayBufferToBase64(wav);
         if (!window.api?.sounds?.saveTrimmed) {
           throw new Error('Trim save API is unavailable');
         }
+        const saveMode = isStaged ? 'new' : mode;
         const result = await window.api.sounds.saveTrimmed({
           soundType,
-          soundId: sound.id,
-          mode,
-          name: mode === 'new' ? newName : sound.name,
+          soundId: isStaged ? undefined : sound.id,
+          mode: saveMode,
+          name: saveMode === 'new' ? newName : sound.name,
           wavBase64,
         });
         if (!result?.success) {
           throw new Error(result?.error || 'Failed to save trimmed sound');
         }
-        onSaved?.(result.sound, mode);
+        if (isStaged) await clearSoundStaging();
+        onSaved?.(result.sound, saveMode);
         onClose?.();
       } catch (e) {
         setError(e?.message || 'Failed to save trimmed sound');
@@ -163,47 +217,79 @@ function SoundTrimDialog({
       newName,
       onSaved,
       onClose,
+      isStaged,
+      mustTrimForSize,
+      sizeOk,
+      estimatedBytes,
+      maxBytes,
     ]
   );
 
   return (
     <WeeModalShell
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       headerTitle="Trim sound"
       showRail={false}
       maxWidth="32rem"
       footerContent={
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <WeeButton type="button" variant="secondary" onClick={onClose} disabled={saving}>
+          <WeeButton type="button" variant="secondary" onClick={handleClose} disabled={saving}>
             Cancel
           </WeeButton>
-          <WeeButton
-            type="button"
-            variant="secondary"
-            onClick={() => saveTrimmed('new')}
-            disabled={loading || saving || !durationCheck.ok}
-          >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-            Save as new
-          </WeeButton>
-          <WeeButton
-            type="button"
-            variant="primary"
-            onClick={() => saveTrimmed('replace')}
-            disabled={loading || saving || !canReplace || !durationCheck.ok}
-            title={canReplace ? 'Overwrite this library sound' : 'Default sounds cannot be overwritten'}
-          >
-            Save over
-          </WeeButton>
+          {isStaged ? (
+            <WeeButton
+              type="button"
+              variant="primary"
+              onClick={() => saveTrimmed('new')}
+              disabled={saving || !canSave}
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+              Save to library
+            </WeeButton>
+          ) : (
+            <>
+              <WeeButton
+                type="button"
+                variant="secondary"
+                onClick={() => saveTrimmed('new')}
+                disabled={saving || !canSave}
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+                Save as new
+              </WeeButton>
+              <WeeButton
+                type="button"
+                variant="primary"
+                onClick={() => saveTrimmed('replace')}
+                disabled={saving || !canReplace || !canSave}
+                title={canReplace ? 'Overwrite this library sound' : 'Default sounds cannot be overwritten'}
+              >
+                Save over
+              </WeeButton>
+            </>
+          )}
         </div>
       }
     >
       <div className="flex flex-col gap-4 p-1">
-        <Text variant="desc" className="!m-0">
-          Choose the start and end of <span className="font-bold">{sound?.name || 'this sound'}</span>.
-          Hover sounds feel best under a few seconds.
-        </Text>
+        {mustTrimForSize ? (
+          <div className="rounded-2xl border border-[hsl(var(--state-warning)/0.4)] bg-[hsl(var(--state-warning)/0.1)] px-4 py-3">
+            <Text variant="p" className="!m-0 !font-semibold">
+              File is over {formatBytesMb(maxBytes)}
+            </Text>
+            <Text variant="help" className="!mb-0 !mt-1">
+              Shorten the selection to shrink the saved WAV under the limit. Estimated output:{' '}
+              <span className="font-bold tabular-nums">{formatBytesMb(estimatedBytes)}</span>
+              {!sizeOk ? ` — still over ${formatBytesMb(maxBytes)}` : ' — ready to save'}.
+            </Text>
+          </div>
+        ) : (
+          <Text variant="desc" className="!m-0">
+            Choose the start and end of <span className="font-bold">{sound?.name || 'this sound'}</span>.
+            {isHoverFamily ? ' Hover sounds feel best under a few seconds.' : ''}
+          </Text>
+        )}
 
         {loading ? (
           <div className="flex items-center gap-2 text-[hsl(var(--text-secondary))]">
@@ -292,7 +378,7 @@ function SoundTrimDialog({
 
             <WInput
               variant="wee"
-              label="Name for Save as new"
+              label={isStaged ? 'Library name' : 'Name for Save as new'}
               value={newName}
               onChange={(e) => setNewName(e.target.value.slice(0, 50))}
             />
@@ -307,7 +393,12 @@ function SoundTrimDialog({
                 {durationCheck.error}
               </Text>
             ) : null}
-            {!canReplace ? (
+            {!sizeOk ? (
+              <Text variant="help" className="!m-0 text-[hsl(var(--state-error))]">
+                Shorten the selection until it&apos;s under {formatBytesMb(maxBytes)}.
+              </Text>
+            ) : null}
+            {!canReplace && !isStaged ? (
               <Text variant="help" className="!m-0">
                 This is a built-in sound — use Save as new to keep a trimmed copy.
               </Text>
@@ -333,6 +424,9 @@ SoundTrimDialog.propTypes = {
     name: PropTypes.string,
     url: PropTypes.string,
     isDefault: PropTypes.bool,
+    staged: PropTypes.bool,
+    mustTrimReason: PropTypes.string,
+    size: PropTypes.number,
   }),
   soundType: PropTypes.string,
   onSaved: PropTypes.func,

@@ -7,12 +7,51 @@
 export const HOVER_SFX_MAX_BYTES = 5 * 1024 * 1024;
 /** Background music may be larger. */
 export const BGM_MAX_BYTES = 15 * 1024 * 1024;
+/** Hard ceiling for file picker / staging (matches select-sound-file soft gate). */
+export const SOUND_STAGING_MAX_BYTES = 15 * 1024 * 1024;
 /** Soft guidance: hover clips longer than this should be trimmed. */
 export const HOVER_SFX_RECOMMENDED_MAX_SEC = 8;
 /** Hard cap for hover / click library entries after trim or upload. */
 export const HOVER_SFX_HARD_MAX_SEC = 30;
 /** Preview auto-stop so full songs don't play forever in the modal. */
 export const SOUND_PREVIEW_MAX_SEC = 12;
+
+/**
+ * @param {string} soundType
+ * @returns {number}
+ */
+export function maxBytesForSoundType(soundType) {
+  if (soundType === 'channelHover' || soundType === 'channelClick') return HOVER_SFX_MAX_BYTES;
+  if (soundType === 'backgroundMusic') return BGM_MAX_BYTES;
+  return BGM_MAX_BYTES;
+}
+
+/**
+ * Estimate 16-bit PCM WAV byte size for a selection (matches encodeWav).
+ * @param {number} durationSec
+ * @param {number} [sampleRate=44100]
+ * @param {number} [channels=2]
+ * @returns {number}
+ */
+export function estimateWavBytes(durationSec, sampleRate = 44100, channels = 2) {
+  const sec = Math.max(0, Number(durationSec) || 0);
+  const rate = Math.max(1, Number(sampleRate) || 44100);
+  const ch = Math.max(1, Math.min(2, Number(channels) || 2));
+  const frames = Math.ceil(sec * rate);
+  return 44 + frames * ch * 2;
+}
+
+/**
+ * Format bytes for trim UI copy.
+ * @param {number} bytes
+ * @returns {string}
+ */
+export function formatBytesMb(bytes) {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) return '0MB';
+  const mb = n / (1024 * 1024);
+  return mb >= 10 ? `${Math.round(mb)}MB` : `${mb.toFixed(1)}MB`;
+}
 
 /**
  * @param {string} url
@@ -154,20 +193,54 @@ export function arrayBufferToBase64(arrayBuffer) {
 }
 
 /**
+ * Soft size gate: hover/click over category max can stage → trim; BGM oversize is hard reject.
  * @param {string} soundType
  * @param {number} [byteSize]
- * @returns {string|null} error message
+ * @returns {{ ok: boolean, mustTrim: boolean, maxBytes: number, message: string|null }}
+ */
+export function assessSoundUploadSize(soundType, byteSize) {
+  const size = Number(byteSize);
+  const maxBytes = maxBytesForSoundType(soundType);
+  const isHoverFamily = soundType === 'channelHover' || soundType === 'channelClick';
+  if (!Number.isFinite(size) || size <= 0) {
+    return { ok: false, mustTrim: false, maxBytes, message: 'File is empty or unreadable.' };
+  }
+  if (size > SOUND_STAGING_MAX_BYTES) {
+    return {
+      ok: false,
+      mustTrim: false,
+      maxBytes,
+      message: `File is too large. Maximum selectable size is ${formatBytesMb(SOUND_STAGING_MAX_BYTES)}.`,
+    };
+  }
+  if (size > maxBytes) {
+    if (isHoverFamily) {
+      return {
+        ok: false,
+        mustTrim: true,
+        maxBytes,
+        message: `This file is over ${formatBytesMb(maxBytes)}. Trim a shorter clip to save it under the limit.`,
+      };
+    }
+    return {
+      ok: false,
+      mustTrim: false,
+      maxBytes,
+      message: `File is too large. Maximum for music is ${formatBytesMb(maxBytes)}.`,
+    };
+  }
+  return { ok: true, mustTrim: false, maxBytes, message: null };
+}
+
+/**
+ * @param {string} soundType
+ * @param {number} [byteSize]
+ * @returns {string|null} error message (null if ok; mustTrim still returns a message)
  */
 export function validateSoundUploadSize(soundType, byteSize) {
-  const size = Number(byteSize);
-  if (!Number.isFinite(size) || size <= 0) return 'File is empty or unreadable.';
-  const isHoverFamily = soundType === 'channelHover' || soundType === 'channelClick';
-  const max = isHoverFamily ? HOVER_SFX_MAX_BYTES : BGM_MAX_BYTES;
-  if (size > max) {
-    const mb = Math.round(max / (1024 * 1024));
-    return `File is too large. Maximum for ${isHoverFamily ? 'hover/click sounds' : 'music'} is ${mb}MB. Trim the clip or pick a shorter file.`;
-  }
-  return null;
+  const assessment = assessSoundUploadSize(soundType, byteSize);
+  if (assessment.ok) return null;
+  return assessment.message;
 }
 
 /**

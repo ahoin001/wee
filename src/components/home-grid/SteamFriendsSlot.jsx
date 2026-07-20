@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import SteamWidgetHeading from './SteamWidgetHeading';
 import { WeeFadeScroll } from '../../ui/wee';
-import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
+import { normalizeHomeWidgetSurface, resolveSteamHeading } from '../../utils/homeWidgetSurface';
 import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
@@ -400,8 +400,8 @@ function SteamFriendsSlot({
     [colSpan, rowSpan]
   );
   const layout = useMemo(
-    () => resolveHomeWidgetLayout(colSpan, rowSpan),
-    [colSpan, rowSpan]
+    () => resolveHomeWidgetLayout(colSpan, rowSpan, { textSize: slot?.textSize }),
+    [colSpan, rowSpan, slot?.textSize]
   );
   const capacity = Math.max(
     Number(sizePreset.capacity) || 12,
@@ -598,6 +598,8 @@ function SteamFriendsSlot({
       />
     ));
 
+  const headingTitle = resolveSteamHeading('Friends', slot?.widget?.heading);
+
   return (
     <HomeWidgetShell
       surface={surface}
@@ -646,7 +648,14 @@ function SteamFriendsSlot({
         </button>
       ) : (
         <div className={`flex min-h-0 flex-1 flex-col ${layout.gapClass}`}>
-          <SteamWidgetHeading title="Friends" icon={Users} compact={rowSpan <= 1} />
+          {headingTitle ? (
+            <SteamWidgetHeading
+              title={headingTitle}
+              icon={Users}
+              compact={rowSpan <= 1}
+              textSize={slot?.textSize}
+            />
+          ) : null}
           {!isShelfRow && layout.density !== 'compact' ? (
             <p className="-mt-0.5 mb-0 px-0.5 text-[9px] font-bold text-[var(--hw-text-tertiary)]">
               {inGameCount > 0 ? `${inGameCount} in game · ` : ''}
@@ -662,6 +671,8 @@ function SteamFriendsSlot({
               axis="x"
               fadePx={48}
               hideScrollbar
+              panDrag
+              edgeHoverScroll
               className="min-h-0 flex-1"
               style={{ scrollSnapType: 'x proximity' }}
               onWheel={(event) => {

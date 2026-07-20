@@ -235,6 +235,8 @@ export function SteamGamesShelf({ prefs, colSpan = 2, rowSpan = 2, children, cov
       axis={isHorizontal ? 'x' : 'y'}
       fadePx={isCinemaShelf ? 56 : 40}
       hideScrollbar
+      panDrag={isHorizontal}
+      edgeHoverScroll={isHorizontal}
       className="min-h-0 flex-1"
       style={
         isCinemaShelf

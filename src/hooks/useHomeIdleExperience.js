@@ -121,11 +121,20 @@ export function useHomeIdleExperience({ enabled = true } = {}) {
     }
   }, [effectiveStage]);
 
+  const idleStageForDelights =
+    effectiveStage === 'ambient' || effectiveStage === 'attract';
+  // While-active: play on Home whenever the idle clock is runnable (active/ambient/attract),
+  // not only after the idle timeout. Overlay / away still pause via `paused`.
+  const delightsActive =
+    config.delightsEnabled &&
+    (config.delightsWhileActive
+      ? effectiveStage !== 'paused'
+      : idleStageForDelights);
+
   return {
     stage: effectiveStage,
     isFaded: effectiveStage === 'ambient' || effectiveStage === 'attract',
-    delightsActive:
-      config.delightsEnabled && (effectiveStage === 'ambient' || effectiveStage === 'attract'),
+    delightsActive,
     attractActive: effectiveStage === 'attract',
     config,
     bumpActivity,

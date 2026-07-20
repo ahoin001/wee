@@ -9,7 +9,8 @@ import { CHANNEL_PAGE_FLIP_MS, resolveSteppedChannelPage } from '../utils/channe
 import { revealSpaceRail } from '../utils/spaceRailVisibility';
 
 const SPACE_WHEEL_COOLDOWN_MS = 320;
-const PAGE_TILT_COOLDOWN_MS = 140;
+/** Match page-flip clock so trackpad momentum cannot start a second flip mid-pan. */
+const PAGE_TILT_COOLDOWN_MS = CHANNEL_PAGE_FLIP_MS;
 const VERTICAL_THRESHOLD = 28;
 const HORIZONTAL_THRESHOLD = 18;
 
@@ -103,22 +104,15 @@ export default function useWheelNavigation() {
 
         lastPageNavAt.current = now;
         event.preventDefault();
+        // Same settle path as arrow keys: Framer onAnimationComplete + PaginatedChannels
+        // safety timer. Do not arm a fire-and-forget clear — stale timeouts kill the next flip.
         actions.setChannelNavigationForSpace?.(spaceKey, {
           currentPage: stepped.page,
           isAnimating: true,
           animationDirection: stepped.direction,
           animationWrapped: stepped.wrapped,
+          animationDuration: CHANNEL_PAGE_FLIP_MS,
         });
-        window.setTimeout(() => {
-          const latest = useConsolidatedAppStore.getState();
-          const latestKey = resolveActiveChannelSpaceKey(latest.spaces?.activeSpaceId);
-          if (latestKey !== spaceKey) return;
-          latest.actions.setChannelNavigationForSpace?.(spaceKey, {
-            isAnimating: false,
-            animationDirection: 'none',
-            animationWrapped: false,
-          });
-        }, CHANNEL_PAGE_FLIP_MS || 500);
         return;
       }
 

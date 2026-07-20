@@ -62,8 +62,11 @@ function ClockSlot({
   });
 
   const layout = useMemo(
-    () => resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1),
-    [slot?.colSpan, slot?.rowSpan]
+    () =>
+      resolveHomeWidgetLayout(slot?.colSpan ?? 1, slot?.rowSpan ?? 1, {
+        textSize: slot?.textSize,
+      }),
+    [slot?.colSpan, slot?.rowSpan, slot?.textSize]
   );
   const surface = normalizeHomeWidgetSurface(slot?.surface);
 
@@ -78,7 +81,8 @@ function ClockSlot({
     timeColor ||
     DEFAULT_TIME_COLOR_HEX;
 
-  const timeSizeClass = layout.isCompact
+  const textSize = layout.textSize;
+  let timeSizeClass = layout.isCompact
     ? 'text-xl'
     : layout.isTall
       ? 'text-5xl'
@@ -87,13 +91,49 @@ function ClockSlot({
         : layout.isWide
           ? 'text-4xl'
           : 'text-3xl';
+  if (textSize === 'sm') {
+    timeSizeClass = layout.isCompact
+      ? 'text-lg'
+      : layout.isTall
+        ? 'text-4xl'
+        : layout.density === 'roomy'
+          ? 'text-3xl'
+          : 'text-2xl';
+  } else if (textSize === 'md') {
+    timeSizeClass = layout.isCompact
+      ? 'text-xl'
+      : layout.isTall
+        ? 'text-5xl'
+        : layout.density === 'roomy'
+          ? 'text-4xl'
+          : 'text-3xl';
+  } else if (textSize === 'lg') {
+    timeSizeClass = layout.isCompact
+      ? 'text-2xl'
+      : layout.isTall
+        ? 'text-6xl'
+        : layout.density === 'roomy'
+          ? 'text-5xl'
+          : 'text-4xl';
+  }
 
   // Medium (cozy / wide 2×1 or 2×2) needs a pronounced date — compact stays readable but smaller.
-  const dateSizeClass = layout.isCompact
+  let dateSizeClass = layout.isCompact
     ? 'text-[10px] tracking-[0.1em]'
     : layout.density === 'roomy' || layout.isTall
       ? 'text-sm tracking-[0.12em]'
       : 'text-xs tracking-[0.11em]';
+  if (textSize === 'sm') {
+    dateSizeClass = layout.isCompact
+      ? 'text-[9px] tracking-[0.1em]'
+      : 'text-[10px] tracking-[0.11em]';
+  } else if (textSize === 'lg') {
+    dateSizeClass = layout.isCompact
+      ? 'text-xs tracking-[0.1em]'
+      : layout.density === 'roomy' || layout.isTall
+        ? 'text-base tracking-[0.12em]'
+        : 'text-sm tracking-[0.11em]';
+  }
 
   const handleActivate = useCallback(
     (event) => {
