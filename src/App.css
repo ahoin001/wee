@@ -201,9 +201,13 @@ body, #root {
   flex: 0 0 auto;
   width: 100%;
   min-height: 0;
-  will-change: transform;
   transition: transform var(--space-world-duration, 780ms) cubic-bezier(0.16, 1, 0.3, 1);
   backface-visibility: hidden;
+}
+
+/* Promote the track only while the shell is sliding — avoid permanent will-change cost. */
+.space-world__track--transitioning {
+  will-change: transform;
 }
 
 .space-world__panel {
@@ -217,6 +221,12 @@ body, #root {
 
 .space-world__panel--active {
   pointer-events: auto;
+}
+
+/* Keep visited hubs mounted for instant back-nav, but freeze paint/layout when off-screen. */
+.space-world__panel:not(.space-world__panel--active) {
+  content-visibility: hidden;
+  contain-intrinsic-size: auto 100vh;
 }
 
 .space-world__panel-surface {

@@ -149,6 +149,7 @@ function App() {
     activeSpaceId,
     spaceOrder,
     mediaHubEnabled,
+    isSpaceTransitioning,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       appReady: state.app.appReady,
@@ -195,6 +196,7 @@ function App() {
       activeSpaceId: state.spaces.activeSpaceId,
       spaceOrder: state.spaces.order,
       mediaHubEnabled: state.spaces.mediaHubEnabled === true,
+      isSpaceTransitioning: state.spaces.isTransitioning,
     }))
   );
 
@@ -411,6 +413,32 @@ function App() {
     },
     [visitedSpaces, activeSpaceId]
   );
+
+  /** Pause media inside inactive visited spaces so hubs don’t keep decoding off-screen. */
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const panels = document.querySelectorAll('.space-world__panel[data-space-id]');
+    panels.forEach((panel) => {
+      const active = panel.getAttribute('data-space-active') === 'true';
+      panel.querySelectorAll('video').forEach((video) => {
+        if (!(video instanceof HTMLVideoElement)) return;
+        if (!active) {
+          if (!video.paused) {
+            video.dataset.weePausedBySpace = '1';
+            try {
+              video.pause();
+            } catch {
+              /* ignore */
+            }
+          }
+        } else if (video.dataset.weePausedBySpace === '1') {
+          delete video.dataset.weePausedBySpace;
+          video.play().catch(() => {});
+        }
+      });
+    });
+    return undefined;
+  }, [activeSpaceId, visitedSpaces]);
 
   const isGameHubSpace = activeSpaceId === 'gamehub';
   const isMediaHubSpace = activeSpaceId === 'mediahub';
@@ -669,7 +697,7 @@ function App() {
           <Suspense fallback={<SpaceBootLoader />}>
             <div
               ref={spaceWorldTrackRef}
-              className="space-world__track"
+              className={`space-world__track${isSpaceTransitioning ? ' space-world__track--transitioning' : ''}`}
               style={spaceWorldTrackStyle}
             >
               {resolvedSpaceOrder.map((spaceId) => {
@@ -682,6 +710,7 @@ function App() {
                     className={`space-world__panel ${isActive ? 'space-world__panel--active' : ''}`}
                     aria-hidden={!isActive}
                     data-space-id={spaceId}
+                    data-space-active={isActive ? 'true' : 'false'}
                     style={{ flex: `0 0 ${panelPct}%`, minHeight: 0 }}
                   >
                     <div className="space-world__panel-surface">

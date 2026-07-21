@@ -4,6 +4,7 @@ import { normalizeHomeSteamWidget } from '../homeSteamWidgetPrefs.js';
 import { normalizeHomeClockWidget } from '../homeClockWidgetPrefs.js';
 import { normalizeHomeRecentlyUsedWidget } from '../homeRecentlyUsedWidgetPrefs.js';
 import { normalizeHomeNowPlayingWidget } from '../homeNowPlayingWidgetPrefs.js';
+import { normalizePerformanceProfile } from '../performanceProfile.js';
 /** BETA: Immersive Sound Mode — remove with `src/features/immersiveSoundMode/`. */
 import { normalizeImmersiveSoundMode } from '../../features/immersiveSoundMode/immersiveSoundModePrefs.js';
 /** BETA: Scene FX — remove with `src/features/sceneFxBeta/`. */
@@ -193,6 +194,7 @@ const selectPersistedUi = (ui = {}) => ({
   toggleCustomCursorShortcut: ui.toggleCustomCursorShortcut ?? '',
   lowPowerMode: ui.lowPowerMode ?? false,
   performancePauseOnGameLaunch: ui.performancePauseOnGameLaunch !== false,
+  performanceProfile: normalizePerformanceProfile(ui.performanceProfile),
   immersivePip: ui.immersivePip ?? false,
   showDock: ui.showDock ?? true,
   classicMode: ui.classicMode ?? false,

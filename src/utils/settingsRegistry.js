@@ -154,7 +154,19 @@ export const SETTINGS_TAB_META = Object.freeze([
     color: 'hsl(var(--settings-tab-general))',
     description: 'App behavior & startup',
     categoryId: 'system',
-    keywords: ['startup', 'launch on boot', 'cursor', 'classic mode', 'reset', 'danger', 'cache', 'refresh', 'data'],
+    keywords: ['startup', 'launch on boot', 'cursor', 'classic mode', 'reset', 'danger'],
+  },
+  {
+    id: 'performance',
+    label: 'Performance',
+    icon: '⚡',
+    color: 'hsl(var(--settings-tab-performance))',
+    description: 'Smoothness profiles, power & caches',
+    categoryId: 'system',
+    keywords: [
+      'performance', 'smooth', 'low power', 'fps', 'lag', 'choppy', 'cache', 'refresh',
+      'data', 'scene fx', 'particles', 'idle', 'cinematic', 'efficiency',
+    ],
   },
   {
     id: 'shortcuts',

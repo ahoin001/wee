@@ -11,6 +11,7 @@ import {
 } from '../utils/theme/wallpaperAmbientPaletteCache';
 import { resolveActiveBoardCurrentPage, getSecondaryChannelSpaceData } from '../utils/channelSpaces';
 import { resolveLayout } from '../utils/channelLayoutSystem';
+import { shouldPrefetchAmbientNeighbors } from '../utils/performanceControls';
 
 /** Debounce when already settled (e.g. wallpaper cycling). */
 const EXTRACT_DEBOUNCE_SETTLED_MS = 400;
@@ -77,6 +78,8 @@ export function useWallpaperAmbientColor() {
     channels,
     visualCommittedUrl,
     cachedForUrl,
+    lowPowerMode,
+    performanceProfile,
     setUIState,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
@@ -87,6 +90,8 @@ export function useWallpaperAmbientColor() {
       channels: state.channels,
       visualCommittedUrl: state.wallpaper?.visualCommittedUrl ?? null,
       cachedForUrl: state.ui.ambientColor?.cachedForUrl ?? null,
+      lowPowerMode: Boolean(state.ui.lowPowerMode),
+      performanceProfile: state.ui.performanceProfile,
       setUIState: state.actions.setUIState,
     }))
   );
@@ -197,6 +202,7 @@ export function useWallpaperAmbientColor() {
   useEffect(() => {
     if (!wallpaperMatchEnabled || sessionPower === 'away') return undefined;
     if (!(activeSpaceId === 'home' || activeSpaceId === 'workspaces')) return undefined;
+    if (!shouldPrefetchAmbientNeighbors()) return undefined;
 
     const totalPages = resolveBoardTotalPages(activeSpaceId, channels);
     const neighbors = [currentPage - 1, currentPage + 1].filter(
@@ -228,6 +234,8 @@ export function useWallpaperAmbientColor() {
     wallpaperCurrent,
     appearanceBySpace,
     displayUrl,
+    lowPowerMode,
+    performanceProfile,
   ]);
 }
 

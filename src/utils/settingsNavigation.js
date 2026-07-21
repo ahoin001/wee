@@ -10,6 +10,7 @@ export const SETTINGS_TAB_ID = {
   DOCK: 'dock',
   COLORS: 'colors',
   GENERAL: 'general',
+  PERFORMANCE: 'performance',
   GAMEHUB: 'gamehub',
   SOUNDS: 'sounds',
   /** Presets tab route id (legacy `themes` / “Looks”). */
@@ -24,6 +25,7 @@ export const SETTINGS_TAB_ID = {
   SHORTCUTS: 'shortcuts',
   MONITOR: 'monitor',
   MOTION: 'motion',
+  BETA: 'beta',
   /**
    * @deprecated Page arrows settings removed — Wee peeks are the only style.
    * normalizeSettingsTabId redirects to `channels`.

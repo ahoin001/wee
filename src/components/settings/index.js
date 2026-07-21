@@ -6,6 +6,7 @@ export { default as WallpaperSettingsTab } from './WallpaperSettingsTab';
 export { default as TimeSettingsTab } from './TimeSettingsTab';
 export { default as SoundsSettingsTab } from './SoundsSettingsTab';
 export { default as GeneralSettingsTab } from './GeneralSettingsTab';
+export { default as PerformanceSettingsTab } from './PerformanceSettingsTab';
 export { default as GameHubSettingsTab } from './GameHubSettingsTab';
 export { default as PresetsSettingsTab } from './PresetsSettingsTab';
 export { default as MonitorSettingsTab } from './MonitorSettingsTab';

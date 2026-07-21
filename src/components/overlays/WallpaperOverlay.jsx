@@ -23,10 +23,13 @@ const WallpaperOverlay = ({
   const lastTimeRef = useRef(0);
   const isActiveRef = useRef(false);
   const canvasSizeRef = useRef({ width: 0, height: 0 });
-  const { shouldAnimate, isLowPowerMode } = useAnimationActivity({
+  const { shouldAnimate, isLowPowerMode, frameIntervalMs } = useAnimationActivity({
     activeFps: 60,
     lowPowerFps: 24,
   });
+  const frameIntervalRef = useRef(frameIntervalMs);
+  frameIntervalRef.current = frameIntervalMs;
+  const lastDrawAtRef = useRef(0);
 
   useEffect(() => {
     if (!enabled) {
@@ -178,7 +181,7 @@ const WallpaperOverlay = ({
     particlesRef.current = newParticles;
   }, [engineActive, effect, effects, getParticleFromPool, returnParticleToPool, isLowPowerMode]);
 
-  // Optimized animation loop with delta time
+  // Optimized animation loop with delta time + activity FPS throttle
   const animate = useCallback((currentTime) => {
     if (!isActiveRef.current) return;
 
@@ -188,8 +191,6 @@ const WallpaperOverlay = ({
       return;
     }
 
-    const ctx = canvas.getContext('2d');
-    const config = effects[effect];
     const width = canvasSizeRef.current.width || canvas.clientWidth || 0;
     const height = canvasSizeRef.current.height || canvas.clientHeight || 0;
     // Zero-size frames (minimize/restore) must not kill the loop — keep RAF alive.
@@ -197,6 +198,16 @@ const WallpaperOverlay = ({
       animationRef.current = requestAnimationFrame(animate);
       return;
     }
+
+    const interval = frameIntervalRef.current || 16.67;
+    if (currentTime - lastDrawAtRef.current < interval) {
+      animationRef.current = requestAnimationFrame(animate);
+      return;
+    }
+    lastDrawAtRef.current = currentTime;
+
+    const ctx = canvas.getContext('2d');
+    const config = effects[effect];
 
     // Calculate delta time for consistent animation speed
     const deltaTime = currentTime - lastTimeRef.current;

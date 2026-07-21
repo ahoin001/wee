@@ -192,6 +192,8 @@ useConsolidatedAppStore = create(
            * Does not minimize the window. Persisted.
            */
           performancePauseOnGameLaunch: true,
+          /** smooth | balanced | max | custom — Performance settings profile. Persisted. */
+          performanceProfile: 'balanced',
           /**
            * Transient: 'away' after intensive launch until focus returns. Not persisted.
            */
@@ -2090,6 +2092,7 @@ useConsolidatedAppStore = create(
               settingsShortcut: '',
               lowPowerMode: false,
               performancePauseOnGameLaunch: true,
+              performanceProfile: 'balanced',
               sessionPower: 'normal',
               systemPower: {
                 onBattery: false,

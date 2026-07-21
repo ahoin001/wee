@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import useAnimationActivity from '../../../hooks/useAnimationActivity';
 import useRafResumeKick from '../../../hooks/useRafResumeKick';
+import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 
 function readPrimaryRgb() {
   try {
@@ -33,8 +34,11 @@ function SceneFxCursorWake({ intensity = 0.55, reducedMotion = false }) {
   const lastMoveSpawnRef = useRef(0);
   const ensureTickRef = useRef(() => {});
   const { shouldAnimate } = useAnimationActivity({ activeFps: 45, lowPowerFps: 20 });
+  const isTransitioning = useConsolidatedAppStore((s) => Boolean(s.spaces?.isTransitioning));
   const shouldAnimateRef = useRef(shouldAnimate);
+  const isTransitioningRef = useRef(isTransitioning);
   shouldAnimateRef.current = shouldAnimate;
+  isTransitioningRef.current = isTransitioning;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -88,6 +92,7 @@ function SceneFxCursorWake({ intensity = 0.55, reducedMotion = false }) {
     ensureTickRef.current = ensureTick;
 
     const spawn = (x, y, power = 1) => {
+      if (isTransitioningRef.current || !shouldAnimateRef.current) return;
       if (ripplesRef.current.length > 18) ripplesRef.current.shift();
       const hsl = readPrimaryRgb();
       ripplesRef.current.push({
@@ -108,7 +113,7 @@ function SceneFxCursorWake({ intensity = 0.55, reducedMotion = false }) {
     };
 
     const onPointerMove = (e) => {
-      if (reducedMotion || !shouldAnimateRef.current) return;
+      if (reducedMotion || !shouldAnimateRef.current || isTransitioningRef.current) return;
       const now = performance.now();
       if (now - lastMoveSpawnRef.current < 90) return;
       lastMoveSpawnRef.current = now;

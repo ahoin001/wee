@@ -66,7 +66,8 @@ export default function SettingsDataCachesCard() {
     <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
       <Text variant="desc" className="!mb-4 block">
         Wee caches libraries, catalogs, and derived visuals so the app stays fast. Refresh a
-        domain to refetch it now, or clear everything if something looks stale.
+        domain to refetch it now, or clear everything if something looks stale. Image warm runs on
+        idle after libraries load — Smooth / low power reduce background FX, not these caches.
       </Text>
 
       <ul className="m-0 flex list-none flex-col gap-2 p-0">

@@ -34,6 +34,7 @@ import {
   NavigationPillSettingsTab,
   MotionFeedbackSettingsTab,
   BetaSettingsTab,
+  PerformanceSettingsTab,
 } from './index';
 
 const TabPanel = m.div;
@@ -44,6 +45,7 @@ const SETTINGS_TAB_COMPONENTS = {
   channels: ChannelsLayoutSettingsTab,
   dock: UnifiedDockSettingsTab,
   general: GeneralSettingsTab,
+  performance: PerformanceSettingsTab,
   motion: MotionFeedbackSettingsTab,
   'navigation-pill': NavigationPillSettingsTab,
   themes: PresetsSettingsTab,

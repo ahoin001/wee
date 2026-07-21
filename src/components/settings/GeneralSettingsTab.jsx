@@ -4,11 +4,12 @@ import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
+import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
+import { WeeHelpLinkButton } from '../../ui/wee';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsWeeSection from './SettingsWeeSection';
-import SettingsDataCachesCard from './SettingsDataCachesCard';
 
 const GeneralSettingsTab = React.memo(() => {
   const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
@@ -68,20 +69,6 @@ const GeneralSettingsTab = React.memo(() => {
       } catch (error) {
         console.error('[GeneralSettingsTab] Failed to update auto-launch setting:', error);
       }
-    },
-    [setUIState]
-  );
-
-  const handleLowPowerModeChange = useCallback(
-    (checked) => {
-      setUIState({ lowPowerMode: checked });
-    },
-    [setUIState]
-  );
-
-  const handlePerformancePauseOnGameLaunchChange = useCallback(
-    (checked) => {
-      setUIState({ performancePauseOnGameLaunch: checked });
     },
     [setUIState]
   );
@@ -158,6 +145,10 @@ const GeneralSettingsTab = React.memo(() => {
     );
   }, [confirmAction, notifyDialog, runFreshInstall]);
 
+  const openPerformance = useCallback(() => {
+    openSettingsToTab(SETTINGS_TAB_ID.PERFORMANCE);
+  }, []);
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-10 pb-12">
       <SettingsTabPageHeader title="General" subtitle="App behavior & startup" />
@@ -187,18 +178,33 @@ const GeneralSettingsTab = React.memo(() => {
           checked={ui.showDock ?? true}
           onChange={handleShowDockChange}
         />
-        <SettingsToggleFieldCard
-          title="Low power mode"
-          desc="Reduces background polling and animation cadence to keep CPU/GPU usage lower while the app is idle or running in the background."
-          checked={ui.lowPowerMode ?? false}
-          onChange={handleLowPowerModeChange}
-        />
-        <SettingsToggleFieldCard
-          title="Pause effects when launching games"
-          desc="When you launch a game (Steam, Epic, Game Hub, or auto-detected game folders), Wee freezes wallpaper cycling, chrome effects, and ambient effects until you return — without minimizing."
-          checked={ui.performancePauseOnGameLaunch !== false}
-          onChange={handlePerformancePauseOnGameLaunchChange}
-        />
+      </SettingsWeeSection>
+
+      <SettingsWeeSection eyebrow="Performance">
+        <WeeModalFieldCard hoverAccent="discovery" paddingClassName="p-6 md:p-8">
+          <Text variant="h3" className="m-0 text-[hsl(var(--text-primary))]">
+            Performance options
+          </Text>
+          <Text variant="desc" className="mt-1 block">
+            Low power mode, pause-on-game-launch, atmosphere cost, and data caches live on the
+            Performance tab.
+          </Text>
+          <WeeHelpLinkButton className="!mt-3" onClick={openPerformance}>
+            Open Performance settings
+          </WeeHelpLinkButton>
+        </WeeModalFieldCard>
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-6 md:p-8">
+          <Text variant="h3" className="m-0 text-[hsl(var(--text-primary))]">
+            Data & caches
+          </Text>
+          <Text variant="desc" className="mt-1 block">
+            Cache refresh and clear tools moved to Performance so load efficiency stays next to
+            smoothness controls.
+          </Text>
+          <WeeHelpLinkButton className="!mt-3" onClick={openPerformance}>
+            Open caches on Performance
+          </WeeHelpLinkButton>
+        </WeeModalFieldCard>
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Startup">
@@ -208,10 +214,6 @@ const GeneralSettingsTab = React.memo(() => {
           checked={ui.startOnBoot ?? false}
           onChange={handleStartOnBootChange}
         />
-      </SettingsWeeSection>
-
-      <SettingsWeeSection eyebrow="Data & caches">
-        <SettingsDataCachesCard />
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Danger zone">
