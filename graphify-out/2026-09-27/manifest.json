@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1790533477.6712005,
-    "ast_hash": "55a1ea0de28978237eaa0d2a5b575c83",
+    "mtime": 1790535673.4425657,
+    "ast_hash": "737234f96e50d2f7c7ad83661343253d",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/App.jsx": {
-    "mtime": 1790533307.647592,
-    "ast_hash": "74bcc1a3ea6da1168cd419a4b668216f",
+    "mtime": 1790535217.3464334,
+    "ast_hash": "7b50e6c3b2ace7bcac1f991fd0e7eb3e",
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanel.jsx": {
@@ -170,8 +170,8 @@
     "semantic_hash": "d862ba293592944b08fa97eb5a072ada"
   },
   "src/components/channels/Channel.jsx": {
-    "mtime": 1790533096.105946,
-    "ast_hash": "eec791ed03ad0eba4ae46d79daa9bb63",
+    "mtime": 1790536149.3975947,
+    "ast_hash": "f549cb24cd557a685086f2cf64d877e7",
     "semantic_hash": ""
   },
   "src/components/channels/ChannelMediaPreview.jsx": {
@@ -550,8 +550,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784571948.1567023,
-    "ast_hash": "f01dc1467f89079d9cdb094d132f66bb",
+    "mtime": 1790535216.04209,
+    "ast_hash": "ac00de05c43e2acc24a18f48cd6804d9",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -730,8 +730,8 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1790534197.3470855,
-    "ast_hash": "a3b59b1fad17eb7a1db6cc0b5949631d",
+    "mtime": 1790535269.3371627,
+    "ast_hash": "f4b55ba9baadbe9c563535649dff73c4",
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockPanel.jsx": {
@@ -800,8 +800,8 @@
     "semantic_hash": ""
   },
   "src/components/spaces/WeeGooeySpacePill.jsx": {
-    "mtime": 1784559264.277524,
-    "ast_hash": "3bd0808e4c236fde24f424c3d20778c4",
+    "mtime": 1790535215.1986892,
+    "ast_hash": "1a0e0540d8125b9e4ceccb8604e75e42",
     "semantic_hash": ""
   },
   "src/components/spaces/index.js": {
@@ -1145,8 +1145,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeModalShell.jsx": {
-    "mtime": 1790533228.850956,
-    "ast_hash": "d605eba41b9ceb3ee65d911288228989",
+    "mtime": 1790536177.499057,
+    "ast_hash": "826c82939becc499442987620ac7e684",
     "semantic_hash": ""
   },
   "src/ui/wee/WeePillFloorShadow.jsx": {
@@ -1970,8 +1970,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
-    "mtime": 1790534189.6821654,
-    "ast_hash": "7c3e6bde43cf76f4f101acd8c10b60b8",
+    "mtime": 1790535582.7873678,
+    "ast_hash": "3dac610c59bc24ba07c522f681bd2087",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomePageIndicator.jsx": {
@@ -1980,8 +1980,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useHomeBoardArrange.js": {
-    "mtime": 1784294742.3390088,
-    "ast_hash": "e243e58d3b5e22a788e2bbb11a4db138",
+    "mtime": 1790535213.6622763,
+    "ast_hash": "70332d1356c631281e64bbb850959329",
     "semantic_hash": ""
   },
   "src/hooks/usePowerPolicy.js": {
@@ -2625,8 +2625,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useOriginFootprintSpring.js": {
-    "mtime": 1790533219.9128911,
-    "ast_hash": "ca7f6407bd7f1829715d97623dbf4a3c",
+    "mtime": 1790536177.9633286,
+    "ast_hash": "254f92f0f96eb8f8dcb44cae6164f030",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGlyphField.jsx": {
@@ -2635,8 +2635,23 @@
     "semantic_hash": ""
   },
   "src/ui/wee/originRect.js": {
-    "mtime": 1790533022.3823285,
-    "ast_hash": "d67f0e4fc88b3c2c818d99810553c772",
+    "mtime": 1790536130.69933,
+    "ast_hash": "08b1d5afe2bd90fd9985885d13c560fb",
+    "semantic_hash": ""
+  },
+  "src/components/home-grid/EditSceneTools.jsx": {
+    "mtime": 1790535201.5915477,
+    "ast_hash": "cbecf00f3ea75b3b96a68a9d069ed577",
+    "semantic_hash": ""
+  },
+  "src/components/home-grid/HubSceneArrangeHost.jsx": {
+    "mtime": 1790535203.3072047,
+    "ast_hash": "60710bda4d08724a55b28c775d70e911",
+    "semantic_hash": ""
+  },
+  "src/utils/surfaceSceneActions.js": {
+    "mtime": 1790534974.2803812,
+    "ast_hash": "43340cf1c71a636bcd23806a0388b707",
     "semantic_hash": ""
   }
 }

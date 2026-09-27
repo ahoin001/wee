@@ -17,6 +17,7 @@ export function readOriginRect(element) {
     width: box.width,
     height: box.height,
     radius,
+    source: element,
   };
 }
 

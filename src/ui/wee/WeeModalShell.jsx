@@ -121,7 +121,6 @@ function WeeModalShell({
                   border-[length:var(--wee-modal-shell-border)] border-[hsl(var(--wee-border-outer))]
                   ${useOrigin ? '' : 'rounded-[var(--wee-radius-shell)]'} bg-[hsl(var(--wee-surface-shell))]
                   shadow-[var(--wee-shadow-modal)]
-                  ${panelLayoutClass}
                   ${className}
                 `.trim()}
               style={useOrigin ? {
@@ -137,11 +136,14 @@ function WeeModalShell({
               animate={useOrigin ? undefined : (isOpen ? 'open' : 'closed')}
               onAnimationComplete={useOrigin ? undefined : onPanelAnimationComplete}
             >
+              <MotionDiv
+                className={`flex min-h-0 min-w-0 flex-1 ${panelLayoutClass}`}
+                style={useOrigin ? { opacity: contentOpacity } : undefined}
+              >
               {showRail && rail}
 
               <MotionDiv
                 className={`flex min-h-0 min-w-0 flex-1 flex-col bg-[hsl(var(--wee-surface-shell))] ${panelClassName}`}
-                style={useOrigin ? { opacity: contentOpacity } : undefined}
               >
                 <div className="flex shrink-0 items-center justify-between border-b-2 border-[hsl(var(--border-primary)/0.35)] px-8 py-6 md:px-10 md:py-7">
                   <Dialog.Title
@@ -169,6 +171,7 @@ function WeeModalShell({
                     {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
                   </div>
                 )}
+              </MotionDiv>
               </MotionDiv>
             </MotionDiv>
           </Dialog.Panel>
