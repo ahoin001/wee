@@ -6,8 +6,8 @@
  */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { m } from 'framer-motion';
-import { Music, Pause, Play, SkipBack, SkipForward } from 'lucide-react';
+import { AnimatePresence, m } from 'framer-motion';
+import { Music, SkipBack, SkipForward } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
@@ -19,7 +19,7 @@ import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
 import MusicReactiveBars from '../widgets/MusicReactiveBars';
 import { WEE_GOOEY_ICON_PRESS } from '../../ui/wee/WeeGooeyIconButton';
-import { WeeHoverTip } from '../../ui/wee';
+import { WeeHoverTip, WeePlayPauseGlyph } from '../../ui/wee';
 import { normalizeHomeNowPlayingWidget } from '../../utils/homeNowPlayingWidgetPrefs';
 import {
   EMPTY_NOW_PLAYING,
@@ -717,11 +717,11 @@ function NowPlayingSlot({
         disabled={!playPauseEnabled}
         onClick={handleTransportClick('playPause')}
       >
-        {isPlaying ? (
-          <Pause size={chrome.playIcon} fill="currentColor" aria-hidden />
-        ) : (
-          <Play size={chrome.playIcon} className="ml-0.5" fill="currentColor" aria-hidden />
-        )}
+        <WeePlayPauseGlyph
+          playing={isPlaying}
+          size={chrome.playIcon}
+          reducedMotion={reducedMotion}
+        />
       </m.button>
 
       <m.button
@@ -748,19 +748,37 @@ function NowPlayingSlot({
       disabled={interactionsLocked && !arrangeMode}
       aria-label={`Now playing: ${trackName} by ${artistLine}`}
     >
-      <span
-        className={`truncate font-black uppercase italic tracking-tighter ${chrome.title}`}
-        style={{ color: albumPaint.text }}
-      >
-        {trackName}
+      <span className="block min-w-0">
+        <AnimatePresence mode="wait" initial={false}>
+          <m.span
+            key={trackName}
+            className={`block truncate font-black uppercase italic tracking-tighter ${chrome.title}`}
+            style={{ color: albumPaint.text }}
+            initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={createWeeTransition('tab', { reducedMotion })}
+          >
+            {trackName}
+          </m.span>
+        </AnimatePresence>
       </span>
 
       {chrome.showArtist && artistLine ? (
-        <span
-          className={`truncate font-black uppercase ${chrome.artist}`}
-          style={{ color: albumPaint.textSecondary }}
-        >
-          {artistLine}
+        <span className="block min-w-0">
+          <AnimatePresence mode="wait" initial={false}>
+            <m.span
+              key={artistLine}
+              className={`block truncate font-black uppercase ${chrome.artist}`}
+              style={{ color: albumPaint.textSecondary }}
+              initial={reducedMotion ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reducedMotion ? undefined : { opacity: 0, y: -4 }}
+              transition={createWeeTransition('tab', { reducedMotion })}
+            >
+              {artistLine}
+            </m.span>
+          </AnimatePresence>
         </span>
       ) : null}
 

@@ -1,7 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
+import { m } from 'framer-motion';
 import WButton from '../../ui/WButton';
 import Text from '../../ui/Text';
+import { createWeeTransition } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 /**
  * Floating, design-system-aligned notice when a channel or ribbon launch fails.
@@ -13,10 +16,15 @@ export default function LaunchErrorToast({
   reportText,
   referenceId,
   settingsTabId,
+  origin = null,
   onOpenSettingsTab,
   onDismiss,
 }) {
   const [copyState, setCopyState] = useState('idle');
+  const { osReduced, prefs } = useMotionFeedback();
+  const reducedMotion = Boolean(osReduced) || prefs?.master === false;
+  const dx = origin && !reducedMotion ? origin.x - window.innerWidth / 2 : 0;
+  const dy = origin && !reducedMotion ? origin.y - (window.innerHeight - 72) : 12;
 
   const handleCopy = useCallback(async () => {
     try {
@@ -30,13 +38,20 @@ export default function LaunchErrorToast({
   }, [reportText]);
 
   return (
-    <div
-      className="fixed bottom-6 left-1/2 z-[100000] w-[min(100%,24rem)] -translate-x-1/2 px-3 sm:max-w-lg sm:px-0"
+    <m.div
+      className="fixed bottom-6 left-1/2 z-[100000] w-[min(100%,24rem)] px-3 sm:max-w-lg sm:px-0"
       role="alert"
       aria-live="assertive"
+      initial={
+        reducedMotion
+          ? { opacity: 0, x: '-50%' }
+          : { opacity: 0, x: `calc(-50% + ${dx}px)`, y: dy, scale: 0.9 }
+      }
+      animate={{ opacity: 1, x: '-50%', y: 0, scale: 1 }}
+      transition={createWeeTransition('pillOpen', { reducedMotion })}
     >
       <div
-        className="rounded-[var(--radius-lg)] border border-[hsl(var(--state-error)_/_0.45)] bg-[hsl(var(--surface-elevated)_/_0.97)] shadow-[var(--shadow-xl)] backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-300"
+        className="rounded-[var(--radius-lg)] border border-[hsl(var(--state-error)_/_0.45)] bg-[hsl(var(--surface-elevated)_/_0.97)] shadow-[var(--shadow-xl)] backdrop-blur-md"
       >
         <div className="flex gap-3 p-4">
           <div
@@ -95,7 +110,7 @@ export default function LaunchErrorToast({
           </div>
         </div>
       </div>
-    </div>
+    </m.div>
   );
 }
 
@@ -106,6 +121,10 @@ LaunchErrorToast.propTypes = {
   reportText: PropTypes.string.isRequired,
   referenceId: PropTypes.string,
   settingsTabId: PropTypes.string,
+  origin: PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+  }),
   onOpenSettingsTab: PropTypes.func,
   onDismiss: PropTypes.func.isRequired,
 };

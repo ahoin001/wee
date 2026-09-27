@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { LayoutGroup } from 'framer-motion';
 import { useWeeMotion } from '../../design/weeMotion';
-import WeeLayoutActiveDisc from './WeeLayoutActiveDisc';
+import WeeLayoutActiveDisc, { WEE_LIQUID_ROOT_ATTR } from './WeeLayoutActiveDisc';
 
 /**
  * Chunky horizontal sub-tabs for Dock settings (matches Channel board picker / tabseries tactility).
@@ -22,7 +22,8 @@ function WeeDockSettingsSubtabs({
       <div
         role="tablist"
         aria-label={ariaLabel}
-        className="flex flex-wrap gap-3 border-b border-[hsl(var(--border-primary)/0.45)] pb-4"
+        {...{ [WEE_LIQUID_ROOT_ATTR]: '' }}
+        className="relative flex flex-wrap gap-3 border-b border-[hsl(var(--border-primary)/0.45)] pb-4"
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;

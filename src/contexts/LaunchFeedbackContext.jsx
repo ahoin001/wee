@@ -28,11 +28,25 @@ const setLaunchCinematic = (value) => {
   useConsolidatedAppStore.getState().actions.setUIState({ launchCinematic: value });
 };
 
+function measureChannelCenter(channelId) {
+  if (!channelId || typeof document === 'undefined') return null;
+  const escaped =
+    typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+      ? CSS.escape(String(channelId))
+      : String(channelId).replace(/"/g, '');
+  const el = document.querySelector(`[data-channel-id="${escaped}"]`);
+  if (!(el instanceof HTMLElement)) return null;
+  const rect = el.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) return null;
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
 export function LaunchFeedbackProvider({ children }) {
   const [toast, setToast] = useState(null);
   const [launching, setLaunching] = useState(null);
   const timerRef = useRef(null);
   const cinematicRef = useRef({ token: null, timer: null });
+  const originRef = useRef(null);
 
   const clearLaunchCinematic = useCallback((token) => {
     const current = cinematicRef.current;
@@ -109,6 +123,7 @@ export function LaunchFeedbackProvider({ children }) {
         launchType,
         path,
         settingsTabId,
+        origin: originRef.current,
       });
 
       // Errors cancel choreography cleanly — the toast owns attention now.
@@ -125,6 +140,8 @@ export function LaunchFeedbackProvider({ children }) {
       showLaunchError,
       dismissLaunchError: dismiss,
       beginLaunchFeedback: ({ token, label, launchType, path, source = 'app', origin = null }) => {
+        const originPoint = origin?.channelId ? measureChannelCenter(origin.channelId) : null;
+        originRef.current = originPoint;
         setLaunching({
           token,
           label: label || 'Launching...',
@@ -132,6 +149,7 @@ export function LaunchFeedbackProvider({ children }) {
           path: path || '',
           source,
           startedAt: Date.now(),
+          origin: originPoint,
         });
         if (origin?.channelId) {
           beginLaunchCinematic({ token, origin, source });
@@ -161,6 +179,7 @@ export function LaunchFeedbackProvider({ children }) {
           reportText={toast.reportText}
           referenceId={toast.refId}
           settingsTabId={toast.settingsTabId}
+          origin={toast.origin}
           onOpenSettingsTab={(tabId) => {
             openSettingsToTab(tabId);
             dismiss();
@@ -168,7 +187,11 @@ export function LaunchFeedbackProvider({ children }) {
           onDismiss={dismiss}
         />
       ) : null}
-      <WeeGooeyStatusPill open={Boolean(launching)} label={launching?.label} />
+      <WeeGooeyStatusPill
+        open={Boolean(launching)}
+        label={launching?.label}
+        origin={launching?.origin}
+      />
     </LaunchFeedbackContext.Provider>
   );
 }

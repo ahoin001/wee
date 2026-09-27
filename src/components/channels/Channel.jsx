@@ -14,6 +14,7 @@ import useChannelEffectiveState from './hooks/useChannelEffectiveState';
 import useChannelInteractions from './hooks/useChannelInteractions';
 import ChannelMediaPreview from './ChannelMediaPreview';
 import ChannelModalsHost from './ChannelModalsHost';
+import ChannelLaunchAck from './ChannelLaunchAck';
 
 const MotionDiv = m.div;
 
@@ -359,6 +360,7 @@ const Channel = React.memo(({
           reducedMotion={Boolean(osReducedMotion)}
         />
       ) : null}
+      <ChannelLaunchAck active={isLaunchOrigin} reducedMotion={Boolean(osReducedMotion)} />
       <WeeTapLayer className="channel-tap-layer relative z-[1] h-full w-full min-h-0 min-w-0">
         <ChannelMediaPreview
           effectiveMedia={effectiveMedia}

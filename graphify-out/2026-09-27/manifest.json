@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784646916.5099034,
-    "ast_hash": "d96eaf0509dc9313bde08d139684d664",
+    "mtime": 1784574018.825258,
+    "ast_hash": "1d33af22c01cb651242832b8cbc773ed",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -170,8 +170,8 @@
     "semantic_hash": "d862ba293592944b08fa97eb5a072ada"
   },
   "src/components/channels/Channel.jsx": {
-    "mtime": 1790531800.1728668,
-    "ast_hash": "04e9a399f510235f5bbe8e135229bc56",
+    "mtime": 1784557035.9105592,
+    "ast_hash": "3a6428bcd68b7fe87a4d43273254196e",
     "semantic_hash": ""
   },
   "src/components/channels/ChannelMediaPreview.jsx": {
@@ -295,9 +295,9 @@
     "semantic_hash": ""
   },
   "src/components/core/LaunchErrorToast.jsx": {
-    "mtime": 1790531903.287831,
-    "ast_hash": "7d66114a1accc9680dc3d224eba04608",
-    "semantic_hash": ""
+    "mtime": 1776092576.8373816,
+    "ast_hash": "1dfab8d59d107733e64957f441d73251",
+    "semantic_hash": "1dfab8d59d107733e64957f441d73251"
   },
   "src/components/core/SpaceBootLoader.jsx": {
     "mtime": 1776442455.4585183,
@@ -845,8 +845,8 @@
     "semantic_hash": "5414e592626780753cf7041510aadb13"
   },
   "src/contexts/LaunchFeedbackContext.jsx": {
-    "mtime": 1790531911.5622928,
-    "ast_hash": "7f799cc46d5999001d081b5217543fc1",
+    "mtime": 1784139451.8856373,
+    "ast_hash": "190e5168e54693a6962b061406f78ac0",
     "semantic_hash": ""
   },
   "src/data/dock/classicDockThemeGroups.js": {
@@ -905,8 +905,8 @@
     "semantic_hash": ""
   },
   "src/design/weeMotion.js": {
-    "mtime": 1790531685.4994006,
-    "ast_hash": "c9da514f5ce22690179ee3f337f03efc",
+    "mtime": 1784569863.4987955,
+    "ast_hash": "a8592b8276a569dddf0d4f50c76b7727",
     "semantic_hash": ""
   },
   "src/dev/hub-modal-overhaul-reference.jsx": {
@@ -1070,8 +1070,8 @@
     "semantic_hash": ""
   },
   "src/ui/WToggle.jsx": {
-    "mtime": 1790531999.6780267,
-    "ast_hash": "787d887f147b236a525f7a343e9220cd",
+    "mtime": 1784139451.883068,
+    "ast_hash": "930447ce9301fb97b4938e9a9f5d200b",
     "semantic_hash": ""
   },
   "src/ui/tokens.js": {
@@ -1100,9 +1100,9 @@
     "semantic_hash": "9a5038f1ac21d542c36391dcb939ba30"
   },
   "src/ui/wee/WeeDockSettingsSubtabs.jsx": {
-    "mtime": 1790531729.860105,
-    "ast_hash": "e0dad30a03270a284dfc78fc965b2e14",
-    "semantic_hash": ""
+    "mtime": 1783871691.9406064,
+    "ast_hash": "ac0ba4369258a7627051d2979432b440",
+    "semantic_hash": "ac0ba4369258a7627051d2979432b440"
   },
   "src/ui/wee/WeeEmphasisText.jsx": {
     "mtime": 1776459501.1919613,
@@ -1130,9 +1130,9 @@
     "semantic_hash": "6d1cf3b068bfd4a8d71a2a2e71dcc3b2"
   },
   "src/ui/wee/WeeLayoutActiveDisc.jsx": {
-    "mtime": 1790531967.610204,
-    "ast_hash": "fa3f675d8fa9f890dc7fa36758be5fe0",
-    "semantic_hash": ""
+    "mtime": 1783871483.0754013,
+    "ast_hash": "0b37089bbbdb68946010c2c2566185a6",
+    "semantic_hash": "0b37089bbbdb68946010c2c2566185a6"
   },
   "src/ui/wee/WeeModalFieldCard.jsx": {
     "mtime": 1783872200.0622845,
@@ -1170,8 +1170,8 @@
     "semantic_hash": "3e5fb0a2750a09efc950fd882f66a9e4"
   },
   "src/ui/wee/WeeSegmentedControl.jsx": {
-    "mtime": 1790531728.7205145,
-    "ast_hash": "b9b6f636bd07417e026f232adba6b6f8",
+    "mtime": 1784154794.386644,
+    "ast_hash": "466c64d491202caede2f9afea659a301",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeSettingsCollapsibleSection.jsx": {
@@ -1190,9 +1190,9 @@
     "semantic_hash": "88844e795b5a72aaa19e736862f79649"
   },
   "src/ui/wee/WeeSlider.jsx": {
-    "mtime": 1790532025.409705,
-    "ast_hash": "1da6d474f5aaeb3c1013926230b7f783",
-    "semantic_hash": ""
+    "mtime": 1776479459.149576,
+    "ast_hash": "ce95787871bcd7da79322e8759eb32fa",
+    "semantic_hash": "ce95787871bcd7da79322e8759eb32fa"
   },
   "src/ui/wee/WeeSpaceRailPillButton.jsx": {
     "mtime": 1783871556.5034337,
@@ -1205,8 +1205,8 @@
     "semantic_hash": "6682d42d377aafaf0bbd79d797f21358"
   },
   "src/ui/wee/index.js": {
-    "mtime": 1790531769.251735,
-    "ast_hash": "84976c3562abb5bec9b25d4573174d03",
+    "mtime": 1784569727.2611365,
+    "ast_hash": "c205cfe759cca6da982ea26ce9356a2e",
     "semantic_hash": ""
   },
   "src/utils/AudioManager.js": {
@@ -1910,8 +1910,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGooeyStatusPill.jsx": {
-    "mtime": 1790531892.076613,
-    "ast_hash": "625eb6845f8f5ba7386433797e820b87",
+    "mtime": 1783895769.8382735,
+    "ast_hash": "883557d7ee226c558bfde56b2509ea3e",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeMorphStack.jsx": {
@@ -2040,8 +2040,8 @@
     "semantic_hash": ""
   },
   "src/components/palette/CommandPalette.jsx": {
-    "mtime": 1790531875.2694035,
-    "ast_hash": "cf8d57662ec05757c5f6b36b31115feb",
+    "mtime": 1784223374.8558297,
+    "ast_hash": "e2cd4df6472d3601a7a285f7b1b64f09",
     "semantic_hash": ""
   },
   "src/utils/commandCatalog.js": {
@@ -2070,8 +2070,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1790531774.1122715,
-    "ast_hash": "2ef3479991925b903ec7fb6870ff3707",
+    "mtime": 1784570134.6567242,
+    "ast_hash": "8e591e3942ebfed0d75ad96cc4d683e2",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2605,23 +2605,13 @@
     "semantic_hash": ""
   },
   "src/utils/performanceControls.js": {
-    "mtime": 1784646885.4427438,
-    "ast_hash": "cf8f290a86774c001debfe2921ac754e",
+    "mtime": 1784646824.995775,
+    "ast_hash": "b57b4d5f527d75f327181f32b1cd65ec",
     "semantic_hash": ""
   },
   "src/utils/performanceProfile.js": {
     "mtime": 1784646823.439923,
     "ast_hash": "40ad1abf211ba5df30b49e9ce844d70e",
-    "semantic_hash": ""
-  },
-  "src/components/channels/ChannelLaunchAck.jsx": {
-    "mtime": 1790531798.2111354,
-    "ast_hash": "3b6b8df54c901a0c0fa2e911ad614df0",
-    "semantic_hash": ""
-  },
-  "src/ui/wee/WeePlayPauseGlyph.jsx": {
-    "mtime": 1790531769.2624793,
-    "ast_hash": "bf8765cc98c07d321d234dbd5a5b68b3",
     "semantic_hash": ""
   }
 }

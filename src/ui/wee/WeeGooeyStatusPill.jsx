@@ -13,21 +13,41 @@ import WeePillFloorShadow from './WeePillFloorShadow';
 
 const MotionDiv = m.div;
 
+function entranceFromTrigger(origin, base) {
+  const dx = origin.x - window.innerWidth / 2;
+  const dy = origin.y - 28;
+  return {
+    initial: { opacity: 0.7, x: `calc(-50% + ${dx}px)`, y: dy, scale: 0.42 },
+    animate: { opacity: 1, x: '-50%', y: 0, scale: 1 },
+    exit: { opacity: 0, x: '-50%', y: -12, scale: 0.92, transition: base.exit?.transition },
+    transition: base.transition,
+  };
+}
+
 /**
  * Canonical top-of-screen gooey status pill — same glass + floor + pillOpen/Close
  * language as {@link WeeGooeySpacePill}. Use for launch feedback and similar transient chrome.
+ * `origin` is a viewport point (usually the channel that launched) so the pill grows from it.
  */
 function WeeGooeyStatusPill({
   open = false,
   label,
   icon = 'spinner',
+  origin = null,
   className = '',
   'aria-live': ariaLive = 'polite',
 }) {
   const { reducedMotion, pillOpen } = useWeeMotion();
   const mf = useMotionFeedback();
   const gooey = mf.gooey?.enabled !== false && !reducedMotion;
-  const entrance = getWeeStatusPillEntrance(reducedMotion, pillOpen);
+  const base = getWeeStatusPillEntrance(reducedMotion, pillOpen);
+  const centered = {
+    initial: { ...base.initial, x: '-50%' },
+    animate: { ...base.animate, x: '-50%' },
+    exit: { ...base.exit, x: '-50%' },
+    transition: base.transition,
+  };
+  const entrance = origin && !reducedMotion ? entranceFromTrigger(origin, base) : centered;
   const pressTransition = createWeeTransition('press', { reducedMotion });
 
   return (
@@ -37,7 +57,6 @@ function WeeGooeyStatusPill({
           key="wee-status-pill"
           className={[
             'pointer-events-none fixed left-1/2 top-[max(1.25rem,env(safe-area-inset-top))] z-[100000]',
-            '-translate-x-1/2',
             className,
           ]
             .filter(Boolean)
@@ -55,10 +74,7 @@ function WeeGooeyStatusPill({
               className={[
                 'relative z-10 flex min-h-[3.5rem] max-w-[min(92vw,28rem)] items-center gap-3',
                 'rounded-full px-5 py-3',
-                gooey ? 'will-change-transform' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              ].join(' ')}
               animate={
                 gooey
                   ? { scale: 1 }
@@ -107,6 +123,10 @@ WeeGooeyStatusPill.propTypes = {
   open: PropTypes.bool,
   label: PropTypes.string,
   icon: PropTypes.oneOf(['spinner', 'dot']),
+  origin: PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+  }),
   className: PropTypes.string,
   'aria-live': PropTypes.string,
 };

@@ -2,7 +2,7 @@ import React, { useId } from 'react';
 import PropTypes from 'prop-types';
 import { LayoutGroup } from 'framer-motion';
 import { useWeeMotion } from '../../design/weeMotion';
-import WeeLayoutActiveDisc from './WeeLayoutActiveDisc';
+import WeeLayoutActiveDisc, { WEE_LIQUID_ROOT_ATTR } from './WeeLayoutActiveDisc';
 
 /**
  * Pill segmented control — `role="group"` with `aria-pressed` per option.
@@ -35,7 +35,8 @@ function WeeSegmentedControl({
         role="group"
         aria-label={ariaLabel}
         aria-disabled={disabled || undefined}
-        className={`${layoutClass} ${disabled ? 'opacity-50' : ''} ${className}`.trim()}
+        {...{ [WEE_LIQUID_ROOT_ATTR]: '' }}
+        className={`relative ${layoutClass} ${disabled ? 'opacity-50' : ''} ${className}`.trim()}
       >
         {options.map((opt) => {
           const selected = opt.value === value;

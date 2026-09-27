@@ -162,6 +162,23 @@ export const WEE_SPRINGS = {
     damping: 30,
     mass: 0.9,
   },
+  /**
+   * Liquid indicator — leading edge. Faster than pillOpen, still near-critically damped.
+   * Pair with liquidTrailing so a selection disc or toggle thumb stretches, then settles.
+   */
+  liquidLeading: {
+    type: 'spring',
+    stiffness: 520,
+    damping: 34,
+    mass: 0.7,
+  },
+  /** Liquid indicator — trailing edge. Heavier than pillClose so it catches up. */
+  liquidTrailing: {
+    type: 'spring',
+    stiffness: 260,
+    damping: 30,
+    mass: 1.05,
+  },
 };
 
 /**
@@ -236,6 +253,35 @@ export function createWeeTransition(intent, { reducedMotion = false } = {}) {
   }
   const springKey = WEE_MOTION_INTENTS[intent] || intent;
   return WEE_SPRINGS[springKey] || WEE_SPRINGS.pillSurfacePress;
+}
+
+const LIQUID_EDGE_SNAP = Object.freeze({ duration: 0.12 });
+
+/**
+ * Leading / trailing springs for a liquid indicator.
+ * Reduced motion snaps both edges together.
+ */
+export function liquidEdgeSprings(reducedMotion = false) {
+  if (reducedMotion) {
+    return { leading: LIQUID_EDGE_SNAP, trailing: LIQUID_EDGE_SNAP };
+  }
+  return {
+    leading: WEE_SPRINGS.liquidLeading,
+    trailing: WEE_SPRINGS.liquidTrailing,
+  };
+}
+
+/**
+ * Assign springs to the start edge (left or top) and end edge (right or bottom).
+ * Positive delta travels toward the end, so the end edge leads.
+ * @param {number} delta
+ * @param {boolean} [reducedMotion]
+ */
+export function assignLiquidEdgeSprings(delta, reducedMotion = false) {
+  const { leading, trailing } = liquidEdgeSprings(reducedMotion);
+  if (reducedMotion || !delta) return { start: leading, end: leading };
+  if (delta > 0) return { start: trailing, end: leading };
+  return { start: leading, end: trailing };
 }
 
 /** Easing curves shared by Media Hub grid (matches former CARD_EASE in MediaHubSpace). */
