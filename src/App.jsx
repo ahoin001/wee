@@ -52,6 +52,7 @@ import { useSystemPowerSync } from './hooks/useSystemPowerSync';
 import { useWeeMotion } from './design/weeMotion';
 import { weeMeasureAsync, weeMarkSettingsModalVisible } from './utils/weePerformanceMarks';
 import SpotifyTakeoverController from './components/overlays/SpotifyTakeoverController';
+import HubSceneArrangeHost from './components/home-grid/HubSceneArrangeHost';
 
 // Lazy load components to reduce initial bundle size
 const lazyNamedExport = (importer, exportName) =>
@@ -949,6 +950,8 @@ function App() {
             <LazySceneFxBetaRoot />
           </Suspense>
         ) : null}
+
+        <HubSceneArrangeHost />
 
         {/* Floating Widgets (Spotify + System Info archived — see widgets/_archived) */}
         <Suspense fallback={null}>

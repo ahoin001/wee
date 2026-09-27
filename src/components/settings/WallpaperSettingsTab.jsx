@@ -6,11 +6,6 @@ import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
-  createDefaultSpaceAppearance,
-  syncActiveSpaceAppearanceCapture,
-} from '../../utils/appearance/spaceAppearance';
-import {
-  mergeSpaceScopedRibbonFields,
   normalizeRibbonByPage,
   normalizeRibbonScope,
   pickRibbonLook,
@@ -18,11 +13,25 @@ import {
   resolveRibbonPaintTarget,
 } from '../../utils/appearance/resolveEffectiveRibbonLook';
 import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAccent';
-import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { getSecondaryChannelSpaceData } from '../../utils/channelSpaces';
 import { resolveLayout, resolveLayoutForPage, isSlotHidden } from '../../utils/channelLayoutSystem';
-import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
+import {
+  applyWallpaperToPage,
+  applyWallpaperToSpace,
+  clearSpaceWallpaper,
+  patchSpaceRibbon,
+  patchSpaceWallpaper,
+  setCycleWallpapers,
+  setOverlayPatch,
+  setRibbonScope,
+  setSpaceBlur,
+  setSpaceBrightness,
+  setSpaceSaturate,
+  setWallpaperMatchEnabled,
+  setWallpaperOpacity,
+  setWallpaperScope,
+} from '../../utils/surfaceSceneActions';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import useHomeBoardArrange from '../../hooks/useHomeBoardArrange';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
@@ -114,16 +123,12 @@ function useWallpaperSettingsController() {
         spotifyColors: state.spotify?.extractedColors ?? null,
       }))
     );
-  const { setWallpaperState, setOverlayState, setAppearanceBySpaceState, setUIState, setRibbonState } =
-    useConsolidatedAppStore(
-      useShallow((state) => ({
-        setWallpaperState: state.actions.setWallpaperState,
-        setOverlayState: state.actions.setOverlayState,
-        setAppearanceBySpaceState: state.actions.setAppearanceBySpaceState,
-        setUIState: state.actions.setUIState,
-        setRibbonState: state.actions.setRibbonState,
-      }))
-    );
+  const { setWallpaperState, setOverlayState } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setWallpaperState: state.actions.setWallpaperState,
+      setOverlayState: state.actions.setOverlayState,
+    }))
+  );
   
   // Local state for wallpaper management
   const [wallpapers, setWallpapers] = useState([]);
@@ -341,49 +346,24 @@ function useWallpaperSettingsController() {
 
   // Handlers for wallpaper effects that update consolidated store
   const handleWallpaperOpacityChange = useCallback((value) => {
-    setWallpaperState({ opacity: value });
-  }, [setWallpaperState]);
+    setWallpaperOpacity(value);
+  }, []);
 
   const updateSpaceWallpaperAppearance = useCallback((spaceId, patch) => {
-    const state = useConsolidatedAppStore.getState();
-    // Seed missing rows with empty defaults — never copy the active space's live look.
-    const currentSnapshot =
-      state.appearanceBySpace?.[spaceId] ?? createDefaultSpaceAppearance(spaceId);
-    setAppearanceBySpaceState({
-      [spaceId]: {
-        ...currentSnapshot,
-        wallpaper: {
-          ...(currentSnapshot.wallpaper || {}),
-          ...patch,
-        },
-      },
-    });
-  }, [setAppearanceBySpaceState]);
+    patchSpaceWallpaper(spaceId, patch);
+  }, []);
 
   const handleSelectedSpaceBrightnessChange = useCallback((value) => {
-    updateSpaceWallpaperAppearance(selectedSpaceId, { spaceBrightness: value });
-    if (selectedSpaceId === 'gamehub' || selectedSpaceId === 'mediahub') {
-      setWallpaperState({ gameHubBrightness: value });
-    } else {
-      setWallpaperState({ workspaceBrightness: value });
-    }
-  }, [selectedSpaceId, setWallpaperState, updateSpaceWallpaperAppearance]);
+    setSpaceBrightness(selectedSpaceId, value);
+  }, [selectedSpaceId]);
 
   const handleSelectedSpaceSaturateChange = useCallback((value) => {
-    updateSpaceWallpaperAppearance(selectedSpaceId, { spaceSaturate: value });
-    if (selectedSpaceId === 'gamehub' || selectedSpaceId === 'mediahub') {
-      setWallpaperState({ gameHubSaturate: value });
-    } else {
-      setWallpaperState({ workspaceSaturate: value });
-    }
-  }, [selectedSpaceId, setWallpaperState, updateSpaceWallpaperAppearance]);
+    setSpaceSaturate(selectedSpaceId, value);
+  }, [selectedSpaceId]);
 
   const handleSelectedSpaceBlurChange = useCallback((value) => {
-    updateSpaceWallpaperAppearance(selectedSpaceId, { spaceBlur: value });
-    if (selectedSpaceId === 'home') {
-      setWallpaperState({ blur: value });
-    }
-  }, [selectedSpaceId, setWallpaperState, updateSpaceWallpaperAppearance]);
+    setSpaceBlur(selectedSpaceId, value);
+  }, [selectedSpaceId]);
 
   const handleSelectedSpaceUseGlobalWallpaperChange = useCallback((nextValue) => {
     if (nextValue) {
@@ -436,40 +416,15 @@ function useWallpaperSettingsController() {
     });
   }, [selectedSpaceId, setWallpaperState, updateSpaceWallpaperAppearance]);
 
-  const handleWallpaperMatchChange = useCallback(
-    async (enabled) => {
-      // Turning match off leaves last manual/locked ribbon colors; only clears ambient extract cache.
-      // Enabling wallpaper match turns off Now Playing match (mutual exclusive).
-      const matchPatch = enabled
-        ? liveColorMatchUiPatch('wallpaper')
-        : { wallpaperMatchEnabled: false };
-      setUIState({
-        ...matchPatch,
-        ...(enabled
-          ? {
-              ambientColor: {
-                source: 'wallpaper',
-                seedHex: null,
-                palette: null,
-                cachedForUrl: null,
-                seeds: [],
-              },
-            }
-          : {}),
-      });
-      await saveUnifiedSettingsSnapshot({
-        ui: matchPatch,
-      });
-    },
-    [setUIState]
-  );
+  const handleWallpaperMatchChange = useCallback(async (enabled) => {
+    await setWallpaperMatchEnabled(enabled);
+  }, []);
 
   const handleSelectedWallpaperScopeChange = useCallback(
     (nextScope) => {
-      const scope = nextScope === 'perPage' ? 'perPage' : 'space';
-      updateSpaceWallpaperAppearance(selectedSpaceId, { wallpaperScope: scope });
+      setWallpaperScope(selectedSpaceId, nextScope);
     },
-    [selectedSpaceId, updateSpaceWallpaperAppearance]
+    [selectedSpaceId]
   );
 
   const handleSelectSettingsTargetPage = useCallback((pageIndex) => {
@@ -485,69 +440,25 @@ function useWallpaperSettingsController() {
 
   const handleApplyWallpaperToCurrentPage = useCallback(
     (url) => {
-      const page = selectedBoardCurrentPage;
-      const prev = selectedSpaceAppearance.wallpaperByPage;
-      const nextByPage = {
-        ...(prev && typeof prev === 'object' ? prev : {}),
-      };
-      if (typeof url === 'string' && url.length > 0) {
-        nextByPage[page] = url;
-        nextByPage[String(page)] = url;
-        updateSpaceWallpaperAppearance(selectedSpaceId, {
-          wallpaperScope: 'perPage',
-          wallpaperByPage: nextByPage,
-        });
-        setLibraryPreviewUrl(null);
-        return;
-      }
-      delete nextByPage[page];
-      delete nextByPage[String(page)];
-      updateSpaceWallpaperAppearance(selectedSpaceId, { wallpaperByPage: nextByPage });
+      applyWallpaperToPage(selectedSpaceId, selectedBoardCurrentPage, url);
       setLibraryPreviewUrl(null);
     },
-    [
-      selectedBoardCurrentPage,
-      selectedSpaceAppearance.wallpaperByPage,
-      selectedSpaceId,
-      updateSpaceWallpaperAppearance,
-    ]
+    [selectedBoardCurrentPage, selectedSpaceId]
   );
 
   const handleClearCurrentPageWallpaper = useCallback(() => {
     handleApplyWallpaperToCurrentPage(null);
   }, [handleApplyWallpaperToCurrentPage]);
 
-  const updateSpaceRibbonAppearance = useCallback(
-    (spaceId, patch) => {
-      const state = useConsolidatedAppStore.getState();
-      const currentSnapshot =
-        state.appearanceBySpace?.[spaceId] ?? createDefaultSpaceAppearance(spaceId);
-      const nextRibbon = mergeSpaceScopedRibbonFields(
-        { ...(currentSnapshot.ribbon || {}), ...patch },
-        { ...(currentSnapshot.ribbon || {}), ...patch }
-      );
-      setAppearanceBySpaceState({
-        [spaceId]: {
-          ...currentSnapshot,
-          ribbon: nextRibbon,
-        },
-      });
-      if (spaceId === state.spaces?.activeSpaceId) {
-        setRibbonState(pickRibbonLook(nextRibbon));
-        syncActiveSpaceAppearanceCapture({
-          getState: () => useConsolidatedAppStore.getState(),
-          setAppearanceBySpaceState,
-        });
-      }
-    },
-    [setAppearanceBySpaceState, setRibbonState]
-  );
+  const updateSpaceRibbonAppearance = useCallback((spaceId, patch) => {
+    patchSpaceRibbon(spaceId, patch);
+  }, []);
 
   const handleRibbonScopeChange = useCallback(
     (next) => {
-      updateSpaceRibbonAppearance(selectedSpaceId, { ribbonScope: next });
+      setRibbonScope(selectedSpaceId, next);
     },
-    [selectedSpaceId, updateSpaceRibbonAppearance]
+    [selectedSpaceId]
   );
 
   const handleApplyRibbonToCurrentPage = useCallback(() => {
@@ -645,33 +556,32 @@ function useWallpaperSettingsController() {
 
   // Handlers for overlay effects that update consolidated store
   const handleOverlayEnabledChange = useCallback((value) => {
-    setOverlayState({ enabled: value });
-  }, [setOverlayState]);
+    setOverlayPatch({ enabled: value });
+  }, []);
 
   const handleOverlayEffectChange = useCallback((value) => {
-    setOverlayState({ effect: value });
-  }, [setOverlayState]);
+    setOverlayPatch({ effect: value });
+  }, []);
 
   const handleOverlayIntensityChange = useCallback((value) => {
-    setOverlayState({ intensity: value });
-  }, [setOverlayState]);
+    setOverlayPatch({ intensity: value });
+  }, []);
 
   const handleOverlaySpeedChange = useCallback((value) => {
-    setOverlayState({ speed: value });
-  }, [setOverlayState]);
+    setOverlayPatch({ speed: value });
+  }, []);
 
   const handleOverlayWindChange = useCallback((value) => {
-    setOverlayState({ wind: value });
-  }, [setOverlayState]);
+    setOverlayPatch({ wind: value });
+  }, []);
 
   const handleOverlayGravityChange = useCallback((value) => {
-    setOverlayState({ gravity: value });
-  }, [setOverlayState]);
+    setOverlayPatch({ gravity: value });
+  }, []);
 
-  // Handlers for cycling settings that update consolidated store
   const handleCyclingChange = useCallback((value) => {
-    setWallpaperState({ cycleWallpapers: value });
-  }, [setWallpaperState]);
+    setCycleWallpapers(value);
+  }, []);
 
   const handleCycleIntervalChange = useCallback((value) => {
     const n = Number(value);
@@ -904,75 +814,44 @@ function useWallpaperSettingsController() {
 
   // Set wallpaper for selected space
   const handleSetCurrent = useCallback(async (w) => {
-    if (selectedSpaceId !== 'home') {
-      updateSpaceWallpaperAppearance(selectedSpaceId, {
-        useGlobalWallpaper: false,
-        spaceWallpaperUrl: w?.url || null,
-      });
-      setLibraryPreviewUrl(null);
-      setMessage({ type: 'success', text: `${selectedSpaceLabel} wallpaper updated.` });
-      return;
-    }
     try {
-      const result = await api.setActive({ url: w.url });
-      if (!result.success) {
+      const result = await applyWallpaperToSpace(selectedSpaceId, w);
+      setLibraryPreviewUrl(null);
+      if (!result.ok) {
         setMessage({ type: 'error', text: result.error || 'Failed to set wallpaper.' });
-      } else {
+        return;
+      }
+      if (selectedSpaceId === 'home') {
         setActiveWallpaper(w);
         setSelectedWallpaper(w);
-        setLibraryPreviewUrl(null);
-
-        // Immediately update the consolidated store with the new current wallpaper
-        setWallpaperState({
-          current: w,
-        });
-        updateSpaceWallpaperAppearance('home', {
-          useGlobalWallpaper: true,
-          spaceWallpaperUrl: null,
-        });
-
         setMessage({ type: 'success', text: 'Wallpaper set as current.' });
+        return;
       }
+      setMessage({ type: 'success', text: `${selectedSpaceLabel} wallpaper updated.` });
     } catch (err) {
       setMessage({ type: 'error', text: 'Set wallpaper failed: ' + err.message });
     }
-  }, [selectedSpaceId, selectedSpaceLabel, setWallpaperState, updateSpaceWallpaperAppearance]);
+  }, [selectedSpaceId, selectedSpaceLabel]);
 
-  // Remove wallpaper for selected space
   const handleRemoveWallpaper = useCallback(async () => {
-    if (selectedSpaceId !== 'home') {
-      updateSpaceWallpaperAppearance(selectedSpaceId, {
-        useGlobalWallpaper: true,
-        spaceWallpaperUrl: null,
-      });
-      setLibraryPreviewUrl(null);
-      setMessage({ type: 'success', text: `${selectedSpaceLabel} now uses Home wallpaper.` });
-      return;
-    }
     try {
-      const result = await api.setActive({ url: null });
-      if (!result.success) {
+      const result = await clearSpaceWallpaper(selectedSpaceId);
+      setLibraryPreviewUrl(null);
+      if (!result.ok) {
         setMessage({ type: 'error', text: result.error || 'Failed to remove wallpaper.' });
-      } else {
+        return;
+      }
+      if (selectedSpaceId === 'home') {
         setActiveWallpaper(null);
         setSelectedWallpaper(null);
-        setLibraryPreviewUrl(null);
-
-        // Immediately update the consolidated store to clear the current wallpaper
-        setWallpaperState({
-          current: null,
-        });
-        updateSpaceWallpaperAppearance('home', {
-          useGlobalWallpaper: true,
-          spaceWallpaperUrl: null,
-        });
-
         setMessage({ type: 'success', text: 'Wallpaper removed. Back to default background.' });
+        return;
       }
+      setMessage({ type: 'success', text: `${selectedSpaceLabel} now uses Home wallpaper.` });
     } catch (err) {
       setMessage({ type: 'error', text: 'Remove wallpaper failed: ' + err.message });
     }
-  }, [selectedSpaceId, selectedSpaceLabel, setWallpaperState, updateSpaceWallpaperAppearance]);
+  }, [selectedSpaceId, selectedSpaceLabel]);
 
 
 

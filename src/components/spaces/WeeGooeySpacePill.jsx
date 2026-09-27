@@ -441,7 +441,7 @@ export default function WeeGooeySpacePill() {
 
   const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
 
-  /** Live Board Studio on the current channel board (Home/Second Home stay put; hubs jump to Home). */
+  /** Edit the page you are on. Hubs stay hubs and open scene tools. */
   const handleEditBoard = () => {
     enterHomeBoardArrange({ closeSettings: true });
     setHovered(false);
@@ -451,7 +451,7 @@ export default function WeeGooeySpacePill() {
       ? 'Edit board — arrange Second Home tiles and widgets'
       : activeSpaceId === 'home'
         ? 'Edit board — arrange Home tiles and widgets'
-        : 'Edit Home — arrange tiles and widgets';
+        : 'Edit this space — wallpaper, look, and ribbon';
 
   const onPillHoverEnter = useCallback(() => {
     clearHideTimer();

@@ -25,6 +25,7 @@ import HomeWidgetGlassControls from './HomeWidgetGlassControls';
 import HomeWidgetSettingsPanel, {
   homeSlotKindHasWidgetSettings,
 } from './HomeWidgetSettingsPanel';
+import EditSceneTools from './EditSceneTools';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   systemSessionAppFilterValue,
@@ -35,16 +36,18 @@ import { useShallow } from 'zustand/react/shallow';
 const MotionDiv = m.div;
 
 /**
- * Edit Home contextual tray — visible only while `homeBoardArrangeMode` is on.
- * Sits above the dock. Primary actions: Add widget, size/remove, Looks, Punch holes, Done.
+ * Edit pill for the page you are on.
+ * Resting row is Editing, one tool chip at a time, and Done.
+ * Home and Second Home include Board. Hubs are scene tools only.
  */
 function HomeBoardArrangeBar({
   arrangeMode,
+  sceneOnly = false,
+  spaceId = 'home',
   punchMode,
   onTogglePunch,
   onDone,
   selectedSlot = null,
-  selectedIndex = null,
   canAddWidget = false,
   onAddWidget,
   onRemoveWidget,
@@ -68,16 +71,21 @@ function HomeBoardArrangeBar({
     [onPickerOpenChange, pickerOpen]
   );
   const [looksOpen, setLooksOpen] = useState(false);
+  const [sceneTool, setSceneTool] = useState(() => (sceneOnly ? 'wallpaper' : 'board'));
+  const [trackedArrange, setTrackedArrange] = useState(arrangeMode);
+  const [trackedSceneOnly, setTrackedSceneOnly] = useState(sceneOnly);
+  if (arrangeMode !== trackedArrange || sceneOnly !== trackedSceneOnly) {
+    setTrackedArrange(arrangeMode);
+    setTrackedSceneOnly(sceneOnly);
+    if (arrangeMode) {
+      setSceneTool(sceneOnly ? 'wallpaper' : 'board');
+      setLooksOpen(false);
+    }
+  }
 
   const systemSessions = useConsolidatedAppStore(
     useShallow((s) => (Array.isArray(s.systemMedia?.sessions) ? s.systemMedia.sessions : []))
   );
-
-  useEffect(() => {
-    if (!arrangeMode) {
-      setLooksOpen(false);
-    }
-  }, [arrangeMode]);
 
   useEffect(() => {
     useConsolidatedAppStore.getState().actions.ensureHomeWidgetSurfaceMigration?.();
@@ -155,6 +163,18 @@ function HomeBoardArrangeBar({
     return opts;
   }, [systemSessions, listenAppValue]);
 
+  const boardToolOpen = sceneTool === 'board' && !sceneOnly;
+
+  const selectSceneTool = useCallback(
+    (id) => {
+      setLooksOpen(false);
+      setPickerOpen(false);
+      if (sceneTool === 'board' && punchMode) onTogglePunch?.();
+      setSceneTool((current) => (current === id ? null : id));
+    },
+    [onTogglePunch, punchMode, sceneTool, setPickerOpen]
+  );
+
   const handleToggleQuickPicker = useCallback(() => {
     setPickerOpen((prev) => !prev);
     setLooksOpen(false);
@@ -179,19 +199,33 @@ function HomeBoardArrangeBar({
     [onAddWidget, setPickerOpen]
   );
 
-  const hint = punchMode
-    ? 'Tap a tile to open a hole. Tap it again to close it.'
-    : looksOpen
-      ? 'Looks for this tile'
-      : pickerOpen
-        ? 'Pick a widget'
-        : selectedIsWidget
-          ? selectedKindMeta?.label || 'Widget'
-          : selectedIsEmptyChannel
-            ? 'Empty slot — add a widget'
-            : selectedKindMeta
-              ? 'Drag to resize, or pick a size'
-              : 'Tap a tile. Drag to reorder.';
+  const sceneHint =
+    sceneTool === 'wallpaper'
+      ? 'Tap a wallpaper. It lands on this page.'
+      : sceneTool === 'look'
+        ? 'Opacity, blur, and color, live.'
+        : sceneTool === 'atmosphere'
+          ? 'Particles on this page.'
+          : sceneTool === 'ribbon'
+            ? 'Scope and wallpaper match.'
+            : null;
+
+  const hint = sceneHint
+    || (boardToolOpen && punchMode
+      ? 'Tap a tile to open a hole. Tap it again to close it.'
+      : boardToolOpen && looksOpen
+        ? 'Looks for this tile'
+        : boardToolOpen && pickerOpen
+          ? 'Pick a widget'
+          : boardToolOpen && selectedIsWidget
+            ? selectedKindMeta?.label || 'Widget'
+            : boardToolOpen && selectedIsEmptyChannel
+              ? 'Empty slot — add a widget'
+              : boardToolOpen && selectedKindMeta
+                ? 'Drag to resize, or pick a size'
+                : boardToolOpen
+                  ? 'Tap a tile. Drag to reorder.'
+                  : 'Pick a tool.');
 
   return (
     <AnimatePresence>
@@ -204,13 +238,13 @@ function HomeBoardArrangeBar({
           exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.94 }}
           transition={transition}
         >
-          <WeeGlassPill className="pointer-events-auto relative flex max-w-[min(96vw,40rem)] flex-col items-stretch rounded-[2rem] px-3 py-2.5 md:px-4 md:py-3">
+          <WeeGlassPill className="pointer-events-auto relative flex max-w-[min(96vw,44rem)] flex-col items-stretch rounded-[2rem] px-3 py-2.5 md:px-4 md:py-3">
             <WeePillFloorShadow
-              expanded={Boolean(selectedKindMeta) && !punchMode}
+              expanded={sceneTool != null}
               reducedMotion={reducedMotion}
             />
             <WeeMorphStack
-              open={Boolean((selectedKindMeta && !punchMode) || pickerOpen || (looksOpen && hasLooksPanel))}
+              open={sceneTool != null}
               gapOpen="gap-2.5"
               gapClosed="gap-1"
               className="relative z-[1]"
@@ -220,47 +254,47 @@ function HomeBoardArrangeBar({
                 Editing
               </span>
 
-              {!punchMode && canAddWidget && typeof onAddWidget === 'function' ? (
+              {!sceneOnly ? (
                 <WeeButton
-                  variant={pickerOpen ? 'primary' : 'secondary'}
+                  variant={sceneTool === 'board' ? 'primary' : 'secondary'}
                   size="sm"
-                  onClick={handleToggleQuickPicker}
-                  aria-expanded={pickerOpen}
-                  title="Add a widget"
+                  aria-pressed={sceneTool === 'board'}
+                  onClick={() => selectSceneTool('board')}
                 >
-                  <span className="flex items-center gap-1.5">
-                    <Plus size={13} strokeWidth={2.5} aria-hidden />
-                    Add
-                  </span>
+                  Board
                 </WeeButton>
               ) : null}
-
-              {!punchMode && hasLooksPanel ? (
-                <WeeButton
-                  variant={looksOpen ? 'primary' : 'secondary'}
-                  size="sm"
-                  onClick={handleToggleLooks}
-                  aria-expanded={looksOpen}
-                  title="Look and display"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <SlidersHorizontal size={13} strokeWidth={2.5} aria-hidden />
-                    Looks
-                  </span>
-                </WeeButton>
-              ) : null}
-
               <WeeButton
-                variant={punchMode ? 'primary' : 'secondary'}
+                variant={sceneTool === 'wallpaper' ? 'primary' : 'secondary'}
                 size="sm"
-                aria-pressed={punchMode}
-                onClick={handleTogglePunch}
-                title="Show or hide tiles to reveal wallpaper"
+                aria-pressed={sceneTool === 'wallpaper'}
+                onClick={() => selectSceneTool('wallpaper')}
               >
-                <span className="flex items-center gap-1.5">
-                  <PenLine size={13} strokeWidth={2.5} aria-hidden />
-                  Holes
-                </span>
+                Wallpaper
+              </WeeButton>
+              <WeeButton
+                variant={sceneTool === 'look' ? 'primary' : 'secondary'}
+                size="sm"
+                aria-pressed={sceneTool === 'look'}
+                onClick={() => selectSceneTool('look')}
+              >
+                Look
+              </WeeButton>
+              <WeeButton
+                variant={sceneTool === 'atmosphere' ? 'primary' : 'secondary'}
+                size="sm"
+                aria-pressed={sceneTool === 'atmosphere'}
+                onClick={() => selectSceneTool('atmosphere')}
+              >
+                Atmosphere
+              </WeeButton>
+              <WeeButton
+                variant={sceneTool === 'ribbon' ? 'primary' : 'secondary'}
+                size="sm"
+                aria-pressed={sceneTool === 'ribbon'}
+                onClick={() => selectSceneTool('ribbon')}
+              >
+                Ribbon
               </WeeButton>
 
               <WeeButton variant="primary" size="sm" onClick={onDone}>
@@ -271,7 +305,52 @@ function HomeBoardArrangeBar({
               </WeeButton>
             </div>
 
-            <WeeRevealWhen when={Boolean(selectedKindMeta && sizePresets && !punchMode && !pickerOpen)}>
+            <WeeRevealWhen when={boardToolOpen} keepMounted={false}>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {!punchMode && canAddWidget && typeof onAddWidget === 'function' ? (
+                  <WeeButton
+                    variant={pickerOpen ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={handleToggleQuickPicker}
+                    aria-expanded={pickerOpen}
+                    title="Add a widget"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Plus size={13} strokeWidth={2.5} aria-hidden />
+                      Add
+                    </span>
+                  </WeeButton>
+                ) : null}
+                {!punchMode && hasLooksPanel ? (
+                  <WeeButton
+                    variant={looksOpen ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={handleToggleLooks}
+                    aria-expanded={looksOpen}
+                    title="Look and display"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <SlidersHorizontal size={13} strokeWidth={2.5} aria-hidden />
+                      Looks
+                    </span>
+                  </WeeButton>
+                ) : null}
+                <WeeButton
+                  variant={punchMode ? 'primary' : 'secondary'}
+                  size="sm"
+                  aria-pressed={punchMode}
+                  onClick={handleTogglePunch}
+                  title="Show or hide tiles to reveal wallpaper"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <PenLine size={13} strokeWidth={2.5} aria-hidden />
+                    Holes
+                  </span>
+                </WeeButton>
+              </div>
+            </WeeRevealWhen>
+
+            <WeeRevealWhen when={Boolean(boardToolOpen && selectedKindMeta && sizePresets && !punchMode && !pickerOpen)} keepMounted={false}>
               <div className="flex flex-wrap items-center justify-center gap-2 border-t border-[hsl(var(--border-primary)/0.25)] pt-2">
                 <WeeSegmentedControl
                   size="sm"
@@ -316,7 +395,7 @@ function HomeBoardArrangeBar({
               </div>
             </WeeRevealWhen>
 
-            <WeeContentCollapse open={pickerOpen} keepMounted={false}>
+            <WeeContentCollapse open={boardToolOpen && pickerOpen} keepMounted={false}>
               <div className="flex max-h-[min(42vh,22rem)] flex-col gap-3 overflow-y-auto border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
                 {placeableGroups.map((group) => (
                   <div key={group.id} className="flex flex-col gap-1.5">
@@ -342,7 +421,7 @@ function HomeBoardArrangeBar({
               </div>
             </WeeContentCollapse>
 
-            <WeeContentCollapse open={looksOpen && hasLooksPanel} keepMounted={false}>
+            <WeeContentCollapse open={boardToolOpen && looksOpen && hasLooksPanel} keepMounted={false}>
               <div className="flex max-h-[min(34vh,16rem)] flex-col gap-2.5 overflow-y-auto border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
                 {showTextLooks ? (
                   <div className="flex flex-col gap-2 px-0.5">
@@ -423,6 +502,12 @@ function HomeBoardArrangeBar({
               </div>
             </WeeContentCollapse>
 
+            <WeeContentCollapse open={sceneTool != null && sceneTool !== 'board'} keepMounted={false}>
+              <div className="border-t border-[hsl(var(--border-primary)/0.25)]">
+                <EditSceneTools spaceId={spaceId} tool={sceneTool} />
+              </div>
+            </WeeContentCollapse>
+
             <AnimatePresence mode="wait" initial={false}>
               <MotionDiv
                 key={hint}
@@ -445,6 +530,8 @@ function HomeBoardArrangeBar({
 
 HomeBoardArrangeBar.propTypes = {
   arrangeMode: PropTypes.bool.isRequired,
+  sceneOnly: PropTypes.bool,
+  spaceId: PropTypes.string,
   punchMode: PropTypes.bool.isRequired,
   onTogglePunch: PropTypes.func.isRequired,
   onDone: PropTypes.func.isRequired,

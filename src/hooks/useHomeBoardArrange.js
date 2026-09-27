@@ -1,28 +1,13 @@
 import { useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
-import { CHANNEL_SPACE_KEYS } from '../utils/channelSpaces';
-
-function isChannelBoardSpaceId(spaceId) {
-  return CHANNEL_SPACE_KEYS.includes(spaceId);
-}
-
-/**
- * Jump to Home only when arrange is entered from a hub (no channel board underfoot).
- * Home / Focus already host a board — stay put so Focus users are not scrolled away.
- */
-function ensureChannelBoardForArrange(actions, activeSpaceId) {
-  if (isChannelBoardSpaceId(activeSpaceId)) return;
-  actions.setSpacesState({ activeSpaceId: 'home' });
-}
 
 /**
  * Toggle Live Board Studio from outside React (keyboard shortcut registry, admin commands).
- * Single source of the toggle rules — the hook's `toggleArrange` delegates here.
+ * Stays on the space you are already in. Hubs edit the scene; Home keeps the tile board.
  */
 export function toggleHomeBoardArrange() {
-  const state = useConsolidatedAppStore.getState();
-  const { actions } = state;
+  const { actions } = useConsolidatedAppStore.getState();
   actions.setUIState((prev) => {
     if (prev.homeBoardArrangeMode) {
       return {
@@ -31,7 +16,6 @@ export function toggleHomeBoardArrange() {
         homeBoardSelectedSlotIndex: null,
       };
     }
-    ensureChannelBoardForArrange(actions, state.spaces?.activeSpaceId);
     return { homeBoardArrangeMode: true, homeBoardPunchMode: false };
   });
 }
@@ -41,31 +25,25 @@ export function toggleHomeBoardArrange() {
  * `ui.homeBoardPunchMode` / `ui.homeBoardSelectedSlotIndex`). Not persisted.
  */
 export function useHomeBoardArrange() {
-  const { arrangeMode, punchMode, selectedSlotIndex, setUIState, setSpacesState } =
-    useConsolidatedAppStore(
-      useShallow((state) => ({
-        arrangeMode: Boolean(state.ui.homeBoardArrangeMode),
-        punchMode: Boolean(state.ui.homeBoardPunchMode),
-        selectedSlotIndex:
-          state.ui.homeBoardSelectedSlotIndex == null
-            ? null
-            : Number(state.ui.homeBoardSelectedSlotIndex),
-        setUIState: state.actions.setUIState,
-        setSpacesState: state.actions.setSpacesState,
-      }))
-    );
+  const { arrangeMode, punchMode, selectedSlotIndex, setUIState } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      arrangeMode: Boolean(state.ui.homeBoardArrangeMode),
+      punchMode: Boolean(state.ui.homeBoardPunchMode),
+      selectedSlotIndex:
+        state.ui.homeBoardSelectedSlotIndex == null
+          ? null
+          : Number(state.ui.homeBoardSelectedSlotIndex),
+      setUIState: state.actions.setUIState,
+    }))
+  );
 
   /**
-   * Enter Live Board Studio on the current channel board (Home or Focus).
-   * Hubs jump to Home so arrange has a board; Home/Focus stay put.
+   * Enter edit mode on the page you are already on.
+   * Home and Second Home keep the tile board. Hubs stay hubs and edit the scene.
    * Pass `punchMode: true` to deep-link straight into wallpaper-hole editing.
    */
   const enterArrange = useCallback(
     ({ closeSettings = false, punchMode: startPunch = false } = {}) => {
-      const activeSpaceId = useConsolidatedAppStore.getState().spaces?.activeSpaceId;
-      if (!isChannelBoardSpaceId(activeSpaceId)) {
-        setSpacesState({ activeSpaceId: 'home' });
-      }
       setUIState({
         homeBoardArrangeMode: true,
         homeBoardPunchMode: Boolean(startPunch),
@@ -73,7 +51,7 @@ export function useHomeBoardArrange() {
         ...(closeSettings ? { showSettingsModal: false } : {}),
       });
     },
-    [setSpacesState, setUIState]
+    [setUIState]
   );
 
   const exitArrange = useCallback(() => {
