@@ -21,9 +21,10 @@ import { resolveDisplayWallpaperUrl } from '../../utils/theme/resolveEffectiveAc
 import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { getSecondaryChannelSpaceData } from '../../utils/channelSpaces';
-import { resolveLayout, resolveLayoutForPage } from '../../utils/channelLayoutSystem';
+import { resolveLayout, resolveLayoutForPage, isSlotHidden } from '../../utils/channelLayoutSystem';
 import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
+import useHomeBoardArrange from '../../hooks/useHomeBoardArrange';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import {
   WeeButton,
@@ -36,6 +37,7 @@ import {
 import WallpaperLibrarySection from './wallpaper/WallpaperLibrarySection';
 import SpaceWallpaperAppearanceSection from './wallpaper/SpaceWallpaperAppearanceSection';
 import SurfacesScenePreview from './wallpaper/SurfacesScenePreview';
+import { resolvePreviewSlotLabel } from './ChannelBoardLivePreview';
 import WallpaperCyclingSection from './wallpaper/WallpaperCyclingSection';
 import WallpaperOverlaySection from './wallpaper/WallpaperOverlaySection';
 import { SceneFxSurfacesSection } from '../../features/sceneFxBeta';
@@ -48,6 +50,11 @@ const SURFACES_SEGMENTS = [
   { value: 'library', label: 'Library', title: 'Upload, pick, apply, and delete wallpapers' },
   { value: 'look', label: 'Look', title: 'Source wallpaper and tune blur, brightness, saturation' },
   {
+    value: 'board',
+    label: 'Board',
+    title: 'Show and hide tiles on this page',
+  },
+  {
     value: 'atmosphere',
     label: 'Atmosphere',
     title: 'Scene effects, Home cycling, and particle overlays',
@@ -58,6 +65,7 @@ const SURFACES_SEGMENTS = [
 const SURFACES_TAB_TIPS = Object.freeze({
   library: 'Pick a tile to preview · Apply in the toolbar pins it to the space/page.',
   look: 'Sliders update the canvas live · Source and page pinning live in the toolbar.',
+  board: 'Tap a tile on the stage to hide it. Tap a hole to bring it back.',
   atmosphere:
     'Scene effects work on every space · Cycling and particles are Home-only on the canvas.',
   ribbon: 'Match paints the ribbon from wallpaper · Edit exact colors in Dock.',
@@ -1071,6 +1079,8 @@ const WallpaperSettingsTab = React.memo(() => {
   const { tabTransition } = useWeeMotion();
   const [surfacesSegment, setSurfacesSegment] = useState('library');
   const [applyPulse, setApplyPulse] = useState(false);
+  const [stageSlot, setStageSlot] = useState(null);
+  const { enterArrange } = useHomeBoardArrange();
   const [inspectorWidthRem, setInspectorWidthRem] = useState(SURFACES_INSPECTOR_W_DEFAULT);
   const studioBodyRef = useRef(null);
   const inspectorDragRef = useRef(null);
@@ -1177,6 +1187,22 @@ const WallpaperSettingsTab = React.memo(() => {
     ? `${selectedSpaceLabel} · page ${selectedBoardCurrentPage + 1}`
     : selectedSpaceLabel;
   const inspectorTip = SURFACES_TAB_TIPS[activeSurfacesSegment] || SURFACES_TAB_TIPS.library;
+  const boardEditable = selectedSpaceId === 'home' || selectedSpaceId === 'workspaces';
+
+  const handleToggleStageSlot = useCallback((slotIndex) => {
+    if (!boardEditable) return;
+    const hidden = isSlotHidden(sceneBoardPreview?.slotMeta, slotIndex);
+    useConsolidatedAppStore.getState().actions.setChannelSlotHiddenForSpace(
+      selectedSpaceId,
+      slotIndex,
+      !hidden
+    );
+    setStageSlot(slotIndex);
+  }, [boardEditable, sceneBoardPreview?.slotMeta, selectedSpaceId]);
+
+  useEffect(() => {
+    setStageSlot(null);
+  }, [selectedSpaceId, selectedBoardCurrentPage]);
 
   useEffect(() => {
     const normalized = normalizeSurfacesSegment(surfacesSegment);
@@ -1302,6 +1328,9 @@ const WallpaperSettingsTab = React.memo(() => {
     if (activeSurfacesSegment === 'atmosphere') {
       return `Atmosphere on ${where} — scene effects everywhere; particles and cycling are Home-only.`;
     }
+    if (activeSurfacesSegment === 'board') {
+      return `Board on ${where} — tap a tile to hide it, tap a hole to show it.`;
+    }
     if (activeSurfacesSegment === 'look') {
       return `Look for ${where} — tone sliders update this scene live.`;
     }
@@ -1319,6 +1348,38 @@ const WallpaperSettingsTab = React.memo(() => {
       : effectiveActiveWallpaperUrl === selectedWallpaper.url && !previewingLibrary
         ? `On ${selectedSpaceLabel}`
         : `Apply to ${selectedSpaceLabel}`;
+
+  const stagePageChrome = perPageMode ? (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {(pageMapEntries || []).map((entry) => {
+        const filled = Boolean(entry.url);
+        const isCurrent = entry.pageIndex === selectedBoardCurrentPage;
+        return (
+          <m.button
+            key={`stage-page-${entry.pageIndex}`}
+            type="button"
+            title={
+              filled
+                ? `Page ${entry.pageIndex + 1} · custom wallpaper`
+                : `Page ${entry.pageIndex + 1}`
+            }
+            onClick={() => handleSelectSettingsTargetPage(entry.pageIndex)}
+            whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+            transition={tabTransition}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${
+              isCurrent
+                ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--text-primary))]'
+                : filled
+                  ? 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.8)] text-[hsl(var(--text-primary))]'
+                  : 'border-dashed border-[hsl(var(--border-primary)/0.45)] bg-transparent text-[hsl(var(--text-tertiary))]'
+            }`}
+          >
+            {entry.pageIndex + 1}
+          </m.button>
+        );
+      })}
+    </div>
+  ) : null;
 
   return (
     <div className="settings-wee-tab-root settings-wee-tab-root--studio pb-12">
@@ -1416,38 +1477,6 @@ const WallpaperSettingsTab = React.memo(() => {
               />
             </div>
           ) : null}
-          {perPageMode ? (
-            <div className="settings-wee-studio-context-group">
-              <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                Page
-              </span>
-              {(pageMapEntries || []).map((entry) => {
-                const filled = Boolean(entry.url);
-                const isCurrent = entry.pageIndex === selectedBoardCurrentPage;
-                return (
-                  <button
-                    key={`sticky-page-${entry.pageIndex}`}
-                    type="button"
-                    title={
-                      filled
-                        ? `Page ${entry.pageIndex + 1} · custom wallpaper`
-                        : `Page ${entry.pageIndex + 1}`
-                    }
-                    onClick={() => handleSelectSettingsTargetPage(entry.pageIndex)}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] transition-colors ${
-                      isCurrent
-                        ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--text-primary))]'
-                        : filled
-                          ? 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-elevated)/0.8)] text-[hsl(var(--text-primary))]'
-                          : 'border-dashed border-[hsl(var(--border-primary)/0.45)] bg-transparent text-[hsl(var(--text-tertiary))]'
-                    }`}
-                  >
-                    {entry.pageIndex + 1}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
           <div className="settings-wee-studio-context-group settings-wee-studio-context-group--apply">
             {perPageMode && selectedPageWallpaperUrl ? (
               <WeeButton
@@ -1506,6 +1535,10 @@ const WallpaperSettingsTab = React.memo(() => {
             overlayWind={overlayWind}
             overlayGravity={overlayGravity}
             applyPulse={applyPulse}
+            interactive={boardEditable}
+            selectedSlotIndex={stageSlot}
+            onToggleSlot={handleToggleStageSlot}
+            pageChrome={stagePageChrome}
           />
         </div>
 
@@ -1582,6 +1615,59 @@ const WallpaperSettingsTab = React.memo(() => {
                   handleResetSelectedSpaceAppearance={handleResetSelectedSpaceAppearance}
                   showGlobalOpacity
                 />
+              ) : null}
+
+              {activeSurfacesSegment === 'board' ? (
+                <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+                  <Text variant="h3" className="mb-1 playful-hero-text">
+                    This page
+                  </Text>
+                  <Text variant="desc" className="!mb-4">
+                    {boardEditable
+                      ? 'Tap a tile on the stage, or a name here, to show or hide it. Holes stay put when you reorder.'
+                      : 'This space has no channel board. Switch to Home or Second Home to edit tiles.'}
+                  </Text>
+                  {boardEditable ? (
+                    <div className="flex flex-col gap-2">
+                      {(sceneBoardPreview?.pageSlotIndices || []).map((slotIndex) => {
+                        const hidden = isSlotHidden(sceneBoardPreview?.slotMeta, slotIndex);
+                        const label = resolvePreviewSlotLabel(
+                          sceneBoardPreview?.slots?.[slotIndex],
+                          sceneBoardPreview?.configuredChannels,
+                          slotIndex
+                        ) || `Tile ${slotIndex + 1}`;
+                        return (
+                          <button
+                            key={`board-row-${slotIndex}`}
+                            type="button"
+                            onClick={() => handleToggleStageSlot(slotIndex)}
+                            className={`flex items-center justify-between gap-3 rounded-2xl border px-3 py-2 text-left ${
+                              stageSlot === slotIndex
+                                ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.1)]'
+                                : 'border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.55)]'
+                            }`}
+                          >
+                            <span className="truncate text-[12px] font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
+                              {label}
+                            </span>
+                            <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
+                              {hidden ? 'Hidden' : 'On stage'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      <WeeButton
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="mt-2 self-start"
+                        onClick={() => enterArrange({ closeSettings: true })}
+                      >
+                        Arrange widgets on the board
+                      </WeeButton>
+                    </div>
+                  ) : null}
+                </WeeModalFieldCard>
               ) : null}
 
               {activeSurfacesSegment === 'atmosphere' ? (

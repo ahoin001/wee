@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Check, Grip, PenLine, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Check, PenLine, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { createWeeTransition } from '../../design/weeMotion';
 import {
   WeeGlassPill,
   WeeButton,
   WeeContentCollapse,
   WeeGooeyTileButton,
+  WeeMorphStack,
+  WeePillFloorShadow,
+  WeeRevealWhen,
   WeeSegmentedControl,
 } from '../../ui/wee';
 import { isChannelSlotEmpty, isNonChannelSlot } from '../../utils/homeGridSlots';
@@ -177,16 +180,18 @@ function HomeBoardArrangeBar({
   );
 
   const hint = punchMode
-    ? 'Tap tiles to punch wallpaper holes · toggle Punch off when finished'
+    ? 'Tap a tile to open a hole. Tap it again to close it.'
     : looksOpen
-      ? 'Tune this widget’s look · Done when finished'
-      : selectedIsWidget
-        ? `Resize · pick a size · Looks for ${selectedKindMeta?.label ?? 'widget'} prefs`
-        : selectedIsEmptyChannel
-          ? 'Empty slot — pick a widget below to place it here'
-          : selectedKindMeta
-            ? 'Drag a corner to resize · or pick a size · drag tiles to reorder'
-            : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
+      ? 'Looks for this tile'
+      : pickerOpen
+        ? 'Pick a widget'
+        : selectedIsWidget
+          ? selectedKindMeta?.label || 'Widget'
+          : selectedIsEmptyChannel
+            ? 'Empty slot — add a widget'
+            : selectedKindMeta
+              ? 'Drag to resize, or pick a size'
+              : 'Tap a tile. Drag to reorder.';
 
   return (
     <AnimatePresence>
@@ -199,96 +204,44 @@ function HomeBoardArrangeBar({
           exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.94 }}
           transition={transition}
         >
-          <WeeGlassPill className="pointer-events-auto flex max-w-[min(96vw,52rem)] flex-col items-stretch gap-2 rounded-[2rem] px-3 py-2.5 md:gap-2.5 md:px-5 md:py-3">
-            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-              <span className="flex items-center gap-2 pl-1 pr-1 text-[length:var(--font-size-caption)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))] md:pr-2">
-                <Grip size={14} strokeWidth={2.5} aria-hidden />
-                Edit Home
+          <WeeGlassPill className="pointer-events-auto relative flex max-w-[min(96vw,40rem)] flex-col items-stretch rounded-[2rem] px-3 py-2.5 md:px-4 md:py-3">
+            <WeePillFloorShadow
+              expanded={Boolean(selectedKindMeta) && !punchMode}
+              reducedMotion={reducedMotion}
+            />
+            <WeeMorphStack
+              open={Boolean((selectedKindMeta && !punchMode) || pickerOpen || (looksOpen && hasLooksPanel))}
+              gapOpen="gap-2.5"
+              gapClosed="gap-1"
+              className="relative z-[1]"
+            >
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="pl-1 pr-1 text-[length:var(--font-size-caption)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
+                Editing
               </span>
 
-              {canAddWidget && typeof onAddWidget === 'function' ? (
+              {!punchMode && canAddWidget && typeof onAddWidget === 'function' ? (
                 <WeeButton
                   variant={pickerOpen ? 'primary' : 'secondary'}
                   size="sm"
                   onClick={handleToggleQuickPicker}
                   aria-expanded={pickerOpen}
-                  title={
-                    selectedIndex != null
-                      ? `Add a widget at slot ${selectedIndex + 1}`
-                      : 'Add a widget on the first free slot'
-                  }
+                  title="Add a widget"
                 >
                   <span className="flex items-center gap-1.5">
                     <Plus size={13} strokeWidth={2.5} aria-hidden />
-                    Add widget
+                    Add
                   </span>
                 </WeeButton>
               ) : null}
 
-              {selectedKindMeta && sizePresets ? (
-                <>
-                  <WeeSegmentedControl
-                    size="sm"
-                    ariaLabel="Tile size"
-                    layoutId="homeArrangeTileSize"
-                    value={activePreset?.id ?? ''}
-                    onChange={(presetId) => onSetSizePreset?.(presetId)}
-                    options={Object.values(sizePresets).map((preset) => {
-                      const blocked = blockedPresetIds.includes(preset.id);
-                      return {
-                        value: preset.id,
-                        label: preset.label,
-                        disabled: blocked,
-                        title: blocked
-                          ? `${preset.label} needs free neighboring slots`
-                          : `${preset.label} · ${preset.colSpan}×${preset.rowSpan}`,
-                      };
-                    })}
-                  />
-                  {selectedIsWidget ? (
-                    <WeeSegmentedControl
-                      size="sm"
-                      ariaLabel="Widget surface"
-                      layoutId="homeArrangeWidgetSurface"
-                      value={activeSurface || 'clear'}
-                      onChange={(surface) => onSetSurface?.(surface)}
-                      options={[
-                        {
-                          value: 'clear',
-                          label: 'Clear',
-                          title: 'Float on wallpaper — no plate (default)',
-                        },
-                        {
-                          value: 'glass',
-                          label: 'Glass',
-                          title: 'Light frost / tint over wallpaper (shared look)',
-                        },
-                        {
-                          value: 'basic',
-                          label: 'Basic',
-                          title: 'Solid frosted pill card',
-                        },
-                      ]}
-                    />
-                  ) : null}
-                  {selectedIsWidget ? (
-                    <WeeButton variant="danger" size="sm" onClick={onRemoveWidget}>
-                      <span className="flex items-center gap-1.5">
-                        <Trash2 size={13} strokeWidth={2.5} aria-hidden />
-                        Remove
-                      </span>
-                    </WeeButton>
-                  ) : null}
-                </>
-              ) : null}
-
-              {hasLooksPanel ? (
+              {!punchMode && hasLooksPanel ? (
                 <WeeButton
                   variant={looksOpen ? 'primary' : 'secondary'}
                   size="sm"
                   onClick={handleToggleLooks}
                   aria-expanded={looksOpen}
-                  title="Widget look and display prefs"
+                  title="Look and display"
                 >
                   <span className="flex items-center gap-1.5">
                     <SlidersHorizontal size={13} strokeWidth={2.5} aria-hidden />
@@ -302,11 +255,11 @@ function HomeBoardArrangeBar({
                 size="sm"
                 aria-pressed={punchMode}
                 onClick={handleTogglePunch}
-                title="Punch see-through holes in the grid to show wallpaper"
+                title="Show or hide tiles to reveal wallpaper"
               >
                 <span className="flex items-center gap-1.5">
                   <PenLine size={13} strokeWidth={2.5} aria-hidden />
-                  Punch
+                  Holes
                 </span>
               </WeeButton>
 
@@ -317,6 +270,51 @@ function HomeBoardArrangeBar({
                 </span>
               </WeeButton>
             </div>
+
+            <WeeRevealWhen when={Boolean(selectedKindMeta && sizePresets && !punchMode && !pickerOpen)}>
+              <div className="flex flex-wrap items-center justify-center gap-2 border-t border-[hsl(var(--border-primary)/0.25)] pt-2">
+                <WeeSegmentedControl
+                  size="sm"
+                  ariaLabel="Tile size"
+                  layoutId="homeArrangeTileSize"
+                  value={activePreset?.id ?? ''}
+                  onChange={(presetId) => onSetSizePreset?.(presetId)}
+                  options={Object.values(sizePresets || {}).map((preset) => {
+                    const blocked = blockedPresetIds.includes(preset.id);
+                    return {
+                      value: preset.id,
+                      label: preset.label,
+                      disabled: blocked,
+                      title: blocked
+                        ? `${preset.label} needs free neighboring slots`
+                        : `${preset.label} · ${preset.colSpan}×${preset.rowSpan}`,
+                    };
+                  })}
+                />
+                {selectedIsWidget ? (
+                  <WeeSegmentedControl
+                    size="sm"
+                    ariaLabel="Widget surface"
+                    layoutId="homeArrangeWidgetSurface"
+                    value={activeSurface || 'clear'}
+                    onChange={(surface) => onSetSurface?.(surface)}
+                    options={[
+                      { value: 'clear', label: 'Clear', title: 'Float on the wallpaper' },
+                      { value: 'glass', label: 'Glass', title: 'Light frost over the wallpaper' },
+                      { value: 'basic', label: 'Basic', title: 'Solid card' },
+                    ]}
+                  />
+                ) : null}
+                {selectedIsWidget ? (
+                  <WeeButton variant="danger" size="sm" onClick={onRemoveWidget}>
+                    <span className="flex items-center gap-1.5">
+                      <Trash2 size={13} strokeWidth={2.5} aria-hidden />
+                      Remove
+                    </span>
+                  </WeeButton>
+                ) : null}
+              </div>
+            </WeeRevealWhen>
 
             <WeeContentCollapse open={pickerOpen} keepMounted={false}>
               <div className="flex max-h-[min(42vh,22rem)] flex-col gap-3 overflow-y-auto border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
@@ -425,9 +423,19 @@ function HomeBoardArrangeBar({
               </div>
             </WeeContentCollapse>
 
-            <p className="m-0 px-1 text-center text-[length:var(--font-size-micro)] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
-              {hint}
-            </p>
+            <AnimatePresence mode="wait" initial={false}>
+              <MotionDiv
+                key={hint}
+                initial={reducedMotion ? false : { opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reducedMotion ? undefined : { opacity: 0, y: -4 }}
+                transition={transition}
+                className="px-1 text-center text-[length:var(--font-size-micro)] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]"
+              >
+                {hint}
+              </MotionDiv>
+            </AnimatePresence>
+            </WeeMorphStack>
           </WeeGlassPill>
         </MotionDiv>
       ) : null}

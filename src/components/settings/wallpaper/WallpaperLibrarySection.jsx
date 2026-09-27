@@ -3,6 +3,7 @@ import { AnimatePresence, m } from 'framer-motion';
 import { Heart, Loader2, Trash2, Upload } from 'lucide-react';
 import Text from '../../../ui/Text';
 import { WeeButton, WeeModalFieldCard } from '../../../ui/wee';
+import { createWeeTransition } from '../../../design/weeMotion';
 import { WALLPAPER_CHECKERBOARD_BG } from '../../../design/runtimeColorStrings.js';
 
 function WallpaperLibrarySection({
@@ -25,6 +26,7 @@ function WallpaperLibrarySection({
   applyScopeLabel = null,
 }) {
   const [pendingDeleteUrl, setPendingDeleteUrl] = useState(null);
+  const tilePress = createWeeTransition('press', { reducedMotion: reduceMotion });
   const usingDefaultSelection = isHomeSpace
     ? !effectiveActiveWallpaperUrl
     : selectedSpaceUsesGlobalWallpaper;
@@ -163,10 +165,13 @@ function WallpaperLibrarySection({
           const liked = likedWallpapers.includes(wallpaper.url);
           const onDesktop = effectiveActiveWallpaperUrl === wallpaper.url;
           return (
-            <div
+            <m.div
               key={wallpaper.url || idx}
               role="button"
               tabIndex={0}
+              whileHover={reduceMotion ? undefined : { scale: 1.03, y: -2 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+              transition={tilePress}
               className={[
                 'settings-wee-wallpaper-picker-tile',
                 selected ? 'settings-wee-wallpaper-picker-tile--selected' : '',
@@ -227,7 +232,7 @@ function WallpaperLibrarySection({
               <span className="settings-wee-wallpaper-picker-tile__title" title={wallpaper.name}>
                 {wallpaper.name}
               </span>
-            </div>
+            </m.div>
           );
         })}
       </div>

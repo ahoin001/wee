@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import SettingsLivePreviewFrame from '../SettingsLivePreviewFrame';
 import RibbonMiniature from '../../dock/ribbon/RibbonMiniature';
 import WallpaperOverlay from '../../overlays/WallpaperOverlay';
 import { resolvePreviewSlotLabel } from '../ChannelBoardLivePreview';
 import { isSlotHidden } from '../../../utils/channelLayoutSystem';
 import { createWeeTransition } from '../../../design/weeMotion';
+import { WeeRevealWhen } from '../../../ui/wee';
 
 /**
  * Composed Surfaces studio canvas — page-resolved wallpaper, real board schematic,
@@ -36,9 +37,15 @@ function SurfacesScenePreview({
   overlayWind = 0.02,
   overlayGravity = 0.1,
   applyPulse = false,
+  interactive = false,
+  selectedSlotIndex = null,
+  onToggleSlot,
+  pageChrome = null,
 }) {
   const reduceMotion = useReducedMotion();
   const crossfade = createWeeTransition('tab', { reducedMotion: reduceMotion });
+  const press = createWeeTransition('press', { reducedMotion: reduceMotion });
+  const pillOpen = createWeeTransition('pillOpen', { reducedMotion: reduceMotion });
 
   // The crossfade animates opacity on a wrapper; the user's opacity slider is a static
   // style on the inner img so Framer's animate={{ opacity: 1 }} can never override it.
@@ -67,6 +74,10 @@ function SurfacesScenePreview({
   const rows = Math.max(1, Number(layout?.rows) || 0);
   const indices = Array.isArray(pageSlotIndices) ? pageSlotIndices : [];
   const showBoard = cols > 0 && rows > 0 && indices.length > 0;
+  const selectedHidden = selectedSlotIndex != null && isSlotHidden(slotMeta, selectedSlotIndex);
+  const selectedLabel = selectedSlotIndex != null
+    ? (labelsByIndex[selectedSlotIndex] || `Tile ${selectedSlotIndex + 1}`)
+    : '';
 
   const labelsByIndex = useMemo(() => {
     const map = {};
@@ -102,6 +113,7 @@ function SurfacesScenePreview({
     <SettingsLivePreviewFrame
       eyebrow="Live scene"
       caption={frameCaption}
+      headerAside={pageChrome}
       sticky={false}
       minHeightClassName="min-h-[18rem]"
       canvasClassName="!p-0"
@@ -112,12 +124,9 @@ function SurfacesScenePreview({
           : 'transition-[box-shadow,ring] duration-500',
       ].join(' ')}
     >
-      <div
-        className="pointer-events-none relative h-64 w-full overflow-hidden md:h-72 lg:h-80"
-        aria-hidden
-      >
+      <div className="relative h-64 w-full overflow-hidden md:h-72 lg:h-80">
         <div className="absolute inset-0 bg-[hsl(var(--surface-secondary))]" />
-        <div className={`absolute inset-0 transition-opacity duration-300 ${wallpaperDim}`}>
+        <div className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${wallpaperDim}`}>
           <AnimatePresence mode="sync" initial={false}>
             {wallpaperUrl ? (
               <m.div
@@ -126,7 +135,7 @@ function SurfacesScenePreview({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0, scale: 1.02 }}
                 transition={crossfade}
-                className="absolute inset-0 will-change-[opacity,transform]"
+                className="absolute inset-0"
               >
                 <img
                   src={wallpaperUrl}
@@ -153,7 +162,13 @@ function SurfacesScenePreview({
         </div>
 
         {showOverlay ? (
-          <div className="absolute inset-0 z-[4] overflow-hidden">
+          <m.div
+            key={overlayEffect}
+            className="pointer-events-none absolute inset-0 z-[4] overflow-hidden"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={pillOpen}
+          >
             <WallpaperOverlay
               mode="embedded"
               enabled={overlayEnabled}
@@ -163,12 +178,16 @@ function SurfacesScenePreview({
               wind={overlayWind}
               gravity={overlayGravity}
             />
-          </div>
+          </m.div>
         ) : null}
 
         {showBoard ? (
-          <div
+          <m.div
+            key={`scene-page-${indices[0] ?? 0}-${cols}-${rows}`}
             className={`absolute inset-x-3 top-3 bottom-[4.75rem] z-[2] transition-opacity duration-300 md:inset-x-4 md:top-4 ${channelsDim}`}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={pillOpen}
           >
             <div
               className="mx-auto grid h-full w-full max-w-2xl gap-1.5 md:gap-2"
@@ -176,39 +195,84 @@ function SurfacesScenePreview({
                 gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                 gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
               }}
+              role={interactive ? 'group' : undefined}
+              aria-label={interactive ? 'Page tiles' : undefined}
             >
               {indices.map((slotIndex) => {
                 const hidden = isSlotHidden(slotMeta, slotIndex);
                 const label = labelsByIndex[slotIndex];
+                const selected = selectedSlotIndex === slotIndex;
+                const tileClass = `relative flex min-h-0 w-full items-center justify-center overflow-hidden rounded-lg border-2 px-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide md:rounded-xl md:text-[9px] ${
+                  hidden
+                    ? 'border-dashed border-[hsl(var(--border-secondary)/0.7)] bg-transparent text-[hsl(var(--text-tertiary))]'
+                    : 'border-[hsl(var(--border-primary)/0.5)] bg-[hsl(var(--surface-primary)/0.9)] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)] backdrop-blur-[2px]'
+                } ${selected ? 'ring-2 ring-[hsl(var(--primary)/0.7)]' : ''}`;
+                const face = hidden ? (
+                  <EyeOff size={12} aria-hidden />
+                ) : (
+                  <span className="line-clamp-2 text-center">{label || slotIndex + 1}</span>
+                );
+                if (!interactive) {
+                  return (
+                    <div key={`scene-slot-${slotIndex}`} className={tileClass}>
+                      {face}
+                    </div>
+                  );
+                }
                 return (
-                  <div
+                  <m.button
                     key={`scene-slot-${slotIndex}`}
-                    className={`relative flex min-h-0 items-center justify-center overflow-hidden rounded-lg border-2 px-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide md:rounded-xl md:text-[9px] ${
-                      hidden
-                        ? 'border-dashed border-[hsl(var(--border-secondary)/0.7)] bg-transparent text-[hsl(var(--text-tertiary))]'
-                        : 'border-[hsl(var(--border-primary)/0.5)] bg-[hsl(var(--surface-primary)/0.9)] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)] backdrop-blur-[2px]'
-                    }`}
+                    type="button"
+                    onClick={() => onToggleSlot?.(slotIndex)}
+                    whileHover={reduceMotion ? undefined : { scale: 1.04, y: -1 }}
+                    whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+                    transition={press}
+                    aria-pressed={!hidden}
+                    title={hidden ? 'Show this tile' : 'Hide this tile'}
+                    className={tileClass}
                   >
-                    {hidden ? (
-                      <EyeOff size={12} aria-hidden />
-                    ) : (
-                      <span className="line-clamp-2 text-center">{label || slotIndex + 1}</span>
-                    )}
-                  </div>
+                    <AnimatePresence mode="wait" initial={false}>
+                      <m.span
+                        key={hidden ? 'hole' : 'tile'}
+                        className="flex items-center justify-center"
+                        initial={reduceMotion ? false : { opacity: 0, scale: 0.7, y: 4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={reduceMotion ? undefined : { opacity: 0, scale: 0.8, y: -4 }}
+                        transition={hidden ? press : pillOpen}
+                      >
+                        {face}
+                      </m.span>
+                    </AnimatePresence>
+                  </m.button>
                 );
               })}
             </div>
-          </div>
+          </m.div>
         ) : null}
 
         <div
-          className={`absolute inset-x-0 bottom-0 z-[5] transition-opacity duration-300 ${ribbonDim}`}
+          className={`pointer-events-none absolute inset-x-0 bottom-0 z-[5] transition-opacity duration-300 ${ribbonDim}`}
         >
           <div className={`rounded-b-[1.5rem] ${ribbonRing}`.trim()}>
             <RibbonMiniature lookOverride={ribbonLook} />
           </div>
         </div>
       </div>
+      <WeeRevealWhen when={interactive && selectedSlotIndex != null}>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[1.25rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.72)] px-3 py-2">
+          <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-[0.1em] text-[hsl(var(--text-primary))]">
+            {selectedLabel}
+          </span>
+          <button
+            type="button"
+            onClick={() => onToggleSlot?.(selectedSlotIndex)}
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--state-hover))] hover:text-[hsl(var(--text-primary))]"
+          >
+            {selectedHidden ? <Eye size={12} aria-hidden /> : <EyeOff size={12} aria-hidden />}
+            {selectedHidden ? 'Show tile' : 'Hide tile'}
+          </button>
+        </div>
+      </WeeRevealWhen>
     </SettingsLivePreviewFrame>
   );
 }
@@ -219,7 +283,7 @@ SurfacesScenePreview.propTypes = {
   blur: PropTypes.number,
   brightness: PropTypes.number,
   saturate: PropTypes.number,
-  activeSegment: PropTypes.oneOf(['library', 'look', 'atmosphere', 'chrome', 'wallpaper', 'ribbon', 'effects']),
+  activeSegment: PropTypes.oneOf(['library', 'look', 'board', 'atmosphere', 'chrome', 'wallpaper', 'ribbon', 'effects']),
   caption: PropTypes.node,
   layout: PropTypes.shape({
     columns: PropTypes.number,
@@ -238,6 +302,10 @@ SurfacesScenePreview.propTypes = {
   overlayWind: PropTypes.number,
   overlayGravity: PropTypes.number,
   applyPulse: PropTypes.bool,
+  interactive: PropTypes.bool,
+  selectedSlotIndex: PropTypes.number,
+  onToggleSlot: PropTypes.func,
+  pageChrome: PropTypes.node,
 };
 
 SurfacesScenePreview.defaultProps = {
@@ -251,6 +319,10 @@ SurfacesScenePreview.defaultProps = {
   previewingLibrary: false,
   overlayEnabled: false,
   applyPulse: false,
+  interactive: false,
+  selectedSlotIndex: null,
+  onToggleSlot: undefined,
+  pageChrome: null,
 };
 
 export default React.memo(SurfacesScenePreview);
