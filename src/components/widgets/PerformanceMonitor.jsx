@@ -1,15 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { IS_DEV } from '../../utils/env';
 import { useAppActivity } from '../../hooks/useAppActivity';
 import { useActivityInterval } from '../../hooks/useActivityInterval';
+import { m } from 'framer-motion';
 import Text from '../../ui/Text';
 import { WeeCard } from '../../ui/wee';
 import Button from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
+import FloatingWidgetPresence from './common/FloatingWidgetPresence';
+import { createWeeTransition } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import { WEE_GOOEY_ICON_PRESS } from '../../ui/wee/WeeGooeyIconButton';
+import { isOriginRectOnScreen, readOriginRect } from '../../ui/wee/originRect';
+import { Activity } from 'lucide-react';
 
-const PerformanceMonitor = ({ isVisible, onClose }) => {
+const PerformanceMonitor = ({ isVisible, onClose, onExitAnimationComplete }) => {
   const { performance, performanceManager } = useConsolidatedAppStore(
     useShallow((state) => ({
       performance: state.performance,
@@ -25,6 +32,15 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
 
   const [autoRefresh, setAutoRefresh] = useState(true);
   const { isAppActive } = useAppActivity();
+  const { osReduced, prefs } = useMotionFeedback();
+  const reducedMotion = Boolean(osReduced) || prefs?.master === false;
+  const press = createWeeTransition('press', { reducedMotion });
+  const originRect = useMemo(() => {
+    if (!isVisible || typeof document === 'undefined') return null;
+    const tile = document.querySelector('[data-wee-origin="performance-monitor"]');
+    const rect = readOriginRect(tile);
+    return rect && isOriginRectOnScreen(rect) ? rect : null;
+  }, [isVisible]);
 
   // Auto-refresh performance data (activity-aware to avoid background churn).
   useActivityInterval(
@@ -53,13 +69,27 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
 
   const report = getPerformanceReport();
 
-  if (!IS_DEV || !isVisible) return null;
+  if (!IS_DEV) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-[hsl(var(--color-pure-black)/0.5)] ${isVisible ? '' : 'pointer-events-none opacity-0'}`}>
+      <FloatingWidgetPresence
+        isOpen={isVisible}
+        onExitAnimationComplete={onExitAnimationComplete}
+        originRect={originRect}
+        className="w-full max-w-4xl"
+      >
+      <div className="max-h-[80vh] w-full overflow-y-auto rounded-lg bg-[hsl(var(--surface-elevated))] p-6">
         <div className="flex justify-between items-center mb-6">
-          <Text variant="h2" className="text-white">
+          <Text variant="h2" className="flex items-center gap-2 text-[hsl(var(--text-primary))]">
+            <m.span
+              className="inline-flex text-[hsl(var(--primary))]"
+              whileHover={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.hoverScale, rotate: WEE_GOOEY_ICON_PRESS.solidHoverRotate }}
+              whileTap={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.tapScale }}
+              transition={press}
+            >
+              <Activity size={22} strokeWidth={2.4} aria-hidden />
+            </m.span>
             Performance Monitor
           </Text>
           <Button onClick={onClose} variant="secondary" size="sm">
@@ -254,6 +284,7 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
           </WeeCard>
         )}
       </div>
+      </FloatingWidgetPresence>
     </div>
   );
 };

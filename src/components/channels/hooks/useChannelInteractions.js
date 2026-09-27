@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { readOriginRect } from '../../../ui/wee/originRect';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import { useChannelSpaceKey } from '../../../contexts/ChannelSpaceContext';
 import {
@@ -35,6 +36,7 @@ export function useChannelInteractions({
   interactionsLocked = false,
 }) {
   const [showChannelModal, setShowChannelModal] = useState(false);
+  const [channelOriginRect, setChannelOriginRect] = useState(null);
   const [channelModalMounted, setChannelModalMounted] = useState(false);
   const [showImageSearch, setShowImageSearch] = useState(false);
   const hoverDwellTimerRef = useRef(null);
@@ -62,9 +64,10 @@ export function useChannelInteractions({
     });
   }, [setUIState]);
 
-  const openChannelModal = useCallback(() => {
+  const openChannelModal = useCallback((origin = null) => {
     // Configure and Live Board Studio must not stack — exit arrange first.
     exitHomeBoardArrangeIfNeeded();
+    setChannelOriginRect(origin);
     setShowChannelModal(true);
   }, [exitHomeBoardArrangeIfNeeded]);
 
@@ -159,7 +162,7 @@ export function useChannelInteractions({
     if (interactionsLocked) return;
     e.preventDefault();
     e.stopPropagation();
-    openChannelModal();
+    openChannelModal(readOriginRect(e.currentTarget));
   }, [interactionsLocked, openChannelModal]);
 
   const handleMouseEnter = useCallback(() => {
@@ -298,6 +301,7 @@ export function useChannelInteractions({
   return {
     openHint,
     showChannelModal,
+    channelOriginRect,
     setShowChannelModal,
     channelModalMounted,
     setChannelModalMounted,

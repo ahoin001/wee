@@ -7,7 +7,8 @@ import {
   createWeeTransition,
   useWeeMotion,
 } from '../../design/weeMotion';
-import { WeeFadeScroll, WeeGooeyTileButton } from '../../ui/wee';
+import { WeeFadeScroll, WeeGooeyTileButton, WeePillFloorShadow } from '../../ui/wee';
+import { WEE_GOOEY_ICON_PRESS } from '../../ui/wee/WeeGooeyIconButton';
 import HomeWidgetShell from './HomeWidgetShell';
 import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
@@ -216,10 +217,15 @@ function AdminQuickAccessSlot({
         surface={surface}
         textColor={slot?.textColor}
         selected={selected}
-        className={layout.shellPadClass}
+        className={`${layout.shellPadClass}${floatingWidgets?.adminPanel?.visible ? ' scale-[0.94]' : ''}`}
         onClick={handleTileActivate}
         aria-label="Admin Quick Access"
+        data-wee-origin="admin-panel"
       >
+        <WeePillFloorShadow
+          expanded={Boolean(floatingWidgets?.adminPanel?.visible)}
+          reducedMotion={Boolean(reducedMotion)}
+        />
         {actionError ? (
           <div className="mb-1 shrink-0 rounded-lg bg-[hsl(var(--state-error)/0.12)] px-2 py-1 text-[10px] font-semibold text-[hsl(var(--state-error))]">
             {actionError}
@@ -232,8 +238,8 @@ function AdminQuickAccessSlot({
             className={`flex h-full w-full flex-col items-center justify-center rounded-[1rem] text-center ${layout.gapClass}`}
             onClick={openConfigure}
             disabled={interactionsLocked}
-            whileHover={reducedMotion ? undefined : { scale: 1.03 }}
-            whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+            whileHover={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.hoverScale }}
+            whileTap={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.tapScale }}
             transition={pressTransition}
           >
             <Shield
@@ -253,8 +259,8 @@ function AdminQuickAccessSlot({
             onClick={handleTileActivate}
             aria-label="Open Quick Access"
             disabled={interactionsLocked && !arrangeMode}
-            whileHover={reducedMotion ? undefined : { scale: 1.03 }}
-            whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+            whileHover={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.hoverScale }}
+            whileTap={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.tapScale }}
             transition={pressTransition}
           >
             <Shield
@@ -279,8 +285,8 @@ function AdminQuickAccessSlot({
                   disabled={interactionsLocked}
                   aria-label="Configure Quick Access"
                   title="Configure"
-                  whileHover={reducedMotion ? undefined : { scale: 1.12, rotate: 12 }}
-                  whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+                  whileHover={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.hoverScale, rotate: WEE_GOOEY_ICON_PRESS.solidHoverRotate }}
+                  whileTap={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.tapScale }}
                   transition={pressTransition}
                 >
                   <Settings2 size={layout.density === 'roomy' ? 16 : 14} strokeWidth={2.5} aria-hidden />

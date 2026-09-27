@@ -970,6 +970,7 @@ function App() {
                 const { actions } = useConsolidatedAppStore.getState();
                 actions.togglePerformanceMonitorWidget();
               }}
+              onExitAnimationComplete={performanceMonitorGate.onExitAnimationComplete}
             />
           ) : null}
         </Suspense>

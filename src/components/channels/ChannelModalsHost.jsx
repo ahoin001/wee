@@ -16,6 +16,7 @@ export default function ChannelModalsHost({
   handleUploadClick,
   channelModalMounted,
   showChannelModal,
+  channelOriginRect = null,
   setShowChannelModal,
   setChannelModalMounted,
   handleChannelModalSave,
@@ -62,6 +63,7 @@ export default function ChannelModalsHost({
           channelId={id}
           channelSpaceKey={channelSpaceKey}
           isOpen={showChannelModal}
+          originRect={channelOriginRect}
           onClose={() => setShowChannelModal(false)}
           onExitAnimationComplete={() => setChannelModalMounted(false)}
           onSave={handleChannelModalSave}
@@ -88,6 +90,13 @@ ChannelModalsHost.propTypes = {
   handleUploadClick: PropTypes.func.isRequired,
   channelModalMounted: PropTypes.bool.isRequired,
   showChannelModal: PropTypes.bool.isRequired,
+  channelOriginRect: PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+    width: PropTypes.number,
+    height: PropTypes.number,
+    radius: PropTypes.number,
+  }),
   setShowChannelModal: PropTypes.func.isRequired,
   setChannelModalMounted: PropTypes.func.isRequired,
   handleChannelModalSave: PropTypes.func.isRequired,

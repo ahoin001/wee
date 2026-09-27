@@ -5,7 +5,7 @@
   border-radius: 16px;
   box-shadow: 0 8px 32px hsl(var(--admin-widget-gradient-start) / 0.3);
   backdrop-filter: blur(10px);
-  overflow: hidden;
+  overflow: visible;
   user-select: none;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }

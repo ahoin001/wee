@@ -21,6 +21,7 @@ function WeeChannelModal({
   children,
   maxWidth = 'min(1400px, 96vw)',
   onExitAnimationComplete,
+  originRect = null,
 }) {
   const { tabTransition } = useWeeMotion();
 
@@ -98,6 +99,7 @@ function WeeChannelModal({
       maxWidth={maxWidth}
       showRail
       onExitAnimationComplete={onExitAnimationComplete}
+      originRect={originRect}
     >
       <AnimatePresence mode="wait">
         <TabPanel
@@ -125,6 +127,13 @@ WeeChannelModal.propTypes = {
   children: PropTypes.node.isRequired,
   maxWidth: PropTypes.string,
   onExitAnimationComplete: PropTypes.func,
+  originRect: PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+    width: PropTypes.number,
+    height: PropTypes.number,
+    radius: PropTypes.number,
+  }),
 };
 
 WeeChannelModal.defaultProps = {
@@ -132,6 +141,7 @@ WeeChannelModal.defaultProps = {
   statusReady: false,
   maxWidth: 'min(1400px, 96vw)',
   onExitAnimationComplete: undefined,
+  originRect: null,
 };
 
 export default WeeChannelModal;

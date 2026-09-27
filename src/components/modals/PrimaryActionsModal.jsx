@@ -34,6 +34,7 @@ function PrimaryActionsModalComponent({
   buttonIndex,
   ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX,
   onExitAnimationComplete,
+  originRect = null,
 }) {
   const [type, setType] = useState(config?.type || 'text');
   const [text, setText] = useState(config?.text || (buttonIndex === 0 ? 'Wii' : ''));
@@ -555,6 +556,7 @@ function PrimaryActionsModalComponent({
       headerTitle={modalTitle}
       showRail={false}
       maxWidth="min(760px, 96vw)"
+      originRect={originRect}
       footerContent={({ handleClose }) => (
         <div className="flex flex-wrap justify-end gap-3">
           <WeeButton type="button" variant="secondary" onClick={handleClose}>
@@ -811,7 +813,8 @@ function arePrimaryActionsModalPropsEqual(prev, next) {
     prev.config === next.config &&
     prev.onClose === next.onClose &&
     prev.onSave === next.onSave &&
-    prev.onExitAnimationComplete === next.onExitAnimationComplete
+    prev.onExitAnimationComplete === next.onExitAnimationComplete &&
+    prev.originRect === next.originRect
   );
 }
 

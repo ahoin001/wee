@@ -36,6 +36,7 @@ function ChannelModal({
   currentAsAdmin,
   isOpen = true,
   onExitAnimationComplete,
+  originRect = null,
 }) {
   const {
     media,
@@ -413,6 +414,7 @@ function ChannelModal({
         footerContent={footerContent}
         maxWidth="min(1400px, 96vw)"
         onExitAnimationComplete={onExitAnimationComplete}
+        originRect={originRect}
       >
         <div className="channel-modal-wee-inner min-w-0">
           {activeTab === 'setup' && (
@@ -529,6 +531,13 @@ ChannelModal.propTypes = {
   currentAsAdmin: PropTypes.bool,
   isOpen: PropTypes.bool,
   onExitAnimationComplete: PropTypes.func,
+  originRect: PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+    width: PropTypes.number,
+    height: PropTypes.number,
+    radius: PropTypes.number,
+  }),
 };
 
 export default ChannelModal; 

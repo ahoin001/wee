@@ -4,7 +4,7 @@
  * Inline: square cover docked in the glass panel beside transport.
  * Single-row (wide): large crisp cover + glass strip; atmosphere wash, not grainy blur.
  */
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m } from 'framer-motion';
 import { Music, SkipBack, SkipForward } from 'lucide-react';
@@ -14,12 +14,12 @@ import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
-import { createWeeTransition } from '../../design/weeMotion';
+import { createWeeSideNavPeekVariants, createWeeTransition, useWeeMotion } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
 import MusicReactiveBars from '../widgets/MusicReactiveBars';
 import { WEE_GOOEY_ICON_PRESS } from '../../ui/wee/WeeGooeyIconButton';
-import { WeeHoverTip, WeePlayPauseGlyph } from '../../ui/wee';
+import { WeeGlassPill, WeeHoverTip, WeePillFloorShadow, WeePlayPauseGlyph } from '../../ui/wee';
 import { normalizeHomeNowPlayingWidget } from '../../utils/homeNowPlayingWidgetPrefs';
 import {
   EMPTY_NOW_PLAYING,
@@ -871,6 +871,46 @@ function NowPlayingSlot({
     )
   ) : null;
 
+  const { pillOpen, pillClose } = useWeeMotion();
+  const frameRef = useRef(null);
+  const [pillHover, setPillHover] = useState(false);
+  const [pillFocus, setPillFocus] = useState(false);
+  const [frameSize, setFrameSize] = useState({ width: 240, height: 148 });
+
+  useLayoutEffect(() => {
+    const el = frameRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const measure = () => {
+      const box = el.getBoundingClientRect();
+      const width = Math.max(72, Math.round(box.width));
+      const height = Math.max(72, Math.round(box.height));
+      setFrameSize((prev) => (
+        prev.width === width && prev.height === height ? prev : { width, height }
+      ));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const pillRevealed = !interactionsLocked && (pillHover || pillFocus || isPlaying);
+  const compactSize = Math.min(72, frameSize.width, frameSize.height);
+  const peekVariants = useMemo(() => {
+    const base = createWeeSideNavPeekVariants(null, {
+      compactSize,
+      expandedWidth: frameSize.width,
+      expandedHeight: frameSize.height,
+      pillClose,
+      pillOpen,
+      reducedMotion,
+    });
+    return {
+      closed: { ...base.closed, borderRadius: compactSize / 2 },
+      open: { ...base.open, borderRadius: 28 },
+    };
+  }, [compactSize, frameSize.height, frameSize.width, pillClose, pillOpen, reducedMotion]);
+
   let body = null;
   if (!hasTrack) {
     body = (
@@ -939,11 +979,54 @@ function NowPlayingSlot({
   return (
     <HomeWidgetShell surface={surface} selected={selected} aria-label="Now Playing">
       <div
-        className="relative flex h-full min-h-0 w-full flex-col overflow-hidden"
+        ref={frameRef}
+        className="relative flex h-full min-h-0 w-full items-center justify-center"
         style={accentStyle}
+        onMouseEnter={() => setPillHover(true)}
+        onMouseLeave={() => setPillHover(false)}
+        onFocusCapture={() => setPillFocus(true)}
+        onBlurCapture={(event) => {
+          if (event.currentTarget.contains(event.relatedTarget)) return;
+          setPillFocus(false);
+        }}
       >
-        {ambientLayer}
-        {body}
+        <WeePillFloorShadow expanded={pillRevealed} reducedMotion={reducedMotion} />
+        <WeeGlassPill
+          motion
+          initial={false}
+          animate={pillRevealed ? 'open' : 'closed'}
+          variants={peekVariants}
+          className="relative z-10 overflow-hidden"
+          aria-expanded={pillRevealed}
+        >
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            {hasArt ? (
+              <img
+                src={albumArtUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[hsl(var(--surface-elevated)/0.55)]">
+                <Music size={22} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
+              </div>
+            )}
+          </div>
+          <m.div
+            className="relative z-10 flex h-full min-h-0 w-full flex-col overflow-hidden"
+            initial={false}
+            animate={{ opacity: pillRevealed ? 1 : 0 }}
+            transition={
+              pillRevealed
+                ? { ...(reducedMotion ? { duration: 0.12 } : pillOpen), delay: reducedMotion ? 0 : 0.08 }
+                : { duration: 0.1 }
+            }
+            style={{ pointerEvents: pillRevealed ? 'auto' : 'none' }}
+          >
+            {ambientLayer}
+            {body}
+          </m.div>
+        </WeeGlassPill>
       </div>
     </HomeWidgetShell>
   );

@@ -36,3 +36,4 @@ export { default as WeeDockSettingsSubtabs } from './WeeDockSettingsSubtabs';
 export { default as WeeSettingsSection } from './WeeSettingsSection';
 export { default as WeeSlider } from './WeeSlider';
 export { default as WeeSliderValue } from './WeeSliderValue';
+export { default as WeeGlyphField } from './WeeGlyphField';

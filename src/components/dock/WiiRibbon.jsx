@@ -15,6 +15,7 @@ import intervalManager from '../../utils/IntervalManager';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { playChannelClick } from '../../utils/soundPlayback';
+import { readOriginRect } from '../../ui/wee/originRect';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { hexAlpha } from '../../utils/colorHex';
 import { extractColorsFromAlbumArt } from '../../utils/extractColorsFromAlbumArt';
@@ -270,6 +271,7 @@ const WiiRibbonComponent = ({
   ]);
   const [activeButtonIndex, setActiveButtonIndex] = useState(null);
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
+  const [ribbonOriginRect, setRibbonOriginRect] = useState(null);
   const [showPresetsButtonModal, setShowPresetsButtonModal] = useState(false);
   /** Keep WeeModalShell mounted through close animation (see Channel.jsx + onExitAnimationComplete). */
   const [primaryActionsModalMounted, setPrimaryActionsModalMounted] = useState(false);
@@ -418,6 +420,7 @@ const WiiRibbonComponent = ({
   const handleButtonContextMenu = (index, e) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent event from bubbling up to the footer
+    setRibbonOriginRect(readOriginRect(e.currentTarget));
     setActiveButtonIndex(index);
     setShowPrimaryActionsModal(true);
   };
@@ -897,7 +900,7 @@ const WiiRibbonComponent = ({
                 spotifySecondaryColor={spotifyColors?.secondary || null}
                 spotifyTextColor={spotifyOwnsRibbonPaint && spotifyColors?.text ? spotifyColors.text : null}
                 spotifyAccentColor={spotifyOwnsRibbonPaint && spotifyColors?.accent ? spotifyColors.accent : null}
-                className={activeButton === 'left' ? 'ribbon-wii-btn-press ml-4' : 'ribbon-wii-btn-idle ml-4'}
+                className={`${activeButton === 'left' ? 'ribbon-wii-btn-press ml-4' : 'ribbon-wii-btn-idle ml-4'}${showPrimaryActionsModal && activeButtonIndex === 0 ? ' wii-style-button--origin-hold' : ''}`}
               >
                 {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
                   <span 
@@ -1047,7 +1050,7 @@ const WiiRibbonComponent = ({
                     spotifySecondaryColor={spotifyColors?.secondary || null}
                     spotifyTextColor={spotifyOwnsRibbonPaint && spotifyColors?.text ? spotifyColors.text : null}
                     spotifyAccentColor={spotifyOwnsRibbonPaint && spotifyColors?.accent ? spotifyColors.accent : null}
-                    className={activeButton === 'right' ? 'ribbon-wii-btn-press' : 'ribbon-wii-btn-idle'}
+                    className={`${activeButton === 'right' ? 'ribbon-wii-btn-press' : 'ribbon-wii-btn-idle'}${showPrimaryActionsModal && activeButtonIndex === 1 ? ' wii-style-button--origin-hold' : ''}`}
                   >
                       {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
                         <span 
@@ -1140,6 +1143,7 @@ const WiiRibbonComponent = ({
             onSave={handlePrimaryActionsSave}
             config={buttonConfigs?.[activeButtonIndex]}
             buttonIndex={activeButtonIndex}
+            originRect={ribbonOriginRect}
             ribbonGlowColor={ribbonGlowColor}
             onExitAnimationComplete={handlePrimaryActionsExitComplete}
           />

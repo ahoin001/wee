@@ -1,12 +1,14 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { Dialog } from '@headlessui/react';
 import { m } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useDialogExitPresence } from '../../hooks/useDialogExitPresence';
+import { useOriginFootprintSpring } from '../../hooks/useOriginFootprintSpring';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
+import { isOriginRectOnScreen } from './originRect';
 import './wee-modal.css';
 
 const MotionDiv = m.div;
@@ -30,6 +32,8 @@ function WeeModalShell({
   /** When true, panel uses a fixed viewport height so inner content growth doesn’t resize the shell. */
   stableHeight = false,
   onExitAnimationComplete,
+  /** Footprint of the control this dialog grows out of. Settings opened from the rail omit this. */
+  originRect = null,
 }) {
   const { backdropTransition } = useWeeMotion();
   const { modalSpringTransitions, gooey } = useMotionFeedback();
@@ -46,6 +50,21 @@ function WeeModalShell({
   const heightClass = stableHeight
     ? 'h-[min(88dvh,920px)] max-h-[min(88dvh,920px)]'
     : 'min-h-0 max-h-[min(88dvh,920px)]';
+
+  const useOrigin = Boolean(originRect && modalSpringTransitions && isOriginRectOnScreen(originRect));
+  const shellRef = useRef(null);
+  const finishOriginClose = useCallback(() => {
+    onPanelAnimationComplete('closed');
+  }, [onPanelAnimationComplete]);
+  const {
+    x, y, scaleX, scaleY, radiusMv, contentOpacity,
+  } = useOriginFootprintSpring({
+    active: useOrigin && allowMount,
+    isOpen,
+    elementRef: shellRef,
+    originRect,
+    onClosed: finishOriginClose,
+  });
 
   const backdropVariants = useMemo(
     () => ({
@@ -95,23 +114,35 @@ function WeeModalShell({
           >
             {/* Plain Panel + inner motion.div: Framer completion/variants on a real motion node (not Headless `as={motion}`). */}
             <MotionDiv
+              ref={shellRef}
               className={`
                   flex w-full min-h-0 overflow-hidden flex-col
                   ${heightClass}
                   border-[length:var(--wee-modal-shell-border)] border-[hsl(var(--wee-border-outer))]
-                  rounded-[var(--wee-radius-shell)] bg-[hsl(var(--wee-surface-shell))]
+                  ${useOrigin ? '' : 'rounded-[var(--wee-radius-shell)]'} bg-[hsl(var(--wee-surface-shell))]
                   shadow-[var(--wee-shadow-modal)]
                   ${panelLayoutClass}
                   ${className}
                 `.trim()}
-              variants={panelVariants}
-              initial="closed"
-              animate={isOpen ? 'open' : 'closed'}
-              onAnimationComplete={onPanelAnimationComplete}
+              style={useOrigin ? {
+                x,
+                y,
+                scaleX,
+                scaleY,
+                borderRadius: radiusMv,
+                transformOrigin: 'center center',
+              } : undefined}
+              variants={useOrigin ? undefined : panelVariants}
+              initial={useOrigin ? false : 'closed'}
+              animate={useOrigin ? undefined : (isOpen ? 'open' : 'closed')}
+              onAnimationComplete={useOrigin ? undefined : onPanelAnimationComplete}
             >
               {showRail && rail}
 
-              <div className={`flex min-h-0 min-w-0 flex-1 flex-col bg-[hsl(var(--wee-surface-shell))] ${panelClassName}`}>
+              <MotionDiv
+                className={`flex min-h-0 min-w-0 flex-1 flex-col bg-[hsl(var(--wee-surface-shell))] ${panelClassName}`}
+                style={useOrigin ? { opacity: contentOpacity } : undefined}
+              >
                 <div className="flex shrink-0 items-center justify-between border-b-2 border-[hsl(var(--border-primary)/0.35)] px-8 py-6 md:px-10 md:py-7">
                   <Dialog.Title
                     as="h2"
@@ -138,7 +169,7 @@ function WeeModalShell({
                     {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
                   </div>
                 )}
-              </div>
+              </MotionDiv>
             </MotionDiv>
           </Dialog.Panel>
         </div>
@@ -162,6 +193,13 @@ WeeModalShell.propTypes = {
   panelClassName: PropTypes.string,
   stableHeight: PropTypes.bool,
   onExitAnimationComplete: PropTypes.func,
+  originRect: PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+    width: PropTypes.number,
+    height: PropTypes.number,
+    radius: PropTypes.number,
+  }),
 };
 
 WeeModalShell.defaultProps = {
@@ -174,6 +212,7 @@ WeeModalShell.defaultProps = {
   panelClassName: '',
   stableHeight: false,
   onExitAnimationComplete: undefined,
+  originRect: null,
 };
 
 export default WeeModalShell;

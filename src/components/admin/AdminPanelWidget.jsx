@@ -1,9 +1,14 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { m } from 'framer-motion';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import { useFloatingWidgetsState, useUIState } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useFloatingWidgetFrame } from '../../hooks/useFloatingWidgetFrame';
+import { createWeeTransition } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import { WEE_GOOEY_ICON_PRESS } from '../../ui/wee/WeeGooeyIconButton';
+import { isOriginRectOnScreen, readOriginRect } from '../../ui/wee/originRect';
 import {
   applyAdminPanelPowerActions,
   executeAdminCommand,
@@ -18,6 +23,15 @@ const AdminPanelWidget = ({ isVisible, onClose, onExitAnimationComplete }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
   const { confirmAction } = useUIState();
 
+  const { osReduced, prefs } = useMotionFeedback();
+  const reducedMotion = Boolean(osReduced) || prefs?.master === false;
+  const press = createWeeTransition('press', { reducedMotion });
+  const originRect = useMemo(() => {
+    if (!isVisible || typeof document === 'undefined') return null;
+    const tile = document.querySelector('[data-wee-origin="admin-panel"]');
+    const rect = readOriginRect(tile);
+    return rect && isOriginRectOnScreen(rect) ? rect : null;
+  }, [isVisible]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [actionError, setActionError] = useState('');
 
@@ -100,6 +114,7 @@ const AdminPanelWidget = ({ isVisible, onClose, onExitAnimationComplete }) => {
     <FloatingWidgetPresence
       isOpen={isVisible}
       onExitAnimationComplete={onExitAnimationComplete}
+      originRect={originRect}
       ref={widgetRef}
       className="admin-panel-widget"
       style={{
@@ -115,7 +130,14 @@ const AdminPanelWidget = ({ isVisible, onClose, onExitAnimationComplete }) => {
     >
       <div className="widget-header">
         <div className="header-content">
-          <div className="header-icon">⚙️</div>
+          <m.div
+            className="header-icon"
+            whileHover={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.hoverScale, rotate: WEE_GOOEY_ICON_PRESS.solidHoverRotate }}
+            whileTap={reducedMotion ? undefined : { scale: WEE_GOOEY_ICON_PRESS.tapScale }}
+            transition={press}
+          >
+            ⚙️
+          </m.div>
           <Text variant="h4" className="header-title">
             Quick Access
           </Text>

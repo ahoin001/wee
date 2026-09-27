@@ -95,6 +95,7 @@ const Channel = React.memo(({
   const {
     openHint,
     showChannelModal,
+    channelOriginRect,
     setShowChannelModal,
     channelModalMounted,
     setChannelModalMounted,
@@ -336,8 +337,8 @@ const Channel = React.memo(({
     <MotionDiv
       className={
         effectiveIsEmpty && !effectiveMedia 
-          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}`
+          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${showChannelModal ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed || showChannelModal ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}`
       }
       data-channel-id={id}
       data-gooey-hover-mode={channelGooeyHover.enabled ? channelGooeyHover.mode : undefined}
@@ -410,6 +411,7 @@ const Channel = React.memo(({
         handleUploadClick={handleUploadClick}
         channelModalMounted={channelModalMounted}
         showChannelModal={showChannelModal}
+        channelOriginRect={channelOriginRect}
         setShowChannelModal={setShowChannelModal}
         setChannelModalMounted={setChannelModalMounted}
         handleChannelModalSave={handleChannelModalSave}

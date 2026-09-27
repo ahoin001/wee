@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1784646916.5099034,
-    "ast_hash": "d96eaf0509dc9313bde08d139684d664",
+    "mtime": 1790532153.213264,
+    "ast_hash": "62796f964523b33d3c3d8dc3b58bb02f",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/App.jsx": {
-    "mtime": 1784646787.3046308,
-    "ast_hash": "86bddc5862fc4ea962df95405c946977",
+    "mtime": 1790533307.647592,
+    "ast_hash": "74bcc1a3ea6da1168cd419a4b668216f",
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanel.jsx": {
@@ -125,9 +125,9 @@
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanelWidget.jsx": {
-    "mtime": 1783873069.1089256,
-    "ast_hash": "30ef7cbf08908e8aff85eebf501b6684",
-    "semantic_hash": "30ef7cbf08908e8aff85eebf501b6684"
+    "mtime": 1790533264.2775133,
+    "ast_hash": "c7da2c4804dbc76eb7a9c46692f5bb2b",
+    "semantic_hash": ""
   },
   "src/components/admin/index.js": {
     "mtime": 1776092178.2158165,
@@ -170,8 +170,8 @@
     "semantic_hash": "d862ba293592944b08fa97eb5a072ada"
   },
   "src/components/channels/Channel.jsx": {
-    "mtime": 1790531800.1728668,
-    "ast_hash": "04e9a399f510235f5bbe8e135229bc56",
+    "mtime": 1790533096.105946,
+    "ast_hash": "eec791ed03ad0eba4ae46d79daa9bb63",
     "semantic_hash": ""
   },
   "src/components/channels/ChannelMediaPreview.jsx": {
@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/ChannelModal.jsx": {
-    "mtime": 1784572033.6227772,
-    "ast_hash": "40713dc60f81b838878f22cdd8491461",
+    "mtime": 1790533052.7081053,
+    "ast_hash": "8926728f7a4acf2351ceb619b515c4d4",
     "semantic_hash": ""
   },
   "src/components/channels/ChannelModalSuggestedGames.jsx": {
@@ -190,8 +190,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/ChannelModalsHost.jsx": {
-    "mtime": 1784256089.705585,
-    "ast_hash": "80a3aba53a617a00d108e3a6403b13a1",
+    "mtime": 1790533037.4055355,
+    "ast_hash": "3919456ccdde084f38eacae222e05fff",
     "semantic_hash": ""
   },
   "src/components/channels/ChannelPathSmartSuggestions.jsx": {
@@ -205,9 +205,9 @@
     "semantic_hash": ""
   },
   "src/components/channels/WeeChannelModal.jsx": {
-    "mtime": 1776557282.7839804,
-    "ast_hash": "5cf71756890d59c8bf24681fef30c348",
-    "semantic_hash": "5cf71756890d59c8bf24681fef30c348"
+    "mtime": 1790533049.2525206,
+    "ast_hash": "c104df3756df0e2be09fe20b394e5e1f",
+    "semantic_hash": ""
   },
   "src/components/channels/WiiChannelStrip.jsx": {
     "mtime": 1784562748.6150875,
@@ -275,8 +275,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/hooks/useChannelInteractions.js": {
-    "mtime": 1784568584.9957583,
-    "ast_hash": "54af93d09b2b11c3a16ab52d0734b91c",
+    "mtime": 1790533033.2036827,
+    "ast_hash": "ed1b7217f58c0606f370583061b86c9f",
     "semantic_hash": ""
   },
   "src/components/channels/hooks/useChannelMediaPreview.js": {
@@ -325,8 +325,8 @@
     "semantic_hash": ""
   },
   "src/components/dock/WiiRibbon.jsx": {
-    "mtime": 1784434532.7932763,
-    "ast_hash": "ed90897279492a7f2a697bbc189e9298",
+    "mtime": 1790533367.708079,
+    "ast_hash": "1ab44d183032bcefa67dc56771d7b5c4",
     "semantic_hash": ""
   },
   "src/components/dock/WiiStyleButton.jsx": {
@@ -510,8 +510,8 @@
     "semantic_hash": "2490e235a0e7d2c1264fea7e4b074f58"
   },
   "src/components/modals/PrimaryActionsModal.jsx": {
-    "mtime": 1784141025.789858,
-    "ast_hash": "df1002faa5af358f86f3f0e0c8c121d7",
+    "mtime": 1790533079.4075148,
+    "ast_hash": "a2de9678a5ba5cf76070d6ff42a88f7f",
     "semantic_hash": ""
   },
   "src/components/modals/UpdateModal.jsx": {
@@ -810,9 +810,9 @@
     "semantic_hash": "24101c67e78a7c6a489345d563770903"
   },
   "src/components/widgets/PerformanceMonitor.jsx": {
-    "mtime": 1783872162.9050124,
-    "ast_hash": "2e085c146009fc70ed27e18237bea89e",
-    "semantic_hash": "2e085c146009fc70ed27e18237bea89e"
+    "mtime": 1790533331.5028658,
+    "ast_hash": "9984fe821b3614a9773283cecbd4b7c1",
+    "semantic_hash": ""
   },
   "src/components/widgets/ResourceUsageIndicator.jsx": {
     "mtime": 1784569761.8175774,
@@ -820,9 +820,9 @@
     "semantic_hash": ""
   },
   "src/components/widgets/common/FloatingWidgetPresence.jsx": {
-    "mtime": 1783872976.1221426,
-    "ast_hash": "a0c80a6507b9bd161f140fbce20b1182",
-    "semantic_hash": "a0c80a6507b9bd161f140fbce20b1182"
+    "mtime": 1790533243.8858833,
+    "ast_hash": "0cc3e0e31e45c01b8feba462578bcbdc",
+    "semantic_hash": ""
   },
   "src/components/widgets/common/GooeyFloatingPanel.jsx": {
     "mtime": 1776695132.290076,
@@ -1055,9 +1055,9 @@
     "semantic_hash": "dd697c2e0ae1590daa5463ea7d7c1df5"
   },
   "src/ui/WInput.jsx": {
-    "mtime": 1776454571.538584,
-    "ast_hash": "27ad9358367310196da6dd264d6bde90",
-    "semantic_hash": "27ad9358367310196da6dd264d6bde90"
+    "mtime": 1790532911.6330142,
+    "ast_hash": "f339628a93ec2ea698929c9e0709b2c3",
+    "semantic_hash": ""
   },
   "src/ui/WRadioGroup.jsx": {
     "mtime": 1776023225.1010575,
@@ -1145,8 +1145,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeModalShell.jsx": {
-    "mtime": 1784139451.8846004,
-    "ast_hash": "2543be0dcfd9d847f5bb1b950bddf975",
+    "mtime": 1790533228.850956,
+    "ast_hash": "d605eba41b9ceb3ee65d911288228989",
     "semantic_hash": ""
   },
   "src/ui/wee/WeePillFloorShadow.jsx": {
@@ -1205,8 +1205,8 @@
     "semantic_hash": "6682d42d377aafaf0bbd79d797f21358"
   },
   "src/ui/wee/index.js": {
-    "mtime": 1790531769.251735,
-    "ast_hash": "84976c3562abb5bec9b25d4573174d03",
+    "mtime": 1790532902.5555494,
+    "ast_hash": "d2ae95baf10069d1ff85f9dd298a2af7",
     "semantic_hash": ""
   },
   "src/utils/AudioManager.js": {
@@ -1965,8 +1965,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/AdminQuickAccessSlot.jsx": {
-    "mtime": 1784568359.6981053,
-    "ast_hash": "a90eddb11df7f50ccdb23c15da0f8c89",
+    "mtime": 1790533307.9903755,
+    "ast_hash": "714beb1f6a7e29ac1cfd289b315289c0",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
@@ -2070,8 +2070,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1790531774.1122715,
-    "ast_hash": "2ef3479991925b903ec7fb6870ff3707",
+    "mtime": 1790533141.4978187,
+    "ast_hash": "e24358bb4c16f0922c238d9361ec48d4",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2622,6 +2622,21 @@
   "src/ui/wee/WeePlayPauseGlyph.jsx": {
     "mtime": 1790531769.2624793,
     "ast_hash": "bf8765cc98c07d321d234dbd5a5b68b3",
+    "semantic_hash": ""
+  },
+  "src/hooks/useOriginFootprintSpring.js": {
+    "mtime": 1790533219.9128911,
+    "ast_hash": "ca7f6407bd7f1829715d97623dbf4a3c",
+    "semantic_hash": ""
+  },
+  "src/ui/wee/WeeGlyphField.jsx": {
+    "mtime": 1790532918.4396923,
+    "ast_hash": "09185176166227764741a8b42a2cef59",
+    "semantic_hash": ""
+  },
+  "src/ui/wee/originRect.js": {
+    "mtime": 1790533022.3823285,
+    "ast_hash": "d67f0e4fc88b3c2c818d99810553c772",
     "semantic_hash": ""
   }
 }
