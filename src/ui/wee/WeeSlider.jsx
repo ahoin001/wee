@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { animate, m, useMotionValue, useTransform } from 'framer-motion';
 import { createWeeTransition } from '../../design/weeMotion';
@@ -6,6 +6,7 @@ import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 const MotionDiv = m.div;
 const STRETCH_PX = 12;
+const THUMB_PX = 28;
 
 function snapToStep(raw, min, max, step) {
   const span = max - min;
@@ -17,9 +18,8 @@ function snapToStep(raw, min, max, step) {
 }
 
 /**
- * Range control for Wee surfaces.
- * While held, the thumb tracks the pointer. Past either end the track stretches
- * a few pixels and springs home on release. The committed value stays inside min/max.
+ * Thick glass range on the space-rail clock.
+ * Pointer tracks 1:1; the track stretches past the ends and springs home on pillClose.
  */
 function WeeSlider({
   value,
@@ -37,12 +37,14 @@ function WeeSlider({
   const stretch = useMotionValue(0);
   const originX = useMotionValue(0.5);
   const draggingRef = useRef(false);
+  const [dragging, setDragging] = useState(false);
   const { osReduced, prefs } = useMotionFeedback();
   const reducedMotion = Boolean(osReduced) || prefs?.master === false;
   const scaleX = useTransform(stretch, (s) => {
     if (reducedMotion) return 1;
     return 1 + Math.min(STRETCH_PX, Math.abs(s)) / 180;
   });
+  const press = createWeeTransition('press', { reducedMotion });
 
   const span = max - min;
   const ratio = span === 0 ? 0 : (Number(value) - min) / span;
@@ -70,6 +72,7 @@ function WeeSlider({
 
   const release = useCallback(() => {
     draggingRef.current = false;
+    setDragging(false);
     if (reducedMotion) {
       stretch.set(0);
       return;
@@ -83,6 +86,7 @@ function WeeSlider({
     if (disabled) return;
     stretchAnimRef.current?.stop?.();
     draggingRef.current = true;
+    setDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
     applyPointer(event.clientX);
   };
@@ -114,6 +118,8 @@ function WeeSlider({
     }
   };
 
+  const thumbLeft = `calc(${clampedRatio * 100}% - ${THUMB_PX / 2}px)`;
+
   return (
     <div
       id={id}
@@ -130,20 +136,24 @@ function WeeSlider({
       onPointerUp={release}
       onPointerCancel={release}
       onKeyDown={onKeyDown}
-      className={`relative flex h-6 w-full cursor-pointer items-center touch-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary)/0.72)] focus-visible:ring-offset-2 disabled:cursor-not-allowed ${
+      className={`relative flex h-10 w-full cursor-pointer items-center touch-none focus-visible:outline-none focus-visible:shadow-[var(--shadow-hover-glow)] ${
         disabled ? 'cursor-not-allowed opacity-50' : ''
       } ${className}`.trim()}
     >
       <MotionDiv
-        className="h-2 w-full rounded-full bg-[hsl(var(--wee-surface-well))]"
+        className="h-10 w-full overflow-hidden rounded-full border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)] backdrop-blur-xl"
         style={{ scaleX, originX }}
-      />
+      >
+        <div
+          className="h-full rounded-full bg-[hsl(var(--primary))] shadow-[var(--shadow-hover-glow)]"
+          style={{ width: `${clampedRatio * 100}%` }}
+        />
+      </MotionDiv>
       <MotionDiv
-        className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-[hsl(var(--primary))] shadow-[var(--shadow-sm)]"
-        style={{
-          left: `calc(${clampedRatio * 100}% - 8px)`,
-          x: stretch,
-        }}
+        className="pointer-events-none absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--primary))] shadow-[var(--shadow-hover-glow)]"
+        style={{ left: thumbLeft, x: stretch }}
+        animate={reducedMotion ? undefined : { scale: dragging ? 1.12 : 1 }}
+        transition={press}
       />
     </div>
   );

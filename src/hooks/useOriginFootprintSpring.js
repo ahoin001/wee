@@ -107,6 +107,8 @@ export function useOriginFootprintSpring({
   openIntent = 'pillOpen',
   closeIntent = 'pillClose',
   morph = false,
+  /** Channel plate: the face stays for the whole flight; the form darkens over it. */
+  plate = false,
 }) {
   const fromRef = useRef(null);
   const sourceRef = useRef(null);
@@ -122,9 +124,12 @@ export function useOriginFootprintSpring({
   const openIntentRef = useRef(openIntent);
   const closeIntentRef = useRef(closeIntent);
   const morphRef = useRef(morph);
+  const plateRef = useRef(plate);
+  const closingRef = useRef(false);
   openIntentRef.current = openIntent;
   closeIntentRef.current = closeIntent;
   morphRef.current = morph;
+  plateRef.current = plate;
 
   useLayoutEffect(() => () => {
     setOriginCovered(sourceRef.current, false);
@@ -159,18 +164,34 @@ export function useOriginFootprintSpring({
       if (!morphRef.current) return;
       const t = morphT(scaleXValue, footprint);
       const form = smoothstep(0.35, 0.75, t);
+      const shell = smoothstep(0, HANDOFF_T, t);
       contentOpacity.set(form);
-      faceOpacity.set(1 - form);
-      shellOpacity.set(smoothstep(0, HANDOFF_T, t));
-      setOriginCovered(sourceRef.current, t >= HANDOFF_T);
+      shellOpacity.set(shell);
       el.style.setProperty('--origin-morph-scale', String(Math.max(scaleXValue, 0.05)));
+      el.style.setProperty('--origin-form', String(form));
       const tileFill = footprint.tilePaint?.backgroundColor;
-      if (tileFill && footprint.openFill && parseColor(tileFill)[3] > 0.05) {
-        shellBackground.set(mixColor(tileFill, footprint.openFill, smoothstep(0.25, 0.7, t)));
+      const tileFillOpaque = tileFill && parseColor(tileFill)[3] > 0.05;
+      if (plateRef.current) {
+        faceOpacity.set(1);
+        shellBackground.set(tileFillOpaque ? tileFill : 'transparent');
+        if (closingRef.current) {
+          if (shell <= 0.001) setOriginCovered(sourceRef.current, false);
+        } else if (t >= HANDOFF_T) {
+          setOriginCovered(sourceRef.current, true);
+        } else {
+          setOriginCovered(sourceRef.current, false);
+        }
+      } else {
+        faceOpacity.set(1 - form);
+        setOriginCovered(sourceRef.current, t >= HANDOFF_T);
+        if (tileFillOpaque && footprint.openFill) {
+          shellBackground.set(mixColor(tileFill, footprint.openFill, smoothstep(0.25, 0.7, t)));
+        }
       }
     };
 
     if (!isOpen) {
+      closingRef.current = true;
       const stored = fromRef.current;
       if (!stored) {
         onClosed?.();
@@ -215,6 +236,7 @@ export function useOriginFootprintSpring({
       }
       Promise.all(running.map((tween) => tween.finished.catch(() => {}))).then(() => {
         if (cancelled) return;
+        if (plateRef.current) shellOpacity.set(0);
         setOriginCovered(sourceRef.current, false);
         onClosed?.();
       });
@@ -227,6 +249,7 @@ export function useOriginFootprintSpring({
       };
     }
 
+    closingRef.current = false;
     trackSource(originRect?.source);
     const box = measureUntransformed(el);
     const from = footprintFromOrigin(originRect, box);

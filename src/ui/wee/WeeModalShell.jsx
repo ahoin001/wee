@@ -40,6 +40,11 @@ function WeeModalShell({
    * flight keeps the pillOpen / pillClose clock.
    */
   originMorph = false,
+  /**
+   * Channel plate: the source face stays the shell ground for the whole
+   * open and close. The form and a darken scrim rise over it.
+   */
+  originPlate = false,
   /** Source face painted on the shell during the flight (originMorph only). */
   face = null,
   /** Small mark beside the title once the form is open. */
@@ -84,6 +89,7 @@ function WeeModalShell({
     openIntent: originMorph ? 'originMorphOpen' : 'pillOpen',
     closeIntent: originMorph ? 'originMorphClose' : 'pillClose',
     morph: originMorph,
+    plate: originPlate,
   });
 
   const backdropVariants = useMemo(
@@ -139,7 +145,9 @@ function WeeModalShell({
                   relative flex w-full min-h-0 overflow-hidden flex-col
                   ${heightClass}
                   border-[length:var(--wee-modal-shell-border)] border-[hsl(var(--wee-border-outer))]
-                  ${useOrigin ? '' : 'rounded-[var(--wee-radius-shell)]'} bg-[hsl(var(--wee-surface-shell))]
+                  ${useOrigin ? '' : 'rounded-[var(--wee-radius-shell)]'} ${
+                    originPlate ? 'bg-transparent' : 'bg-[hsl(var(--wee-surface-shell))]'
+                  }
                   shadow-[var(--wee-shadow-modal)]
                   ${className}
                 `.trim()}
@@ -169,6 +177,13 @@ function WeeModalShell({
                   {face}
                 </MotionDiv>
               ) : null}
+              {useOrigin && originPlate ? (
+                <MotionDiv
+                  className="pointer-events-none absolute inset-0 bg-[hsl(var(--wee-overlay-backdrop))]"
+                  style={{ opacity: contentOpacity }}
+                  aria-hidden
+                />
+              ) : null}
               <MotionDiv
                 className={`flex min-h-0 min-w-0 flex-1 ${panelLayoutClass}`}
                 style={useOrigin ? { opacity: contentOpacity } : undefined}
@@ -176,9 +191,13 @@ function WeeModalShell({
               {showRail && rail}
 
               <MotionDiv
-                className={`flex min-h-0 min-w-0 flex-1 flex-col bg-[hsl(var(--wee-surface-shell))] ${panelClassName}`}
+                className={`flex min-h-0 min-w-0 flex-1 flex-col ${
+                  originPlate
+                    ? 'bg-[hsl(var(--wee-surface-shell)/0.42)] backdrop-blur-xl'
+                    : 'bg-[hsl(var(--wee-surface-shell))]'
+                } ${panelClassName}`}
               >
-                <div className="flex shrink-0 items-center justify-between border-b-2 border-[hsl(var(--border-primary)/0.35)] px-8 py-6 md:px-10 md:py-7">
+                <div className="flex shrink-0 items-center justify-between border-b-2 border-[hsl(var(--border-primary)/0.35)] bg-transparent px-8 py-6 md:px-10 md:py-7">
                   <div className="flex min-w-0 items-center gap-4">
                     {headerLeading}
                     <Dialog.Title
@@ -198,12 +217,16 @@ function WeeModalShell({
                   </button>
                 </div>
 
-                <div className="wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain bg-[hsl(var(--wee-surface-well))] px-8 py-8 md:px-12 md:py-10 [contain:layout]">
+                <div className={`wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-8 py-8 md:px-12 md:py-10 [contain:layout] ${
+                  originPlate ? 'bg-[hsl(var(--wee-surface-well)/0.28)]' : 'bg-[hsl(var(--wee-surface-well))]'
+                }`}>
                   {children}
                 </div>
 
                 {footerContent && (
-                  <div className="shrink-0 border-t-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--wee-surface-input))] px-8 py-5 md:px-10">
+                  <div className={`shrink-0 border-t-2 border-[hsl(var(--border-primary)/0.35)] px-8 py-5 md:px-10 ${
+                    originPlate ? 'bg-[hsl(var(--wee-surface-input)/0.4)]' : 'bg-[hsl(var(--wee-surface-input))]'
+                  }`}>
                     {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
                   </div>
                 )}
@@ -240,6 +263,7 @@ WeeModalShell.propTypes = {
     radius: PropTypes.number,
   }),
   originMorph: PropTypes.bool,
+  originPlate: PropTypes.bool,
   face: PropTypes.node,
   headerLeading: PropTypes.node,
 };
@@ -256,6 +280,7 @@ WeeModalShell.defaultProps = {
   onExitAnimationComplete: undefined,
   originRect: null,
   originMorph: false,
+  originPlate: false,
   face: null,
   headerLeading: null,
 };

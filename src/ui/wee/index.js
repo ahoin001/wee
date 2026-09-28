@@ -18,6 +18,10 @@ export {
 } from './WeePressSurface';
 export { default as WeeCard } from './WeeCard';
 export { default as WeeToggle } from './WeeToggle';
+export { default as WeeGooeyField } from './WeeGooeyField';
+export { default as WeeGooeySelect } from './WeeGooeySelect';
+export { default as WeeGooeyToggle } from './WeeGooeyToggle';
+export { default as WeeGooeyChoice, WeeGooeyChoiceGroup } from './WeeGooeyChoice';
 export { default as WeeSectionHeader } from './WeeSectionHeader';
 export { default as WeeEmphasisText } from './WeeEmphasisText';
 export { default as WeeSectionEyebrow } from './WeeSectionEyebrow';

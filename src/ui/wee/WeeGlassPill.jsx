@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import { m } from 'framer-motion';
 
 const MotionDiv = m.div;
+const MotionButton = m.button;
 
 /**
  * Canonical glass pill chrome from WeeGooeySpacePill — border-4, --wee-pill-* tokens, blur.
  * Prefer this over copying pill class strings in feature CSS.
  */
 const WeeGlassPill = forwardRef(function WeeGlassPill(
-  { as = 'div', motion = false, className = '', children, style, ...rest },
+  { as = 'div', motion = false, className = '', children, style, type, ...rest },
   ref
 ) {
   const classes = [
@@ -22,16 +23,29 @@ const WeeGlassPill = forwardRef(function WeeGlassPill(
     .join(' ');
 
   if (motion) {
+    const MotionTag = as === 'button' ? MotionButton : MotionDiv;
     return (
-      <MotionDiv ref={ref} className={classes} style={style} {...rest}>
+      <MotionTag
+        ref={ref}
+        className={classes}
+        style={style}
+        type={as === 'button' ? (type || 'button') : undefined}
+        {...rest}
+      >
         {children}
-      </MotionDiv>
+      </MotionTag>
     );
   }
 
   const Tag = as === 'button' ? 'button' : 'div';
   return (
-    <Tag ref={ref} className={classes} style={style} {...rest}>
+    <Tag
+      ref={ref}
+      className={classes}
+      style={style}
+      type={as === 'button' ? (type || 'button') : undefined}
+      {...rest}
+    >
       {children}
     </Tag>
   );
@@ -43,6 +57,7 @@ WeeGlassPill.propTypes = {
   as: PropTypes.oneOf(['div', 'button']),
   motion: PropTypes.bool,
   className: PropTypes.string,
+  type: PropTypes.string,
   children: PropTypes.node,
   style: PropTypes.object,
 };

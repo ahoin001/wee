@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, m } from 'framer-motion';
 import { Search, X, History } from 'lucide-react';
-import { WeeModalShell, WeeModalRail, WeeSectionEyebrow } from '../../ui/wee';
+import { WeeModalShell, WeeModalRail, WeeSectionEyebrow, WeeGooeyField } from '../../ui/wee';
 import WeeButton from '../../ui/wee/WeeButton';
 import WButton from '../../ui/WButton';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
@@ -228,13 +228,13 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[hsl(var(--wee-text-rail-muted))]">
             <Search size={18} strokeWidth={2.2} aria-hidden />
           </span>
-          <input
+          <WeeGooeyField
             type="search"
             placeholder="Search settings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             autoComplete="off"
-            className="font-[family-name:var(--font-ui)] w-full rounded-[var(--wee-radius-rail-item)] border-2 border-[hsl(var(--border-primary))] bg-[hsl(var(--wee-surface-card))] py-3 pl-11 pr-10 text-sm font-bold text-[hsl(var(--text-primary))] transition-colors placeholder:text-[hsl(var(--text-tertiary))] focus:border-[hsl(var(--primary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--primary)/0.35)]"
+            className="pl-11 pr-10"
           />
           {searchQuery ? (
             <button

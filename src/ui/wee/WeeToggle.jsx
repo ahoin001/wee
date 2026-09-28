@@ -1,14 +1,9 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import WToggle from '../WToggle';
+import WeeGooeyToggle from './WeeGooeyToggle';
 
-/** Wee modal wrapper — same behavior as WToggle; use inside cards with stopPropagation on the control. */
-function WeeToggle({ containerClassName = '', ...rest }) {
-  return <WToggle containerClassName={containerClassName} {...rest} />;
+/** Wee modal toggle — space-rail glass track. */
+function WeeToggle(props) {
+  return <WeeGooeyToggle {...props} />;
 }
-
-WeeToggle.propTypes = {
-  containerClassName: PropTypes.string,
-};
 
 export default WeeToggle;

@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
 import { Clapperboard, Focus, Gamepad2, Home, Pin, PinOff, Wand2 } from 'lucide-react';
+import { readOriginRect } from '../../ui/wee/originRect';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   CHANNEL_SPACE_LABELS,
@@ -442,8 +443,14 @@ export default function WeeGooeySpacePill() {
   const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
 
   /** Edit the page you are on. Hubs stay hubs and open scene tools. */
-  const handleEditBoard = () => {
-    enterHomeBoardArrange({ closeSettings: true });
+  const handleEditBoard = (event) => {
+    const rect = readOriginRect(event?.currentTarget);
+    enterHomeBoardArrange({
+      closeSettings: true,
+      origin: rect
+        ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
+        : null,
+    });
     setHovered(false);
   };
   const editBoardLabel =
@@ -629,7 +636,7 @@ export default function WeeGooeySpacePill() {
                         reducedMotion={reducedMotion}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEditBoard();
+                          handleEditBoard(e);
                         }}
                         title={`${editBoardLabel} (Ctrl+E)`}
                         aria-label={editBoardLabel}

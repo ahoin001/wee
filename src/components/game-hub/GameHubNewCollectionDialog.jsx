@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import WButton from '../../ui/WButton';
+import { WeeGooeyField } from '../../ui/wee';
 import Text from '../../ui/Text';
 import AuraHubModalFrame from './AuraHubModalFrame';
 
@@ -33,9 +34,8 @@ export default function GameHubNewCollectionDialog({ open, onOpenChange, onCreat
         <Text variant="label" className="mb-1 block">
           Name
         </Text>
-        <input
+        <WeeGooeyField
           type="text"
-          className="aura-hub-modal__input w-full"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {

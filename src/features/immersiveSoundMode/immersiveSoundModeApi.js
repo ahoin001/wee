@@ -26,11 +26,12 @@ export function enterImmersiveSoundMode(store, source = 'manual') {
   const prefs = selectImmersiveSoundModePrefs(state);
   if (!prefs.enabled) return;
   if (!state.nowPlaying?.isPlaying && !state.nowPlaying?.trackName) return;
-  state.actions.setUIState({
-    immersiveSoundModeActive: source,
-    /** Close settings so the stage isn’t trapped under the modal. */
-    showSettingsModal: false,
-  });
+  state.actions.setUIState({ immersiveSoundModeActive: source });
+}
+
+/** Settings or Edit Home is open — the stage stays up so its look can be tuned live. */
+export function isImmersiveEditorOpen(ui) {
+  return Boolean(ui?.showSettingsModal || ui?.homeBoardArrangeMode);
 }
 
 /**

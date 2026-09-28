@@ -14,6 +14,10 @@ import {
 } from '@dnd-kit/core';
 import { Check, Info, LayoutGrid, PenLine, Plus, Replace, Settings2 } from 'lucide-react';
 import { Channel } from '../channels';
+import { boardSlotPoint } from '../../utils/boardSlotRect';
+import { showHomeBoardAck } from '../../utils/showHomeBoardAck';
+import ArrangeTileSatellite from '../home-grid/ArrangeTileSatellite';
+import ArrangeKindBloom from '../home-grid/ArrangeKindBloom';
 import {
   HomeSlot,
   HomeBoardArrangeBar,
@@ -351,9 +355,19 @@ const PaginatedChannelsInner = React.memo(() => {
     }
   }, [arrangeModeActive, punchModeActive]);
 
+  useEffect(() => {
+    setArrangePickerOpen(false);
+  }, [navigation.currentPage]);
+
   const handleTogglePunchSlot = useCallback(
-    (channelIndex) => {
-      setSlotHidden(channelIndex, !isChannelSlotHidden(channelIndex));
+    (channelIndex, origin) => {
+      const wasHidden = isChannelSlotHidden(channelIndex);
+      setSlotHidden(channelIndex, !wasHidden);
+      showHomeBoardAck(
+        wasHidden ? 'Tile restored' : 'Hole punched',
+        origin || boardSlotPoint(channelIndex),
+        { sound: true }
+      );
     },
     [setSlotHidden, isChannelSlotHidden]
   );
@@ -482,10 +496,12 @@ const PaginatedChannelsInner = React.memo(() => {
                 { replace: true }
               );
               setHomeBoardSelectedSlotIndex(targetIndex);
+              showHomeBoardAck('Widget added', boardSlotPoint(targetIndex), { sound: true });
             },
           },
         });
         setReplaceTargetIndex(null);
+        setArrangePickerOpen(false);
         return;
       }
 
@@ -497,6 +513,8 @@ const PaginatedChannelsInner = React.memo(() => {
         resolvePresetId(addTargetIndex)
       );
       setHomeBoardSelectedSlotIndex(addTargetIndex);
+      setArrangePickerOpen(false);
+      showHomeBoardAck('Widget added', boardSlotPoint(addTargetIndex), { sound: true });
     },
     [
       addTargetIndex,
@@ -515,6 +533,7 @@ const PaginatedChannelsInner = React.memo(() => {
     if (homeBoardSelectedSlotIndex == null) return;
     removeHomeWidgetSlotForSpace(channelSpaceKey, homeBoardSelectedSlotIndex);
     setHomeBoardSelectedSlotIndex(null);
+    showHomeBoardAck('Widget removed', boardSlotPoint(homeBoardSelectedSlotIndex), { sound: true });
   }, [
     homeBoardSelectedSlotIndex,
     removeHomeWidgetSlotForSpace,
@@ -774,8 +793,8 @@ const PaginatedChannelsInner = React.memo(() => {
   const widgetCoachCopy = !boardHasFreeSlot
     ? 'Board is full — tap any tile to resize it, or right-click a channel to replace it with a widget'
     : homeBoardSelectedSlotIndex != null && selectedSlot && isChannelSlotEmpty(selectedSlot)
-      ? 'Nice — now pick a widget from the tray below'
-      : 'Tap an empty tile to add a widget · drag tiles to reorder';
+      ? 'Pick a widget from this tile'
+      : 'Tap an empty tile';
 
   useEffect(() => {
     if (!isChannelBoardSpace && homeBoardArrangeMode) {
@@ -1553,21 +1572,50 @@ const PaginatedChannelsInner = React.memo(() => {
             punchMode={punchModeActive}
             onTogglePunch={toggleHomeBoardPunchMode}
             onDone={exitHomeBoardArrange}
-            selectedSlot={selectedSlot}
-            selectedIndex={homeBoardSelectedSlotIndex}
-            canAddWidget={addTargetIndex != null}
-            onAddWidget={handleAddWidget}
-            onRemoveWidget={handleRemoveWidget}
-            onSetSizePreset={handleSetSizePreset}
-            onSetSurface={handleSetSurface}
-            onSetTextColor={handleSetTextColor}
-            onSetTextSize={handleSetTextSize}
-            onSetListenApp={handleSetListenApp}
-            onPatchWidget={handlePatchSelectedWidget}
-            blockedPresetIds={blockedSizePresetIds}
-            pickerOpen={arrangePickerOpen}
-            onPickerOpenChange={setArrangePickerOpen}
           />
+          <AnimatePresence>
+            {arrangeModeActive &&
+            !punchModeActive &&
+            !arrangePickerOpen &&
+            !channelConfigureModalOpen &&
+            homeBoardSelectedSlotIndex != null &&
+            selectedSlot &&
+            !isChannelSlotEmpty(selectedSlot) &&
+            !isChannelSlotHidden(homeBoardSelectedSlotIndex) &&
+            Math.floor(homeBoardSelectedSlotIndex / Math.max(1, gridConfig.channelsPerPage || 1)) ===
+              (Number(navigation.currentPage) || 0) ? (
+              <ArrangeTileSatellite
+                key={homeBoardSelectedSlotIndex}
+                slotIndex={homeBoardSelectedSlotIndex}
+                selectedSlot={selectedSlot}
+                onSetSizePreset={handleSetSizePreset}
+                onSetSurface={handleSetSurface}
+                onSetTextColor={handleSetTextColor}
+                onSetTextSize={handleSetTextSize}
+                onSetListenApp={handleSetListenApp}
+                onPatchWidget={handlePatchSelectedWidget}
+                onRemoveWidget={handleRemoveWidget}
+                blockedPresetIds={blockedSizePresetIds}
+              />
+            ) : null}
+          </AnimatePresence>
+          <AnimatePresence>
+            {arrangeModeActive &&
+            !punchModeActive &&
+            arrangePickerOpen &&
+            !channelConfigureModalOpen &&
+            (replaceTargetIndex ?? homeBoardSelectedSlotIndex) != null &&
+            Math.floor(
+              (replaceTargetIndex ?? homeBoardSelectedSlotIndex) /
+                Math.max(1, gridConfig.channelsPerPage || 1)
+            ) === (Number(navigation.currentPage) || 0) ? (
+              <ArrangeKindBloom
+                key={replaceTargetIndex ?? homeBoardSelectedSlotIndex}
+                slotIndex={replaceTargetIndex ?? homeBoardSelectedSlotIndex}
+                onPick={handleAddWidget}
+              />
+            ) : null}
+          </AnimatePresence>
           <AnimatePresence>
             {isHomeSpace && widgetCoachVisible ? (
               <MotionDiv

@@ -4,9 +4,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Loader2, Pause, Play } from 'lucide-react';
-import { WeeModalShell, WeeButton } from '../../ui/wee';
+import { WeeModalShell, WeeButton, WeeGooeyField } from '../../ui/wee';
 import Text from '../../ui/Text';
-import WInput from '../../ui/WInput';
 import Slider from '../../ui/Slider';
 import { playPreview, stopPreview } from '../../utils/soundPlayback';
 import {
@@ -474,8 +473,7 @@ function SoundTrimDialog({
               </div>
             </div>
 
-            <WInput
-              variant="wee"
+            <WeeGooeyField
               label={isStaged ? 'Library name' : 'Name for Save as new'}
               value={newName}
               onChange={(e) => setNewName(e.target.value.slice(0, 50))}

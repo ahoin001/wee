@@ -1,13 +1,11 @@
 import React, { useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import WToggle from '../../ui/WToggle';
-import WSelect from '../../ui/WSelect';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings.js';
 import SettingsWeeSection from './SettingsWeeSection';
-import { WeeModalFieldCard, WeeRevealWhen } from '../../ui/wee';
+import { WeeModalFieldCard, WeeRevealWhen, WeeGooeyToggle, WeeGooeySelect } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import './settings-wee-panels.css';
 import './settings-modal-forms.css';
@@ -90,7 +88,7 @@ const TimeSettingsTab = React.memo(() => {
             )}
           </div>
           <div className="modal-font-row mt-4">
-            <WSelect
+            <WeeGooeySelect
               label="Time font"
               options={[
                 { value: 'default', label: 'Default' },
@@ -114,7 +112,7 @@ const TimeSettingsTab = React.memo(() => {
                 Apple-style liquid glass container around the clock (optional).
               </Text>
             </div>
-            <WToggle
+            <WeeGooeyToggle
               checked={time?.enablePill ?? true}
               onChange={handleEnableTimePillChange}
               disableLabelClick

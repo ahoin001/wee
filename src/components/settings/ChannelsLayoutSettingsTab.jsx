@@ -4,17 +4,7 @@ import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { Activity, Aperture, LayoutGrid, Minus, Moon, Plus } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
-import WToggle from '../../ui/WToggle';
-import {
-  WeeButton,
-  WeeDescriptionToggleRow,
-  WeeDockSettingsSubtabs,
-  WeeModalFieldCard,
-  WeeRevealWhen,
-  WeeSegmentedControl,
-  WeeSectionEyebrow,
-  WeeSettingsCollapsibleSection,
-} from '../../ui/wee';
+import { WeeButton, WeeDescriptionToggleRow, WeeDockSettingsSubtabs, WeeModalFieldCard, WeeRevealWhen, WeeSegmentedControl, WeeSectionEyebrow, WeeSettingsCollapsibleSection, WeeGooeyToggle } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import MotionToggleRow from './MotionToggleRow';
@@ -524,7 +514,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
 
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
           <div className="mr-auto flex flex-wrap items-center gap-3">
-            <WToggle
+            <WeeGooeyToggle
               checked={pageOnlyLayout}
               onChange={setPageOnlyLayout}
               label="This page only"
@@ -830,7 +820,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             <WeeDescriptionToggleRow
               description="Apply Ken Burns to animated GIFs too (in addition to still images)."
             >
-              <WToggle
+              <WeeGooeyToggle
                 checked={settings.kenBurnsForGifs ?? false}
                 onChange={handleKenBurnsForGifsChange}
                 label="Ken Burns for GIFs"
@@ -839,7 +829,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             <WeeDescriptionToggleRow
               description="Apply Ken Burns to MP4 channel videos too (in addition to still images)."
             >
-              <WToggle
+              <WeeGooeyToggle
                 checked={settings.kenBurnsForVideos ?? false}
                 onChange={handleKenBurnsForVideosChange}
                 label="Ken Burns for videos"

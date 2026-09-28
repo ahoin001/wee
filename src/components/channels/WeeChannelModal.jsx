@@ -30,7 +30,7 @@ function WeeChannelModal({
   const tilePaint = originRect?.source ? readTilePaint(originRect.source) : null;
 
   const rail = (
-    <WeeModalRail>
+    <WeeModalRail tone="glass">
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--text-primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--wee-shadow-rail-active)]">
@@ -105,8 +105,8 @@ function WeeChannelModal({
       onExitAnimationComplete={onExitAnimationComplete}
       originRect={originRect}
       originMorph
+      originPlate
       face={<ChannelMorphFace media={faceMedia} paint={tilePaint} />}
-      headerLeading={<ChannelMorphFace media={faceMedia} variant="chip" />}
     >
       <AnimatePresence mode="wait">
         <TabPanel

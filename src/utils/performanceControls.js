@@ -236,7 +236,10 @@ export const PERFORMANCE_CONTROLS = Object.freeze([
       const cur = normalizeImmersiveSoundMode(getState().ui?.immersiveSoundMode);
       actions.setUIState({ immersiveSoundMode: { ...cur, enabled: Boolean(value) } });
     },
-    learnMore: { tabId: SETTINGS_TAB_ID.BETA },
+    learnMore: {
+      tabId: SETTINGS_TAB_ID.API_INTEGRATIONS,
+      options: { integrationsSubTab: 'music' },
+    },
     formatValue: boolLabel,
   },
 ]);

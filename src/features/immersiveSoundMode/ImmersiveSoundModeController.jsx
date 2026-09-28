@@ -3,16 +3,18 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { resolveActiveBoardCurrentPage } from '../../utils/channelSpaces';
 import { normalizeImmersiveSoundMode } from './immersiveSoundModePrefs.js';
+import { isImmersiveEditorOpen } from './immersiveSoundModeApi.js';
 import ImmersiveSoundModeStage from './ImmersiveSoundModeStage.jsx';
 
 /**
  * Immersive Sound Mode lifecycle + stage mount.
  *
  * - Prefs master `enabled` gates all work.
- * - `autoIdle`: enter when music plays and Home idle reaches ambient/attract.
+ * - `autoIdle`: own wait (`idleDelaySec`) while music plays and nothing is clicked.
+ * - Settings and Edit Home stay open over the stage so blur, darken, and wait can be tuned live.
+ * - Command palette and channel configure still dismiss the stage.
  * - Manual sessions stay until Exit / Escape / master off / dismiss gestures.
- * - Auto sessions exit on Escape, when idle returns to active, or playback stops.
- * - Wheel, space switch, page change, and blocking chrome also dismiss the stage.
+ * - Auto sessions also exit on a click outside the stage controls, or when playback stops.
  *
  * Do not call normalizeImmersiveSoundMode inside useShallow — fresh objects each
  * getSnapshot trip React #185 (maximum update depth).
@@ -23,8 +25,8 @@ function ImmersiveSoundModeController() {
     session,
     isPlaying,
     hasTrack,
-    idleStage,
-    blockingChrome,
+    editorOpen,
+    dismissChrome,
     activeSpaceId,
     channels,
   } = useConsolidatedAppStore(
@@ -33,12 +35,9 @@ function ImmersiveSoundModeController() {
       session: s.ui?.immersiveSoundModeActive || false,
       isPlaying: Boolean(s.nowPlaying?.isPlaying),
       hasTrack: Boolean(s.nowPlaying?.trackName),
-      idleStage: s.ui?.homeIdleStage || 'active',
-      blockingChrome: Boolean(
-        s.ui?.showSettingsModal ||
-          s.ui?.commandPaletteOpen ||
-          s.ui?.homeBoardArrangeMode ||
-          s.ui?.channelConfigureModalOpen
+      editorOpen: isImmersiveEditorOpen(s.ui),
+      dismissChrome: Boolean(
+        s.ui?.commandPaletteOpen || s.ui?.channelConfigureModalOpen
       ),
       activeSpaceId: s.spaces?.activeSpaceId || 'home',
       channels: s.channels,
@@ -57,36 +56,55 @@ function ImmersiveSoundModeController() {
     }
   }, [prefs.enabled, session, setUIState]);
 
-  // Auto-enter from shared Home idle clock.
+  // Passive takeover uses its own wait so it does not depend on Home idle being enabled.
   useEffect(() => {
-    if (!prefs.enabled || !prefs.autoIdle || session || blockingChrome) return;
-    if (!isPlaying || !hasTrack) return;
-    if (idleStage !== 'ambient' && idleStage !== 'attract') return;
-    setUIState({ immersiveSoundModeActive: 'auto' });
+    if (!prefs.enabled || !prefs.autoIdle || session || editorOpen || dismissChrome) {
+      return undefined;
+    }
+    if (!isPlaying || !hasTrack) return undefined;
+
+    const delayMs = prefs.idleDelaySec * 1000;
+    let timer = 0;
+    const arm = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        setUIState({ immersiveSoundModeActive: 'auto' });
+      }, delayMs);
+    };
+    arm();
+    const opts = { capture: true, passive: true };
+    window.addEventListener('pointerdown', arm, opts);
+    window.addEventListener('keydown', arm, opts);
+    window.addEventListener('wheel', arm, opts);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointerdown', arm, true);
+      window.removeEventListener('keydown', arm, true);
+      window.removeEventListener('wheel', arm, true);
+    };
   }, [
     prefs.enabled,
     prefs.autoIdle,
+    prefs.idleDelaySec,
     session,
-    blockingChrome,
+    editorOpen,
+    dismissChrome,
     isPlaying,
     hasTrack,
-    idleStage,
     setUIState,
   ]);
 
-  // Forced exits for auto sessions.
+  // Auto sessions leave when playback stops. Editing chrome does not count as "active".
   useEffect(() => {
-    if (!session) return;
-    if (session === 'auto' && (!isPlaying || idleStage === 'active')) {
-      setUIState({ immersiveSoundModeActive: false });
-    }
-  }, [session, isPlaying, idleStage, setUIState]);
-
-  // Blocking chrome (settings / palette / arrange) dismisses the stage.
-  useEffect(() => {
-    if (!session || !blockingChrome) return;
+    if (session !== 'auto' || isPlaying) return;
     setUIState({ immersiveSoundModeActive: false });
-  }, [session, blockingChrome, setUIState]);
+  }, [session, isPlaying, setUIState]);
+
+  // Command palette and channel configure dismiss. Settings and Edit Home do not.
+  useEffect(() => {
+    if (!session || !dismissChrome) return;
+    setUIState({ immersiveSoundModeActive: false });
+  }, [session, dismissChrome, setUIState]);
 
   // Space switch or Home page change dismisses the stage.
   useEffect(() => {
@@ -103,11 +121,15 @@ function ImmersiveSoundModeController() {
     navSnapshotRef.current = { spaceId: activeSpaceId, page: boardPage };
   }, [session, activeSpaceId, boardPage, setUIState]);
 
-  // Escape always exits; prevent Quick Menu from stealing the key.
+  // Escape exits unless Settings, Edit Home, or the palette is already handling it.
   useEffect(() => {
     if (!session) return undefined;
     const onKeyDown = (event) => {
       if (event.key !== 'Escape') return;
+      const ui = useConsolidatedAppStore.getState().ui;
+      if (isImmersiveEditorOpen(ui) || ui?.commandPaletteOpen || ui?.channelConfigureModalOpen) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       setUIState({ immersiveSoundModeActive: false });
@@ -116,10 +138,27 @@ function ImmersiveSoundModeController() {
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [session, setUIState]);
 
-  // Any wheel while stage is open exits so page/space wheel gestures aren't trapped.
+  // Clicks outside stage controls end an auto session. Editor chrome and the Edit button do not.
+  useEffect(() => {
+    if (session !== 'auto') return undefined;
+    const onPointerDown = (event) => {
+      const ui = useConsolidatedAppStore.getState().ui;
+      if (isImmersiveEditorOpen(ui)) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('[data-immersive-sound-controls]')) return;
+      setUIState({ immersiveSoundModeActive: false });
+    };
+    window.addEventListener('pointerdown', onPointerDown, true);
+    return () => window.removeEventListener('pointerdown', onPointerDown, true);
+  }, [session, setUIState]);
+
+  // Wheel exits so page/space gestures aren't trapped, except while a settings surface is scrolling.
   useEffect(() => {
     if (!session) return undefined;
-    const onWheel = () => {
+    const onWheel = (event) => {
+      if (isImmersiveEditorOpen(useConsolidatedAppStore.getState().ui)) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('[data-immersive-sound-controls]')) return;
       setUIState({ immersiveSoundModeActive: false });
     };
     window.addEventListener('wheel', onWheel, { capture: true, passive: true });

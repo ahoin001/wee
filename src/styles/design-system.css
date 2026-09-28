@@ -432,7 +432,7 @@
   --wee-shadow-modal: 0 25px 50px -12px rgb(15 23 42 / 0.12);
   --wee-shadow-rail-active: 0 10px 24px -8px rgb(15 23 42 / 0.08);
   --wee-pill-glass: 0 0% 100% / 0.82;
-  --wee-pill-border: 0 0% 100% / 0.5;
+  --wee-pill-border: var(--primary) / 0.28;
   --wee-pill-shadow: 0 20px 50px rgb(0 0 0 / 0.15);
   --wee-pill-floor: 0 0% 0% / 0.1;
   /* Content height morph (WeeContentCollapse / accordion / reveal) — non-spring clock */
@@ -541,7 +541,7 @@
   --wee-shadow-modal: 0 25px 50px -12px rgb(0 0 0 / 0.45);
   --wee-shadow-rail-active: 0 10px 24px -8px rgb(0 0 0 / 0.35);
   --wee-pill-glass: 220 15% 12% / 0.88;
-  --wee-pill-border: 220 15% 35% / 0.45;
+  --wee-pill-border: var(--primary) / 0.42;
   --wee-pill-shadow: 0 20px 50px rgb(0 0 0 / 0.4);
   --wee-pill-floor: 0 0% 0% / 0.35;
 
@@ -922,7 +922,6 @@
  */
 .home-widget-shell--basic.home-widget-shell--steam {
   --wee-pill-glass: var(--steam-navy) / 0.97;
-  --wee-pill-border: var(--steam-blue) / 0.32;
   --wee-pill-shadow: 0 18px 44px hsl(var(--steam-navy-deep) / 0.55);
   --primary: var(--steam-blue);
   --primary-hover: var(--steam-blue-deep);

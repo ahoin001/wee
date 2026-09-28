@@ -13,6 +13,10 @@ import {
   pickRibbonLook,
 } from './appearance/resolveEffectiveRibbonLook';
 import { liveColorMatchUiPatch } from './appearance/liveColorMatchMode';
+import {
+  normalizeOverlayScope,
+  pickLiveOverlay,
+} from './appearance/resolveEffectiveOverlay';
 import { saveUnifiedSettingsSnapshot } from './electronApi';
 
 function storeActions() {
@@ -137,6 +141,77 @@ export async function clearSpaceWallpaper(spaceId) {
 
 export function setOverlayPatch(patch) {
   storeActions().setOverlayState(patch);
+}
+
+const CHANNEL_BOARD_SPACES = new Set(['home', 'workspaces']);
+
+function patchSpaceOverlay(spaceId, patch) {
+  if (!spaceId) return;
+  const state = useConsolidatedAppStore.getState();
+  const currentSnapshot =
+    state.appearanceBySpace?.[spaceId] ?? createDefaultSpaceAppearance(spaceId);
+  storeActions().setAppearanceBySpaceState({
+    [spaceId]: {
+      ...currentSnapshot,
+      overlay: {
+        overlayScope: 'space',
+        overlayByPage: {},
+        ...(currentSnapshot.overlay || {}),
+        ...patch,
+      },
+    },
+  });
+}
+
+export function setOverlayScope(spaceId, scope) {
+  const next = normalizeOverlayScope(scope);
+  const state = useConsolidatedAppStore.getState();
+  const currentSnapshot =
+    state.appearanceBySpace?.[spaceId] ?? createDefaultSpaceAppearance(spaceId);
+  const overlayRow = currentSnapshot.overlay || {};
+  if (next === 'perPage' && CHANNEL_BOARD_SPACES.has(spaceId)) {
+    const page = readBoardPageIndex(spaceId);
+    const byPage = { ...(overlayRow.overlayByPage && typeof overlayRow.overlayByPage === 'object' ? overlayRow.overlayByPage : {}) };
+    if (!byPage[page] && !byPage[String(page)]) {
+      const seed = pickLiveOverlay({ ...state.overlay, ...overlayRow });
+      byPage[page] = seed;
+      byPage[String(page)] = seed;
+    }
+    patchSpaceOverlay(spaceId, { overlayScope: 'perPage', overlayByPage: byPage });
+    return;
+  }
+  patchSpaceOverlay(spaceId, { overlayScope: 'space' });
+}
+
+/** Write overlay for the current scope. Live overlay stays the space default. */
+export function setOverlayPatchForSpace(spaceId, patch) {
+  if (!spaceId || !patch || typeof patch !== 'object') return;
+  const state = useConsolidatedAppStore.getState();
+  const currentSnapshot =
+    state.appearanceBySpace?.[spaceId] ?? createDefaultSpaceAppearance(spaceId);
+  const overlayRow = currentSnapshot.overlay || {};
+  const perPage =
+    normalizeOverlayScope(overlayRow.overlayScope) === 'perPage' &&
+    CHANNEL_BOARD_SPACES.has(spaceId);
+  if (perPage) {
+    const page = readBoardPageIndex(spaceId);
+    const byPage = { ...(overlayRow.overlayByPage && typeof overlayRow.overlayByPage === 'object' ? overlayRow.overlayByPage : {}) };
+    const prev = byPage[page] || byPage[String(page)] || pickLiveOverlay({ ...state.overlay, ...overlayRow });
+    const nextPage = { ...prev, ...pickLiveOverlay(patch) };
+    byPage[page] = nextPage;
+    byPage[String(page)] = nextPage;
+    patchSpaceOverlay(spaceId, { overlayByPage: byPage });
+    return;
+  }
+  storeActions().setOverlayState(patch);
+  patchSpaceOverlay(spaceId, pickLiveOverlay({ ...state.overlay, ...overlayRow, ...patch }));
+}
+
+export function setHomeBoardWallpaperPeek(url) {
+  storeActions().setUIState({
+    homeBoardWallpaperPeek:
+      typeof url === 'string' && url.length > 0 ? { url } : null,
+  });
 }
 
 export function setCycleWallpapers(enabled) {

@@ -2,15 +2,12 @@ import React, { useState } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
-import WInput from '../../../ui/WInput';
-import WSelect from '../../../ui/WSelect';
-import WToggle from '../../../ui/WToggle';
 import { CommunityPresets } from '../../app-library';
 import { PRESET_SCOPE_VISUAL } from '../../../utils/presets/presetScopes';
 import { ACCEPT_GALLERY_STILLS, SUPPORTED_GALLERY_HINT } from '../../../utils/supportedUploadMedia';
 import { createWeeTransition } from '../../../design/weeMotion';
 import { useMotionFeedback } from '../../../hooks/useMotionFeedback';
-import { WeeRevealWhen } from '../../../ui/wee';
+import { WeeRevealWhen, WeeGooeyToggle, WeeGooeyField, WeeGooeySelect } from '../../../ui/wee';
 
 const UPLOAD_SHELL =
   'mb-1 rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.55)] p-4 md:p-5';
@@ -128,7 +125,7 @@ const PresetsCommunityCard = React.memo(
                 <Text variant="label" className="mb-2">
                   Select preset to share *
                 </Text>
-                <WSelect
+                <WeeGooeySelect
                   value={selectedPresetValue}
                   onChange={(value) => onUploadField('presetId', value)}
                   options={presetOptions}
@@ -165,8 +162,7 @@ const PresetsCommunityCard = React.memo(
                 <Text variant="label" className="mb-2">
                   Tags (optional)
                 </Text>
-                <WInput
-                  variant="wee"
+                <WeeGooeyField
                   type="text"
                   value={uploadFormData.tags}
                   onChange={(e) => onUploadField('tags', e.target.value)}
@@ -178,8 +174,7 @@ const PresetsCommunityCard = React.memo(
                 <Text variant="label" className="mb-2">
                   Your name (optional)
                 </Text>
-                <WInput
-                  variant="wee"
+                <WeeGooeyField
                   type="text"
                   value={uploadFormData.creator_name}
                   onChange={(e) => onUploadField('creator_name', e.target.value)}
@@ -218,7 +213,7 @@ const PresetsCommunityCard = React.memo(
                   <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
                     Use a custom cover instead
                   </Text>
-                  <WToggle
+                  <WeeGooeyToggle
                     checked={useCustomCover}
                     onChange={handleCustomCoverToggle}
                     label="Use custom cover"

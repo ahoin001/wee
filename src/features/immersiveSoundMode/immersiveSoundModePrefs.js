@@ -8,13 +8,17 @@ export const IMMERSIVE_SOUND_INTENSITIES = Object.freeze(['calm', 'focus', 'club
 export const DEFAULT_IMMERSIVE_SOUND_MODE = Object.freeze({
   /** Master gate — when false, stage never mounts work beyond prefs UI. */
   enabled: true,
-  /** Visual intensity preset. */
+  /** Visual intensity preset. Glow, cover size, and motion — not blur or darken. */
   intensity: 'focus',
-  /** Enter stage when music plays and Home idle reaches ambient/attract. */
+  /** Enter stage after music plays with no interaction for `idleDelaySec`. */
   autoIdle: false,
+  /** Seconds of no clicks or keys before passive takeover. */
+  idleDelaySec: 20,
   /** Show blurred album art as the session backdrop. */
   coverBackdrop: true,
-  /** How strongly the stage dims the home board (0–1). */
+  /** Blur (px) of the scrim over Home, and of the album wash when that is on. */
+  overlayBlurPx: 24,
+  /** How strongly the stage darkens the home board (0–1). */
   boardDim: 0.78,
 });
 
@@ -59,13 +63,21 @@ export function normalizeImmersiveSoundMode(raw) {
     ? src.intensity
     : DEFAULT_IMMERSIVE_SOUND_MODE.intensity;
   const boardDim = Number(src.boardDim);
+  const idleDelaySec = Math.round(Number(src.idleDelaySec));
+  const overlayBlurPx = Math.round(Number(src.overlayBlurPx));
   return {
     enabled: typeof src.enabled === 'boolean' ? src.enabled : DEFAULT_IMMERSIVE_SOUND_MODE.enabled,
     intensity,
     autoIdle: Boolean(src.autoIdle),
+    idleDelaySec: Number.isFinite(idleDelaySec)
+      ? Math.min(180, Math.max(5, idleDelaySec))
+      : DEFAULT_IMMERSIVE_SOUND_MODE.idleDelaySec,
     coverBackdrop: src.coverBackdrop !== false,
+    overlayBlurPx: Number.isFinite(overlayBlurPx)
+      ? Math.min(48, Math.max(0, overlayBlurPx))
+      : DEFAULT_IMMERSIVE_SOUND_MODE.overlayBlurPx,
     boardDim: Number.isFinite(boardDim)
-      ? Math.min(0.92, Math.max(0.35, boardDim))
+      ? Math.min(0.92, Math.max(0.12, boardDim))
       : DEFAULT_IMMERSIVE_SOUND_MODE.boardDim,
   };
 }

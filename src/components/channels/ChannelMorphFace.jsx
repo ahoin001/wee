@@ -35,6 +35,7 @@ function ChannelMorphFace({ media, variant = 'fill', paint = null }) {
         style={{
           fontSize: `calc(${paint.plusSize}px / var(--origin-morph-scale, 1))`,
           color: paint.plusColor,
+          opacity: 'calc(1 - var(--origin-form, 0))',
         }}
       >
         {paint.plus}

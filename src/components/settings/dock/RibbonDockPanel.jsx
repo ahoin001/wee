@@ -3,14 +3,7 @@ import PropTypes from 'prop-types';
 import { Layers, SlidersHorizontal, Sparkles } from 'lucide-react';
 import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
-import WSelect from '../../../ui/WSelect';
-import {
-  WeeHelpLinkButton,
-  WeeHelpParagraph,
-  WeeModalFieldCard,
-  WeeRevealWhen,
-  WeeSettingsCollapsibleSection,
-} from '../../../ui/wee';
+import { WeeHelpLinkButton, WeeHelpParagraph, WeeModalFieldCard, WeeRevealWhen, WeeSettingsCollapsibleSection, WeeGooeySelect } from '../../../ui/wee';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
 import RibbonLivePreview from './RibbonLivePreview';
 import {
@@ -355,11 +348,10 @@ function RibbonDockPanel({
               <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
                 Effect mode
               </Text>
-              <WSelect
+              <WeeGooeySelect
                 value={chromeEffect}
                 onChange={onChromeEffectChange}
                 options={CHROME_EFFECT_OPTIONS}
-                variant="wee"
                 className="w-full"
               />
               {chromeEffect !== 'none' ? (
@@ -410,11 +402,10 @@ function RibbonDockPanel({
                       <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
                         Neon color
                       </Text>
-                      <WSelect
+                      <WeeGooeySelect
                         value={chromeNeonColorMode}
                         onChange={onChromeEffectNeonColorModeChange}
                         options={RIBBON_NEON_COLOR_MODE_OPTIONS}
-                        variant="wee"
                         className="w-full"
                       />
                       <Text

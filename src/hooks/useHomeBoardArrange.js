@@ -14,6 +14,9 @@ export function toggleHomeBoardArrange() {
         homeBoardArrangeMode: false,
         homeBoardPunchMode: false,
         homeBoardSelectedSlotIndex: null,
+        homeBoardArrangeOrigin: null,
+        homeBoardAck: null,
+        homeBoardWallpaperPeek: null,
       };
     }
     return { homeBoardArrangeMode: true, homeBoardPunchMode: false };
@@ -43,11 +46,12 @@ export function useHomeBoardArrange() {
    * Pass `punchMode: true` to deep-link straight into wallpaper-hole editing.
    */
   const enterArrange = useCallback(
-    ({ closeSettings = false, punchMode: startPunch = false } = {}) => {
+    ({ closeSettings = false, punchMode: startPunch = false, origin = null } = {}) => {
       setUIState({
         homeBoardArrangeMode: true,
         homeBoardPunchMode: Boolean(startPunch),
         homeBoardSelectedSlotIndex: null,
+        homeBoardArrangeOrigin: origin && typeof origin.x === 'number' ? origin : null,
         ...(closeSettings ? { showSettingsModal: false } : {}),
       });
     },
@@ -59,6 +63,9 @@ export function useHomeBoardArrange() {
       homeBoardArrangeMode: false,
       homeBoardPunchMode: false,
       homeBoardSelectedSlotIndex: null,
+      homeBoardArrangeOrigin: null,
+      homeBoardAck: null,
+      homeBoardWallpaperPeek: null,
     });
   }, [setUIState]);
 

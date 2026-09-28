@@ -2,14 +2,13 @@ import React, { useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Info, MousePointer2, Pin, Keyboard } from 'lucide-react';
 import Text from '../../ui/Text';
-import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   clearSpaceRailHideTimer,
   scheduleSpaceRailHideIfEligible,
   setSpaceRailPinned,
 } from '../../utils/spaceRailVisibility';
-import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
+import { WeeModalFieldCard, WeeSettingsCollapsibleSection, WeeGooeyToggle } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import './surfaceStyles.css';
 
@@ -28,7 +27,7 @@ function PillToggleRow({ title, description, checked, onChange }) {
         </Text>
       </div>
       <div className="flex shrink-0 items-center justify-end">
-        <WToggle checked={checked} onChange={onChange} disableLabelClick />
+        <WeeGooeyToggle checked={checked} onChange={onChange} disableLabelClick />
       </div>
     </div>
   );

@@ -176,7 +176,7 @@ function HomeSlotResizeHandle({
           type="button"
           aria-label={corner.ariaLabel}
           title="Drag to resize"
-          className={`absolute z-30 flex h-10 w-10 touch-none items-center justify-center rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-primary))] shadow-[var(--shadow-card)] transition-[box-shadow,border-color] hover:border-[hsl(var(--primary)/0.55)] hover:shadow-[var(--shadow-hover-glow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] ${corner.className} ${
+          className={`absolute z-30 flex h-10 w-10 touch-none items-center justify-center rounded-full border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] text-[hsl(var(--primary))] shadow-[var(--wee-pill-shadow)] backdrop-blur-xl hover:shadow-[var(--shadow-hover-glow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] ${corner.className} ${
             isResizing ? 'border-[hsl(var(--primary))] shadow-[var(--shadow-hover-glow)]' : ''
           }`}
           style={{ cursor: corner.cursor, touchAction: 'none' }}
@@ -194,6 +194,7 @@ function HomeSlotResizeHandle({
           <MotionDiv
             className="pointer-events-none flex h-5 w-5 items-end justify-end"
             whileHover={reducedMotion ? undefined : { scale: 1.08 }}
+            whileTap={reducedMotion ? undefined : { scale: 0.92 }}
             transition={pressTransition}
           >
             <ResizeCornerGlyph className={corner.chevronClass} />

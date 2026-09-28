@@ -1,7 +1,7 @@
+import { WeeGooeyToggle } from '../../ui/wee';
 import React from 'react';
 import PropTypes from 'prop-types';
 import Text from '../../ui/Text';
-import WToggle from '../../ui/WToggle';
 
 /**
  * Shared labeled toggle row for motion / interaction settings.
@@ -29,7 +29,7 @@ function MotionToggleRow({ title, description, checked, onChange, disabled }) {
         ) : null}
       </div>
       <div className="flex shrink-0 items-center justify-end">
-        <WToggle checked={checked} onChange={onChange} disabled={disabled} disableLabelClick />
+        <WeeGooeyToggle checked={checked} onChange={onChange} disabled={disabled} disableLabelClick />
       </div>
     </div>
   );

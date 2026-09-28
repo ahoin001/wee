@@ -7,9 +7,8 @@ import PropTypes from 'prop-types';
 import { AnimatePresence, m } from 'framer-motion';
 import { SlidersHorizontal } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
-import { WeeButton, WeeGlassPill, WeeHelpLinkButton, WeePillFloorShadow } from '../../ui/wee';
+import { WeeButton, WeeGlassPill, WeeHelpLinkButton, WeePillFloorShadow, WeeGooeyToggle } from '../../ui/wee';
 import {
   createWeeSideNavPeekVariants,
   createWeeTransition,
@@ -165,7 +164,7 @@ function GameHubControlsPill({ hiddenGames = [] }) {
 
                   <div className="flex min-h-0 flex-1 flex-col justify-center gap-2.5">
                     <HubControlRow title="Backdrop" description="Art over wallpaper">
-                      <WToggle
+                      <WeeGooeyToggle
                         checked={showHubBackdrop}
                         onChange={(checked) => setGameHubState({ ui: { showHubBackdrop: checked } })}
                         disableLabelClick
@@ -174,7 +173,7 @@ function GameHubControlsPill({ hiddenGames = [] }) {
                     </HubControlRow>
 
                     <HubControlRow title="Steam only" description="Hide non-Steam games">
-                      <WToggle
+                      <WeeGooeyToggle
                         checked={hubSteamOnlyGames}
                         onChange={(checked) => setGameHubState({ ui: { hubSteamOnlyGames: checked } })}
                         disableLabelClick
@@ -184,7 +183,7 @@ function GameHubControlsPill({ hiddenGames = [] }) {
                     </HubControlRow>
 
                     <HubControlRow title="Effects" description="Motion & lift">
-                      <WToggle
+                      <WeeGooeyToggle
                         checked={effectsEnabled}
                         onChange={(checked) => setGameHubState({ ui: { effectsEnabled: checked } })}
                         disableLabelClick

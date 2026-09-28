@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import Text from '../../ui/Text';
 import Slider from '../../ui/Slider';
 import WButton from '../../ui/WButton';
-import { WeeSectionEyebrow, WeeSegmentedControl, WeeToggle } from '../../ui/wee';
+import { WeeRevealWhen, WeeSectionEyebrow, WeeSegmentedControl, WeeToggle } from '../../ui/wee';
 import SettingsToggleFieldCard from '../../components/settings/SettingsToggleFieldCard';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
@@ -25,9 +25,9 @@ const INTENSITY_OPTIONS = [
 
 /**
  * Listening Stage controls — used in Now Playing Looks (compact) and full settings.
- * @param {{ compact?: boolean }} props
+ * @param {{ compact?: boolean, embedded?: boolean }} props
  */
-function ImmersiveSoundModeSettingsSection({ compact = false }) {
+function ImmersiveSoundModeSettingsSection({ compact = false, embedded = false }) {
   const { rawPrefs, sessionActive, hasTrack, isPlaying, setUIState } = useConsolidatedAppStore(
     useShallow((state) => ({
       rawPrefs: state.ui?.immersiveSoundMode,
@@ -83,6 +83,26 @@ function ImmersiveSoundModeSettingsSection({ compact = false }) {
       {!compact ? (
         <Text variant="caption" className="!mt-2 block text-[hsl(var(--text-tertiary))]">
           Calm is soft and still. Focus adds bars and light particles. Club pushes glow and motion.
+          Blur and darken stay on their own sliders.
+        </Text>
+      ) : null}
+    </div>
+  );
+
+  const overlayBlurControl = (
+    <div>
+      <Slider
+        label="Overlay blur (px)"
+        min={0}
+        max={48}
+        step={1}
+        value={prefs.overlayBlurPx}
+        onChange={(value) => patchPrefs({ overlayBlurPx: value })}
+        containerClassName="!mb-1"
+      />
+      {!compact ? (
+        <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
+          How much the Home screen softens behind the stage. Also blurs the album wash.
         </Text>
       ) : null}
     </div>
@@ -91,16 +111,36 @@ function ImmersiveSoundModeSettingsSection({ compact = false }) {
   const boardDimControl = (
     <div>
       <Slider
-        label="Board dim"
-        min={0.35}
-        max={0.92}
-        step={0.01}
-        value={Number(prefs.boardDim.toFixed(2))}
-        onChange={(value) => patchPrefs({ boardDim: value })}
+        label="Overlay darken (%)"
+        min={12}
+        max={92}
+        step={1}
+        value={Math.round(prefs.boardDim * 100)}
+        onChange={(value) => patchPrefs({ boardDim: value / 100 })}
+        containerClassName="!mb-1"
       />
       {!compact ? (
         <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
-          How strongly Listening Stage covers the Home board.
+          Percent of darkness laid over Home. Changes apply while the stage is open.
+        </Text>
+      ) : null}
+    </div>
+  );
+
+  const idleDelayControl = (
+    <div>
+      <Slider
+        label="Wait before takeover (seconds)"
+        min={5}
+        max={180}
+        step={5}
+        value={prefs.idleDelaySec}
+        onChange={(value) => patchPrefs({ idleDelaySec: value })}
+        containerClassName="!mb-1"
+      />
+      {!compact ? (
+        <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
+          Seconds of no clicks or keys while music plays before the stage takes over.
         </Text>
       ) : null}
     </div>
@@ -124,7 +164,11 @@ function ImmersiveSoundModeSettingsSection({ compact = false }) {
       >
         Exit stage
       </WButton>
-      {!hasTrack && !isPlaying ? (
+      {sessionActive ? (
+        <Text variant="caption" className="text-[hsl(var(--text-tertiary))]">
+          Stage is open. Blur, darken, and intensity update live.
+        </Text>
+      ) : !hasTrack && !isPlaying ? (
         <Text variant="caption" className="text-[hsl(var(--text-tertiary))]">
           Start playing music to preview.
         </Text>
@@ -159,20 +203,25 @@ function ImmersiveSoundModeSettingsSection({ compact = false }) {
             <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
               {intensityControl}
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
-              <div className="min-w-0">
-                <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
-                  Auto-enter on idle
-                </p>
-                <p className="m-0 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
-                  Open when Home is idle and music plays
-                </p>
+            <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="m-0 text-[11px] font-black text-[hsl(var(--text-primary))]">
+                    Passive takeover
+                  </p>
+                  <p className="m-0 text-[9px] font-bold text-[hsl(var(--text-tertiary))]">
+                    Take over Home after music plays untouched
+                  </p>
+                </div>
+                <WeeToggle
+                  checked={prefs.autoIdle}
+                  onChange={(checked) => patchPrefs({ autoIdle: Boolean(checked) })}
+                  title="Passive Listening Stage takeover"
+                />
               </div>
-              <WeeToggle
-                checked={prefs.autoIdle}
-                onChange={(checked) => patchPrefs({ autoIdle: Boolean(checked) })}
-                title="Auto-enter Listening Stage on idle"
-              />
+              <WeeRevealWhen when={prefs.autoIdle}>
+                <div className="pt-2">{idleDelayControl}</div>
+              </WeeRevealWhen>
             </div>
             <div className="flex items-center justify-between gap-3 rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2">
               <div className="min-w-0">
@@ -190,6 +239,9 @@ function ImmersiveSoundModeSettingsSection({ compact = false }) {
               />
             </div>
             <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
+              {overlayBlurControl}
+            </div>
+            <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
               {boardDimControl}
             </div>
             <div className="rounded-xl bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2.5">
@@ -203,10 +255,11 @@ function ImmersiveSoundModeSettingsSection({ compact = false }) {
 
   return (
     <section className="space-y-4">
-      <WeeSectionEyebrow>Listening Stage</WeeSectionEyebrow>
+      {embedded ? null : <WeeSectionEyebrow>Listening Stage</WeeSectionEyebrow>}
       <Text variant="desc" className="!mt-0 block max-w-prose">
-        Dim the board, grow the album cover, and sit with the track. Click cover art on the Now
-        Playing widget to enter. Separate from Album Wallpaper Wash and Now Playing takeover.
+        Dim and blur Home, grow the album cover, and sit with the track. Click cover art on the
+        Now Playing widget, or let passive takeover open it after the wait below. Sliders keep
+        working while the stage is open — use Edit on the stage, or stay in this panel.
       </Text>
 
       <SettingsToggleFieldCard
@@ -222,21 +275,24 @@ function ImmersiveSoundModeSettingsSection({ compact = false }) {
           {intensityControl}
 
           <SettingsToggleFieldCard
-            title="Auto-enter on idle"
-            desc="When Home reaches ambient or attract idle and music is playing, open Listening Stage."
+            title="Passive takeover"
+            desc="When music is playing and you leave the screen alone, Listening Stage takes over Home."
             checked={prefs.autoIdle}
             onChange={(checked) => patchPrefs({ autoIdle: checked })}
             className="!rounded-2xl"
-          />
+          >
+            {idleDelayControl}
+          </SettingsToggleFieldCard>
 
           <SettingsToggleFieldCard
             title="Cover backdrop"
-            desc="Blur the current album art across the stage behind the hero cover."
+            desc="Lay the current album art across the stage behind the hero cover."
             checked={prefs.coverBackdrop}
             onChange={(checked) => patchPrefs({ coverBackdrop: checked })}
             className="!rounded-2xl"
           />
 
+          {overlayBlurControl}
           {boardDimControl}
           {previewButtons}
         </div>
@@ -247,6 +303,7 @@ function ImmersiveSoundModeSettingsSection({ compact = false }) {
 
 ImmersiveSoundModeSettingsSection.propTypes = {
   compact: PropTypes.bool,
+  embedded: PropTypes.bool,
 };
 
 export default React.memo(ImmersiveSoundModeSettingsSection);

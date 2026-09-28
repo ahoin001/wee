@@ -1,9 +1,8 @@
+import { WeeGooeyToggle, WeeGooeyField } from '../../../ui/wee';
 import React from 'react';
 import { X } from 'lucide-react';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
-import WInput from '../../../ui/WInput';
-import WToggle from '../../../ui/WToggle';
 
 const HIDE_BOARD_HINT =
   'When a preset is saved, channels are shown in the screenshot. If you want a clean thumbnail without channels, toggle this on.';
@@ -26,8 +25,7 @@ const PresetsSaveCurrentCard = React.memo(
   }) => (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-        <WInput
-          variant="wee"
+        <WeeGooeyField
           type="text"
           placeholder="Look name"
           value={newPresetName}
@@ -61,7 +59,7 @@ const PresetsSaveCurrentCard = React.memo(
             Also save channel art, slideshows, and hover sounds. Not shareable.
           </Text>
         </div>
-        <WToggle
+        <WeeGooeyToggle
           checked={includeHomeBoard}
           onChange={onIncludeHomeBoardChange}
           aria-label="Include Home boards in this preset"
@@ -92,7 +90,7 @@ const PresetsSaveCurrentCard = React.memo(
             </div>
           ) : null}
         </div>
-        <WToggle
+        <WeeGooeyToggle
           checked={hideBoardScreenshot}
           onChange={onHideBoardScreenshotChange}
           aria-label="Hide board in preset screenshot"

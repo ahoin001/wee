@@ -7,7 +7,7 @@ import { assignLiquidEdgeSprings } from '../design/weeMotion';
 
 const MotionSpan = m.span;
 
-function LiquidToggleThumb({ checked, reducedMotion, iconTilt }) {
+export function LiquidToggleThumb({ checked, reducedMotion, iconTilt }) {
   const ref = useRef(null);
   const left = useMotionValue(0);
   const right = useMotionValue(0);

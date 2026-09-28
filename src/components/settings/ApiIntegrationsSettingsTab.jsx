@@ -1,14 +1,10 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Music, Settings2, Radio, Gamepad2 } from 'lucide-react';
+import { Music, Settings2, Radio, Gamepad2, Headphones } from 'lucide-react';
+import ImmersiveSoundModeSettingsSection from '../../features/immersiveSoundMode/ImmersiveSoundModeSettingsSection.jsx';
 import Text from '../../ui/Text';
-import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
-import {
-  WeeModalFieldCard,
-  WeeSettingsCollapsibleSection,
-  WeeDockSettingsSubtabs,
-} from '../../ui/wee';
+import { WeeModalFieldCard, WeeSettingsCollapsibleSection, WeeDockSettingsSubtabs, WeeGooeyToggle } from '../../ui/wee';
 import { AdminPanel } from '../admin';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { applyAdminPanelPowerActions, normalizeAdminPanelConfig } from '../../utils/adminPanelCommands';
@@ -177,7 +173,7 @@ const ApiIntegrationsSettingsTab = () => {
 
       <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-5" className="mb-2">
         <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-          Now Playing appearance, Color Match, and takeover behavior live in{' '}
+          Tile layout and Color Match live in{' '}
           <span className="font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]">
             Edit Home
           </span>
@@ -222,14 +218,25 @@ const ApiIntegrationsSettingsTab = () => {
                 </Text>
               ) : null}
             </div>
-            <WToggle checked={systemMediaEnabled} onChange={handleSystemMediaToggle} />
+            <WeeGooeyToggle checked={systemMediaEnabled} onChange={handleSystemMediaToggle} />
           </div>
 
           <Text variant="caption" className="mt-3 text-xs text-[hsl(var(--text-tertiary))]">
             Now Playing follows the active Windows media session and sends standard media keys.
-            Configure its tile, app filter, Color Match, and takeover in Edit Home → Now Playing.
+            Tile layout, app filter, and Color Match stay in Edit Home → Now Playing.
           </Text>
         </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
+      <WeeSettingsCollapsibleSection
+        icon={Headphones}
+        title="Listening Stage"
+        description="Passive full-screen takeover while music plays"
+        defaultOpen
+      >
+        <div id="listening-stage-settings" className="px-1 pb-2">
+          <ImmersiveSoundModeSettingsSection embedded />
+        </div>
       </WeeSettingsCollapsibleSection>
 
       <WeeSettingsCollapsibleSection
@@ -305,7 +312,7 @@ const ApiIntegrationsSettingsTab = () => {
                 Pin a Quick Access menu on your desktop for system tools and power actions
               </Text>
             </div>
-            <WToggle
+            <WeeGooeyToggle
               checked={Boolean(floatingWidgets.adminPanel.visible)}
               onChange={handleToggleAdminPanelWidget}
               disableLabelClick

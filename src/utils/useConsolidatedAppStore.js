@@ -254,6 +254,12 @@ useConsolidatedAppStore = create(
           homeBoardPunchMode: false,
           /** Absolute slot index selected in Live Board Studio for widget size / remove. Transient. */
           homeBoardSelectedSlotIndex: null,
+          /** Viewport point the Edit Board bar grew from (wand). Transient. */
+          homeBoardArrangeOrigin: null,
+          /** Short gooey ack while arranging. Transient. */
+          homeBoardAck: null,
+          /** Peek wallpaper URL while hovering the Edit Board gallery. Transient. */
+          homeBoardWallpaperPeek: null,
           /** One-time Home arrange coach (right-click / Ctrl+E hint) — true once dismissed or arrange used. Persisted. */
           homeArrangeHintSeen: false,
           /** One-time Edit Home widget coach (tap tile → Add widget) — true once dismissed or first widget placed. Persisted. */
@@ -272,13 +278,15 @@ useConsolidatedAppStore = create(
           spotifyTakeoverActive: false,
           /**
            * Immersive Sound Mode prefs (Listening Stage). Persisted.
-           * Controls also live in Now Playing widget Looks.
+           * Settings → Now Playing → Listening Stage. Compact copy in widget Looks.
            */
           immersiveSoundMode: {
             enabled: true,
             intensity: 'focus',
             autoIdle: false,
+            idleDelaySec: 20,
             coverBackdrop: true,
+            overlayBlurPx: 24,
             boardDim: 0.78,
           },
           /** Listening Stage session — false | 'manual' | 'auto'. Transient — not persisted. */
@@ -2135,6 +2143,9 @@ useConsolidatedAppStore = create(
               homeBoardArrangeMode: false,
               homeBoardPunchMode: false,
               homeBoardSelectedSlotIndex: null,
+              homeBoardArrangeOrigin: null,
+              homeBoardAck: null,
+              homeBoardWallpaperPeek: null,
               commandPaletteOpen: false,
               commandPaletteRecent: [],
               homeIdleStage: 'active',
@@ -2143,7 +2154,9 @@ useConsolidatedAppStore = create(
                 enabled: true,
                 intensity: 'focus',
                 autoIdle: false,
+                idleDelaySec: 20,
                 coverBackdrop: true,
+                overlayBlurPx: 24,
                 boardDim: 0.78,
               },
               immersiveSoundModeActive: false,

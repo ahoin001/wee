@@ -13,7 +13,7 @@ import './surfaceStyles.css';
  * REMOVABLE modules (each has its own README):
  * - `src/features/sceneFxBeta/`
  *
- * Listening Stage lives in Now Playing widget Looks (no longer beta-gated).
+ * Listening Stage lives in Settings → Now Playing → Listening Stage.
  */
 const BetaSettingsTab = React.memo(() => {
   return (

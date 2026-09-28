@@ -33,7 +33,7 @@ function spaceParallaxBackgroundYPercent(spaceIndex) {
 function IsolatedWallpaperBackgroundInner({
   shellTransitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
 }) {
-  const { wallpaper, activeSpaceId, spaceOrder, mediaHubEnabled, appearanceBySpace, channels } =
+  const { wallpaper, activeSpaceId, spaceOrder, mediaHubEnabled, appearanceBySpace, channels, wallpaperPeekUrl } =
     useConsolidatedAppStore(
       useShallow((state) => ({
         wallpaper: state.wallpaper,
@@ -42,6 +42,7 @@ function IsolatedWallpaperBackgroundInner({
         mediaHubEnabled: state.spaces.mediaHubEnabled === true,
         appearanceBySpace: state.appearanceBySpace,
         channels: state.channels,
+        wallpaperPeekUrl: state.ui?.homeBoardWallpaperPeek?.url || null,
       }))
     );
   const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
@@ -57,13 +58,17 @@ function IsolatedWallpaperBackgroundInner({
         : 0;
 
   const activeSpaceAppearance = appearanceBySpace?.[activeSpaceId]?.wallpaper || null;
-  const displayWallpaperUrl = resolveDisplayWallpaperUrl({
+  const settledWallpaperUrl = resolveDisplayWallpaperUrl({
     activeSpaceId,
     wallpaperCurrent: wallpaper.current,
     appearanceBySpace,
     wallpaperEntryUrlKey,
     currentPage,
   });
+  const displayWallpaperUrl =
+    typeof wallpaperPeekUrl === 'string' && wallpaperPeekUrl.length > 0
+      ? wallpaperPeekUrl
+      : settledWallpaperUrl;
   const wallpaperCurrent = wallpaper.current;
   // Cycle only when this page/space falls through to global wallpaper.current.
   const canCycleCurrentSpace = isWallpaperCyclingEligible({
@@ -163,8 +168,10 @@ function IsolatedWallpaperBackgroundInner({
 
   // Publish settled URL for ambient + scene transition waiters (not the mid-fade store URL).
   useEffect(() => {
+    if (wallpaperPeekUrl) return undefined;
     setWallpaperState({ visualCommittedUrl: spaceFade.committedUrl ?? null });
-  }, [spaceFade.committedUrl, setWallpaperState]);
+    return undefined;
+  }, [wallpaperPeekUrl, spaceFade.committedUrl, setWallpaperState]);
 
   // Warm neighbor page wallpapers so the next flip can fade without a decode stall.
   useEffect(() => {

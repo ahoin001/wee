@@ -34,7 +34,8 @@ import { LaunchFeedbackProvider } from './contexts/LaunchFeedbackContext';
 import { WallpaperOverlay, IsolatedWallpaperBackground } from './components/overlays';
 import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 import GameHubMinimalDock from './components/game-hub/GameHubMinimalDock';
-import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from './utils/channelSpaces';
+import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder, resolveActiveBoardCurrentPage } from './utils/channelSpaces';
+import { resolveEffectiveOverlay } from './utils/appearance/resolveEffectiveOverlay';
 import {
   SPACE_SHELL_EASE_CSS,
   SPACE_SHELL_RAPID_WINDOW_MS,
@@ -185,12 +186,25 @@ function App() {
       glassShineOpacity: state.ribbon.glassShineOpacity,
       ribbonButtonConfigs: state.ribbon.ribbonButtonConfigs,
       presetsButtonConfig: state.ribbon.presetsButtonConfig,
-      enabled: state.overlay.enabled,
-      effect: state.overlay.effect,
-      intensity: state.overlay.intensity,
-      speed: state.overlay.speed,
-      wind: state.overlay.wind,
-      gravity: state.overlay.gravity,
+      ...((() => {
+        const overlay = resolveEffectiveOverlay({
+          overlayLive: state.overlay,
+          appearanceBySpace: state.appearanceBySpace,
+          spaceId: state.spaces.activeSpaceId,
+          pageIndex: resolveActiveBoardCurrentPage({
+            activeSpaceId: state.spaces.activeSpaceId,
+            channels: state.channels,
+          }),
+        });
+        return {
+          enabled: overlay.enabled,
+          effect: overlay.effect,
+          intensity: overlay.intensity,
+          speed: overlay.speed,
+          wind: overlay.wind,
+          gravity: overlay.gravity,
+        };
+      })()),
       adminPanelVisible: Boolean(state.floatingWidgets.adminPanel?.visible),
       performanceMonitorVisible: Boolean(state.floatingWidgets.performanceMonitor?.visible),
       activeSpaceId: state.spaces.activeSpaceId,

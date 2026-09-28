@@ -1,8 +1,8 @@
+import { WeeGooeyToggle } from '../../ui/wee';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
-import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   checkShortcutConflict,
@@ -198,7 +198,7 @@ export default function ShortcutCaptureControl({
                 </WButton>
               ) : null}
               {showToggle ? (
-                <WToggle
+                <WeeGooeyToggle
                   checked={Boolean(shortcut.enabled)}
                   onChange={() => updateShortcut({ enabled: !shortcut.enabled })}
                   disableLabelClick

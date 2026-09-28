@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UnifiedAppPathCard } from '../app-library';
-import {
-  WeeModalShell,
-  WeeModalFieldCard,
-  WeeSettingsSection,
-  WeeButton,
-  WeeSectionEyebrow,
-  WeeToggle,
-  WeeSegmentedControl,
-  WeeDescriptionToggleRow,
-  WeeHelpParagraph,
-  WeeSlider,
-} from '../../ui/wee';
-import WInput from '../../ui/WInput';
+import { WeeModalShell, WeeModalFieldCard, WeeSettingsSection, WeeButton, WeeSectionEyebrow, WeeToggle, WeeSegmentedControl, WeeDescriptionToggleRow, WeeHelpParagraph, WeeSlider, WeeGooeyField } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { getTintedIconUrl, parseColorToRgb } from '../../utils/iconTinting';
 import {
@@ -325,8 +313,7 @@ function PrimaryActionsModalComponent({
         />
         {type === 'text' ? (
           <>
-            <WInput
-              variant="wee"
+            <WeeGooeyField
               type="text"
               placeholder="Button text"
               value={text}

@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
-import WInput from '../../ui/WInput';
-import { WeeButton } from '../../ui/wee';
+import { WeeButton, WeeGooeyField } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import AuraHubModalFrame from './AuraHubModalFrame';
 
@@ -101,8 +100,7 @@ export default function GameHubHiddenGamesDialog({ open, onOpenChange, hiddenGam
 
       {rows.length > 0 ? (
         <div className="aura-hub-hidden-games__search">
-          <WInput
-            variant="wee"
+          <WeeGooeyField
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}

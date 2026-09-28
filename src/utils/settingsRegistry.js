@@ -141,6 +141,7 @@ export const SETTINGS_TAB_META = Object.freeze([
     categoryId: 'integrations',
     keywords: [
       'spotify', 'steam', 'steamid', 'enrichment', 'now playing', 'takeover', 'immersive',
+      'listening stage', 'passive', 'overlay blur', 'overlay darken', 'album stage',
       'admin panel', 'quick access', 'integrations', 'api', 'smtc',
       'apple music', 'system media', 'music',
     ],
@@ -199,7 +200,7 @@ export const SETTINGS_TAB_META = Object.freeze([
   },
   /**
    * BETA experiments tab — currently hosts Immersive Sound Mode.
-   * Listening Stage settings live in Now Playing widget Looks.
+   * Listening Stage settings live under Now Playing → Listening Stage.
    * Removable Scene FX remains here with `src/features/sceneFxBeta/`.
    */
   {
@@ -210,8 +211,7 @@ export const SETTINGS_TAB_META = Object.freeze([
     description: 'Experimental features',
     categoryId: 'system',
     keywords: [
-      'beta', 'experimental', 'immersive sound', 'listening stage',
-      'album stage', 'music stage', 'idle listening',
+      'beta', 'experimental', 'scene fx',
     ],
     beta: true,
   },

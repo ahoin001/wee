@@ -79,7 +79,7 @@ function WeeLayoutActiveDisc({
 
   const discClass = [
     'pointer-events-none z-0',
-    'rounded-full bg-[hsl(var(--surface-elevated))] shadow-[var(--shadow-md)]',
+    'rounded-full bg-[hsl(var(--primary)/0.22)] shadow-[var(--shadow-hover-glow)]',
     className,
   ]
     .filter(Boolean)

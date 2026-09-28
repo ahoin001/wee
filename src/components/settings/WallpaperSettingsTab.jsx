@@ -3,7 +3,6 @@ import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { useWeeMotion } from '../../design/weeMotion';
 import Text from '../../ui/Text';
-import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   normalizeRibbonByPage,
@@ -35,13 +34,7 @@ import {
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import useHomeBoardArrange from '../../hooks/useHomeBoardArrange';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import {
-  WeeButton,
-  WeeHelpLinkButton,
-  WeeModalFieldCard,
-  WeeSegmentedControl,
-  WeeSpaceRailPillButton,
-} from '../../ui/wee';
+import { WeeButton, WeeHelpLinkButton, WeeModalFieldCard, WeeSegmentedControl, WeeSpaceRailPillButton, WeeGooeyToggle } from '../../ui/wee';
 
 import WallpaperLibrarySection from './wallpaper/WallpaperLibrarySection';
 import SpaceWallpaperAppearanceSection from './wallpaper/SpaceWallpaperAppearanceSection';
@@ -1711,7 +1704,7 @@ const WallpaperSettingsTab = React.memo(() => {
                             last painted ribbon colors. Spotify Match still wins while it&apos;s on.
                           </Text>
                         </div>
-                        <WToggle
+                        <WeeGooeyToggle
                           checked={wallpaperMatchEnabled}
                           onChange={handleWallpaperMatchChange}
                           disableLabelClick

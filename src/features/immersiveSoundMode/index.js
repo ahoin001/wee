@@ -16,6 +16,7 @@ export {
   enterImmersiveSoundMode,
   exitImmersiveSoundMode,
   toggleImmersiveSoundMode,
+  isImmersiveEditorOpen,
 } from './immersiveSoundModeApi.js';
 
 export { default as ImmersiveSoundModeController } from './ImmersiveSoundModeController.jsx';

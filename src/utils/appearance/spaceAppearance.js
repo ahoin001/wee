@@ -4,6 +4,10 @@
  */
 
 import { mergeSpaceScopedRibbonFields } from './resolveEffectiveRibbonLook';
+import {
+  normalizeOverlayScope,
+  pickLiveOverlay,
+} from './resolveEffectiveOverlay';
 
 /** Keys on `wallpaper` that must not be persisted per space (runtime / transition). */
 const WALLPAPER_TRANSIENT_KEYS = new Set([
@@ -67,7 +71,10 @@ export function createDefaultSpaceAppearance(spaceId = 'home') {
       ribbonByPage: {},
     },
     time: {},
-    overlay: {},
+    overlay: {
+      overlayScope: 'space',
+      overlayByPage: {},
+    },
     ui: {},
   };
 }
@@ -117,11 +124,22 @@ export function captureSpaceAppearanceFromState(storeState) {
     delete wp[k];
   });
 
+  const storedOverlay = stored?.overlay;
+  const overlayScope = normalizeOverlayScope(storedOverlay?.overlayScope);
+  const overlayByPage =
+    storedOverlay?.overlayByPage && typeof storedOverlay.overlayByPage === 'object'
+      ? storedOverlay.overlayByPage
+      : {};
+
   return {
     wallpaper: mergeSpaceScopedWallpaperFields(wp, storedWp),
     ribbon: mergeSpaceScopedRibbonFields({ ...ribbon }, storedRibbon),
     time: { ...time },
-    overlay: { ...overlay },
+    overlay: {
+      ...pickLiveOverlay(overlay),
+      overlayScope,
+      overlayByPage,
+    },
     // Theme chrome only — wallpaper/Spotify match stay global (Atmosphere / Surfaces).
     ui: {
       isDarkMode: ui.isDarkMode,
@@ -157,7 +175,10 @@ export function mergeLiveStateFromSpaceAppearance(currentState, incoming) {
     out.time = { ...currentState.time, ...incoming.time };
   }
   if (incoming.overlay) {
-    out.overlay = { ...currentState.overlay, ...incoming.overlay };
+    out.overlay = {
+      ...currentState.overlay,
+      ...pickLiveOverlay(incoming.overlay),
+    };
   }
   if (incoming.ui) {
     const uiPatch = stripGlobalMatchUi(incoming.ui);

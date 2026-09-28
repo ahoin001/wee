@@ -167,6 +167,7 @@ export function useChannelInteractions({
 
   const handleMouseEnter = useCallback(() => {
     if (onHover) onHover();
+    if (interactionsLocked) return;
     const hasContent = effectivePath || effectiveConfig?.isApiChannel || effectiveMedia;
     if (!hasContent) return;
     clearHoverDwell();
@@ -181,7 +182,15 @@ export function useChannelInteractions({
     effectiveMedia,
     effectiveHoverSound,
     clearHoverDwell,
+    interactionsLocked,
   ]);
+
+  useEffect(() => {
+    if (!interactionsLocked) return undefined;
+    clearHoverDwell();
+    stopChannelHover({ fadeMs: 0 });
+    return undefined;
+  }, [interactionsLocked, clearHoverDwell]);
 
   const handleMouseLeave = useCallback(() => {
     clearHoverDwell();

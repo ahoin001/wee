@@ -13,7 +13,6 @@ import {
 } from '../../utils/soundPlayback';
 import { findEnabledSound } from '../../utils/soundLibraryCache';
 import { assessSoundUploadSize, probeAudioDuration, validateSoundDuration } from '../../utils/audioTrim';
-import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
 import { ResourceUsageIndicator } from '../widgets';
@@ -21,14 +20,7 @@ import Slider from '../../ui/Slider';
 import SoundTrimDialog from '../sounds/SoundTrimDialog';
 import '../audio/sound-management.css';
 import './surfaceStyles.css';
-import {
-  WeeDescriptionToggleRow,
-  WeeModalFieldCard,
-  WeeMorphStack,
-  WeePressSurface,
-  WeeRevealWhen,
-  WeeSettingsCollapsibleSection,
-} from '../../ui/wee';
+import { WeeDescriptionToggleRow, WeeModalFieldCard, WeeMorphStack, WeePressSurface, WeeRevealWhen, WeeSettingsCollapsibleSection, WeeGooeyToggle } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import { IS_DEV } from '../../utils/env';
 
@@ -557,7 +549,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                       <span className="sound-toggle-row__label">Enable background music</span>
                     }
                   >
-                    <WToggle
+                    <WeeGooeyToggle
                       checked={soundPrefs?.backgroundMusicEnabled ?? true}
                       onChange={(checked) => handleSettingChange('backgroundMusicEnabled', checked)}
                       disableLabelClick
@@ -571,7 +563,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                           <span className="sound-toggle-row__label">Loop current track</span>
                         }
                       >
-                        <WToggle
+                        <WeeGooeyToggle
                           checked={soundPrefs?.backgroundMusicLooping ?? true}
                           onChange={(checked) => handleSettingChange('backgroundMusicLooping', checked)}
                           disableLabelClick
@@ -588,7 +580,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                           </div>
                         }
                       >
-                        <WToggle
+                        <WeeGooeyToggle
                           checked={soundPrefs?.backgroundMusicPlaylistMode ?? false}
                           onChange={(checked) => handleSettingChange('backgroundMusicPlaylistMode', checked)}
                           disableLabelClick
@@ -662,7 +654,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                     </div>
                   }
                 >
-                  <WToggle
+                  <WeeGooeyToggle
                     checked={soundPrefs?.channelClickEnabled ?? true}
                     onChange={(checked) => handleSettingChange('channelClickEnabled', checked)}
                     disableLabelClick
@@ -700,7 +692,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                     </div>
                   }
                 >
-                  <WToggle
+                  <WeeGooeyToggle
                     checked={soundPrefs?.channelHoverEnabled ?? true}
                     onChange={(checked) => handleSettingChange('channelHoverEnabled', checked)}
                     disableLabelClick
@@ -812,7 +804,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                       </div>
                     </div>
                   </div>
-                  <WToggle
+                  <WeeGooeyToggle
                     checked={!!sound.enabled}
                     onChange={() => handleToggleSound(category.key, sound.id)}
                     disabled={category.key === 'backgroundMusic' && !(soundPrefs?.backgroundMusicEnabled ?? true)}

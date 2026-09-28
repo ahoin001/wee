@@ -1,8 +1,7 @@
 import React from 'react';
-import WSelect from '../../../ui/WSelect';
 import Slider from '../../../ui/Slider';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
-import { WeeSliderValue } from '../../../ui/wee';
+import { WeeSliderValue, WeeGooeySelect } from '../../../ui/wee';
 import { OVERLAY_EFFECT_OPTIONS } from './wallpaperSettingsConstants';
 
 function WallpaperOverlaySection({
@@ -33,12 +32,11 @@ function WallpaperOverlaySection({
             Effect
           </label>
           <div className="min-w-0 flex-1">
-            <WSelect
+            <WeeGooeySelect
               id="wallpaper-overlay-effect"
               options={OVERLAY_EFFECT_OPTIONS}
               value={overlayEffect}
               onChange={handleOverlayEffectChange}
-              variant="wee"
               className="w-full"
             />
           </div>

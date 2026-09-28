@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import WButton from '../../ui/WButton';
+import { WeeGooeyField } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import AuraHubModalFrame from './AuraHubModalFrame';
 
@@ -63,9 +64,8 @@ export default function GameHubManageCollectionsDialog({ open, onOpenChange }) {
             <li key={c.id} className="aura-hub-modal__row">
               {editingId === c.id ? (
                 <>
-                  <input
+                  <WeeGooeyField
                     type="text"
-                    className="aura-hub-modal__input"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onKeyDown={(e) => {

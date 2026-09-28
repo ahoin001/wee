@@ -5,16 +5,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
-import {
-  WeeButton,
-  WeeModalShell,
-  WeeMorphStack,
-  WeeRevealWhen,
-  WeeSegmentedControl,
-  WeeSlider,
-  WeeToggle,
-} from '../../ui/wee';
-import WInput from '../../ui/WInput';
+import { WeeButton, WeeModalShell, WeeMorphStack, WeeRevealWhen, WeeSegmentedControl, WeeSlider, WeeToggle, WeeGooeyField } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   HOME_WEATHER_TEMP_UNITS,
@@ -211,8 +202,7 @@ function SteamWidgetSettings({ kindId, slot, onPatchWidget }) {
         <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
           Heading
         </span>
-        <WInput
-          variant="wee"
+        <WeeGooeyField
           value={headingHidden ? '' : headingCustom}
           placeholder={defaultHeading}
           disabled={headingHidden}
@@ -836,8 +826,7 @@ function NowPlayingWidgetSettings() {
               )}
             </div>
           ) : null}
-          <WInput
-            variant="wee"
+          <WeeGooeyField
             value={presetName}
             onChange={(e) => setPresetName(e.target.value)}
             placeholder="Preset name"

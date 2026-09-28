@@ -38,14 +38,8 @@ import './surfaceStyles.css';
 import PresetsSaveCurrentCard from './presets/PresetsSaveCurrentCard';
 import PresetsSavedListCard from './presets/PresetsSavedListCard';
 import PresetsCommunityCard from './presets/PresetsCommunityCard';
-import {
-  WeeButton,
-  WeeModalShell,
-  WeeSectionEyebrow,
-  WeeSettingsCollapsibleSection,
-} from '../../ui/wee';
+import { WeeButton, WeeModalShell, WeeSectionEyebrow, WeeSettingsCollapsibleSection, WeeGooeyToggle } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import WToggle from '../../ui/WToggle';
 
 const normalizePresetName = (value) => value.trim().toLowerCase();
 
@@ -1059,7 +1053,7 @@ const PresetsSettingsTab = React.memo(() => {
                   </p>
                 ) : null}
               </div>
-              <WToggle
+              <WeeGooeyToggle
                 checked={updateHideBoardScreenshot}
                 onChange={setUpdateHideBoardScreenshot}
                 aria-label="Hide board in refreshed preset screenshot"

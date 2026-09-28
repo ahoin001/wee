@@ -1,8 +1,8 @@
+import { WeeGooeyToggle } from '../../ui/wee';
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import Text from '../../ui/Text';
-import WToggle from '../../ui/WToggle';
 import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
 import WeeRevealWhen from '../../ui/wee/WeeRevealWhen';
 
@@ -78,7 +78,7 @@ function SettingsToggleFieldCard({
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <WToggle checked={checked} onChange={onChange} disabled={disabled} disableLabelClick />
+          <WeeGooeyToggle checked={checked} onChange={onChange} disabled={disabled} disableLabelClick />
         </div>
       </div>
       {body ? (

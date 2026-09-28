@@ -31,9 +31,8 @@ import { DEFAULT_RIBBON_GLOW_HEX, DEFAULT_RIBBON_SURFACE_HEX } from '../../desig
 import { syncActiveSpaceAppearanceCapture } from '../../utils/appearance/spaceAppearance';
 import { liveColorMatchUiPatch } from '../../utils/appearance/liveColorMatchMode';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
-import WToggle from '../../ui/WToggle';
 import WeeButton from '../../ui/wee/WeeButton';
-import { WeeMorphStack, WeeRevealWhen, WeeSettingsDisclosure } from '../../ui/wee';
+import { WeeMorphStack, WeeRevealWhen, WeeSettingsDisclosure, WeeGooeyToggle } from '../../ui/wee';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 import './SettingsActionMenu.css';
 
@@ -64,7 +63,7 @@ function QuickToggleRow({ label, icon: Icon, active, onToggle }) {
         </span>
       </span>
       <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-        <WToggle checked={active} onChange={onToggle} disableLabelClick />
+        <WeeGooeyToggle checked={active} onChange={onToggle} disableLabelClick />
       </span>
     </div>
   );

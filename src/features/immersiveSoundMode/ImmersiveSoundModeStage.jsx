@@ -2,7 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
+import { Pause, Play, Settings2, SkipBack, SkipForward, X } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useWeeMotion } from '../../design/weeMotion';
 import { useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
@@ -12,7 +12,8 @@ import {
   normalizeImmersiveSoundMode,
   resolveImmersiveSoundLook,
 } from './immersiveSoundModePrefs.js';
-import { exitImmersiveSoundMode } from './immersiveSoundModeApi.js';
+import { exitImmersiveSoundMode, isImmersiveEditorOpen } from './immersiveSoundModeApi.js';
+import { openSettingsToIntegrationsSubtab } from '../../utils/settingsNavigation';
 import {
   defaultNowPlayingAlbumPaint,
   resolveNowPlayingAlbumPaint,
@@ -25,12 +26,13 @@ const EMPTY_NOW_PLAYING = Object.freeze({});
  * Album-art palette text/accents are always applied (not toggleable).
  */
 function ImmersiveSoundModeStage() {
-  const { active, rawPrefs, np, extractedColors } = useConsolidatedAppStore(
+  const { active, rawPrefs, np, extractedColors, editorOpen } = useConsolidatedAppStore(
     useShallow((state) => ({
       active: Boolean(state.ui?.immersiveSoundModeActive),
       rawPrefs: state.ui?.immersiveSoundMode,
       np: state.nowPlaying || EMPTY_NOW_PLAYING,
       extractedColors: state.spotify?.extractedColors || null,
+      editorOpen: isImmersiveEditorOpen(state.ui),
     }))
   );
   const prefs = useMemo(() => normalizeImmersiveSoundMode(rawPrefs), [rawPrefs]);
@@ -76,6 +78,11 @@ function ImmersiveSoundModeStage() {
     exitImmersiveSoundMode(useConsolidatedAppStore);
   }, []);
 
+  const handleEdit = useCallback((event) => {
+    event.stopPropagation();
+    openSettingsToIntegrationsSubtab('music');
+  }, []);
+
   const stageTransition = useMemo(
     () => createTransition('modalBackdrop'),
     [createTransition]
@@ -113,11 +120,15 @@ function ImmersiveSoundModeStage() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={stageTransition}
-          onClick={handleExit}
+          onClick={editorOpen ? undefined : handleExit}
         >
           <div
-            className="absolute inset-0 bg-[hsl(var(--bg-primary))]"
-            style={{ opacity: prefs.boardDim }}
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundColor: `hsl(var(--bg-primary) / ${prefs.boardDim})`,
+              backdropFilter: prefs.overlayBlurPx > 0 ? `blur(${prefs.overlayBlurPx}px)` : 'none',
+              WebkitBackdropFilter: prefs.overlayBlurPx > 0 ? `blur(${prefs.overlayBlurPx}px)` : 'none',
+            }}
             aria-hidden
           />
 
@@ -126,7 +137,9 @@ function ImmersiveSoundModeStage() {
               className="pointer-events-none absolute inset-0 scale-110 bg-cover bg-center"
               style={{
                 backgroundImage: `url(${albumArtUrl})`,
-                filter: `blur(${look.artBlurPx}px) saturate(1.15)`,
+                filter: prefs.overlayBlurPx > 0
+                  ? `blur(${prefs.overlayBlurPx}px) saturate(1.15)`
+                  : 'saturate(1.15)',
                 transform: `scale(${look.artScale})`,
                 opacity: 0.55,
               }}
@@ -161,9 +174,20 @@ function ImmersiveSoundModeStage() {
           ) : null}
 
           <div
-            className="absolute right-6 top-6 z-10"
+            data-immersive-sound-controls
+            className="absolute right-6 top-6 z-10 flex items-center gap-2"
             onClick={(event) => event.stopPropagation()}
           >
+            <WButton
+              variant="secondary"
+              size="sm"
+              onClick={handleEdit}
+              aria-label="Edit Listening Stage"
+              className="gap-2"
+            >
+              <Settings2 size={16} aria-hidden />
+              Edit
+            </WButton>
             <WButton
               variant="secondary"
               size="sm"
@@ -253,6 +277,7 @@ function ImmersiveSoundModeStage() {
             ) : null}
 
             <div
+              data-immersive-sound-controls
               className="flex items-center gap-3"
               onClick={(event) => event.stopPropagation()}
               role="group"

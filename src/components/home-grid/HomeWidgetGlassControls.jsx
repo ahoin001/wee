@@ -6,7 +6,7 @@ import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import Slider from '../../ui/Slider';
-import WButton from '../../ui/WButton';
+import { WeeButton } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   DEFAULT_HOME_WIDGET_GLASS,
@@ -57,9 +57,9 @@ function HomeWidgetGlassControls({ nested = false }) {
         <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
           {nested ? 'Glass frost' : 'Shared frost · all glass tiles'}
         </span>
-        <WButton size="sm" variant="secondary" onClick={handleReset}>
+        <WeeButton size="sm" variant="secondary" onClick={handleReset}>
           Reset look
-        </WButton>
+        </WeeButton>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <Slider

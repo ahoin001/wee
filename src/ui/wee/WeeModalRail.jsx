@@ -1,10 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-export function WeeModalRail({ children, className = '' }) {
+export function WeeModalRail({ children, className = '', tone = 'solid' }) {
+  const surface = tone === 'glass'
+    ? 'bg-[hsl(var(--wee-surface-rail)/0.42)] backdrop-blur-xl'
+    : 'bg-[hsl(var(--wee-surface-rail))]';
   return (
     <div
-      className={`hidden w-[min(20rem,28vw)] shrink-0 flex-col gap-8 border-r-[0.25rem] border-[hsl(var(--wee-border-rail))] bg-[hsl(var(--wee-surface-rail))] p-8 md:flex ${className}`.trim()}
+      className={`hidden w-[min(20rem,28vw)] shrink-0 flex-col gap-8 border-r-[0.25rem] border-[hsl(var(--wee-border-rail))] p-8 md:flex ${surface} ${className}`.trim()}
     >
       {children}
     </div>
@@ -14,6 +17,7 @@ export function WeeModalRail({ children, className = '' }) {
 WeeModalRail.propTypes = {
   children: PropTypes.node,
   className: PropTypes.string,
+  tone: PropTypes.oneOf(['solid', 'glass']),
 };
 
 export function WeeModalRailSection({ label, children }) {

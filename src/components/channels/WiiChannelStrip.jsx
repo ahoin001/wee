@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { LayoutGroup, m } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import {
   useWeeMotion,
@@ -16,6 +16,7 @@ import {
 } from '../../utils/homeGridOccupancy';
 import { useStartupPhase } from '../../hooks/useStartupPhase';
 import { StripCellOnCurrentPageContext } from './stripCellVisibility';
+import { pointFromElement } from '../../utils/boardSlotRect';
 
 /**
  * Continuous channel strip: uniform gap grid, pan via Framer (`channelPageFlip`).
@@ -55,7 +56,7 @@ const WiiChannelStrip = ({
   onTogglePunch,
   onArrangeSelectIndex,
 }) => {
-  const { pillOpen, reducedMotion } = useWeeMotion();
+  const { pillOpen, pillClose, reducedMotion } = useWeeMotion();
   const tileItemVariants = useMemo(
     () => createWeeChannelTileItemVariants(pillOpen, reducedMotion, hubEntranceShellMs),
     [pillOpen, reducedMotion, hubEntranceShellMs]
@@ -168,7 +169,7 @@ const WiiChannelStrip = ({
       event.stopPropagation();
       const occ = occupancy[index];
       const punchIndex = occ?.anchorIndex ?? index;
-      onTogglePunch(punchIndex);
+      onTogglePunch(punchIndex, pointFromElement(event.currentTarget));
     },
     [canPunch, canRestoreHole, onTogglePunch, occupancy]
   );
@@ -194,7 +195,7 @@ const WiiChannelStrip = ({
         event.stopPropagation();
         const occ = occupancy[index];
         const punchIndex = occ?.anchorIndex ?? index;
-        onTogglePunch(punchIndex);
+        onTogglePunch(punchIndex, pointFromElement(event.currentTarget));
         return;
       }
       // Arrange: select the tile but let the event bubble so the unified board
@@ -258,6 +259,8 @@ const WiiChannelStrip = ({
             const hidden = isSlotHidden(slotMeta, i);
             const pageIndex = Math.floor(i / channelsPerPage);
 
+            const punchTransition = reducedMotion ? { duration: 0.12 } : pillClose;
+
             if (!hidden && !mountedPages.has(pageIndex)) {
               return (
                 <div
@@ -269,60 +272,77 @@ const WiiChannelStrip = ({
               );
             }
 
-            if (hidden) {
-              if (canPunch || canRestoreHole) {
-                return (
-                  <button
-                    key={`tile-hole-${hubEntranceKey}-${i}`}
-                    type="button"
-                    className={`wii-strip-channel-cell wii-strip-channel-cell--hidden${
-                      canPunch
-                        ? ' wii-strip-channel-cell--punchable'
-                        : ' wii-strip-channel-cell--restorable'
-                    }`}
-                    style={gridStyle}
-                    onClick={handlePunchCapture(i)}
-                    aria-label={`Restore slot ${i + 1}`}
-                    title="Restore this slot"
-                  >
-                    <Plus size={18} strokeWidth={2.5} aria-hidden />
-                  </button>
-                );
-              }
-              return (
-                <div
-                  key={`tile-hole-${hubEntranceKey}-${i}`}
-                  className="wii-strip-channel-cell wii-strip-channel-cell--hidden"
-                  style={gridStyle}
-                  aria-hidden
-                />
-              );
-            }
-
             return (
-              <m.div
-                key={`tile-${hubEntranceKey}-${i}`}
-                className={`wii-strip-channel-cell${canPunch ? ' wii-strip-channel-cell--punchable' : ''}`}
+              <div
+                key={`tile-cell-${hubEntranceKey}-${i}`}
+                className="wii-strip-channel-cell relative min-h-0 min-w-0"
+                data-wee-board-slot={i}
                 style={gridStyle}
-                variants={tileItemVariants}
-                custom={idxInPage}
-                initial={pageIndex === entrancePage ? 'closed' : false}
-                animate={tileAnimate}
-                onClickCapture={
-                  canPunch
-                    ? handlePunchCapture(i)
-                    : canSelect
-                      ? handleArrangeSelectCapture(i)
-                      : undefined
-                }
-                onContextMenuCapture={
-                  canPunch || canSelect ? handleArrangeContextMenuCapture(i) : undefined
-                }
               >
-                <StripCellOnCurrentPageContext.Provider value={pageIndex === safeCurrentPage}>
-                  {renderChannelAtIndex(i, true)}
-                </StripCellOnCurrentPageContext.Provider>
-              </m.div>
+                <AnimatePresence initial={false} mode="wait">
+                  {hidden ? (
+                    canPunch || canRestoreHole ? (
+                      <m.button
+                        key={`hole-${i}`}
+                        type="button"
+                        className={`absolute inset-0 wii-strip-channel-cell--hidden${
+                          canPunch
+                            ? ' wii-strip-channel-cell--punchable'
+                            : ' wii-strip-channel-cell--restorable'
+                        }`}
+                        initial={{ scale: 0.72, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.72, opacity: 0 }}
+                        transition={punchTransition}
+                        onClick={handlePunchCapture(i)}
+                        aria-label={`Restore slot ${i + 1}`}
+                        title="Restore this slot"
+                      >
+                        <Plus size={18} strokeWidth={2.5} aria-hidden />
+                      </m.button>
+                    ) : (
+                      <m.div
+                        key={`hole-empty-${i}`}
+                        className="absolute inset-0 wii-strip-channel-cell--hidden"
+                        initial={{ scale: 0.72, opacity: 0 }}
+                        animate={{ scale: 0, opacity: 0 }}
+                        exit={{ scale: 0.72, opacity: 0 }}
+                        transition={punchTransition}
+                        aria-hidden
+                      />
+                    )
+                  ) : (
+                    <m.div
+                      key={`tile-${i}`}
+                      className={`h-full w-full${canPunch ? ' wii-strip-channel-cell--punchable' : ''}`}
+                      variants={tileItemVariants}
+                      custom={idxInPage}
+                      initial={pageIndex === entrancePage ? 'closed' : false}
+                      animate={tileAnimate}
+                      exit={{ scale: 0.72, opacity: 0, transition: punchTransition }}
+                      whileTap={
+                        reducedMotion || !(canPunch || canSelect)
+                          ? undefined
+                          : { scale: 0.94 }
+                      }
+                      onClickCapture={
+                        canPunch
+                          ? handlePunchCapture(i)
+                          : canSelect
+                            ? handleArrangeSelectCapture(i)
+                            : undefined
+                      }
+                      onContextMenuCapture={
+                        canPunch || canSelect ? handleArrangeContextMenuCapture(i) : undefined
+                      }
+                    >
+                      <StripCellOnCurrentPageContext.Provider value={pageIndex === safeCurrentPage}>
+                        {renderChannelAtIndex(i, true)}
+                      </StripCellOnCurrentPageContext.Provider>
+                    </m.div>
+                  )}
+                </AnimatePresence>
+              </div>
             );
           })}
         </div>

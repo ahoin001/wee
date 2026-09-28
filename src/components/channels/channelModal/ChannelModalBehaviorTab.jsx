@@ -2,14 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Shield, Volume2 } from 'lucide-react';
 import Text from '../../../ui/Text';
-import WToggle from '../../../ui/WToggle';
-import {
-  WeeDescriptionToggleRow,
-  WeeModalFieldCard,
-  WeeRevealWhen,
-  WeeSectionEyebrow,
-  WeeSettingsCollapsibleSection,
-} from '../../../ui/wee';
+import { WeeDescriptionToggleRow, WeeModalFieldCard, WeeRevealWhen, WeeSectionEyebrow, WeeSettingsCollapsibleSection, WeeGooeyToggle } from '../../../ui/wee';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import ChannelHoverSoundPicker from './ChannelHoverSoundPicker';
 
@@ -98,7 +91,7 @@ function ChannelModalBehaviorTab({
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <WToggle checked={asAdmin} onChange={setAsAdmin} disableLabelClick />
+                <WeeGooeyToggle checked={asAdmin} onChange={setAsAdmin} disableLabelClick />
               </div>
             </div>
           </div>
@@ -131,7 +124,7 @@ function ChannelModalBehaviorTab({
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <WToggle checked={hoverSoundEnabled} onChange={setHoverSoundEnabled} disableLabelClick />
+                <WeeGooeyToggle checked={hoverSoundEnabled} onChange={setHoverSoundEnabled} disableLabelClick />
               </div>
             </WeeDescriptionToggleRow>
 

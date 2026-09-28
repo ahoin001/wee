@@ -18,13 +18,14 @@ function WeeSegmentedControl({
   wrap = false,
   disabled = false,
   layoutId = 'weeSegmentedActive',
+  onDisabledOption,
 }) {
   const baseId = useId();
   const { reducedMotion } = useWeeMotion();
   const pad = size === 'sm' ? 'px-4 py-2 text-[10px]' : 'px-6 py-2.5 text-[10px] md:px-8';
 
   const trackClass =
-    'border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] shadow-[var(--wee-shadow-field)]';
+    'border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)] backdrop-blur-xl';
   const layoutClass = wrap
     ? `flex w-full max-w-full flex-wrap gap-2 rounded-2xl ${trackClass} p-1.5`
     : `inline-flex rounded-2xl ${trackClass} p-1.5`;
@@ -41,6 +42,7 @@ function WeeSegmentedControl({
         {options.map((opt) => {
           const selected = opt.value === value;
           const optionDisabled = disabled || opt.disabled;
+          const softDisable = Boolean(optionDisabled && onDisabledOption);
           const id = `${baseId}-${opt.value}`;
           return (
             <button
@@ -48,9 +50,16 @@ function WeeSegmentedControl({
               id={id}
               type="button"
               aria-pressed={selected}
-              disabled={optionDisabled}
+              aria-disabled={optionDisabled || undefined}
+              disabled={optionDisabled && !softDisable}
               title={opt.title}
-              onClick={() => onChange(opt.value)}
+              onClick={() => {
+                if (optionDisabled) {
+                  onDisabledOption?.(opt.value);
+                  return;
+                }
+                onChange(opt.value);
+              }}
               className={`relative rounded-xl font-black uppercase italic transition-colors ${pad} ${
                 selected
                   ? 'text-[hsl(var(--wee-text-header))]'
@@ -63,7 +72,7 @@ function WeeSegmentedControl({
                 <WeeLayoutActiveDisc
                   layoutId={layoutId}
                   reducedMotion={reducedMotion}
-                  className="rounded-xl bg-[hsl(var(--wee-surface-card))] shadow-[var(--shadow-sm)]"
+                    className="rounded-xl bg-[hsl(var(--primary)/0.28)] shadow-[var(--shadow-hover-glow)]"
                 />
               ) : null}
               <span className="relative z-10">{opt.label}</span>
@@ -92,6 +101,7 @@ WeeSegmentedControl.propTypes = {
   wrap: PropTypes.bool,
   disabled: PropTypes.bool,
   layoutId: PropTypes.string,
+  onDisabledOption: PropTypes.func,
 };
 
 WeeSegmentedControl.defaultProps = {

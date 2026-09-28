@@ -3,6 +3,7 @@ import {
   canPlaceSpan,
   clampSpanToPage,
 } from '../utils/homeGridOccupancy';
+import { showHomeBoardAck } from '../utils/showHomeBoardAck';
 
 /**
  * Pointer-drag resize for home-grid slots (Edit Home corner grabbers).
@@ -138,12 +139,12 @@ export function useHomeSlotResize({
       window.removeEventListener('pointerup', session.onWindowUp);
       window.removeEventListener('pointercancel', session.onWindowCancel);
 
-      if (
-        commit &&
-        candidate.valid &&
-        (candidate.colSpan !== session.startCol || candidate.rowSpan !== session.startRow)
-      ) {
+      const changed =
+        candidate.colSpan !== session.startCol || candidate.rowSpan !== session.startRow;
+      if (commit && candidate.valid && changed) {
         onCommit?.(candidate.colSpan, candidate.rowSpan);
+      } else if (commit && !candidate.valid && changed) {
+        showHomeBoardAck('Needs room', session.origin, { sound: true });
       }
     },
     [updateDraftFromEvent, onCommit, onResizeEnd]
@@ -204,6 +205,10 @@ export function useHomeSlotResize({
         gapY,
         tileLeft: tileRect.left,
         tileTop: tileRect.top,
+        origin: {
+          x: tileRect.left + tileRect.width / 2,
+          y: tileRect.top + tileRect.height / 2,
+        },
         invertX: Boolean(invertX),
         invertY: Boolean(invertY),
         onWindowMove,

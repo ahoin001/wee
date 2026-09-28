@@ -3,18 +3,12 @@ import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import { Cloud, KeyRound, User } from 'lucide-react';
 import Text from '../../ui/Text';
-import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
-import WInput from '../../ui/WInput';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { openExternalUrl } from '../../utils/settingsNavigation';
 import { validateSteamId64Input } from '../../utils/steamId64';
 import { refreshSteamEnrichmentNow } from '../../utils/gameHub/gameHubEnrichmentRefresh';
-import {
-  WeeModalFieldCard,
-  WeeSectionEyebrow,
-  WeeSettingsCollapsibleSection,
-} from '../../ui/wee';
+import { WeeModalFieldCard, WeeSectionEyebrow, WeeSettingsCollapsibleSection, WeeGooeyToggle, WeeGooeyField } from '../../ui/wee';
 
 const STEAM_ID_HELP_URL = 'https://steamcommunity.com/my/?xml=1';
 const STEAM_API_KEY_HELP_URL = 'https://steamcommunity.com/dev/apikey';
@@ -328,8 +322,7 @@ const SteamIntegrationSettings = React.memo(() => {
                 </Text>
               )}
               <div className="mt-2">
-                <WInput
-                  variant="wee"
+                <WeeGooeyField
                   type="text"
                   value={steamIdInput}
                   onChange={(event) => {
@@ -358,8 +351,7 @@ const SteamIntegrationSettings = React.memo(() => {
                 {keyConfigured ? 'API key saved on this PC.' : 'No API key saved yet.'}
               </Text>
               <div className="mt-2">
-                <WInput
-                  variant="wee"
+                <WeeGooeyField
                   type="password"
                   autoComplete="off"
                   value={apiKeyInput}
@@ -425,7 +417,7 @@ const SteamIntegrationSettings = React.memo(() => {
               title="Use Steam Web API"
               description="When off, Game Hub stays local-only and Home Steam widgets stay empty."
             >
-              <WToggle
+              <WeeGooeyToggle
                 checked={profile.useSteamWebApi ?? true}
                 onChange={handleUseSteamWebApiChange}
                 disableLabelClick

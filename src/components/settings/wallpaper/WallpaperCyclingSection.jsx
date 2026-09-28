@@ -1,15 +1,8 @@
 import React from 'react';
 import Text from '../../../ui/Text';
-import WSelect from '../../../ui/WSelect';
-import WInput from '../../../ui/WInput';
 import Slider from '../../../ui/Slider';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
-import {
-  WeeMorphStack,
-  WeeRevealWhen,
-  WeeSliderValue,
-  WeeSpaceRailPillButton,
-} from '../../../ui/wee';
+import { WeeMorphStack, WeeRevealWhen, WeeSliderValue, WeeSpaceRailPillButton, WeeGooeyField, WeeGooeySelect } from '../../../ui/wee';
 import { requestWallpaperCycleManual } from '../../../utils/wallpaperCyclingBridge';
 import {
   EASING_OPTIONS,
@@ -119,8 +112,7 @@ function WallpaperCyclingSection({
                 />
               </div>
               <div className="min-w-[5.5rem] max-w-[7rem] shrink-0">
-                <WInput
-                  variant="wee"
+                <WeeGooeyField
                   type="number"
                   min={CYCLE_INTERVAL_MIN}
                   max={CYCLE_INTERVAL_MAX}
@@ -145,11 +137,10 @@ function WallpaperCyclingSection({
             Animation
           </span>
           <div className="min-w-0 flex-1">
-            <WSelect
+            <WeeGooeySelect
               options={WALLPAPER_ANIMATIONS}
               value={cycleAnimation}
               onChange={handleCycleAnimationChange}
-              variant="wee"
               className="w-full min-w-0"
             />
             <Text variant="small" className="mt-1 text-[hsl(var(--text-tertiary))]">
@@ -179,11 +170,10 @@ function WallpaperCyclingSection({
               <div className="settings-wee-slider-row">
                 <span className="settings-wee-slider-row__label">Slide mode</span>
                 <div className="min-w-0 flex-1">
-                  <WSelect
+                  <WeeGooeySelect
                     options={SLIDE_DIRECTION_MODE_OPTIONS}
                     value={slideRandomDirection ? 'random' : 'fixed'}
                     onChange={(value) => handleSlideRandomDirectionChange(value === 'random')}
-                    variant="wee"
                     className="w-full"
                   />
                 </div>
@@ -193,11 +183,10 @@ function WallpaperCyclingSection({
                 <div className="settings-wee-slider-row">
                   <span className="settings-wee-slider-row__label">Direction</span>
                   <div className="min-w-0 flex-1">
-                    <WSelect
+                    <WeeGooeySelect
                       options={SLIDE_DIRECTION_OPTIONS}
                       value={slideDirection}
                       onChange={handleSlideDirectionChange}
-                      variant="wee"
                       className="w-full"
                     />
                   </div>
@@ -232,11 +221,10 @@ function WallpaperCyclingSection({
               <div className="settings-wee-slider-row">
                 <span className="settings-wee-slider-row__label">Slide easing</span>
                 <div className="min-w-0 flex-1">
-                  <WSelect
+                  <WeeGooeySelect
                     options={EASING_OPTIONS}
                     value={slideEasing}
                     onChange={handleSlideEasingChange}
-                    variant="wee"
                     className="w-full"
                   />
                 </div>
@@ -274,11 +262,10 @@ function WallpaperCyclingSection({
               <div className="settings-wee-slider-row">
                 <span className="settings-wee-slider-row__label">Crossfade easing</span>
                 <div className="min-w-0 flex-1">
-                  <WSelect
+                  <WeeGooeySelect
                     options={EASING_OPTIONS}
                     value={crossfadeEasing}
                     onChange={handleCrossfadeEasingChange}
-                    variant="wee"
                     className="w-full"
                   />
                 </div>

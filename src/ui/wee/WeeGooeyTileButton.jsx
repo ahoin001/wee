@@ -1,10 +1,8 @@
 import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
-import { m } from 'framer-motion';
 import { createWeeTransition } from '../../design/weeMotion';
 import { PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
-
-const MotionButton = m.button;
+import WeeGlassPill from './WeeGlassPill';
 
 /**
  * Labeled tile/card sibling of {@link WeeGooeyIconButton} — same press spring family
@@ -38,20 +36,18 @@ const WeeGooeyTileButton = forwardRef(function WeeGooeyTileButton(
   const isRow = orientation === 'row';
 
   return (
-    <MotionButton
+    <WeeGlassPill
+      as="button"
+      motion
       ref={ref}
       type={type}
       whileHover={whileHover || {}}
       whileTap={whileTap || {}}
       transition={createWeeTransition('press', { reducedMotion })}
       className={[
-        'relative flex min-h-0 min-w-0 overflow-hidden rounded-2xl border-2 text-left',
-        'transition-[box-shadow,border-color] duration-200',
-        'hover:[box-shadow:var(--shadow-soft-hover),var(--shadow-hover-glow)]',
-        'hover:border-[hsl(var(--border-accent)/0.42)]',
-        dashed
-          ? 'border-dashed border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-tertiary)/0.55)]'
-          : 'border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated)/0.9)] shadow-[var(--shadow-sm)]',
+        'relative flex min-h-0 min-w-0 overflow-hidden rounded-[1.35rem] text-left',
+        'hover:shadow-[var(--shadow-hover-glow)]',
+        dashed ? 'border-dashed opacity-80' : '',
         isRow
           ? 'flex-row items-center gap-2.5 px-3 py-2.5'
           : 'flex-col items-center justify-center gap-1 px-1.5 py-1.5 text-center',
@@ -94,7 +90,7 @@ const WeeGooeyTileButton = forwardRef(function WeeGooeyTileButton(
         </span>
       ) : null}
       {children}
-    </MotionButton>
+    </WeeGlassPill>
   );
 });
 
