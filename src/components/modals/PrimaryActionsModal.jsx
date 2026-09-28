@@ -557,6 +557,7 @@ function PrimaryActionsModalComponent({
       showRail={false}
       maxWidth="min(760px, 96vw)"
       originRect={originRect}
+      originMorph
       footerContent={({ handleClose }) => (
         <div className="flex flex-wrap justify-end gap-3">
           <WeeButton type="button" variant="secondary" onClick={handleClose}>

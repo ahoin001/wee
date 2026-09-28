@@ -4,6 +4,7 @@ import { AnimatePresence, m } from 'framer-motion';
 import { MousePointer2, Settings, Sparkles, Zap } from 'lucide-react';
 import { WeeModalShell, WeeModalRail, WeeModalRailItem, WeeModalRailSection } from '../../ui/wee';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
+import { readTilePaint } from '../../ui/wee/originRect';
 import ChannelMorphFace from './ChannelMorphFace';
 
 const TabPanel = m.div;
@@ -26,6 +27,7 @@ function WeeChannelModal({
   faceMedia = null,
 }) {
   const { tabTransition } = useWeeMotion();
+  const tilePaint = originRect?.source ? readTilePaint(originRect.source) : null;
 
   const rail = (
     <WeeModalRail>
@@ -102,10 +104,8 @@ function WeeChannelModal({
       showRail
       onExitAnimationComplete={onExitAnimationComplete}
       originRect={originRect}
-      originOpenIntent="channelMorphOpen"
-      originCloseIntent="channelMorphClose"
-      linkOriginLayers
-      face={<ChannelMorphFace media={faceMedia} />}
+      originMorph
+      face={<ChannelMorphFace media={faceMedia} paint={tilePaint} />}
       headerLeading={<ChannelMorphFace media={faceMedia} variant="chip" />}
     >
       <AnimatePresence mode="wait">

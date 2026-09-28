@@ -1,25 +1,27 @@
 import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import WeeGlassPill from './WeeGlassPill';
 
 const DEFAULT_FADE_PX = 36;
 const EDGE_EPS = 2;
 const DRAG_THRESHOLD_PX = 6;
-const EDGE_SCROLL_PX = 10;
-const EDGE_ZONE_CLASS =
-  'absolute top-0 z-10 h-full w-9 border-0 bg-transparent p-0 opacity-0 transition-opacity duration-200 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none';
+const EDGE_VEL_MAX = 16;
+const EDGE_VEL_ACCEL = 0.55;
 
 /**
  * Scroll container with soft edge fades — content dissolves into the shell
- * instead of hard-clipping. Classic “infinite shelf” treatment (Apple Music,
- * Linear, etc.): mask only the clipped edge(s), and clear fades when flush.
+ * instead of hard-clipping.
  *
- * Optional horizontal pan: click-drag + edge hover auto-scroll (Steam shelves).
+ * Horizontal pan (Steam shelves): pointer-drag is coalesced to one scroll write
+ * per frame, snap is suspended while dragging, and edge chevrons ease-scroll.
  *
  * @param {'y' | 'x'} [axis='y']
- * @param {number} [fadePx] — feather depth in CSS pixels
+ * @param {number} [fadePx]
  * @param {boolean} [hideScrollbar=true]
- * @param {boolean} [panDrag=false] — pointer-drag pans the shelf (x only)
- * @param {boolean} [edgeHoverScroll=false] — hover near ends to scroll (x only)
+ * @param {boolean} [panDrag=false]
+ * @param {boolean} [edgeHoverScroll=false]
+ * @param {boolean} [keyboardStep=false] — Left/Right step one tile while the shelf is hovered
  */
 const WeeFadeScroll = forwardRef(function WeeFadeScroll(
   {
@@ -28,6 +30,7 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
     hideScrollbar = true,
     panDrag = false,
     edgeHoverScroll = false,
+    keyboardStep = false,
     className = '',
     style,
     children,
@@ -48,17 +51,24 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
   );
 
   const [edges, setEdges] = useState({ start: false, end: false });
+  const [hot, setHot] = useState(false);
   const rafRef = useRef(0);
+  const dragRafRef = useRef(0);
+  const pendingScrollRef = useRef(null);
   const dragRef = useRef({
     pointerId: null,
     startX: 0,
     startScroll: 0,
     moved: false,
     active: false,
+    snap: '',
   });
   const edgeRafRef = useRef(0);
   const edgeDirRef = useRef(0);
+  const edgeVelRef = useRef(0);
   const suppressClickRef = useRef(false);
+  const hotRef = useRef(false);
+  const draggingRef = useRef(false);
 
   const measure = useCallback(() => {
     const el = localRef.current;
@@ -76,9 +86,11 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
   }, [axis]);
 
   const scheduleMeasure = useCallback(() => {
+    if (draggingRef.current) return;
     if (rafRef.current) return;
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = 0;
+      if (draggingRef.current) return;
       measure();
     });
   }, [measure]);
@@ -95,6 +107,7 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
       ro?.disconnect();
       window.removeEventListener('resize', scheduleMeasure);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current);
     };
   }, [measure, scheduleMeasure]);
 
@@ -109,9 +122,37 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
     []
   );
 
+  const enablePan = axis === 'x' && panDrag;
+  const enableEdge = axis === 'x' && edgeHoverScroll;
+  const enableKeys = axis === 'x' && (keyboardStep || panDrag);
+
+  useEffect(() => {
+    if (!enableKeys) return undefined;
+    const onKey = (event) => {
+      if (!hotRef.current) return;
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const target = event.target;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
+      const el = localRef.current;
+      if (!el) return;
+      event.preventDefault();
+      const tile = el.firstElementChild?.firstElementChild;
+      const step = tile
+        ? Math.max(48, tile.getBoundingClientRect().width + 10)
+        : Math.round(el.clientWidth * 0.72);
+      el.scrollBy({
+        left: event.key === 'ArrowLeft' ? -step : step,
+        behavior: 'smooth',
+      });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [enableKeys]);
+
   const handleScroll = useCallback(
     (event) => {
-      scheduleMeasure();
+      if (!draggingRef.current) scheduleMeasure();
       onScroll?.(event);
     },
     [onScroll, scheduleMeasure]
@@ -119,47 +160,73 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
 
   const stopEdgeScroll = useCallback(() => {
     edgeDirRef.current = 0;
+    edgeVelRef.current = 0;
     if (edgeRafRef.current) {
       cancelAnimationFrame(edgeRafRef.current);
       edgeRafRef.current = 0;
     }
-  }, []);
+    measure();
+  }, [measure]);
 
   const tickEdgeScroll = useCallback(() => {
     const el = localRef.current;
     const dir = edgeDirRef.current;
     if (!el || !dir) {
       edgeRafRef.current = 0;
+      edgeVelRef.current = 0;
       return;
     }
-    el.scrollLeft += dir * EDGE_SCROLL_PX;
-    scheduleMeasure();
+    edgeVelRef.current = Math.min(EDGE_VEL_MAX, edgeVelRef.current + EDGE_VEL_ACCEL);
+    el.scrollLeft += dir * edgeVelRef.current;
+    const max = Math.max(0, el.scrollWidth - el.clientWidth);
+    const atStart = dir < 0 && el.scrollLeft <= EDGE_EPS;
+    const atEnd = dir > 0 && el.scrollLeft >= max - EDGE_EPS;
+    if (atStart || atEnd) {
+      edgeDirRef.current = 0;
+      edgeVelRef.current = 0;
+      edgeRafRef.current = 0;
+      measure();
+      return;
+    }
     edgeRafRef.current = requestAnimationFrame(tickEdgeScroll);
-  }, [scheduleMeasure]);
+  }, [measure]);
 
   const startEdgeScroll = useCallback(
     (dir) => {
       if (axis !== 'x' || !edgeHoverScroll) return;
+      if (draggingRef.current) return;
       edgeDirRef.current = dir;
       if (!edgeRafRef.current) {
+        edgeVelRef.current = 1.5;
         edgeRafRef.current = requestAnimationFrame(tickEdgeScroll);
       }
     },
     [axis, edgeHoverScroll, tickEdgeScroll]
   );
 
+  const flushDragScroll = useCallback(() => {
+    dragRafRef.current = 0;
+    const el = localRef.current;
+    const next = pendingScrollRef.current;
+    if (!el || next == null) return;
+    el.scrollLeft = next;
+  }, []);
+
   const handlePointerDown = useCallback(
     (event) => {
       if (axis !== 'x' || !panDrag) return;
       if (event.button !== 0) return;
+      if (event.target?.closest?.('[data-shelf-edge]')) return;
       const el = localRef.current;
       if (!el) return;
+      stopEdgeScroll();
       dragRef.current = {
         pointerId: event.pointerId,
         startX: event.clientX,
         startScroll: el.scrollLeft,
         moved: false,
         active: true,
+        snap: el.style.scrollSnapType || '',
       };
       try {
         el.setPointerCapture(event.pointerId);
@@ -167,7 +234,7 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
         /* ignore */
       }
     },
-    [axis, panDrag]
+    [axis, panDrag, stopEdgeScroll]
   );
 
   const handlePointerMove = useCallback(
@@ -181,14 +248,19 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
       if (!drag.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) return;
       if (!drag.moved) {
         drag.moved = true;
+        draggingRef.current = true;
         suppressClickRef.current = true;
+        el.dataset.panning = '1';
+        el.style.scrollSnapType = 'none';
         el.style.cursor = 'grabbing';
       }
-      el.scrollLeft = drag.startScroll - dx;
-      scheduleMeasure();
+      pendingScrollRef.current = drag.startScroll - dx;
+      if (!dragRafRef.current) {
+        dragRafRef.current = requestAnimationFrame(flushDragScroll);
+      }
       event.preventDefault();
     },
-    [axis, panDrag, scheduleMeasure]
+    [axis, panDrag, flushDragScroll]
   );
 
   const endDrag = useCallback(
@@ -198,9 +270,17 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
       if (!drag.active) return;
       if (event && drag.pointerId !== event.pointerId) return;
       const el = localRef.current;
+      if (dragRafRef.current) {
+        cancelAnimationFrame(dragRafRef.current);
+        flushDragScroll();
+      }
       drag.active = false;
+      draggingRef.current = false;
+      pendingScrollRef.current = null;
       if (el) {
         el.style.cursor = '';
+        delete el.dataset.panning;
+        el.style.scrollSnapType = drag.snap;
         try {
           if (drag.pointerId != null) el.releasePointerCapture(drag.pointerId);
         } catch {
@@ -208,15 +288,15 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
         }
       }
       if (drag.moved) {
-        // Suppress the synthetic click that follows a drag so cover tiles don't launch.
         window.setTimeout(() => {
           suppressClickRef.current = false;
         }, 0);
+        measure();
       }
       drag.moved = false;
       drag.pointerId = null;
     },
-    [axis, panDrag]
+    [axis, panDrag, flushDragScroll, measure]
   );
 
   const handleClickCapture = useCallback((event) => {
@@ -226,12 +306,16 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
     suppressClickRef.current = false;
   }, []);
 
+  const setHotState = useCallback((next) => {
+    hotRef.current = next;
+    setHot(next);
+    if (!next) stopEdgeScroll();
+  }, [stopEdgeScroll]);
+
   const fade = Math.max(0, Number(fadePx) || DEFAULT_FADE_PX);
   const startStop = edges.start ? `${fade}px` : '0px';
   const endStop = edges.end ? `${fade}px` : '0px';
   const vertical = axis !== 'x';
-  const enablePan = axis === 'x' && panDrag;
-  const enableEdge = axis === 'x' && edgeHoverScroll;
 
   const maskImage = vertical
     ? `linear-gradient(to bottom, transparent 0, #000 ${startStop}, #000 calc(100% - ${endStop}), transparent 100%)`
@@ -248,7 +332,7 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
         'wee-fade-scroll min-h-0 min-w-0',
         overflowClass,
         hideScrollbar ? 'scrollbar-hidden' : '[scrollbar-gutter:stable] [scrollbar-width:thin]',
-        enablePan ? 'cursor-grab active:cursor-grabbing' : '',
+        enablePan ? 'cursor-grab' : '',
         enableEdge || enablePan ? 'h-full w-full' : className,
       ]
         .filter(Boolean)
@@ -283,30 +367,42 @@ const WeeFadeScroll = forwardRef(function WeeFadeScroll(
     return scrollEl;
   }
 
+  const showChevrons = enableEdge && hot;
+
   return (
     <div
       className={['relative min-h-0 min-w-0', className].filter(Boolean).join(' ')}
+      onPointerEnter={() => setHotState(true)}
+      onPointerLeave={() => setHotState(false)}
     >
       {scrollEl}
-      {enableEdge && edges.start ? (
-        <button
+      {showChevrons && edges.start ? (
+        <WeeGlassPill
+          as="button"
+          data-shelf-edge="start"
           type="button"
-          tabIndex={-1}
           aria-label="Scroll shelf left"
-          className={`${EDGE_ZONE_CLASS} left-0 bg-gradient-to-r from-[hsl(var(--surface-elevated)/0.55)] to-transparent`}
+          className="absolute left-1 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full p-0 text-[hsl(var(--text-primary))]"
           onPointerEnter={() => startEdgeScroll(-1)}
           onPointerLeave={stopEdgeScroll}
-        />
+          onClick={(event) => event.stopPropagation()}
+        >
+          <ChevronLeft size={16} strokeWidth={2.5} aria-hidden />
+        </WeeGlassPill>
       ) : null}
-      {enableEdge && edges.end ? (
-        <button
+      {showChevrons && edges.end ? (
+        <WeeGlassPill
+          as="button"
+          data-shelf-edge="end"
           type="button"
-          tabIndex={-1}
           aria-label="Scroll shelf right"
-          className={`${EDGE_ZONE_CLASS} right-0 bg-gradient-to-l from-[hsl(var(--surface-elevated)/0.55)] to-transparent`}
+          className="absolute right-1 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full p-0 text-[hsl(var(--text-primary))]"
           onPointerEnter={() => startEdgeScroll(1)}
           onPointerLeave={stopEdgeScroll}
-        />
+          onClick={(event) => event.stopPropagation()}
+        >
+          <ChevronRight size={16} strokeWidth={2.5} aria-hidden />
+        </WeeGlassPill>
       ) : null}
     </div>
   );
@@ -318,6 +414,7 @@ WeeFadeScroll.propTypes = {
   hideScrollbar: PropTypes.bool,
   panDrag: PropTypes.bool,
   edgeHoverScroll: PropTypes.bool,
+  keyboardStep: PropTypes.bool,
   className: PropTypes.string,
   style: PropTypes.object,
   children: PropTypes.node,

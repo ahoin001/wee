@@ -52,13 +52,6 @@
     filter 0.45s ease-out;
 }
 
-.wii-style-button.wii-style-button--origin-hold,
-.wii-style-button.wii-style-button--origin-hold:hover,
-.wii-style-button.playful-press--gooey-ribbon.wii-style-button--origin-hold,
-.wii-style-button.playful-press--gooey-ribbon.wii-style-button--origin-hold:hover {
-  transform: translateZ(0) scale(0.92);
-}
-
 .wii-style-button.wii-style-button--wee-rail:hover {
   transform: translateZ(0) scale(1.065) translateY(-4px);
   border-color: hsl(var(--border-accent) / 0.48);

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Bookmark, Library, Palette, Users } from 'lucide-react';
+import { Bookmark, LayoutGrid, Library, Palette, Users } from 'lucide-react';
 import { getCommunityPresetUpdates, uploadPreset, downloadPreset } from '../../utils/supabase';
 import {
   capturePresetThumbnailDataUrl,
@@ -56,6 +56,12 @@ const PRESET_UPDATE_SCOPE_OPTIONS = [
     subtitle: 'Colors, wallpaper, dock & chrome. Shareable.',
     Icon: Palette,
   },
+  {
+    value: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+    title: 'Look + boards',
+    subtitle: 'Also Home and Second Home art, galleries, and hover sounds. This PC only.',
+    Icon: LayoutGrid,
+  },
 ];
 
 const PresetsSettingsTab = React.memo(() => {
@@ -97,8 +103,11 @@ const PresetsSettingsTab = React.memo(() => {
     custom_image_name: null,
     selectedPreset: null,
   });
-  /** New Looks are always visual-only (shareable). Boards live on Home / Second Home spaces. */
-  const selectedCaptureScope = PRESET_SCOPE_VISUAL;
+  /** Default Looks stay visual-only and shareable. Boards are an explicit opt-in. */
+  const [includeHomeBoard, setIncludeHomeBoard] = useState(false);
+  const selectedCaptureScope = includeHomeBoard
+    ? PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
+    : PRESET_SCOPE_VISUAL;
   const [updateScopeDialog, setUpdateScopeDialog] = useState(null);
   const [updateScopeModalOpen, setUpdateScopeModalOpen] = useState(false);
   const [updateScopeModalMounted, setUpdateScopeModalMounted] = useState(false);
@@ -271,6 +280,7 @@ const PresetsSettingsTab = React.memo(() => {
       setPresets(updatedPresets);
       await savePresetsToBackend(updatedPresets);
       setNewPresetName('');
+      setIncludeHomeBoard(false);
       setError('');
       setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
     } catch (e) {
@@ -834,7 +844,7 @@ const PresetsSettingsTab = React.memo(() => {
         <WeeSettingsCollapsibleSection
           icon={Bookmark}
           title="Save current look"
-          description="Capture wallpaper, colors, and dock as a shareable Look."
+          description="Capture wallpaper, colors, and dock as a shareable Look. Optionally include your boards."
           defaultOpen
         >
           <PresetsSaveCurrentCard
@@ -851,6 +861,8 @@ const PresetsSettingsTab = React.memo(() => {
             onHideBoardScreenshotChange={setHideBoardScreenshot}
             hideBoardHintDismissed={hideBoardHintDismissed}
             onDismissHideBoardHint={() => setUIState({ presetHideBoardHintDismissed: true })}
+            includeHomeBoard={includeHomeBoard}
+            onIncludeHomeBoardChange={setIncludeHomeBoard}
           />
         </WeeSettingsCollapsibleSection>
       </div>

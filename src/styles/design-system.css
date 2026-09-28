@@ -718,6 +718,17 @@
   display: none;
 }
 
+/* Suspend tile hover transforms while a shelf is pointer-panning. */
+.wee-fade-scroll[data-panning='1'] {
+  scroll-snap-type: none !important;
+}
+
+.wee-fade-scroll[data-panning='1'] .home-widget-float-tile {
+  pointer-events: none;
+  transform: none !important;
+  transition: none !important;
+}
+
 /* Ensure modals and overlays work properly in dark mode */
 .dark-mode .modal-backdrop {
   background-color: hsl(var(--bg-overlay));

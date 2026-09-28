@@ -4,7 +4,6 @@ import { requestWallpaperCycleManual } from './wallpaperCyclingBridge';
 
 export const registerDevDebugBindings = ({
   openDevTools,
-  wallpaper,
   isCycling,
   cycleToNextWallpaper = requestWallpaperCycleManual,
 }) => {
@@ -36,6 +35,7 @@ export const registerDevDebugBindings = ({
   };
 
   window.debugWallpaperCycling = () => {
+    const { wallpaper } = useConsolidatedAppStore.getState();
     console.log('[DEBUG] Cycling settings:', {
       cycleWallpapers: wallpaper.cycleWallpapers,
       cycleInterval: wallpaper.cycleInterval,

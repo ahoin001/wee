@@ -7,10 +7,10 @@ function hasChannelArt(media) {
 }
 
 /**
- * The channel's face, shared by the flying shell and the open editor.
- * Fill covers the shell. Chip is a still beside the title, never a playing video.
+ * The channel's face on the flying shell, plus a still chip in the open header.
+ * Empty tiles keep the channel's own plus; the shell carries the tile's paint.
  */
-function ChannelMorphFace({ media, variant = 'fill' }) {
+function ChannelMorphFace({ media, variant = 'fill', paint = null }) {
   const hasArt = hasChannelArt(media);
 
   if (variant === 'chip') {
@@ -26,14 +26,18 @@ function ChannelMorphFace({ media, variant = 'fill' }) {
     return <ChannelTileArtFrame media={media} fill autoPlayVideo={false} />;
   }
 
+  if (!paint?.plus) return null;
+
   return (
-    <div
-      className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[hsl(var(--surface-secondary))]"
-      aria-hidden
-    >
-      <span className="relative h-[22%] w-[22%]">
-        <span className="absolute left-1/2 top-0 h-full w-[12%] -translate-x-1/2 rounded-full bg-[hsl(var(--text-tertiary)/0.55)]" />
-        <span className="absolute left-0 top-1/2 h-[12%] w-full -translate-y-1/2 rounded-full bg-[hsl(var(--text-tertiary)/0.55)]" />
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
+      <span
+        className="font-light leading-none"
+        style={{
+          fontSize: `calc(${paint.plusSize}px / var(--origin-morph-scale, 1))`,
+          color: paint.plusColor,
+        }}
+      >
+        {paint.plus}
       </span>
     </div>
   );
@@ -46,11 +50,17 @@ ChannelMorphFace.propTypes = {
     loading: PropTypes.bool,
   }),
   variant: PropTypes.oneOf(['fill', 'chip']),
+  paint: PropTypes.shape({
+    plus: PropTypes.string,
+    plusSize: PropTypes.number,
+    plusColor: PropTypes.string,
+  }),
 };
 
 ChannelMorphFace.defaultProps = {
   media: null,
   variant: 'fill',
+  paint: null,
 };
 
 export default ChannelMorphFace;

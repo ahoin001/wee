@@ -12,7 +12,7 @@ import {
   pointerWithin,
   closestCorners,
 } from '@dnd-kit/core';
-import { Check, LayoutGrid, PenLine, Plus, Replace, Settings2, X } from 'lucide-react';
+import { Check, Info, LayoutGrid, PenLine, Plus, Replace, Settings2 } from 'lucide-react';
 import { Channel } from '../channels';
 import {
   HomeSlot,
@@ -43,7 +43,7 @@ import {
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../utils/supportedUploadMedia';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { WeeGlassPill } from '../../ui/wee';
+import { WeeNotice } from '../../ui/wee';
 import {
   createHomeChannelEntranceBandVariants,
   createHubEntranceBandVariants,
@@ -1578,19 +1578,13 @@ const PaginatedChannelsInner = React.memo(() => {
                 exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -16 }}
                 transition={createWeeTransition('pillOpen', { reducedMotion })}
               >
-                <WeeGlassPill className="pointer-events-auto flex items-center gap-2.5 rounded-full px-4 py-2">
-                  <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                    {widgetCoachCopy}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={dismissWidgetCoach}
-                    aria-label="Dismiss widget coach"
-                    className="rounded-full p-1 text-[hsl(var(--text-tertiary))] transition-colors hover:bg-[hsl(var(--state-hover))] hover:text-[hsl(var(--text-primary))]"
-                  >
-                    <X size={13} strokeWidth={2.5} aria-hidden />
-                  </button>
-                </WeeGlassPill>
+                <WeeNotice
+                  icon={LayoutGrid}
+                  onDismiss={dismissWidgetCoach}
+                  dismissLabel="Dismiss widget coach"
+                >
+                  {widgetCoachCopy}
+                </WeeNotice>
               </MotionDiv>
             ) : null}
           </AnimatePresence>
@@ -1604,19 +1598,13 @@ const PaginatedChannelsInner = React.memo(() => {
                 exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
                 transition={createWeeTransition('pillOpen', { reducedMotion })}
               >
-                <WeeGlassPill className="pointer-events-auto flex items-center gap-2.5 rounded-full px-4 py-2">
-                  <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                    Tip: right-click a widget to edit it — or use the spaces rail / Ctrl+E
-                  </span>
-                  <button
-                    type="button"
-                    onClick={dismissArrangeHint}
-                    aria-label="Dismiss arrange tip"
-                    className="rounded-full p-1 text-[hsl(var(--text-tertiary))] transition-colors hover:bg-[hsl(var(--state-hover))] hover:text-[hsl(var(--text-primary))]"
-                  >
-                    <X size={13} strokeWidth={2.5} aria-hidden />
-                  </button>
-                </WeeGlassPill>
+                <WeeNotice
+                  icon={Info}
+                  onDismiss={dismissArrangeHint}
+                  dismissLabel="Dismiss arrange tip"
+                >
+                  Right-click a widget to edit it, or use the spaces rail or Ctrl+E.
+                </WeeNotice>
               </MotionDiv>
             ) : null}
           </AnimatePresence>

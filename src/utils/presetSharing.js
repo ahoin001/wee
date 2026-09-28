@@ -2,6 +2,8 @@ const COMMUNITY_BLOCKED_KEYS = [
   'channels',
   'channelData',
   'homeChannels',
+  'focusChannels',
+  'channelLayoutSettings',
   'sounds',
   'soundLibrary',
   'captureScope',

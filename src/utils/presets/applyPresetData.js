@@ -99,7 +99,7 @@ export async function applyPresetData(preset) {
     return;
   }
 
-  const { setWallpaperState, setRibbonState, setTimeState, setOverlayState, setUIState, setSoundsState, setDockState, setAppearanceBySpaceState } =
+  const { setWallpaperState, setRibbonState, setTimeState, setOverlayState, setUIState, setSoundsState, setDockState, setAppearanceBySpaceState, setChannelSettings } =
     useConsolidatedAppStore.getState().actions;
 
   if (settingsToApply.wallpaper) {
@@ -178,6 +178,9 @@ export async function applyPresetData(preset) {
     if (!settingsToApply.homeChannels && !settingsToApply.focusChannels && settingsToApply.channels) {
       setChannelState(settingsToApply.channels);
     }
+    if (settingsToApply.channelLayoutSettings && typeof setChannelSettings === 'function') {
+      setChannelSettings(settingsToApply.channelLayoutSettings);
+    }
   }
   const channelsPatchForPersist = (() => {
     if (!isPresetScopeWithHomeChannels(captureScope)) return settingsToApply.channels;
@@ -189,6 +192,9 @@ export async function applyPresetData(preset) {
         ...(settingsToApply.homeChannels ? { home: settingsToApply.homeChannels } : {}),
         ...(settingsToApply.focusChannels ? { workspaces: settingsToApply.focusChannels } : {}),
       },
+      ...(settingsToApply.channelLayoutSettings
+        ? { settings: settingsToApply.channelLayoutSettings }
+        : {}),
     };
   })();
 

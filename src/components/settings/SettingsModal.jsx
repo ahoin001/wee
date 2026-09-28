@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, m } from 'framer-motion';
@@ -18,6 +18,7 @@ import {
 import SettingsRailTabButton from './SettingsRailTabButton';
 import DevReactProfiler from '../dev/DevReactProfiler';
 import { weeMarkSettingsTab } from '../../utils/weePerformanceMarks';
+import { findOriginElement, readOriginRect } from '../../ui/wee/originRect';
 
 import {
   ChannelsLayoutSettingsTab,
@@ -93,6 +94,21 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
   );
   const hasResults = groupedResults.length > 0;
   const isSearching = searchQuery.trim().length > 0;
+
+  /** Control Settings grows out of (e.g. the ribbon clock). Held through close so it lands back there. */
+  const settingsOriginKey = ui.settingsOriginKey || null;
+  const [originRect, setOriginRect] = useState(null);
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    setOriginRect(settingsOriginKey ? readOriginRect(findOriginElement(settingsOriginKey)) : null);
+  }, [isOpen, settingsOriginKey]);
+
+  const handleExitComplete = useCallback(() => {
+    setOriginRect(null);
+    if (useConsolidatedAppStore.getState().ui.settingsOriginKey) {
+      setUIState({ settingsOriginKey: null });
+    }
+  }, [setUIState]);
 
   useEffect(() => {
     if (isOpen && effectiveInitialTab) {
@@ -314,6 +330,9 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
       showRail
       stableHeight
       panelClassName="min-h-0"
+      originRect={originRect}
+      originMorph={Boolean(originRect)}
+      onExitAnimationComplete={handleExitComplete}
       footerContent={({ handleClose }) => (
         <div className="flex justify-end">
           <WeeButton variant="secondary" onClick={handleClose}>

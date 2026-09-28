@@ -8,7 +8,7 @@ import WToggle from '../../../ui/WToggle';
 const HIDE_BOARD_HINT =
   'When a preset is saved, channels are shown in the screenshot. If you want a clean thumbnail without channels, toggle this on.';
 
-/** "Save current as Look" form — visual-only (shareable). */
+/** "Save current as Look" form. Boards are opt-in and stay on this PC. */
 const PresetsSaveCurrentCard = React.memo(
   ({
     newPresetName,
@@ -21,6 +21,8 @@ const PresetsSaveCurrentCard = React.memo(
     onHideBoardScreenshotChange,
     hideBoardHintDismissed = false,
     onDismissHideBoardHint,
+    includeHomeBoard = false,
+    onIncludeHomeBoardChange,
   }) => (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
@@ -45,8 +47,27 @@ const PresetsSaveCurrentCard = React.memo(
       </div>
 
       <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-        Saves atmosphere across spaces and pages. Your Home and Second Home boards are never replaced.
+        {includeHomeBoard
+          ? 'Saves the look plus Home and Second Home boards — galleries, cinematic motion, and per-channel hover volume. Stays on this PC. Global sounds and Listening Stage are not included.'
+          : 'Saves atmosphere across spaces and pages. Your Home and Second Home boards are never replaced.'}
       </Text>
+
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.55)] px-4 py-3">
+        <div className="min-w-0">
+          <Text variant="body" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
+            Include Home boards
+          </Text>
+          <Text variant="caption" className="!m-0 mt-1 block text-[hsl(var(--text-tertiary))]">
+            Also save channel art, slideshows, and hover sounds. Not shareable.
+          </Text>
+        </div>
+        <WToggle
+          checked={includeHomeBoard}
+          onChange={onIncludeHomeBoardChange}
+          aria-label="Include Home boards in this preset"
+          disabled={isSaving}
+        />
+      </div>
 
       <div className="flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.55)] px-4 py-3">
         <div className="min-w-0">

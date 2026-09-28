@@ -34,12 +34,13 @@ function WeeModalShell({
   onExitAnimationComplete,
   /** Footprint of the control this dialog grows out of. Settings opened from the rail omit this. */
   originRect = null,
-  /** Spring intents for the origin flight. Defaults keep the space-rail clock. */
-  originOpenIntent = 'pillOpen',
-  originCloseIntent = 'pillClose',
-  /** When true, form and face opacity follow morph progress instead of a separate fade. */
-  linkOriginLayers = false,
-  /** Tile face painted on the shell during the flight. */
+  /**
+   * Origin morph: shared originMorph clock, form/face follow morph progress,
+   * and both ends hand off to the real source element. Without it the origin
+   * flight keeps the pillOpen / pillClose clock.
+   */
+  originMorph = false,
+  /** Source face painted on the shell during the flight (originMorph only). */
   face = null,
   /** Small mark beside the title once the form is open. */
   headerLeading = null,
@@ -72,6 +73,7 @@ function WeeModalShell({
   }, [onPanelAnimationComplete]);
   const {
     x, y, scaleX, scaleY, radiusMv, contentOpacity, faceOpacity,
+    shellOpacity, shellBackground,
   } = useOriginFootprintSpring({
     active: useOrigin && allowMount,
     isOpen,
@@ -79,9 +81,9 @@ function WeeModalShell({
     element: shellNode,
     originRect,
     onClosed: finishOriginClose,
-    openIntent: originOpenIntent,
-    closeIntent: originCloseIntent,
-    linkLayers: linkOriginLayers,
+    openIntent: originMorph ? 'originMorphOpen' : 'pillOpen',
+    closeIntent: originMorph ? 'originMorphClose' : 'pillClose',
+    morph: originMorph,
   });
 
   const backdropVariants = useMemo(
@@ -148,13 +150,17 @@ function WeeModalShell({
                 scaleY,
                 borderRadius: radiusMv,
                 transformOrigin: 'center center',
+                ...(originMorph ? {
+                  opacity: shellOpacity,
+                  backgroundColor: shellBackground,
+                } : {}),
               } : undefined}
               variants={useOrigin ? undefined : panelVariants}
               initial={useOrigin ? false : 'closed'}
               animate={useOrigin ? undefined : (isOpen ? 'open' : 'closed')}
               onAnimationComplete={useOrigin ? undefined : onPanelAnimationComplete}
             >
-              {useOrigin && face ? (
+              {useOrigin && originMorph && face ? (
                 <MotionDiv
                   className="pointer-events-none absolute inset-0"
                   style={{ opacity: faceOpacity }}
@@ -233,9 +239,7 @@ WeeModalShell.propTypes = {
     height: PropTypes.number,
     radius: PropTypes.number,
   }),
-  originOpenIntent: PropTypes.string,
-  originCloseIntent: PropTypes.string,
-  linkOriginLayers: PropTypes.bool,
+  originMorph: PropTypes.bool,
   face: PropTypes.node,
   headerLeading: PropTypes.node,
 };
@@ -251,9 +255,7 @@ WeeModalShell.defaultProps = {
   stableHeight: false,
   onExitAnimationComplete: undefined,
   originRect: null,
-  originOpenIntent: 'pillOpen',
-  originCloseIntent: 'pillClose',
-  linkOriginLayers: false,
+  originMorph: false,
   face: null,
   headerLeading: null,
 };

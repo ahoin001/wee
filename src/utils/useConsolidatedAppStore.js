@@ -867,9 +867,11 @@ useConsolidatedAppStore = create(
         // Actions
         actions: {
           // App actions
-          setAppState: (updates) => set((state) => ({
-            app: { ...state.app, ...updates }
-          })),
+          setAppState: (updates) =>
+            set((state) => {
+              const app = { ...state.app, ...updates };
+              return shallowEqualObjects(state.app, app) ? state : { app };
+            }),
 
           // UI actions
           setUIState: (updates) => {
@@ -884,9 +886,8 @@ useConsolidatedAppStore = create(
               ) {
                 touchedNowPlayingPrefs = true;
               }
-              return {
-                ui: { ...state.ui, ...resolvedUpdates },
-              };
+              const ui = { ...state.ui, ...resolvedUpdates };
+              return shallowEqualObjects(state.ui, ui) ? state : { ui };
             });
             if (touchedNowPlayingPrefs) {
               queueMicrotask(() => {
@@ -898,14 +899,18 @@ useConsolidatedAppStore = create(
           },
 
           // Ribbon actions
-          setRibbonState: (updates) => set((state) => ({
-            ribbon: { ...state.ribbon, ...updates }
-          })),
+          setRibbonState: (updates) =>
+            set((state) => {
+              const ribbon = { ...state.ribbon, ...updates };
+              return shallowEqualObjects(state.ribbon, ribbon) ? state : { ribbon };
+            }),
 
           // Wallpaper actions
-          setWallpaperState: (updates) => set((state) => ({
-            wallpaper: { ...state.wallpaper, ...updates }
-          })),
+          setWallpaperState: (updates) =>
+            set((state) => {
+              const wallpaper = { ...state.wallpaper, ...updates };
+              return shallowEqualObjects(state.wallpaper, wallpaper) ? state : { wallpaper };
+            }),
 
           // Overlay actions
           setOverlayState: (updates) => set((state) => ({
@@ -1360,9 +1365,14 @@ useConsolidatedAppStore = create(
             })),
 
           setSystemMediaState: (updates) => {
-            set((state) => ({
-              systemMedia: { ...state.systemMedia, ...updates },
-            }));
+            let changed = false;
+            set((state) => {
+              const systemMedia = { ...state.systemMedia, ...updates };
+              if (shallowEqualObjects(state.systemMedia, systemMedia)) return state;
+              changed = true;
+              return { systemMedia };
+            });
+            if (!changed) return;
             queueMicrotask(() => {
               import('./reconcileNowPlaying')
                 .then((m) => m.reconcileNowPlaying())

@@ -121,11 +121,6 @@
   transition: transform 0.08s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Hide the source tile while the shell is carrying its face. Layout stays for remeasure. */
-.channel.channel--origin-flight {
-  visibility: hidden;
-}
-
 .channel.wii-mode-tile.channel--launch-press {
   transform: scale(0.96);
 }

@@ -53,6 +53,7 @@ test('normalizePresetRecord retains explicit home channels for profile-scoped pr
       homeChannels: {
         configuredChannels: { 2: { appId: 'steam' } },
       },
+      channelLayoutSettings: { kenBurnsEnabled: true },
       soundLibrary: { foo: 'bar' },
     },
   });
@@ -63,6 +64,7 @@ test('normalizePresetRecord retains explicit home channels for profile-scoped pr
   assert.deepEqual(normalized.data.homeChannels, {
     configuredChannels: { 2: { appId: 'steam' } },
   });
+  assert.deepEqual(normalized.data.channelLayoutSettings, { kenBurnsEnabled: true });
   assert.ok(!('soundLibrary' in normalized.data));
 });
 
@@ -74,6 +76,7 @@ test('toVisualOnlyPreset strips home channels and marks shareable', () => {
       wallpaper: { url: 'https://cdn.example.com/w2.jpg' },
       homeChannels: { configuredChannels: { 1: { appId: 'x' } } },
       focusChannels: { configuredChannels: { 2: { appId: 'y' } } },
+      channelLayoutSettings: { kenBurnsEnabled: true },
     },
   });
 
@@ -83,6 +86,7 @@ test('toVisualOnlyPreset strips home channels and marks shareable', () => {
   assert.equal(visualPreset.shareable, true);
   assert.ok(!('homeChannels' in visualPreset.data));
   assert.ok(!('focusChannels' in visualPreset.data));
+  assert.ok(!('channelLayoutSettings' in visualPreset.data));
 });
 
 test('normalizePresetRecord retains focus board and punched slots', () => {

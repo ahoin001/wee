@@ -29,6 +29,7 @@ export function toVisualOnlyPreset(preset) {
   const data = stripLegacyPresetKeys(presetWithId.data && typeof presetWithId.data === 'object' ? { ...presetWithId.data } : {});
   delete data.homeChannels;
   delete data.focusChannels;
+  delete data.channelLayoutSettings;
   return {
     ...presetWithId,
     captureScope: PRESET_SCOPE_VISUAL,

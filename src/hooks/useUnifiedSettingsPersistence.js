@@ -78,18 +78,16 @@ export const useUnifiedSettingsPersistence = () => {
       }
     };
 
+    // Ticks only arm the debounce; the snapshot build + deep compare run once per burst.
     const handlePersistTick = () => {
-      // Only build/compare when one of the persisted slice references has
-      // actually changed (shallow equality across top-level slices).
-      const state = useConsolidatedAppStore.getState();
-      if (!state.app?.startupHydrationCommitted) return;
-      const snapshot = buildSettingsSnapshotFromStore(state);
-      if (isEqual(snapshot, lastSnapshotRef.current)) return;
-      lastSnapshotRef.current = snapshot;
-
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         timerRef.current = null;
+        const state = useConsolidatedAppStore.getState();
+        if (!state.app?.startupHydrationCommitted) return;
+        const snapshot = buildSettingsSnapshotFromStore(state);
+        if (isEqual(snapshot, lastSnapshotRef.current)) return;
+        lastSnapshotRef.current = snapshot;
         saveUnifiedSettingsSnapshot(snapshot).catch((error) => {
           console.error('[UnifiedSettingsPersistence] Failed to persist settings:', error);
         });
@@ -100,6 +98,8 @@ export const useUnifiedSettingsPersistence = () => {
     const attachPersist = () => {
       if (persistAttachedRef.current) return;
       persistAttachedRef.current = true;
+      // Seed with the just-hydrated snapshot so an unchanged boot never writes.
+      lastSnapshotRef.current = buildSettingsSnapshotFromStore(useConsolidatedAppStore.getState());
       unsubscribePersist = useConsolidatedAppStore.subscribe(
         selectPersistedSlices,
         handlePersistTick,

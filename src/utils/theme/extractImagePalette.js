@@ -3,19 +3,87 @@
  * Outputs hex for applyPrimaryAccentFromHex; rgb strings for Spotify UI compat.
  */
 
-import {
-  ALBUM_ART_TEXT_ON_DARK,
-  ALBUM_ART_TEXT_ON_DARK_SECONDARY,
-  ALBUM_ART_TEXT_ON_LIGHT,
-  ALBUM_ART_TEXT_ON_LIGHT_SECONDARY,
-} from '../../design/albumArtContrastColors.js';
 import { rgbToHslComponents } from './applyPrimaryAccentFromHex.js';
+import { paletteFromPixels, paletteSampleSize, rgbComponentsToHex } from './imagePaletteCore.js';
 
-export function rgbComponentsToHex(r, g, b) {
-  const clamp = (n) => Math.max(0, Math.min(255, Math.round(n)));
-  return `#${[clamp(r), clamp(g), clamp(b)]
-    .map((n) => n.toString(16).padStart(2, '0'))
-    .join('')}`;
+export { rgbComponentsToHex };
+
+const WORKER_TIMEOUT_MS = 6000;
+/** null = untested, false = unavailable (fallback forever this session). */
+let paletteWorker = null;
+let paletteWorkerAvailable = null;
+let paletteRequestSeq = 0;
+const pendingPaletteRequests = new Map();
+
+function settlePending(id, value) {
+  const pending = pendingPaletteRequests.get(id);
+  if (!pending) return;
+  pendingPaletteRequests.delete(id);
+  window.clearTimeout(pending.timer);
+  pending.resolve(value);
+}
+
+function getPaletteWorker() {
+  if (paletteWorkerAvailable === false) return null;
+  if (paletteWorker) return paletteWorker;
+  if (
+    typeof Worker === 'undefined' ||
+    typeof OffscreenCanvas === 'undefined' ||
+    typeof createImageBitmap !== 'function'
+  ) {
+    paletteWorkerAvailable = false;
+    return null;
+  }
+  try {
+    paletteWorker = new Worker(new URL('./imagePalette.worker.js', import.meta.url), {
+      type: 'module',
+    });
+    paletteWorker.onmessage = (event) => {
+      const { id, ok, result } = event.data || {};
+      settlePending(id, ok ? { ok: true, result } : { ok: false });
+    };
+    paletteWorker.onerror = () => {
+      paletteWorkerAvailable = false;
+      paletteWorker?.terminate();
+      paletteWorker = null;
+      [...pendingPaletteRequests.keys()].forEach((id) => settlePending(id, { ok: false }));
+    };
+    paletteWorkerAvailable = true;
+    return paletteWorker;
+  } catch {
+    paletteWorkerAvailable = false;
+    return null;
+  }
+}
+
+/**
+ * Off-thread path: downscale via createImageBitmap, transfer to the worker for pixel work.
+ * Resolves `{ ok: false }` when the caller should use the main-thread canvas fallback.
+ */
+async function paletteViaWorker(img) {
+  const worker = getPaletteWorker();
+  if (!worker) return { ok: false };
+  let bitmap;
+  try {
+    const { width, height } = paletteSampleSize(img.naturalWidth || img.width, img.naturalHeight || img.height);
+    bitmap = await createImageBitmap(img, {
+      resizeWidth: width,
+      resizeHeight: height,
+      resizeQuality: 'medium',
+    });
+  } catch {
+    return { ok: false };
+  }
+  const id = ++paletteRequestSeq;
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => settlePending(id, { ok: false }), WORKER_TIMEOUT_MS);
+    pendingPaletteRequests.set(id, { resolve, timer });
+    try {
+      worker.postMessage({ id, bitmap }, [bitmap]);
+    } catch {
+      settlePending(id, { ok: false });
+    }
+  });
 }
 
 export function colorStringToHex(color) {
@@ -27,14 +95,6 @@ export function colorStringToHex(color) {
     return rgbComponentsToHex(Number(rgbMatch[1]), Number(rgbMatch[2]), Number(rgbMatch[3]));
   }
   return null;
-}
-
-function rgbToCss(r, g, b) {
-  return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-}
-
-function quantizeKey(r, g, b) {
-  return `${r >> 4},${g >> 4},${b >> 4}`;
 }
 
 /**
@@ -87,14 +147,16 @@ export function extractImagePalette(imageUrl) {
       }
       if (!img) return null;
 
+      const viaWorker = await paletteViaWorker(img);
+      if (viaWorker.ok) return viaWorker.result;
+
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return null;
 
-      const maxSize = 160;
-      const scale = Math.min(maxSize / img.width, maxSize / img.height) || 1;
-      canvas.width = Math.max(1, Math.round(img.width * scale));
-      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const sample = paletteSampleSize(img.width, img.height);
+      canvas.width = sample.width;
+      canvas.height = sample.height;
 
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
@@ -114,126 +176,7 @@ export function extractImagePalette(imageUrl) {
         }
       }
 
-      const data = imageData.data;
-      const buckets = new Map();
-      // Denser sample than wallpaper path — album art is smaller and more saturated.
-      const step = 3;
-
-      for (let i = 0; i < data.length; i += step * 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const a = data[i + 3];
-        const sum = r + g + b;
-        if (a <= 128 || sum <= 80 || sum >= 720) continue;
-
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        const chroma = max - min;
-        if (chroma < 12 && sum > 140 && sum < 620) continue;
-
-        const key = quantizeKey(r, g, b);
-        const prev = buckets.get(key);
-        const weight = 1 + chroma / 64;
-        if (prev) {
-          prev.count += weight;
-          prev.r += r * weight;
-          prev.g += g * weight;
-          prev.b += b * weight;
-        } else {
-          buckets.set(key, { count: weight, r: r * weight, g: g * weight, b: b * weight });
-        }
-      }
-
-      if (buckets.size === 0) return null;
-
-      const ranked = [...buckets.values()]
-        .map((bucket) => ({
-          count: bucket.count,
-          r: Math.round(bucket.r / bucket.count),
-          g: Math.round(bucket.g / bucket.count),
-          b: Math.round(bucket.b / bucket.count),
-        }))
-        .sort((a, b) => b.count - a.count);
-
-      const boost = 1.22;
-      const avg = ranked[0];
-      const primaryR = Math.min(255, Math.round(avg.r * boost));
-      const primaryG = Math.min(255, Math.round(avg.g * boost));
-      const primaryB = Math.min(255, Math.round(avg.b * boost));
-
-      let secondarySrc = ranked[1] || ranked[0];
-      for (const candidate of ranked.slice(1, 6)) {
-        const dr = candidate.r - avg.r;
-        const dg = candidate.g - avg.g;
-        const db = candidate.b - avg.b;
-        if (dr * dr + dg * dg + db * db > 2800) {
-          secondarySrc = candidate;
-          break;
-        }
-      }
-      const secondaryR = Math.max(0, Math.min(255, Math.round(secondarySrc.r * 0.92)));
-      const secondaryG = Math.max(0, Math.min(255, Math.round(secondarySrc.g * 0.92)));
-      const secondaryB = Math.max(0, Math.min(255, Math.round(secondarySrc.b * 0.92)));
-
-      const accentR = Math.min(255, Math.round(primaryR * 0.65 + secondaryR * 0.35 + 28));
-      const accentG = Math.min(255, Math.round(primaryG * 0.65 + secondaryG * 0.35 + 28));
-      const accentB = Math.min(255, Math.round(primaryB * 0.65 + secondaryB * 0.35 + 28));
-
-      const surfaceR = Math.min(255, Math.round(primaryR * 0.5 + 72));
-      const surfaceG = Math.min(255, Math.round(primaryG * 0.5 + 72));
-      const surfaceB = Math.min(255, Math.round(primaryB * 0.5 + 72));
-
-      const brightness = (primaryR * 299 + primaryG * 587 + primaryB * 114) / 1000;
-      const textColor =
-        brightness > 148 ? ALBUM_ART_TEXT_ON_LIGHT : ALBUM_ART_TEXT_ON_DARK;
-      const textSecondaryColor =
-        brightness > 148
-          ? ALBUM_ART_TEXT_ON_LIGHT_SECONDARY
-          : ALBUM_ART_TEXT_ON_DARK_SECONDARY;
-
-      const seedHex = rgbComponentsToHex(primaryR, primaryG, primaryB);
-      const seeds = [];
-      const seen = new Set([seedHex]);
-      for (const candidate of ranked.slice(0, 8)) {
-        const hex = rgbComponentsToHex(
-          Math.min(255, Math.round(candidate.r * boost)),
-          Math.min(255, Math.round(candidate.g * boost)),
-          Math.min(255, Math.round(candidate.b * boost))
-        );
-        if (seen.has(hex)) continue;
-        seen.add(hex);
-        seeds.push(hex);
-        if (seeds.length >= 5) break;
-      }
-
-      const gradient = `linear-gradient(135deg, 
-              rgba(${primaryR}, ${primaryG}, ${primaryB}, 1) 0%, 
-              rgba(${Math.max(0, primaryR - 60)}, ${Math.max(0, primaryG - 60)}, ${Math.max(0, primaryB - 60)}, 0.95) 30%,
-              rgba(${Math.max(0, primaryR - 120)}, ${Math.max(0, primaryG - 120)}, ${Math.max(0, primaryB - 120)}, 0.9) 70%,
-              rgba(${Math.max(0, primaryR - 180)}, ${Math.max(0, primaryG - 180)}, ${Math.max(0, primaryB - 180)}, 0.85) 100%)`;
-
-      const blurredBackground = `linear-gradient(135deg, 
-              rgba(${primaryR}, ${primaryG}, ${primaryB}, 0.8) 0%, 
-              rgba(${Math.max(0, primaryR - 40)}, ${Math.max(0, primaryG - 40)}, ${Math.max(0, primaryB - 40)}, 0.6) 100%)`;
-
-      return {
-        seedHex,
-        seeds,
-        palette: {
-          primary: seedHex,
-          secondary: rgbComponentsToHex(secondaryR, secondaryG, secondaryB),
-          accent: rgbComponentsToHex(accentR, accentG, accentB),
-          surfaceHint: rgbComponentsToHex(surfaceR, surfaceG, surfaceB),
-          primaryRgb: rgbToCss(primaryR, primaryG, primaryB),
-          secondaryRgb: rgbToCss(secondaryR, secondaryG, secondaryB),
-          accentRgb: rgbToCss(accentR, accentG, accentB),
-          text: textColor,
-          textSecondary: textSecondaryColor,
-        },
-        gradient,
-        blurredBackground,
-      };
+      return paletteFromPixels(imageData.data);
     } catch (error) {
       console.error('[extractImagePalette] Failed to extract colors:', error);
       return null;

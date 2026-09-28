@@ -46,21 +46,20 @@ export const WEE_SPRINGS = {
     mass: 1,
   },
   /**
-   * Channel tile → settings dialog. Near-critical, no bounce, ~2/3s settle.
-   * Longer than pillOpen because the travel is a tile into a full dialog.
-   * Do not use this for the space rail, hub controls, or Now Playing.
+   * Channel tile → settings dialog. Near-critical, no bounce, short enough to
+   * read the shape change without dragging. Not the space-rail clock.
    */
-  channelMorphOpen: {
+  originMorphOpen: {
     type: 'spring',
-    stiffness: 90,
-    damping: 22,
-    mass: 1.3,
+    stiffness: 150,
+    damping: 26,
+    mass: 1,
   },
-  channelMorphClose: {
+  originMorphClose: {
     type: 'spring',
-    stiffness: 84,
-    damping: 22,
-    mass: 1.4,
+    stiffness: 150,
+    damping: 26,
+    mass: 1,
   },
   pillFloor: {
     type: 'spring',
@@ -221,8 +220,8 @@ export const WEE_MOTION_INTENTS = Object.freeze({
   popover: 'pillOpen',
   pillOpen: 'pillOpen',
   pillClose: 'pillClose',
-  channelMorphOpen: 'channelMorphOpen',
-  channelMorphClose: 'channelMorphClose',
+  originMorphOpen: 'originMorphOpen',
+  originMorphClose: 'originMorphClose',
   channelDrag: 'channelDragOverlay',
   channelDrop: 'channelDropCelebrate',
   channelPageFlip: 'channelPageFlip',
@@ -248,8 +247,8 @@ const REDUCED_MOTION_BY_INTENT = Object.freeze({
   statusPill: { duration: 0.14 },
   pillOpen: { duration: 0.15 },
   pillClose: { duration: 0.15 },
-  channelMorphOpen: { duration: 0.15 },
-  channelMorphClose: { duration: 0.15 },
+  originMorphOpen: { duration: 0.15 },
+  originMorphClose: { duration: 0.15 },
   channelDrag: { duration: 0.14 },
   channelDrop: { duration: 0.14 },
   channelPageFlip: { duration: 0.01 },

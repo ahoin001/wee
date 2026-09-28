@@ -140,15 +140,14 @@ function App() {
     glassShineOpacity,
     ribbonButtonConfigs,
     presetsButtonConfig,
-    wallpaper,
     enabled,
     effect,
     intensity,
     speed,
     wind,
     gravity,
-    floatingWidgets,
-    dock,
+    adminPanelVisible,
+    performanceMonitorVisible,
     activeSpaceId,
     spaceOrder,
     mediaHubEnabled,
@@ -186,15 +185,14 @@ function App() {
       glassShineOpacity: state.ribbon.glassShineOpacity,
       ribbonButtonConfigs: state.ribbon.ribbonButtonConfigs,
       presetsButtonConfig: state.ribbon.presetsButtonConfig,
-      wallpaper: state.wallpaper,
       enabled: state.overlay.enabled,
       effect: state.overlay.effect,
       intensity: state.overlay.intensity,
       speed: state.overlay.speed,
       wind: state.overlay.wind,
       gravity: state.overlay.gravity,
-      floatingWidgets: state.floatingWidgets,
-      dock: state.dock,
+      adminPanelVisible: Boolean(state.floatingWidgets.adminPanel?.visible),
+      performanceMonitorVisible: Boolean(state.floatingWidgets.performanceMonitor?.visible),
       activeSpaceId: state.spaces.activeSpaceId,
       spaceOrder: state.spaces.order,
       mediaHubEnabled: state.spaces.mediaHubEnabled === true,
@@ -238,30 +236,10 @@ function App() {
   useUnifiedSettingsPersistence();
   useWallpaperDataFileSync();
 
-  useEffect(() => {
-    if (IS_DEV) {
-      console.log('[App] Floating widgets state:', {
-        adminPanel: floatingWidgets.adminPanel.visible,
-        performanceMonitor: floatingWidgets.performanceMonitor.visible
-      });
-    }
-  }, [floatingWidgets]);
-
-  
-  // Debug: Monitor dock state changes
-  useEffect(() => {
-    if (IS_DEV) {
-      console.log('[App] Dock state changed:', {
-        glassEnabled: dock?.glassEnabled,
-        dockScale: dock?.dockScale,
-      });
-    }
-  }, [dock?.glassEnabled, dock?.dockScale]);
-
   // Debug: expose helpers for remaining floating widgets
   useEffect(() => {
     window.showAllWidgets = () => {
-      const { actions } = useConsolidatedAppStore.getState();
+      const { actions, floatingWidgets } = useConsolidatedAppStore.getState();
       actions.setFloatingWidgetsState({
         adminPanel: { ...floatingWidgets.adminPanel, visible: true },
         performanceMonitor: { ...floatingWidgets.performanceMonitor, visible: true }
@@ -272,7 +250,7 @@ function App() {
     return () => {
       delete window.showAllWidgets;
     };
-  }, [floatingWidgets]);
+  }, []);
 
   // Actions from consolidated store
   const { setUIState, setRibbonState, setDockState, setSpacesState } = useConsolidatedAppStore(
@@ -449,8 +427,8 @@ function App() {
   const idle1Reached = useStartupPhase('idle1');
   const enableDeferredMounts = useStartupPhase('idle2');
   const idle3Reached = useStartupPhase('idle3');
-  const adminPanelWidgetGate = useFloatingWidgetMountGate(floatingWidgets.adminPanel.visible);
-  const performanceMonitorGate = useFloatingWidgetMountGate(floatingWidgets.performanceMonitor.visible);
+  const adminPanelWidgetGate = useFloatingWidgetMountGate(adminPanelVisible);
+  const performanceMonitorGate = useFloatingWidgetMountGate(performanceMonitorVisible);
   const settingsPrefetchPromiseRef = useRef(null);
   const [settingsActionMenuMounted, setSettingsActionMenuMounted] = useState(false);
   /** Sticky: the settings tree mounts on first open (idle2 only prefetches the chunk). */
@@ -529,7 +507,6 @@ function App() {
       .then(({ registerDevDebugBindings }) => {
         cleanup = registerDevDebugBindings({
           openDevTools,
-          wallpaper,
           isCycling,
           cycleToNextWallpaper,
         });
@@ -541,7 +518,7 @@ function App() {
     return () => {
       cleanup();
     };
-  }, [openDevTools, wallpaper, isCycling, cycleToNextWallpaper]);
+  }, [openDevTools, isCycling, cycleToNextWallpaper]);
 
   useAppInitialization();
   useNowPlayingSources();
@@ -944,7 +921,7 @@ function App() {
         <Suspense fallback={null}>
           {enableDeferredMounts && adminPanelWidgetGate.shouldMount ? (
             <LazyAdminPanelWidget
-              isVisible={floatingWidgets.adminPanel.visible}
+              isVisible={adminPanelVisible}
               onExitAnimationComplete={adminPanelWidgetGate.onExitAnimationComplete}
               onClose={() => {
                 const { actions } = useConsolidatedAppStore.getState();
@@ -955,7 +932,7 @@ function App() {
 
           {IS_DEV && enableDeferredMounts && performanceMonitorGate.shouldMount ? (
             <LazyPerformanceMonitor
-              isVisible={floatingWidgets.performanceMonitor.visible}
+              isVisible={performanceMonitorVisible}
               onClose={() => {
                 const { actions } = useConsolidatedAppStore.getState();
                 actions.togglePerformanceMonitorWidget();

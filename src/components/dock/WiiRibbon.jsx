@@ -22,6 +22,7 @@ import { extractColorsFromAlbumArt } from '../../utils/extractColorsFromAlbumArt
 import { loadUnifiedSettingsSnapshot, saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { logError } from '../../utils/logger';
 import { getTintedIconUrl, parseColorToRgb } from '../../utils/iconTinting';
+import { useStartupPhase } from '../../hooks/useStartupPhase';
 import isEqual from 'fast-deep-equal';
 import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
@@ -273,6 +274,7 @@ const WiiRibbonComponent = ({
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
   const [ribbonOriginRect, setRibbonOriginRect] = useState(null);
   const [showPresetsButtonModal, setShowPresetsButtonModal] = useState(false);
+  const [presetsOriginRect, setPresetsOriginRect] = useState(null);
   /** Keep WeeModalShell mounted through close animation (see Channel.jsx + onExitAnimationComplete). */
   const [primaryActionsModalMounted, setPrimaryActionsModalMounted] = useState(false);
   const [presetsButtonModalMounted, setPresetsButtonModalMounted] = useState(false);
@@ -429,10 +431,11 @@ const WiiRibbonComponent = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // Open settings modal with time tab active
-    setUIState({ 
-      showSettingsModal: true, 
-      settingsActiveTab: 'time'
+    // Open settings modal with time tab active, growing out of the clock
+    setUIState({
+      showSettingsModal: true,
+      settingsActiveTab: 'time',
+      settingsOriginKey: 'ribbon-clock',
     });
   };
 
@@ -471,6 +474,7 @@ const WiiRibbonComponent = ({
   const handlePresetsButtonContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    setPresetsOriginRect(readOriginRect(e.currentTarget));
     setShowPresetsButtonModal(true);
   };
 
@@ -509,12 +513,15 @@ const WiiRibbonComponent = ({
 
 
 
-  // Generate tinted images for buttons with adaptive color enabled
+  // Generate tinted images for buttons with adaptive color enabled (canvas work → startup idle1).
+  const iconTintReady = useStartupPhase('idle1');
   useEffect(() => {
+    if (!iconTintReady) return undefined;
     // Only run if we have button configs loaded
     if (!buttonConfigs || buttonConfigs.length === 0) {
-      return;
+      return undefined;
     }
+    let cancelled = false;
 
     const generateTintedImages = async () => {
       // Determine which color to use for tinting: Spotify accent if available, otherwise ribbon glow color
@@ -552,19 +559,26 @@ const WiiRibbonComponent = ({
         }
       }
       
-      // Process each unique icon (memoized per url+color — see iconTinting.js)
+      // Process each unique icon (memoized per url+color — see iconTinting.js); commit once.
+      const nextTinted = {};
       for (const iconUrl of iconsToTint) {
         try {
-          const tintedUrl = await getTintedIconUrl(iconUrl, rgbColor);
-          setTintedImages(prev => ({ ...prev, [iconUrl]: tintedUrl }));
+          nextTinted[iconUrl] = await getTintedIconUrl(iconUrl, rgbColor);
         } catch (error) {
           logError('WiiRibbon', 'Error tinting image', error);
         }
+        if (cancelled) return;
+      }
+      if (!cancelled && Object.keys(nextTinted).length > 0) {
+        setTintedImages((prev) => ({ ...prev, ...nextTinted }));
       }
     };
 
     generateTintedImages();
-  }, [propRibbonGlowColor, ribbonGlowColor, buttonConfigs, presetsButtonConfig, spotifyOwnsRibbonPaint, spotifyColors]);
+    return () => {
+      cancelled = true;
+    };
+  }, [iconTintReady, propRibbonGlowColor, ribbonGlowColor, buttonConfigs, presetsButtonConfig, spotifyOwnsRibbonPaint, spotifyColors]);
 
   // Handle Escape key to close admin menu
   useEffect(() => {
@@ -815,6 +829,7 @@ const WiiRibbonComponent = ({
               {enableTimePill ? (
                 <div 
                   className="liquid-glass liquid-glass-shell"
+                  data-wee-origin-key="ribbon-clock"
                   onContextMenu={handleTimeContextMenu}
                 >
                   {/* ::before pseudo-element equivalent - subtle inner shadow */}
@@ -854,6 +869,7 @@ const WiiRibbonComponent = ({
                 /* Simple time display without pill when disabled */
                 <div 
                   onContextMenu={handleTimeContextMenu}
+                  data-wee-origin-key="ribbon-clock"
                   className="ribbon-time-simple-wrap"
                 >
                   <div 
@@ -900,7 +916,7 @@ const WiiRibbonComponent = ({
                 spotifySecondaryColor={spotifyColors?.secondary || null}
                 spotifyTextColor={spotifyOwnsRibbonPaint && spotifyColors?.text ? spotifyColors.text : null}
                 spotifyAccentColor={spotifyOwnsRibbonPaint && spotifyColors?.accent ? spotifyColors.accent : null}
-                className={`${activeButton === 'left' ? 'ribbon-wii-btn-press ml-4' : 'ribbon-wii-btn-idle ml-4'}${showPrimaryActionsModal && activeButtonIndex === 0 ? ' wii-style-button--origin-hold' : ''}`}
+                className={`${activeButton === 'left' ? 'ribbon-wii-btn-press ml-4' : 'ribbon-wii-btn-idle ml-4'}`}
               >
                 {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
                   <span 
@@ -1050,7 +1066,7 @@ const WiiRibbonComponent = ({
                     spotifySecondaryColor={spotifyColors?.secondary || null}
                     spotifyTextColor={spotifyOwnsRibbonPaint && spotifyColors?.text ? spotifyColors.text : null}
                     spotifyAccentColor={spotifyOwnsRibbonPaint && spotifyColors?.accent ? spotifyColors.accent : null}
-                    className={`${activeButton === 'right' ? 'ribbon-wii-btn-press' : 'ribbon-wii-btn-idle'}${showPrimaryActionsModal && activeButtonIndex === 1 ? ' wii-style-button--origin-hold' : ''}`}
+                    className={`${activeButton === 'right' ? 'ribbon-wii-btn-press' : 'ribbon-wii-btn-idle'}`}
                   >
                       {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
                         <span 
@@ -1158,6 +1174,7 @@ const WiiRibbonComponent = ({
             config={presetsButtonConfig}
             buttonIndex="presets"
             title="Customize Presets Button"
+            originRect={presetsOriginRect}
             ribbonGlowColor={ribbonGlowColor}
             onExitAnimationComplete={handlePresetsButtonExitComplete}
           />

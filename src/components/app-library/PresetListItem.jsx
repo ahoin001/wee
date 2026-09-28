@@ -111,7 +111,7 @@ const PresetListItem = React.forwardRef(function PresetListItem(
 
   const thumb = preset.thumbnailDataUrl;
   const scopeLabel =
-    preset.captureScope === 'visual+homeChannels' ? 'Look + Home (this PC)' : 'Look · shareable';
+    preset.captureScope === 'visual+homeChannels' ? 'Look + boards (this PC)' : 'Look · shareable';
 
   const menuItems = (
     <>

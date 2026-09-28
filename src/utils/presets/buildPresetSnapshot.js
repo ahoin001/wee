@@ -9,6 +9,46 @@ import { wallpaperEntryUrlKey } from '../wallpaperShape';
 import { resolveDisplayWallpaperUrl } from '../theme/resolveEffectiveAccent';
 import { PRESET_SCOPE_VISUAL, PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS } from './presetScopes';
 
+/**
+ * Board-pack layout feel. Sounds and Immersive Sound Mode stay machine prefs.
+ * Gallery / artMotion / hover volume live on the cloned channel boards.
+ */
+const CHANNEL_LAYOUT_SETTING_KEYS = [
+  'kenBurnsEnabled',
+  'kenBurnsMode',
+  'kenBurnsHoverScale',
+  'kenBurnsAutoplayScale',
+  'kenBurnsSlideshowScale',
+  'kenBurnsHoverDuration',
+  'kenBurnsAutoplayDuration',
+  'kenBurnsSlideshowDuration',
+  'kenBurnsCrossfadeDuration',
+  'kenBurnsForGifs',
+  'kenBurnsForVideos',
+  'kenBurnsEasing',
+  'kenBurnsAnimationType',
+  'kenBurnsCrossfadeReturn',
+  'kenBurnsTransitionType',
+  'animatedOnHover',
+  'adaptiveEmptyChannels',
+  'idleExperienceMode',
+  'autoFadeTimeout',
+  'idleAttractDelaySec',
+  'idleAnimationEnabled',
+  'idleAnimationTypes',
+  'idleAnimationInterval',
+  'idleDelightsWhileActive',
+];
+
+function pickChannelLayoutSettings(settings) {
+  if (!settings || typeof settings !== 'object') return null;
+  const out = {};
+  for (const key of CHANNEL_LAYOUT_SETTING_KEYS) {
+    if (settings[key] !== undefined) out[key] = settings[key];
+  }
+  return Object.keys(out).length > 0 ? cloneSafe(out, null) : null;
+}
+
 function cloneSafe(value, fallback = null) {
   try {
     return JSON.parse(JSON.stringify(value));
@@ -175,6 +215,8 @@ export function buildPresetDataFromStore({
   if (captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS) {
     presetData.homeChannels = cloneChannelBoardForPreset(channels?.dataBySpace?.home);
     presetData.focusChannels = cloneChannelBoardForPreset(getSecondaryChannelSpaceData(channels));
+    const layoutSettings = pickChannelLayoutSettings(channels?.settings);
+    if (layoutSettings) presetData.channelLayoutSettings = layoutSettings;
   }
 
   if (includeSpotifyPalette && spotify?.extractedColors) {
