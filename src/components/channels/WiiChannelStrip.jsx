@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { LayoutGroup, m } from 'framer-motion';
 import { Plus } from 'lucide-react';
@@ -14,6 +14,8 @@ import {
   getSlotSpan,
   getStripGridPlacement,
 } from '../../utils/homeGridOccupancy';
+import { useStartupPhase } from '../../hooks/useStartupPhase';
+import { StripCellOnCurrentPageContext } from './stripCellVisibility';
 
 /**
  * Continuous channel strip: uniform gap grid, pan via Framer (`channelPageFlip`).
@@ -104,6 +106,35 @@ const WiiChannelStrip = ({
     () => buildOccupancyMap(slots, safeColumns, safeRows, totalChannelSlots),
     [slots, safeColumns, safeRows, totalChannelSlots]
   );
+
+  // Page window: current page always; neighbors (peek + flip targets) from startup idle1.
+  // The page being flipped away from stays mounted until the pan settles (no blank slide-out).
+  const neighborsReady = useStartupPhase('idle1');
+  const previousPageRef = useRef(safeCurrentPage);
+  const flipSourcePageRef = useRef(null);
+  if (previousPageRef.current !== safeCurrentPage) {
+    flipSourcePageRef.current = previousPageRef.current;
+    previousPageRef.current = safeCurrentPage;
+  }
+  if (!isAnimating && !isWrap) flipSourcePageRef.current = null;
+  const flipSourcePage = flipSourcePageRef.current;
+
+  const mountedPages = useMemo(() => {
+    const pages = new Set([safeCurrentPage]);
+    if (neighborsReady) {
+      if (safeCurrentPage > 0) pages.add(safeCurrentPage - 1);
+      if (safeCurrentPage < safeTotalPages - 1) pages.add(safeCurrentPage + 1);
+    }
+    if (flipSourcePage != null && flipSourcePage < safeTotalPages) pages.add(flipSourcePage);
+    return pages;
+  }, [safeCurrentPage, safeTotalPages, neighborsReady, flipSourcePage]);
+
+  /** Only the page shown when this entrance began staggers in; later pages mount already open. */
+  const entranceRef = useRef({ key: hubEntranceKey, page: safeCurrentPage });
+  if (entranceRef.current.key !== hubEntranceKey) {
+    entranceRef.current = { key: hubEntranceKey, page: safeCurrentPage };
+  }
+  const entrancePage = entranceRef.current.page;
 
   // Columns are page×N tracks; rows are SHARED across every page in the continuous strip.
   // Tracks stay capped (`min(1fr, --wii-row-max)`) so 2–3 row × 3/4-col boards keep classic
@@ -225,6 +256,18 @@ const WiiChannelStrip = ({
             };
 
             const hidden = isSlotHidden(slotMeta, i);
+            const pageIndex = Math.floor(i / channelsPerPage);
+
+            if (!hidden && !mountedPages.has(pageIndex)) {
+              return (
+                <div
+                  key={`tile-idle-${hubEntranceKey}-${i}`}
+                  className="wii-strip-channel-cell"
+                  style={gridStyle}
+                  aria-hidden
+                />
+              );
+            }
 
             if (hidden) {
               if (canPunch || canRestoreHole) {
@@ -263,7 +306,7 @@ const WiiChannelStrip = ({
                 style={gridStyle}
                 variants={tileItemVariants}
                 custom={idxInPage}
-                initial="closed"
+                initial={pageIndex === entrancePage ? 'closed' : false}
                 animate={tileAnimate}
                 onClickCapture={
                   canPunch
@@ -276,7 +319,9 @@ const WiiChannelStrip = ({
                   canPunch || canSelect ? handleArrangeContextMenuCapture(i) : undefined
                 }
               >
-                {renderChannelAtIndex(i, true)}
+                <StripCellOnCurrentPageContext.Provider value={pageIndex === safeCurrentPage}>
+                  {renderChannelAtIndex(i, true)}
+                </StripCellOnCurrentPageContext.Provider>
               </m.div>
             );
           })}

@@ -125,6 +125,8 @@ function registerAllIpcHandlers({
     exec,
     shell,
     getMainWindow,
+    fsPromises,
+    uwpCacheFile: path.join(app.getPath('userData'), 'data', 'uwp-apps-cache.json'),
   });
 
   registerCaptureHandlers({

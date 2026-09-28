@@ -188,8 +188,15 @@ export function useChannelInteractions({
     stopChannelHover({ fadeMs: CHANNEL_HOVER_FADE_OUT_MS });
   }, [clearHoverDwell]);
 
-  const handleClick = useCallback(async () => {
+  const handleClick = useCallback(async (event) => {
     if (interactionsLocked) return;
+
+    const isChannelEmpty = (!effectiveConfig || !effectiveConfig.path) && !effectiveConfig?.isApiChannel;
+    if (isChannelEmpty) {
+      const origin = event?.currentTarget ? readOriginRect(event.currentTarget) : null;
+      openChannelModal(origin);
+      return;
+    }
 
     if (!api) {
       showLaunchError?.({
@@ -204,7 +211,6 @@ export function useChannelInteractions({
     clearHoverDwell();
     stopChannelHover({ fadeMs: 0 });
     stopSfx({ fadeMs: 0 });
-    const isChannelEmpty = !effectiveConfig || !effectiveConfig.path;
 
     if (effectiveConfig?.isApiChannel && effectiveConfig?.apiConfig?.selectedApi) {
       await playChannelClick();
@@ -220,10 +226,6 @@ export function useChannelInteractions({
       return;
     }
 
-    if (isChannelEmpty) {
-      handleConfigure();
-      return;
-    }
     if (!effectivePath) return;
 
     await playChannelClick();
@@ -294,7 +296,7 @@ export function useChannelInteractions({
     launchLabel,
     effectiveAsAdmin,
     effectivePerformancePauseMode,
-    handleConfigure,
+    openChannelModal,
     clearHoverDwell,
   ]);
 

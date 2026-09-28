@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { Dialog } from '@headlessui/react';
@@ -34,6 +34,15 @@ function WeeModalShell({
   onExitAnimationComplete,
   /** Footprint of the control this dialog grows out of. Settings opened from the rail omit this. */
   originRect = null,
+  /** Spring intents for the origin flight. Defaults keep the space-rail clock. */
+  originOpenIntent = 'pillOpen',
+  originCloseIntent = 'pillClose',
+  /** When true, form and face opacity follow morph progress instead of a separate fade. */
+  linkOriginLayers = false,
+  /** Tile face painted on the shell during the flight. */
+  face = null,
+  /** Small mark beside the title once the form is open. */
+  headerLeading = null,
 }) {
   const { backdropTransition } = useWeeMotion();
   const { modalSpringTransitions, gooey } = useMotionFeedback();
@@ -53,17 +62,26 @@ function WeeModalShell({
 
   const useOrigin = Boolean(originRect && modalSpringTransitions && isOriginRectOnScreen(originRect));
   const shellRef = useRef(null);
+  const [shellNode, setShellNode] = useState(null);
+  const assignShell = useCallback((node) => {
+    shellRef.current = node;
+    setShellNode(node);
+  }, []);
   const finishOriginClose = useCallback(() => {
     onPanelAnimationComplete('closed');
   }, [onPanelAnimationComplete]);
   const {
-    x, y, scaleX, scaleY, radiusMv, contentOpacity,
+    x, y, scaleX, scaleY, radiusMv, contentOpacity, faceOpacity,
   } = useOriginFootprintSpring({
     active: useOrigin && allowMount,
     isOpen,
     elementRef: shellRef,
+    element: shellNode,
     originRect,
     onClosed: finishOriginClose,
+    openIntent: originOpenIntent,
+    closeIntent: originCloseIntent,
+    linkLayers: linkOriginLayers,
   });
 
   const backdropVariants = useMemo(
@@ -114,9 +132,9 @@ function WeeModalShell({
           >
             {/* Plain Panel + inner motion.div: Framer completion/variants on a real motion node (not Headless `as={motion}`). */}
             <MotionDiv
-              ref={shellRef}
+              ref={assignShell}
               className={`
-                  flex w-full min-h-0 overflow-hidden flex-col
+                  relative flex w-full min-h-0 overflow-hidden flex-col
                   ${heightClass}
                   border-[length:var(--wee-modal-shell-border)] border-[hsl(var(--wee-border-outer))]
                   ${useOrigin ? '' : 'rounded-[var(--wee-radius-shell)]'} bg-[hsl(var(--wee-surface-shell))]
@@ -136,6 +154,15 @@ function WeeModalShell({
               animate={useOrigin ? undefined : (isOpen ? 'open' : 'closed')}
               onAnimationComplete={useOrigin ? undefined : onPanelAnimationComplete}
             >
+              {useOrigin && face ? (
+                <MotionDiv
+                  className="pointer-events-none absolute inset-0"
+                  style={{ opacity: faceOpacity }}
+                  aria-hidden
+                >
+                  {face}
+                </MotionDiv>
+              ) : null}
               <MotionDiv
                 className={`flex min-h-0 min-w-0 flex-1 ${panelLayoutClass}`}
                 style={useOrigin ? { opacity: contentOpacity } : undefined}
@@ -146,12 +173,15 @@ function WeeModalShell({
                 className={`flex min-h-0 min-w-0 flex-1 flex-col bg-[hsl(var(--wee-surface-shell))] ${panelClassName}`}
               >
                 <div className="flex shrink-0 items-center justify-between border-b-2 border-[hsl(var(--border-primary)/0.35)] px-8 py-6 md:px-10 md:py-7">
-                  <Dialog.Title
-                    as="h2"
-                    className="m-0 max-w-[85%] text-left text-2xl font-black uppercase italic tracking-tighter text-[hsl(var(--wee-text-header))] md:text-3xl"
-                  >
-                    {headerTitle}
-                  </Dialog.Title>
+                  <div className="flex min-w-0 items-center gap-4">
+                    {headerLeading}
+                    <Dialog.Title
+                      as="h2"
+                      className="m-0 max-w-[85%] text-left text-2xl font-black uppercase italic tracking-tighter text-[hsl(var(--wee-text-header))] md:text-3xl"
+                    >
+                      {headerTitle}
+                    </Dialog.Title>
+                  </div>
                   <button
                     type="button"
                     onClick={handleClose}
@@ -203,6 +233,11 @@ WeeModalShell.propTypes = {
     height: PropTypes.number,
     radius: PropTypes.number,
   }),
+  originOpenIntent: PropTypes.string,
+  originCloseIntent: PropTypes.string,
+  linkOriginLayers: PropTypes.bool,
+  face: PropTypes.node,
+  headerLeading: PropTypes.node,
 };
 
 WeeModalShell.defaultProps = {
@@ -216,6 +251,11 @@ WeeModalShell.defaultProps = {
   stableHeight: false,
   onExitAnimationComplete: undefined,
   originRect: null,
+  originOpenIntent: 'pillOpen',
+  originCloseIntent: 'pillClose',
+  linkOriginLayers: false,
+  face: null,
+  headerLeading: null,
 };
 
 export default WeeModalShell;

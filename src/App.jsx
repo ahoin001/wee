@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Suspense, useMemo } from 'react';
-import { m } from 'framer-motion';
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 // Side effect: registers every cache domain with the cache registry (refresh actions).
 import './utils/cacheDomains';
@@ -46,7 +45,11 @@ import { onSpaceRailTransitionSettled } from './utils/spaceRailVisibility';
 import { collectPrioritizedWarmMediaUrls } from './utils/mediaWarmCache';
 import { scheduleMediaWarmPass } from './utils/mediaWarmScheduler';
 import { IS_DEV } from './utils/env';
-import { useAppActivity } from './hooks/useAppActivity';
+import {
+  useSplashHandoff,
+  useStartupPhase,
+  useStartupPhaseOrchestrator,
+} from './hooks/useStartupPhase';
 import { useSessionPowerSync } from './hooks/useSessionPowerSync';
 import { useSystemPowerSync } from './hooks/useSystemPowerSync';
 import { useWeeMotion } from './design/weeMotion';
@@ -108,7 +111,6 @@ function App() {
   const {
     appReady,
     isLoading,
-    splashFading,
     isDarkMode,
     useCustomCursor,
     cursorStyle,
@@ -155,7 +157,6 @@ function App() {
     useShallow((state) => ({
       appReady: state.app.appReady,
       isLoading: state.app.isLoading,
-      splashFading: state.app.splashFading,
       isDarkMode: state.ui.isDarkMode,
       useCustomCursor: state.ui.useCustomCursor,
       cursorStyle: state.ui.cursorStyle,
@@ -209,10 +210,9 @@ function App() {
   const timeFont = useTimeFont();
 
   /** Must run before any early return (splash) — same hook order every render. */
-  const { isAppActive } = useAppActivity();
   useSessionPowerSync();
   useSystemPowerSync();
-  const { reducedMotion, pillOpen } = useWeeMotion();
+  const { reducedMotion } = useWeeMotion();
 
 
   // Cycling engine lives in IsolatedWallpaperBackground; indicator reads store + bridge.
@@ -444,12 +444,19 @@ function App() {
   const isGameHubSpace = activeSpaceId === 'gamehub';
   const isMediaHubSpace = activeSpaceId === 'mediahub';
   const isHubSpace = isGameHubSpace || isMediaHubSpace;
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const enableDeferredMounts = appReady && hasUserInteracted;
+  useStartupPhaseOrchestrator();
+  const { splashMounted, splashFading, onSplashFadeOutEnd } = useSplashHandoff();
+  const idle1Reached = useStartupPhase('idle1');
+  const enableDeferredMounts = useStartupPhase('idle2');
+  const idle3Reached = useStartupPhase('idle3');
   const adminPanelWidgetGate = useFloatingWidgetMountGate(floatingWidgets.adminPanel.visible);
   const performanceMonitorGate = useFloatingWidgetMountGate(floatingWidgets.performanceMonitor.visible);
   const settingsPrefetchPromiseRef = useRef(null);
   const [settingsActionMenuMounted, setSettingsActionMenuMounted] = useState(false);
+  /** Sticky: the settings tree mounts on first open (idle2 only prefetches the chunk). */
+  const settingsModalEverOpenedRef = useRef(false);
+  if (showSettingsModal) settingsModalEverOpenedRef.current = true;
+  const settingsModalMounted = settingsModalEverOpenedRef.current;
   const prefetchSettingsUI = useCallback(() => {
     if (!settingsPrefetchPromiseRef.current) {
       settingsPrefetchPromiseRef.current = weeMeasureAsync('settings-bundle-prefetch', () =>
@@ -543,44 +550,24 @@ function App() {
   useFullscreenEffect({ appReady, startInFullscreen });
 
   useEffect(() => {
-    if (!appReady) return;
-    const { appLibraryManager: mgr } = useConsolidatedAppStore.getState();
-    mgr?.scheduleAppLibraryBackgroundPrefetch?.();
-    const state = useConsolidatedAppStore.getState();
-    const { high, normal } = collectPrioritizedWarmMediaUrls(state);
+    if (!idle1Reached) return;
+    const { high, normal } = collectPrioritizedWarmMediaUrls(useConsolidatedAppStore.getState());
     if (high.length > 0) {
       scheduleMediaWarmPass({ urls: high, max: 24, chunkSize: 6, tier: 'high' });
     }
     if (normal.length > 0) {
       scheduleMediaWarmPass({ urls: normal, max: 40, chunkSize: 6, tier: 'normal' });
     }
-  }, [appReady]);
+  }, [idle1Reached]);
 
   useEffect(() => {
-    if (!appReady || hasUserInteracted || typeof window === 'undefined') return undefined;
-    const markInteracted = () => setHasUserInteracted(true);
-    window.addEventListener('pointerdown', markInteracted, { passive: true, once: true });
-    window.addEventListener('keydown', markInteracted, { once: true });
-    const idleFallback = window.setTimeout(() => setHasUserInteracted(true), 3500);
-    return () => {
-      window.removeEventListener('pointerdown', markInteracted);
-      window.removeEventListener('keydown', markInteracted);
-      window.clearTimeout(idleFallback);
-    };
-  }, [appReady, hasUserInteracted]);
-
-  useEffect(() => {
-    if (!enableDeferredMounts || typeof window === 'undefined') return undefined;
-    const run = () => {
-      prefetchSettingsUI();
-    };
-    if (typeof window.requestIdleCallback === 'function') {
-      const id = window.requestIdleCallback(run, { timeout: 3000 });
-      return () => window.cancelIdleCallback?.(id);
-    }
-    const timer = window.setTimeout(run, 700);
-    return () => window.clearTimeout(timer);
+    if (enableDeferredMounts) prefetchSettingsUI();
   }, [enableDeferredMounts, prefetchSettingsUI]);
+
+  useEffect(() => {
+    if (!idle3Reached) return;
+    useConsolidatedAppStore.getState().appLibraryManager?.scheduleAppLibraryBackgroundPrefetch?.();
+  }, [idle3Reached]);
 
   // Optimized handlers using consolidated store with useCallback
   const openSettingsModal = useCallback(() => {
@@ -656,9 +643,12 @@ function App() {
     }
   }, [showSettingsModal]);
 
-  // Render splash screen only if not ready
+  // Splash is the first root child in both branches so the same instance fades over the shell.
+  const splash = splashMounted ? (
+    <SplashScreen fadingOut={splashFading} onFadeOutEnd={onSplashFadeOutEnd} />
+  ) : null;
   if (!appReady || isLoading) {
-    return <SplashScreen fadingOut={splashFading} />;
+    return <>{splash}</>;
   }
 
   // Validate required data
@@ -667,18 +657,15 @@ function App() {
   }
 
   const mainContentClassName = `main-content space-world space-world--${activeSpaceId}`;
-  const shouldPlayStartupGooey =
-    appReady && isAppActive && !lowPowerMode && !reducedMotion;
 
   return (
+    <>
+    {splash}
     <ErrorBoundary>
       <LaunchFeedbackProvider>
-      <m.div
+      <div
         className={`app-container ${useCustomCursor ? 'custom-cursor' : ''} ${isDarkMode ? 'dark-mode' : ''} ${lowPowerMode ? 'low-power-mode' : ''}`}
         onContextMenu={handleGlobalRightClick}
-        initial={shouldPlayStartupGooey ? { opacity: 0, scale: 0.992, y: 10 } : false}
-        animate={shouldPlayStartupGooey ? { opacity: 1, scale: 1, y: 0 } : undefined}
-        transition={shouldPlayStartupGooey ? pillOpen : undefined}
       >
         {/* Isolated Wallpaper Background - Completely separate from main app */}
         <IsolatedWallpaperBackground shellTransitionMs={spaceWorldDurationMs} />
@@ -893,8 +880,8 @@ function App() {
                 </div>
         )}
 
-        {/* Modals */}
-        {(showSettingsModal || enableDeferredMounts) ? (
+        {/* Modals — mount on first open, then stay mounted so close animations always play. */}
+        {settingsModalMounted ? (
           <Suspense fallback={null}>
             <LazySettingsModal
               isOpen={showSettingsModal}
@@ -979,9 +966,10 @@ function App() {
         </Suspense>
 
 
-      </m.div>
+      </div>
       </LaunchFeedbackProvider>
     </ErrorBoundary>
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 /**
  * System command IPC — allowlisted Windows tools / power actions only.
  */
+const path = require('path');
 const { runExclusive } = require('../services/scan-serialization.cjs');
 const { execFile } = require('child_process');
 const { isTrustedMainWindowEvent } = require('./trusted-renderer-utils.cjs');
@@ -12,12 +13,46 @@ const {
   splitCommand,
 } = require('../../shared/admin-command-allowlist.cjs');
 
+/** Store app list changes rarely; PowerShell `Get-StartApps` is slow (hundreds of ms+). */
+const UWP_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+
 function registerSystemCommandHandlers({
   ipcMain,
   exec,
   shell,
   getMainWindow,
+  fsPromises = null,
+  uwpCacheFile = null,
 }) {
+  let uwpMemory = null;
+  let uwpDiskLoaded = false;
+  let uwpRefresh = null;
+
+  async function loadUwpDiskCache() {
+    if (uwpDiskLoaded) return uwpMemory;
+    uwpDiskLoaded = true;
+    if (!fsPromises || !uwpCacheFile) return uwpMemory;
+    try {
+      const parsed = JSON.parse(await fsPromises.readFile(uwpCacheFile, 'utf-8'));
+      if (parsed && Array.isArray(parsed.apps)) {
+        uwpMemory = { apps: parsed.apps, updatedAt: Number(parsed.updatedAt) || 0 };
+      }
+    } catch {
+      /* no cache yet */
+    }
+    return uwpMemory;
+  }
+
+  async function persistUwpCache(entry) {
+    if (!fsPromises || !uwpCacheFile) return;
+    try {
+      await fsPromises.mkdir(path.dirname(uwpCacheFile), { recursive: true });
+      await fsPromises.writeFile(uwpCacheFile, JSON.stringify(entry), 'utf-8');
+    } catch (error) {
+      console.warn('[uwp] Cache persist failed:', error?.message || error);
+    }
+  }
+
   function isLikelyStoreAppId(appId) {
     if (!appId || typeof appId !== 'string') return false;
     const normalized = appId.trim();
@@ -132,25 +167,49 @@ function registerSystemCommandHandlers({
     if (!isTrustedMainWindowEvent(event, getMainWindow)) {
       return { success: false, apps: [], error: 'Untrusted renderer' };
     }
-    return runExclusive(async () => {
-      const listed = await runPowerShellJson(
-        'Get-StartApps | Select-Object Name, AppID | ConvertTo-Json -Compress'
-      );
-      if (!listed.success) {
-        return { success: false, apps: [], error: listed.error || 'Failed to list Store apps' };
-      }
-      try {
-        const apps = await ensureAppleMusicStoreApp(listed.apps);
-        return { success: true, apps, error: null };
-      } catch (error) {
-        return {
-          success: true,
-          apps: listed.apps,
-          error: error?.message || null,
-        };
-      }
-    });
+    const cached = uwpMemory || (await loadUwpDiskCache());
+    if (cached) {
+      // Stale-while-revalidate: answer from cache; refresh in the scan queue when past TTL.
+      if (Date.now() - cached.updatedAt > UWP_CACHE_TTL_MS) refreshUwpApps();
+      return { success: true, apps: cached.apps, error: null };
+    }
+    return refreshUwpApps();
   });
+
+  function refreshUwpApps() {
+    if (uwpRefresh) return uwpRefresh;
+    uwpRefresh = runExclusive(listUwpAppsUncached)
+      .then((result) => {
+        if (result.success) {
+          uwpMemory = { apps: result.apps, updatedAt: Date.now() };
+          void persistUwpCache(uwpMemory);
+        }
+        return result;
+      })
+      .finally(() => {
+        uwpRefresh = null;
+      });
+    return uwpRefresh;
+  }
+
+  async function listUwpAppsUncached() {
+    const listed = await runPowerShellJson(
+      'Get-StartApps | Select-Object Name, AppID | ConvertTo-Json -Compress'
+    );
+    if (!listed.success) {
+      return { success: false, apps: [], error: listed.error || 'Failed to list Store apps' };
+    }
+    try {
+      const apps = await ensureAppleMusicStoreApp(listed.apps);
+      return { success: true, apps, error: null };
+    } catch (error) {
+      return {
+        success: true,
+        apps: listed.apps,
+        error: error?.message || null,
+      };
+    }
+  }
 
   ipcMain.handle('uwp:launch', async (event, appId) => {
     if (!isTrustedMainWindowEvent(event, getMainWindow)) {

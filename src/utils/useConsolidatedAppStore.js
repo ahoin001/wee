@@ -155,6 +155,8 @@ useConsolidatedAppStore = create(
           isLoading: true,
           /** True once startup IPC hydration has been committed to the store. */
           startupHydrationCommitted: false,
+          /** Transient startup orchestrator phase — see `utils/startup/startupPhases.js`. */
+          startupPhase: 'boot',
           splashFading: false,
           appReady: false,
           hasInitialized: false,
@@ -2072,6 +2074,7 @@ useConsolidatedAppStore = create(
               isInitialized: false,
               isLoading: true,
               startupHydrationCommitted: false,
+              startupPhase: 'boot',
               splashFading: false,
               appReady: false,
               hasInitialized: false,

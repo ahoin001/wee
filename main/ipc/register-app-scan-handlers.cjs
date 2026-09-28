@@ -1,8 +1,11 @@
-const { runExclusive } = require('../services/scan-serialization.cjs');
+const { runExclusive, runCacheFirst } = require('../services/scan-serialization.cjs');
 
 function registerAppScanHandlers({ ipcMain, appScanService }) {
   ipcMain.handle('apps:getInstalled', async () => {
-    return runExclusive(() => appScanService.getInstalledApps());
+    return runCacheFirst(
+      () => appScanService.peekInstalledApps(),
+      () => appScanService.getInstalledApps()
+    );
   });
 
   ipcMain.handle('apps:rescanInstalled', async () => {

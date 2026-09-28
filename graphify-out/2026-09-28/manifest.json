@@ -275,8 +275,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/hooks/useChannelInteractions.js": {
-    "mtime": 1790614741.414678,
-    "ast_hash": "536de6da314f6a81afb20305f1c1292b",
+    "mtime": 1790614445.9686582,
+    "ast_hash": "7ef946c10cd645182f9ec9ba1c0c0040",
     "semantic_hash": ""
   },
   "src/components/channels/hooks/useChannelMediaPreview.js": {
@@ -820,8 +820,8 @@
     "semantic_hash": ""
   },
   "src/components/widgets/common/FloatingWidgetPresence.jsx": {
-    "mtime": 1790614813.6639338,
-    "ast_hash": "7db0282cc36a94e4b7219320e796e062",
+    "mtime": 1790533243.8858833,
+    "ast_hash": "0cc3e0e31e45c01b8feba462578bcbdc",
     "semantic_hash": ""
   },
   "src/components/widgets/common/GooeyFloatingPanel.jsx": {
@@ -1145,8 +1145,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeModalShell.jsx": {
-    "mtime": 1790614802.8156395,
-    "ast_hash": "d6966576199193120922762149455078",
+    "mtime": 1790614479.778124,
+    "ast_hash": "818d755ce875edc36341718a1b8f2aaf",
     "semantic_hash": ""
   },
   "src/ui/wee/WeePillFloorShadow.jsx": {
@@ -2625,8 +2625,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useOriginFootprintSpring.js": {
-    "mtime": 1790614936.025532,
-    "ast_hash": "eaa05b94ca6beb16ee463aa88bca8708",
+    "mtime": 1790614466.753575,
+    "ast_hash": "a26b6a819e7f12af848a14b0def0bafb",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGlyphField.jsx": {

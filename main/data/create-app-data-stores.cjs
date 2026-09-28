@@ -5,7 +5,7 @@ function createAppDataStores({
   mediaIndex,
 }) {
   const { wallpapersFile, channelsFile, unifiedDataFile } = paths;
-  const { hydrateWallpapersFromIndex, backfillWallpaperIndex } = mediaIndex;
+  const { hydrateWallpapersFromIndex, backfillWallpaperIndex, ensureMediaIndexReady } = mediaIndex;
 
   const SETTINGS_SCHEMA_VERSION = 2;
   const isObjectRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -92,19 +92,8 @@ function createAppDataStores({
         }
         const data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8'));
         const originalSavedWallpapers = Array.isArray(data.savedWallpapers) ? data.savedWallpapers : [];
-        const hydratedWallpapers = hydrateWallpapersFromIndex(originalSavedWallpapers);
-        const backfilledWallpapers = hasBackfilledWallpaperIndex
-          ? hydratedWallpapers
-          : await backfillWallpaperIndex(hydratedWallpapers);
-        hasBackfilledWallpaperIndex = true;
-        data.savedWallpapers = backfilledWallpapers;
-        if (JSON.stringify(originalSavedWallpapers) !== JSON.stringify(backfilledWallpapers)) {
-          await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
-          const nextStats = await fsPromises.stat(wallpapersFile);
-          wallpapersCache = data;
-          wallpapersCacheMtimeMs = Number(nextStats.mtimeMs || 0);
-          return data;
-        }
+        // Fast read: index hydration only when SQLite is already open; Sharp backfill is deferred.
+        data.savedWallpapers = hydrateWallpapersFromIndex(originalSavedWallpapers);
         wallpapersCache = data;
         wallpapersCacheMtimeMs = mtimeMs;
         return data;
@@ -181,6 +170,45 @@ function createAppDataStores({
     },
   };
 
+  /**
+   * One-shot idle job (after first window reveal): open the media index and
+   * generate missing thumbnails/metadata, persisting only when something changed.
+   */
+  let backfillPromise = null;
+  const runDeferredWallpaperIndexBackfill = () => {
+    if (hasBackfilledWallpaperIndex) return Promise.resolve(false);
+    if (backfillPromise) return backfillPromise;
+    backfillPromise = (async () => {
+      try {
+        await ensureDataDir();
+        ensureMediaIndexReady();
+        const readMtimeMs = Number((await fsPromises.stat(wallpapersFile)).mtimeMs || 0);
+        const data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8'));
+        const original = Array.isArray(data.savedWallpapers) ? data.savedWallpapers : [];
+        const next = await backfillWallpaperIndex(hydrateWallpapersFromIndex(original));
+        hasBackfilledWallpaperIndex = true;
+        wallpapersCache = null;
+        wallpapersCacheMtimeMs = null;
+        if (JSON.stringify(original) === JSON.stringify(next)) return false;
+        const latestMtimeMs = Number((await fsPromises.stat(wallpapersFile)).mtimeMs || 0);
+        // A save landed mid-backfill: keep it; later reads hydrate from the index.
+        if (latestMtimeMs !== readMtimeMs) return false;
+        data.savedWallpapers = next;
+        await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+        return true;
+      } catch (error) {
+        if (error?.code !== 'ENOENT') {
+          console.warn('[WALLPAPER] Deferred index backfill failed:', error?.message || error);
+        }
+        hasBackfilledWallpaperIndex = true;
+        return false;
+      } finally {
+        backfillPromise = null;
+      }
+    })();
+    return backfillPromise;
+  };
+
   const channelsData = {
     async get() {
       await ensureDataDir();
@@ -200,17 +228,36 @@ function createAppDataStores({
     },
   };
 
+  /** mtime-keyed parse cache: window creation + first renderer `data.get` share one read. */
+  let unifiedCache = null;
+  let unifiedCacheMtimeMs = null;
+
   const unifiedData = {
     async get() {
       await ensureDataDir();
       try {
-        const data = JSON.parse(await fsPromises.readFile(unifiedDataFile, 'utf-8'));
-        const normalizedData = normalizeUnifiedDataShape(data);
-        if (JSON.stringify(normalizedData) !== JSON.stringify(data)) {
-          await fsPromises.writeFile(unifiedDataFile, JSON.stringify(normalizedData, null, 2), 'utf-8');
+        const stats = await fsPromises.stat(unifiedDataFile);
+        const mtimeMs = Number(stats.mtimeMs || 0);
+        if (unifiedCache && unifiedCacheMtimeMs === mtimeMs) {
+          return unifiedCache;
         }
+        const data = JSON.parse(await fsPromises.readFile(unifiedDataFile, 'utf-8'));
+        const schemaCurrent =
+          asObjectRecord(data?.meta).settingsSchemaVersion === SETTINGS_SCHEMA_VERSION;
+        const normalizedData = normalizeUnifiedDataShape(data);
+        if (!schemaCurrent && JSON.stringify(normalizedData) !== JSON.stringify(data)) {
+          await fsPromises.writeFile(unifiedDataFile, JSON.stringify(normalizedData, null, 2), 'utf-8');
+          const nextStats = await fsPromises.stat(unifiedDataFile);
+          unifiedCache = normalizedData;
+          unifiedCacheMtimeMs = Number(nextStats.mtimeMs || 0);
+          return normalizedData;
+        }
+        unifiedCache = normalizedData;
+        unifiedCacheMtimeMs = mtimeMs;
         return normalizedData;
       } catch (error) {
+        unifiedCache = null;
+        unifiedCacheMtimeMs = null;
         const normalizedDefaults = normalizeUnifiedDataShape({
           settings: {
             appearance: {
@@ -372,6 +419,8 @@ function createAppDataStores({
       await ensureDataDir();
       const normalizedData = normalizeUnifiedDataShape(data);
       await fsPromises.writeFile(unifiedDataFile, JSON.stringify(normalizedData, null, 2), 'utf-8');
+      unifiedCache = null;
+      unifiedCacheMtimeMs = null;
     },
     async reset() {
       const defaultData = await this.get();
@@ -399,6 +448,7 @@ function createAppDataStores({
 
   return {
     wallpapersData,
+    runDeferredWallpaperIndexBackfill,
     channelsData,
     unifiedData,
     getUnifiedIcons,

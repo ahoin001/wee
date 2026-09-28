@@ -1,4 +1,4 @@
-const { runExclusive } = require('../services/scan-serialization.cjs');
+const { runCacheFirst } = require('../services/scan-serialization.cjs');
 
 function registerGameSourceHandlers({
   ipcMain,
@@ -6,7 +6,10 @@ function registerGameSourceHandlers({
   dialog,
 }) {
   ipcMain.handle('steam:getInstalledGames', async () => {
-    return runExclusive(() => gameSourceService.getInstalledSteamGames());
+    return runCacheFirst(
+      () => gameSourceService.peekInstalledSteamGames(),
+      () => gameSourceService.getInstalledSteamGames()
+    );
   });
 
   ipcMain.handle('detectSteamInstallation', async () => {
@@ -18,7 +21,10 @@ function registerGameSourceHandlers({
   });
 
   ipcMain.handle('scanSteamGames', async (_event, { libraryPaths }) => {
-    return runExclusive(() => gameSourceService.scanSteamGames({ libraryPaths }));
+    return runCacheFirst(
+      () => gameSourceService.peekScanSteamGames({ libraryPaths }),
+      () => gameSourceService.scanSteamGames({ libraryPaths })
+    );
   });
 
   ipcMain.handle('steam:getEnrichedGames', async (_event, { steamId, apiKey } = {}) => {
@@ -34,7 +40,10 @@ function registerGameSourceHandlers({
   });
 
   ipcMain.handle('epic:getInstalledGames', async () => {
-    return runExclusive(() => gameSourceService.getInstalledEpicGames());
+    return runCacheFirst(
+      () => gameSourceService.peekInstalledEpicGames(),
+      () => gameSourceService.getInstalledEpicGames()
+    );
   });
 
   ipcMain.handle('steam:pickLibraryFolder', async () => {

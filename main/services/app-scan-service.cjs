@@ -1,3 +1,5 @@
+const { runExclusive } = require('./scan-serialization.cjs');
+
 function createAppScanService({
   fs,
   fsPromises,
@@ -110,33 +112,40 @@ function createAppScanService({
     ];
   }
 
-  function iconFromExe(exePath) {
+  const yieldToEventLoop = () => new Promise((resolve) => setImmediate(resolve));
+  const pathExists = (p) =>
+    p ? fsPromises.access(p).then(() => true, () => false) : Promise.resolve(false);
+
+  /** `nativeImage.createFromPath` is synchronous — yield after each extraction. */
+  async function iconFromExe(exePath) {
+    let dataUrl = null;
     try {
       const iconImg = nativeImage.createFromPath(exePath);
-      if (!iconImg.isEmpty()) return iconImg.toDataURL();
+      if (!iconImg.isEmpty()) dataUrl = iconImg.toDataURL();
     } catch {
       /* ignore icon extraction failures */
     }
-    return null;
+    await yieldToEventLoop();
+    return dataUrl;
   }
 
-  function pushAppIfMissing(results, seenPaths, app) {
+  async function pushAppIfMissing(results, seenPaths, app) {
     const normalizedPath = String(app.path || '').trim().toLowerCase();
-    if (!normalizedPath || !fs.existsSync(app.path)) return false;
-    if (seenPaths.has(normalizedPath)) return false;
+    if (!normalizedPath || seenPaths.has(normalizedPath)) return false;
+    if (!(await pathExists(app.path))) return false;
     seenPaths.add(normalizedPath);
     results.push({
       name: app.name,
       path: app.path,
       args: app.args || '',
-      icon: app.icon || iconFromExe(app.path),
+      icon: app.icon || (await iconFromExe(app.path)),
       lnk: app.lnk || null,
     });
     return true;
   }
 
   /** Direct exe probes for apps that frequently lack Start Menu shortcuts. */
-  function probeCommonBrowserPaths(results, seenPaths) {
+  async function probeCommonBrowserPaths(results, seenPaths) {
     const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
     const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
     const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
@@ -168,8 +177,7 @@ function createAppScanService({
 
     for (const browser of browsers) {
       for (const exePath of browser.paths) {
-        if (pushAppIfMissing(results, seenPaths, { name: browser.name, path: exePath })) {
-          console.log(`[scanInstalledApps] Adding probed browser: ${browser.name} -> ${exePath}`);
+        if (await pushAppIfMissing(results, seenPaths, { name: browser.name, path: exePath })) {
           break;
         }
       }
@@ -177,16 +185,14 @@ function createAppScanService({
   }
 
   async function scanInstalledApps() {
-    console.log('[scanInstalledApps] Starting app scan...');
     const shortcutDirs = getShortcutScanDirs();
-    console.log('[scanInstalledApps] Scanning directories:', shortcutDirs);
     const results = [];
     const seenPaths = new Set();
     let lnkProcessed = 0;
     const yieldIfNeeded = async () => {
       lnkProcessed += 1;
-      if (lnkProcessed % 48 === 0) {
-        await new Promise((resolve) => setImmediate(resolve));
+      if (lnkProcessed % 8 === 0) {
+        await yieldToEventLoop();
       }
     };
 
@@ -200,31 +206,26 @@ function createAppScanService({
     ];
 
     for (const app of systemApps) {
-      if (pushAppIfMissing(results, seenPaths, app)) {
-        console.log(`[scanInstalledApps] Adding system app: ${app.name} -> ${app.path}`);
-      } else {
-        console.log(`[scanInstalledApps] System app not found: ${app.name} -> ${app.path}`);
-      }
+      await pushAppIfMissing(results, seenPaths, app);
     }
 
     // Discord: prefer Update.exe --processStart (stable across versioned app-* folders).
     const discordBasePath = path.join(os.homedir(), 'AppData', 'Local', 'Discord');
-    if (fs.existsSync(discordBasePath)) {
+    if (await pathExists(discordBasePath)) {
       try {
         const discordDirs = await fsPromises.readdir(discordBasePath);
         const appDirs = discordDirs.filter((dir) => dir.startsWith('app-')).sort().reverse();
         const discordUpdatePath = path.join(discordBasePath, 'Update.exe');
-        if (fs.existsSync(discordUpdatePath)) {
+        if (await pathExists(discordUpdatePath)) {
           let iconDataUrl = null;
           for (const appDir of appDirs) {
             const discordExePath = path.join(discordBasePath, appDir, 'Discord.exe');
-            if (fs.existsSync(discordExePath)) {
-              iconDataUrl = iconFromExe(discordExePath);
+            if (await pathExists(discordExePath)) {
+              iconDataUrl = await iconFromExe(discordExePath);
               break;
             }
           }
-          console.log(`[scanInstalledApps] Adding Discord: Discord -> ${discordUpdatePath} --processStart Discord.exe`);
-          pushAppIfMissing(results, seenPaths, {
+          await pushAppIfMissing(results, seenPaths, {
             name: 'Discord',
             path: discordUpdatePath,
             args: '--processStart Discord.exe',
@@ -237,7 +238,7 @@ function createAppScanService({
       }
     }
 
-    probeCommonBrowserPaths(results, seenPaths);
+    await probeCommonBrowserPaths(results, seenPaths);
 
     async function scanDir(dir) {
       try {
@@ -252,21 +253,8 @@ function createAppScanService({
             await yieldIfNeeded();
             try {
               const shortcut = await wsQuery(fullPath);
-              let iconDataUrl = null;
-              if (shortcut && shortcut.icon) {
-                try {
-                  let iconPath = shortcut.icon;
-                  if (iconPath.includes(',')) iconPath = iconPath.split(',')[0];
-                  if (fs.existsSync(iconPath)) {
-                    iconDataUrl = iconFromExe(iconPath);
-                  }
-                } catch {}
-              }
-              if (!iconDataUrl && shortcut && shortcut.target && fs.existsSync(shortcut.target)) {
-                iconDataUrl = iconFromExe(shortcut.target);
-              }
-
-              if (shortcut && shortcut.target && fs.existsSync(shortcut.target)) {
+              const targetExists = Boolean(shortcut?.target) && (await pathExists(shortcut.target));
+              if (targetExists) {
                 const appName = path.basename(entry.name, '.lnk');
                 const targetPath = shortcut.target.toLowerCase();
                 const targetBase = path.basename(shortcut.target).toLowerCase();
@@ -280,21 +268,22 @@ function createAppScanService({
                   targetBase === 'helper.exe'
                 );
 
-                if (!isUpdater) {
-                  if (pushAppIfMissing(results, seenPaths, {
+                const normalizedTarget = String(shortcut.target).trim().toLowerCase();
+                if (!isUpdater && !seenPaths.has(normalizedTarget)) {
+                  // Icon extraction only for shortcuts we keep (not duplicates / updaters).
+                  let iconDataUrl = null;
+                  if (shortcut.icon) {
+                    const iconPath = String(shortcut.icon).split(',')[0];
+                    if (await pathExists(iconPath)) iconDataUrl = await iconFromExe(iconPath);
+                  }
+                  await pushAppIfMissing(results, seenPaths, {
                     name: appName,
                     path: shortcut.target,
                     args: shortcut.args || '',
                     icon: iconDataUrl,
                     lnk: fullPath,
-                  })) {
-                    console.log(`[scanInstalledApps] Adding shortcut: ${appName} -> ${shortcut.target}`);
-                  }
-                } else {
-                  console.log(`[scanInstalledApps] Skipping updater: ${appName} -> ${shortcut.target}`);
+                  });
                 }
-              } else if (shortcut && shortcut.target) {
-                console.log(`[scanInstalledApps] Shortcut target not found: ${path.basename(entry.name, '.lnk')} -> ${shortcut.target}`);
               }
             } catch {}
           }
@@ -314,11 +303,27 @@ function createAppScanService({
     };
   }
 
+  /** Synchronous cache hit (no IO) — lets IPC bypass the scan queue. */
+  function peekInstalledApps() {
+    if (appsCache && Date.now() - appsCacheTime < cacheTtlMs) return appsCache;
+    return null;
+  }
+
+  let backgroundRefresh = null;
+  function scheduleBackgroundRescan() {
+    if (backgroundRefresh) return;
+    backgroundRefresh = runExclusive(() => rescanInstalledApps())
+      .catch((error) => {
+        console.warn('[apps:getInstalled] Background rescan failed:', error?.message || error);
+      })
+      .finally(() => {
+        backgroundRefresh = null;
+      });
+  }
+
   async function getInstalledApps() {
-    console.log('[apps:getInstalled] Called');
     const now = Date.now();
     if (appsCache && (now - appsCacheTime < cacheTtlMs)) {
-      console.log('[apps:getInstalled] Using cached apps:', appsCache.length);
       return appsCache;
     }
     await loadPersistedScanSnapshot();
@@ -327,42 +332,38 @@ function createAppScanService({
     if (persistedScanSnapshot?.items?.length) {
       try {
         const quickSnapshot = await buildInstalledAppsQuickSnapshot(shortcutDirs);
-        if (
+        appsCache = persistedScanSnapshot.items;
+        appsCacheTime = now;
+        const fresh =
           quickSnapshot.count === persistedScanSnapshot.count &&
-          quickSnapshot.fingerprint === persistedScanSnapshot.fingerprint
-        ) {
-          appsCache = persistedScanSnapshot.items;
-          appsCacheTime = now;
-          console.log('[apps:getInstalled] Using persisted scan snapshot:', appsCache.length);
-          return appsCache;
-        }
+          quickSnapshot.fingerprint === persistedScanSnapshot.fingerprint;
+        // Stale-while-revalidate: answer from the snapshot now, rescan in the serialized queue.
+        if (!fresh) scheduleBackgroundRescan();
+        return appsCache;
       } catch (error) {
         console.warn('[apps:getInstalled] Quick snapshot check failed, falling back to full scan:', error?.message || error);
       }
     }
 
-    console.log('[apps:getInstalled] Cache miss, scanning apps...');
     const result = await scanInstalledApps();
     const deduped = Array.isArray(result?.apps) ? result.apps : [];
     appsCache = deduped;
     appsCacheTime = now;
     await persistScanSnapshot(deduped, result?.snapshot);
-    console.log('[apps:getInstalled] Returning apps:', deduped.length);
     return deduped;
   }
 
   async function rescanInstalledApps() {
-    console.log('[apps:rescanInstalled] Called - forcing fresh scan');
     const result = await scanInstalledApps();
     const deduped = Array.isArray(result?.apps) ? result.apps : [];
     appsCache = deduped;
     appsCacheTime = Date.now();
     await persistScanSnapshot(deduped, result?.snapshot);
-    console.log('[apps:rescanInstalled] Returning apps:', deduped.length);
     return deduped;
   }
 
   return {
+    peekInstalledApps,
     getInstalledApps,
     rescanInstalledApps,
   };

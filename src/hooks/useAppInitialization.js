@@ -43,9 +43,9 @@ export const useAppInitialization = () => {
         if (cancelled) return;
 
         const unifiedData = await weeMeasureAsync('ipc-unified-data-get', () => electronApi.getUnifiedData());
-        const [wallpaperData] = await Promise.all([
-          weeMeasureAsync('ipc-wallpapers-get', () => electronApi.getWallpapers()),
-        ]);
+        const wallpaperData = unifiedData?.wallpapers
+          ? null
+          : await weeMeasureAsync('ipc-wallpapers-get', () => electronApi.getWallpapers());
 
         const resolvedSettings = normalizeUnifiedSettingsSnapshot(unifiedData?.settings || {});
         const resolvedWallpaperData = unifiedData?.wallpapers || wallpaperData;
@@ -68,6 +68,7 @@ export const useAppInitialization = () => {
             appReady: true,
             isLoading: false,
             startupHydrationCommitted: true,
+            startupPhase: 'shell',
             splashFading: false,
           },
         };
@@ -200,6 +201,7 @@ export const useAppInitialization = () => {
             appReady: true,
             isLoading: false,
             startupHydrationCommitted: true,
+            startupPhase: 'shell',
             splashFading: false,
           });
         }

@@ -8,6 +8,7 @@ import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { useChannelSpaceKey } from '../../contexts/ChannelSpaceContext';
 import { WeeLayoutActiveDisc, WeeTapLayer } from '../../ui/wee';
 import { useRendererMediaPowerState } from '../../hooks/useRendererMediaPowerState';
+import { useStripCellOnCurrentPage } from './stripCellVisibility';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useChannelEffectiveState from './hooks/useChannelEffectiveState';
@@ -125,7 +126,9 @@ const Channel = React.memo(({
     interactionsLocked,
   });
 
-  const { shouldPauseDecorativeVideo } = useRendererMediaPowerState();
+  const { shouldPauseDecorativeVideo: powerPausesVideo } = useRendererMediaPowerState();
+  const onCurrentStripPage = useStripCellOnCurrentPage();
+  const shouldPauseDecorativeVideo = powerPausesVideo || !onCurrentStripPage;
 
   useEffect(() => {
     setImageError(false);
@@ -334,12 +337,13 @@ const Channel = React.memo(({
   };
 
   const holdOriginPress = showChannelModal || channelModalMounted;
+  const originFlightClass = holdOriginPress ? ' channel--origin-flight' : '';
   const channelContent = (
     <MotionDiv
       className={
         effectiveIsEmpty && !effectiveMedia 
-          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${holdOriginPress ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed || holdOriginPress ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}`
+          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${holdOriginPress ? ' channel--launch-press' : ''}${originFlightClass}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed || holdOriginPress ? ' channel--launch-press' : ''}${originFlightClass}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}`
       }
       data-channel-id={id}
       data-gooey-hover-mode={channelGooeyHover.enabled ? channelGooeyHover.mode : undefined}

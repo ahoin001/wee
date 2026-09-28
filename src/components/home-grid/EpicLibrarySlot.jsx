@@ -18,6 +18,7 @@ import {
 } from '../../utils/homeSteamWidgetPrefs';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useActivityInterval } from '../../hooks/useActivityInterval';
+import { useStartupPhase } from '../../hooks/useStartupPhase';
 
 const EMPTY_GAMES = Object.freeze([]);
 const EPIC_TTL_MS = 5 * 60 * 1000;
@@ -113,16 +114,19 @@ function EpicLibrarySlot({
     }
   }, []);
 
+  const widgetIpcReady = useStartupPhase('idle2');
+
   useEffect(() => {
+    if (!widgetIpcReady) return;
     void refresh({ force: false });
-  }, [refresh]);
+  }, [refresh, widgetIpcReady]);
 
   useActivityInterval(
     () => {
       void refresh({ force: true });
     },
     EPIC_TTL_MS,
-    { enabled: true, fireOnResume: true, lowPowerMultiplier: 2 }
+    { enabled: widgetIpcReady, fireOnResume: true, lowPowerMultiplier: 2 }
   );
 
   const handleLaunch = useCallback(

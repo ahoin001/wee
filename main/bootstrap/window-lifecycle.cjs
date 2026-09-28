@@ -8,6 +8,8 @@ function createWindowLifecycle({
   unifiedData,
   appUserModelId,
   appDisplayName,
+  /** Called once per window after it is first shown (post first paint). */
+  onWindowRevealed,
 }) {
   let mainWindow = null;
   let isCurrentlyFullscreen = false;
@@ -214,7 +216,8 @@ function createWindowLifecycle({
       y: Number.isFinite(startBounds.y) ? startBounds.y : undefined,
       minWidth: 900,
       minHeight: 600,
-      show: true,
+      /** Revealed on `ready-to-show` so the first visible frame is already painted. */
+      show: false,
       backgroundColor: '#000000',
       frame: opts.frame === undefined ? !isFrameless : opts.frame,
       fullscreen: shouldStartFullscreen,
@@ -252,8 +255,6 @@ function createWindowLifecycle({
 
     if (isDev) {
       mainWindow.loadURL('http://localhost:5173');
-      openDevToolsSafe();
-      setTimeout(() => openDevToolsSafe({ mode: 'detach' }), 750);
     } else {
       mainWindow.loadFile(path.join(appBasePath, 'dist', 'index.html'));
     }
@@ -275,11 +276,31 @@ function createWindowLifecycle({
     mainWindow.on('move', () => {
       captureWindowedBounds(mainWindow);
     });
+    const createdWindow = mainWindow;
+    let revealed = false;
+    let revealFallback = null;
+    const reveal = () => {
+      if (revealed || !createdWindow || createdWindow.isDestroyed()) return;
+      revealed = true;
+      clearTimeout(revealFallback);
+      if (!createdWindow.isVisible()) createdWindow.show();
+      if (typeof onWindowRevealed === 'function') {
+        try {
+          onWindowRevealed(createdWindow);
+        } catch (error) {
+          console.warn('[WINDOW] onWindowRevealed failed:', error?.message || error);
+        }
+      }
+    };
+    // Safety net: never leave the app invisible if the renderer stalls before first paint.
+    revealFallback = setTimeout(reveal, 5000);
+
     mainWindow.once('ready-to-show', () => {
       isCurrentlyFullscreen = Boolean(shouldStartFullscreen || mainWindow.isFullScreen());
       if (!shouldStartFullscreen) {
         captureWindowedBounds(mainWindow);
       }
+      reveal();
       sendWindowState();
       sendAppWindowActivity();
     });

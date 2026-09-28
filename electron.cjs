@@ -108,6 +108,7 @@ const {
   getWallpaperMetadata,
   hydrateWallpapersFromIndex,
   backfillWallpaperIndex,
+  ensureMediaIndexReady,
 } = mediaIndexService;
 
 async function ensureDataDir() {
@@ -121,6 +122,7 @@ async function ensureDataDir() {
 
 const {
   wallpapersData,
+  runDeferredWallpaperIndexBackfill,
   channelsData,
   unifiedData,
   getUnifiedIcons,
@@ -136,8 +138,12 @@ const {
   mediaIndex: {
     hydrateWallpapersFromIndex,
     backfillWallpaperIndex,
+    ensureMediaIndexReady,
   },
 });
+
+/** Delay after first window reveal before SQLite open + Sharp thumbnail backfill. */
+const DEFERRED_MEDIA_INDEX_DELAY_MS = 6000;
 
 // Sound Management System
 const SOUND_TYPES = ['channelClick', 'channelHover', 'backgroundMusic'];
@@ -215,6 +221,11 @@ const windowLifecycle = createWindowLifecycle({
   unifiedData,
   appUserModelId: APP_USER_MODEL_ID,
   appDisplayName: APP_DISPLAY_NAME,
+  onWindowRevealed: () => {
+    setTimeout(() => {
+      runDeferredWallpaperIndexBackfill().catch(() => {});
+    }, DEFERRED_MEDIA_INDEX_DELAY_MS);
+  },
 });
 const {
   getMainWindow,

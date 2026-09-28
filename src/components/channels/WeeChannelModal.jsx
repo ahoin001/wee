@@ -4,6 +4,7 @@ import { AnimatePresence, m } from 'framer-motion';
 import { MousePointer2, Settings, Sparkles, Zap } from 'lucide-react';
 import { WeeModalShell, WeeModalRail, WeeModalRailItem, WeeModalRailSection } from '../../ui/wee';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
+import ChannelMorphFace from './ChannelMorphFace';
 
 const TabPanel = m.div;
 
@@ -22,6 +23,7 @@ function WeeChannelModal({
   maxWidth = 'min(1400px, 96vw)',
   onExitAnimationComplete,
   originRect = null,
+  faceMedia = null,
 }) {
   const { tabTransition } = useWeeMotion();
 
@@ -100,6 +102,11 @@ function WeeChannelModal({
       showRail
       onExitAnimationComplete={onExitAnimationComplete}
       originRect={originRect}
+      originOpenIntent="channelMorphOpen"
+      originCloseIntent="channelMorphClose"
+      linkOriginLayers
+      face={<ChannelMorphFace media={faceMedia} />}
+      headerLeading={<ChannelMorphFace media={faceMedia} variant="chip" />}
     >
       <AnimatePresence mode="wait">
         <TabPanel
@@ -134,6 +141,11 @@ WeeChannelModal.propTypes = {
     height: PropTypes.number,
     radius: PropTypes.number,
   }),
+  faceMedia: PropTypes.shape({
+    url: PropTypes.string,
+    type: PropTypes.string,
+    loading: PropTypes.bool,
+  }),
 };
 
 WeeChannelModal.defaultProps = {
@@ -142,6 +154,7 @@ WeeChannelModal.defaultProps = {
   maxWidth: 'min(1400px, 96vw)',
   onExitAnimationComplete: undefined,
   originRect: null,
+  faceMedia: null,
 };
 
 export default WeeChannelModal;

@@ -16,6 +16,7 @@ function ChannelTileArtFrame({
   className = '',
   roundedClassName = 'rounded-[16px]',
   autoPlayVideo = true,
+  fill = false,
 }) {
   if (!media?.url) return null;
 
@@ -24,11 +25,14 @@ function ChannelTileArtFrame({
   const isImage = isRasterImageMediaType(type);
   const isVideo = isVideoMediaType(type);
   const isGif = isGifMediaType(type) || /\.gif$/i.test(media.url || '');
+  const frameClass = fill
+    ? `channel-tile-art-frame pointer-events-none absolute inset-0 overflow-hidden ${className}`
+    : `channel-tile-art-frame relative w-full overflow-hidden border-4 border-[hsl(var(--wee-border-outer))] shadow-[var(--shadow-card)] ${roundedClassName} ${className}`;
 
   return (
     <div
-      className={`channel-tile-art-frame relative w-full overflow-hidden border-4 border-[hsl(var(--wee-border-outer))] shadow-[var(--shadow-card)] ${roundedClassName} ${className}`.trim()}
-      style={{ aspectRatio: channelTileAspectRatioCss() }}
+      className={frameClass.trim()}
+      style={fill ? undefined : { aspectRatio: channelTileAspectRatioCss() }}
     >
       {isImage || isGif ? (
         <img
@@ -71,6 +75,7 @@ ChannelTileArtFrame.propTypes = {
   className: PropTypes.string,
   roundedClassName: PropTypes.string,
   autoPlayVideo: PropTypes.bool,
+  fill: PropTypes.bool,
 };
 
 ChannelTileArtFrame.defaultProps = {
@@ -78,6 +83,7 @@ ChannelTileArtFrame.defaultProps = {
   className: '',
   roundedClassName: 'rounded-[16px]',
   autoPlayVideo: true,
+  fill: false,
 };
 
 export default ChannelTileArtFrame;

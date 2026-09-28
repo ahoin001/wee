@@ -12,15 +12,24 @@ function clamp01(value) {
   return Math.min(1, Math.max(0, value));
 }
 
+function smoothstep(edge0, edge1, value) {
+  const t = clamp01((value - edge0) / (edge1 - edge0));
+  return t * t * (3 - 2 * t);
+}
+
+/** 0 at the tile scale, 1 at the resting modal scale. */
+function morphT(scaleXValue, footprint) {
+  const span = 1 - footprint.scaleX;
+  if (Math.abs(span) < 1e-4) return 1;
+  return clamp01((scaleXValue - footprint.scaleX) / span);
+}
+
 /**
  * CSS radius is multiplied by scale. Divide so the painted corner matches
  * the tile at the small end and the modal radius at rest.
  */
 function compensatedCornerRadius(scaleXValue, scaleYValue, footprint) {
-  const span = 1 - footprint.scaleX;
-  const t = Math.abs(span) < 1e-4
-    ? 1
-    : clamp01((scaleXValue - footprint.scaleX) / span);
+  const t = morphT(scaleXValue, footprint);
   const openRadius = footprint.openRadius ?? footprint.radius;
   const visual = footprint.radius + (openRadius - footprint.radius) * t;
   const horizontal = visual / Math.max(scaleXValue, 0.05);
@@ -40,16 +49,22 @@ function resolveLiveOrigin(originRect) {
 
 /**
  * Springs a shell from a control's footprint to its resting box, then back.
- * Same pillOpen / pillClose clock as the space rail. Copy stays hidden until
- * the shell is nearly open, and fades in the first part of the close.
- * The shell fill itself stays opaque for the whole flight.
+ * Defaults to pillOpen / pillClose. Callers can pass a slower intent pair
+ * (channel morph) without changing the space rail or floating widgets.
+ * When linkLayers is set, face and form opacity follow morph progress:
+ * the face is opaque at the tile and the form is opaque at rest.
  */
 export function useOriginFootprintSpring({
   active,
   isOpen,
   elementRef,
+  /** The shell node, once mounted. A ref alone does not re-run this effect. */
+  element = null,
   originRect,
   onClosed,
+  openIntent = 'pillOpen',
+  closeIntent = 'pillClose',
+  linkLayers = false,
 }) {
   const fromRef = useRef(null);
   const x = useMotionValue(0);
@@ -58,24 +73,33 @@ export function useOriginFootprintSpring({
   const scaleY = useMotionValue(1);
   const radiusMv = useMotionValue('64px');
   const contentOpacity = useMotionValue(active ? 0 : 1);
-  const pillOpen = createWeeTransition('pillOpen', { reducedMotion: false });
-  const pillClose = createWeeTransition('pillClose', { reducedMotion: false });
-  const pillOpenRef = useRef(pillOpen);
-  const pillCloseRef = useRef(pillClose);
-  pillOpenRef.current = pillOpen;
-  pillCloseRef.current = pillClose;
+  const faceOpacity = useMotionValue(linkLayers ? 1 : 0);
+  const openIntentRef = useRef(openIntent);
+  const closeIntentRef = useRef(closeIntent);
+  const linkLayersRef = useRef(linkLayers);
+  openIntentRef.current = openIntent;
+  closeIntentRef.current = closeIntent;
+  linkLayersRef.current = linkLayers;
 
   useLayoutEffect(() => {
-    if (!active || !elementRef.current) {
-      if (!active) contentOpacity.set(1);
+    const el = element || elementRef.current;
+    if (!active || !el) {
+      if (!active) {
+        contentOpacity.set(1);
+        faceOpacity.set(0);
+      }
       return undefined;
     }
 
-    const el = elementRef.current;
-    const syncRadius = () => {
+    const syncFromScale = () => {
       const footprint = fromRef.current;
       if (!footprint) return;
-      radiusMv.set(compensatedCornerRadius(scaleX.get(), scaleY.get(), footprint));
+      const scaleXValue = scaleX.get();
+      radiusMv.set(compensatedCornerRadius(scaleXValue, scaleY.get(), footprint));
+      if (!linkLayersRef.current) return;
+      const form = smoothstep(0.35, 0.75, morphT(scaleXValue, footprint));
+      contentOpacity.set(form);
+      faceOpacity.set(1 - form);
     };
 
     if (!isOpen) {
@@ -94,25 +118,30 @@ export function useOriginFootprintSpring({
         };
         fromRef.current = footprint;
       }
-      syncRadius();
+      syncFromScale();
       let cancelled = false;
-      const closeTransition = { ...pillCloseRef.current, velocity: 0 };
+      const closeTransition = {
+        ...createWeeTransition(closeIntentRef.current, { reducedMotion: false }),
+        velocity: 0,
+      };
       const running = [
         animate(x, footprint.x, closeTransition),
         animate(y, footprint.y, closeTransition),
         animate(scaleX, footprint.scaleX, closeTransition),
         animate(scaleY, footprint.scaleY, closeTransition),
       ];
-      const contentClose = {
-        type: 'spring',
-        stiffness: (closeTransition.stiffness || 300) * 3,
-        damping: (closeTransition.damping || 25) * 1.5,
-        mass: closeTransition.mass || 1,
-        velocity: 0,
-      };
-      const contentTween = animate(contentOpacity, 0, contentClose);
-      const unsubX = scaleX.on('change', syncRadius);
-      const unsubY = scaleY.on('change', syncRadius);
+      const unsubX = scaleX.on('change', syncFromScale);
+      const unsubY = scaleY.on('change', syncFromScale);
+      let contentTween = null;
+      if (!linkLayersRef.current) {
+        contentTween = animate(contentOpacity, 0, {
+          type: 'spring',
+          stiffness: (closeTransition.stiffness || 300) * 3,
+          damping: (closeTransition.damping || 25) * 1.5,
+          mass: closeTransition.mass || 1,
+          velocity: 0,
+        });
+      }
       Promise.all(running.map((tween) => tween.finished.catch(() => {}))).then(() => {
         if (!cancelled) onClosed?.();
       });
@@ -120,7 +149,7 @@ export function useOriginFootprintSpring({
         cancelled = true;
         unsubX();
         unsubY();
-        contentTween.stop();
+        contentTween?.stop();
         running.forEach((tween) => tween.stop());
       };
     }
@@ -134,21 +163,23 @@ export function useOriginFootprintSpring({
     y.set(from.y);
     scaleX.set(from.scaleX);
     scaleY.set(from.scaleY);
-    syncRadius();
-    contentOpacity.set(0);
+    syncFromScale();
+    if (!linkLayersRef.current) contentOpacity.set(0);
 
-    const openTransition = pillOpenRef.current;
+    const openTransition = createWeeTransition(openIntentRef.current, { reducedMotion: false });
     const running = [
       animate(x, 0, openTransition),
       animate(y, 0, openTransition),
       animate(scaleX, 1, openTransition),
       animate(scaleY, 1, openTransition),
     ];
-    const unsubX = scaleX.on('change', syncRadius);
-    const unsubY = scaleY.on('change', syncRadius);
-    const unsubReveal = scaleX.on('change', (value) => {
-      if (value > 0.9 && scaleY.get() > 0.9) contentOpacity.set(1);
-    });
+    const unsubX = scaleX.on('change', syncFromScale);
+    const unsubY = scaleY.on('change', syncFromScale);
+    const unsubReveal = linkLayersRef.current
+      ? () => {}
+      : scaleX.on('change', (value) => {
+        if (value > 0.9 && scaleY.get() > 0.9) contentOpacity.set(1);
+      });
     return () => {
       unsubX();
       unsubY();
@@ -158,7 +189,9 @@ export function useOriginFootprintSpring({
   }, [
     active,
     contentOpacity,
+    element,
     elementRef,
+    faceOpacity,
     isOpen,
     onClosed,
     originRect,
@@ -169,5 +202,5 @@ export function useOriginFootprintSpring({
     y,
   ]);
 
-  return { x, y, scaleX, scaleY, radiusMv, contentOpacity };
+  return { x, y, scaleX, scaleY, radiusMv, contentOpacity, faceOpacity };
 }

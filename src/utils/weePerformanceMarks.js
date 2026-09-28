@@ -76,6 +76,11 @@ export function weeMarkStartupHydrationCommitted() {
   safeMark('wee:startup-hydration:committed');
 }
 
+/** Startup orchestrator advanced to `phase` (shell / interactive / idle1–3). */
+export function weeMarkStartupPhase(phase) {
+  safeMark(`wee:startup-phase:${phase}`);
+}
+
 /** App library background prefetch chain scheduled (idle). */
 export function weeMarkAppLibraryPrefetchScheduled() {
   safeMark('wee:app-library-prefetch:scheduled');

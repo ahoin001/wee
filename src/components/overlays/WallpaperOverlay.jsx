@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { WALLPAPER_OVERLAY_COLORS } from '../../design/wallpaperAmbientPalettes.js';
 import useAnimationActivity from '../../hooks/useAnimationActivity';
+import { useStartupPhase } from '../../hooks/useStartupPhase';
 
 /**
  * @param {'fullscreen' | 'embedded'} [mode]
@@ -16,7 +17,7 @@ const WallpaperOverlay = ({
   gravity = 0.1,
   mode = 'fullscreen',
 }) => {
-  const [overlayEngineReady, setOverlayEngineReady] = useState(false);
+  const startupIdleReached = useStartupPhase('idle3');
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
@@ -31,37 +32,8 @@ const WallpaperOverlay = ({
   frameIntervalRef.current = frameIntervalMs;
   const lastDrawAtRef = useRef(0);
 
-  useEffect(() => {
-    if (!enabled) {
-      setOverlayEngineReady(false);
-      return undefined;
-    }
-    // Embedded Surfaces preview should feel instant; app chrome can defer.
-    if (mode === 'embedded') {
-      setOverlayEngineReady(true);
-      return undefined;
-    }
-    let cancelled = false;
-    const kick = () => {
-      if (!cancelled) setOverlayEngineReady(true);
-    };
-    let idleId;
-    let usedIdleCallback = false;
-    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
-      usedIdleCallback = true;
-      idleId = window.requestIdleCallback(kick, { timeout: 2800 });
-    } else if (typeof window !== 'undefined') {
-      idleId = window.setTimeout(kick, 0);
-    }
-    return () => {
-      cancelled = true;
-      if (typeof window === 'undefined' || idleId == null) return;
-      if (usedIdleCallback) window.cancelIdleCallback(idleId);
-      else window.clearTimeout(idleId);
-    };
-  }, [enabled, mode]);
-
-  const engineActive = enabled && overlayEngineReady;
+  // Embedded Surfaces preview should feel instant; app chrome waits for startup idle3.
+  const engineActive = enabled && (mode === 'embedded' || startupIdleReached);
 
   // Memoize effect configurations to prevent recreation
   const effects = useMemo(() => ({
@@ -427,7 +399,7 @@ const WallpaperOverlay = ({
     return null;
   }
 
-  if (!overlayEngineReady) {
+  if (!engineActive) {
     return null;
   }
 

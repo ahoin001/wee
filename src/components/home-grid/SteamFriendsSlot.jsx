@@ -11,6 +11,7 @@ import { WeeFadeScroll } from '../../ui/wee';
 import { normalizeHomeWidgetSurface, resolveSteamHeading } from '../../utils/homeWidgetSurface';
 import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { useStartupPhase } from '../../hooks/useStartupPhase';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
@@ -450,7 +451,10 @@ function SteamFriendsSlot({
     };
   }, [friendsList, capacity]);
 
+  const widgetIpcReady = useStartupPhase('idle2');
+
   useEffect(() => {
+    if (!widgetIpcReady) return;
     if (!steamId || !apiEnabled || !window.api?.steam?.getFriendsPlaying) return;
     const age = Date.now() - Number(friendsPlayingFetchedAt || 0);
     if (friendsPlayingFetchedAt && age < FRIENDS_TTL_MS) return;
@@ -492,7 +496,7 @@ function SteamFriendsSlot({
     return () => {
       cancelled = true;
     };
-  }, [steamId, apiEnabled, friendsPlayingFetchedAt, setGameHubState]);
+  }, [widgetIpcReady, steamId, apiEnabled, friendsPlayingFetchedAt, setGameHubState]);
 
   const forceRefreshFriends = useCallback(() => {
     setGameHubState({

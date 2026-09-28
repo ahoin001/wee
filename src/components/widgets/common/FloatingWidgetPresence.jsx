@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useMemo, useRef } from 'react';
+import React, { forwardRef, useCallback, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { m, useReducedMotion } from 'framer-motion';
 import { useDialogExitPresence } from '../../../hooks/useDialogExitPresence';
@@ -34,8 +34,10 @@ const FloatingWidgetPresence = forwardRef(function FloatingWidgetPresence(
     onExitAnimationComplete
   );
   const localRef = useRef(null);
+  const [presenceNode, setPresenceNode] = useState(null);
   const setRef = useCallback((node) => {
     localRef.current = node;
+    setPresenceNode(node);
     if (typeof ref === 'function') ref(node);
     else if (ref) ref.current = node;
   }, [ref]);
@@ -52,6 +54,7 @@ const FloatingWidgetPresence = forwardRef(function FloatingWidgetPresence(
     active: useOrigin && allowMount,
     isOpen,
     elementRef: localRef,
+    element: presenceNode,
     originRect,
     onClosed: finishOriginClose,
   });

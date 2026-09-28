@@ -12,6 +12,7 @@ import {
 import { resolveActiveBoardCurrentPage, getSecondaryChannelSpaceData } from '../utils/channelSpaces';
 import { resolveLayout } from '../utils/channelLayoutSystem';
 import { shouldPrefetchAmbientNeighbors } from '../utils/performanceControls';
+import { useStartupPhase } from './useStartupPhase';
 
 /** Debounce when already settled (e.g. wallpaper cycling). */
 const EXTRACT_DEBOUNCE_SETTLED_MS = 400;
@@ -71,11 +72,12 @@ function resolveBoardTotalPages(activeSpaceId, channels) {
  */
 export function useWallpaperAmbientColor() {
   const {
+    hydrated,
     wallpaperMatchEnabled,
     activeSpaceId,
     wallpaperCurrent,
     appearanceBySpace,
-    channels,
+    currentPage,
     visualCommittedUrl,
     cachedForUrl,
     lowPowerMode,
@@ -83,11 +85,15 @@ export function useWallpaperAmbientColor() {
     setUIState,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
+      hydrated: Boolean(state.app.startupHydrationCommitted),
       wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled !== false,
       activeSpaceId: state.spaces.activeSpaceId,
       wallpaperCurrent: state.wallpaper?.current,
       appearanceBySpace: state.appearanceBySpace,
-      channels: state.channels,
+      currentPage: resolveActiveBoardCurrentPage({
+        activeSpaceId: state.spaces.activeSpaceId,
+        channels: state.channels,
+      }),
       visualCommittedUrl: state.wallpaper?.visualCommittedUrl ?? null,
       cachedForUrl: state.ui.ambientColor?.cachedForUrl ?? null,
       lowPowerMode: Boolean(state.ui.lowPowerMode),
@@ -97,7 +103,7 @@ export function useWallpaperAmbientColor() {
   );
 
   const sessionPower = useConsolidatedAppStore((s) => s.ui.sessionPower ?? 'normal');
-  const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
+  const extractionAllowed = useStartupPhase('idle1');
 
   const displayUrl = resolveDisplayWallpaperUrl({
     activeSpaceId,
@@ -110,6 +116,8 @@ export function useWallpaperAmbientColor() {
   const requestIdRef = useRef(0);
 
   useEffect(() => {
+    if (!hydrated) return undefined;
+
     if (!wallpaperMatchEnabled) {
       applyAmbientRoleTokens(null, { clear: true });
       return undefined;
@@ -146,6 +154,9 @@ export function useWallpaperAmbientColor() {
       }
       return undefined;
     }
+
+    // Cold pixel extraction waits for startup idle1; cache hits above apply immediately.
+    if (!extractionAllowed) return undefined;
 
     // Mid crossfade with no cache: keep current ribbon; extract destination ASAP.
     const midCrossfade =
@@ -190,6 +201,8 @@ export function useWallpaperAmbientColor() {
       window.clearTimeout(timer);
     };
   }, [
+    hydrated,
+    extractionAllowed,
     wallpaperMatchEnabled,
     sessionPower,
     displayUrl,
@@ -200,11 +213,15 @@ export function useWallpaperAmbientColor() {
 
   // Prefetch neighbor page wallpapers into the LRU (no apply).
   useEffect(() => {
+    if (!extractionAllowed) return undefined;
     if (!wallpaperMatchEnabled || sessionPower === 'away') return undefined;
     if (!(activeSpaceId === 'home' || activeSpaceId === 'workspaces')) return undefined;
     if (!shouldPrefetchAmbientNeighbors()) return undefined;
 
-    const totalPages = resolveBoardTotalPages(activeSpaceId, channels);
+    const totalPages = resolveBoardTotalPages(
+      activeSpaceId,
+      useConsolidatedAppStore.getState().channels
+    );
     const neighbors = [currentPage - 1, currentPage + 1].filter(
       (p) => p >= 0 && p < totalPages && p !== currentPage
     );
@@ -226,10 +243,10 @@ export function useWallpaperAmbientColor() {
 
     return () => window.clearTimeout(timer);
   }, [
+    extractionAllowed,
     wallpaperMatchEnabled,
     sessionPower,
     activeSpaceId,
-    channels,
     currentPage,
     wallpaperCurrent,
     appearanceBySpace,

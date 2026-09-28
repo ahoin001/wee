@@ -12,6 +12,7 @@ import SteamWidgetHeading from './SteamWidgetHeading';
 import { normalizeHomeWidgetSurface, resolveSteamHeading } from '../../utils/homeWidgetSurface';
 import { resolveHomeWidgetLayout } from '../../utils/homeWidgetLayout';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { useStartupPhase } from '../../hooks/useStartupPhase';
 import { matchHomeSlotSizePreset } from './slotKindRegistry';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
@@ -174,7 +175,10 @@ function SteamGamesGlanceSlot({
         ? 'cozy'
         : 'compact';
 
+  const widgetIpcReady = useStartupPhase('idle2');
+
   useEffect(() => {
+    if (!widgetIpcReady) return;
     // Client VDF metadata is only required for Steam Tags (not Wee Favorites).
     if (!meta.needsClientMeta) return;
     if (!steamId || !window.api?.steam?.getClientLibraryMetadata) return;
@@ -211,7 +215,7 @@ function SteamGamesGlanceSlot({
     return () => {
       cancelled = true;
     };
-  }, [meta.needsClientMeta, steamId, clientMeta.fetchedAt]);
+  }, [widgetIpcReady, meta.needsClientMeta, steamId, clientMeta.fetchedAt]);
 
   const games = useMemo(() => {
     if (variant === 'favorites') {
@@ -243,6 +247,7 @@ function SteamGamesGlanceSlot({
   ]);
 
   useEffect(() => {
+    if (!widgetIpcReady) return;
     if (softRefreshTried.current) return;
     if (!steamId || !apiEnabled) return;
     if (games.length > 0) return;
@@ -275,7 +280,7 @@ function SteamGamesGlanceSlot({
     return () => {
       cancelled = true;
     };
-  }, [steamId, apiEnabled, games.length, setGameHubState, meta.needsClientMeta, meta.needsApi, variant, favoriteGameIds.length]);
+  }, [widgetIpcReady, steamId, apiEnabled, games.length, setGameHubState, meta.needsClientMeta, meta.needsApi, variant, favoriteGameIds.length]);
 
   const handleLaunch = useCallback(
     async (game) => {

@@ -415,6 +415,7 @@ function ChannelModal({
         maxWidth="min(1400px, 96vw)"
         onExitAnimationComplete={onExitAnimationComplete}
         originRect={originRect}
+        faceMedia={media}
       >
         <div className="channel-modal-wee-inner min-w-0">
           {activeTab === 'setup' && (

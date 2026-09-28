@@ -45,6 +45,23 @@ export const WEE_SPRINGS = {
     damping: 25,
     mass: 1,
   },
+  /**
+   * Channel tile → settings dialog. Near-critical, no bounce, ~2/3s settle.
+   * Longer than pillOpen because the travel is a tile into a full dialog.
+   * Do not use this for the space rail, hub controls, or Now Playing.
+   */
+  channelMorphOpen: {
+    type: 'spring',
+    stiffness: 90,
+    damping: 22,
+    mass: 1.3,
+  },
+  channelMorphClose: {
+    type: 'spring',
+    stiffness: 84,
+    damping: 22,
+    mass: 1.4,
+  },
   pillFloor: {
     type: 'spring',
     stiffness: 300,
@@ -204,6 +221,8 @@ export const WEE_MOTION_INTENTS = Object.freeze({
   popover: 'pillOpen',
   pillOpen: 'pillOpen',
   pillClose: 'pillClose',
+  channelMorphOpen: 'channelMorphOpen',
+  channelMorphClose: 'channelMorphClose',
   channelDrag: 'channelDragOverlay',
   channelDrop: 'channelDropCelebrate',
   channelPageFlip: 'channelPageFlip',
@@ -229,6 +248,8 @@ const REDUCED_MOTION_BY_INTENT = Object.freeze({
   statusPill: { duration: 0.14 },
   pillOpen: { duration: 0.15 },
   pillClose: { duration: 0.15 },
+  channelMorphOpen: { duration: 0.15 },
+  channelMorphClose: { duration: 0.15 },
   channelDrag: { duration: 0.14 },
   channelDrop: { duration: 0.14 },
   channelPageFlip: { duration: 0.01 },

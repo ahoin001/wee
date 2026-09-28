@@ -162,10 +162,16 @@ function createMediaIndexService({
     }
   }
 
+  function isMediaIndexReady() {
+    return mediaIndexDb != null;
+  }
+
   function hydrateWallpapersFromIndex(savedWallpapers) {
     if (!Array.isArray(savedWallpapers) || savedWallpapers.length === 0) {
       return [];
     }
+    // Startup fast path: never open SQLite synchronously just to hydrate a read.
+    if (!isMediaIndexReady()) return savedWallpapers;
 
     return savedWallpapers.map((wallpaper) => {
       if (!wallpaper?.url) return wallpaper;
@@ -208,11 +214,15 @@ function createMediaIndexService({
 
       const filename = wallpaper.url.replace('userdata://wallpapers/', '');
       const sourcePath = path.join(userWallpapersPath, filename);
-      const sourceExists = fs.existsSync(sourcePath);
+      const sourceExists = await fsPromises
+        .access(sourcePath)
+        .then(() => true)
+        .catch(() => false);
       if (!sourceExists) {
         nextWallpapers.push(wallpaper);
         continue;
       }
+      await new Promise((resolve) => setImmediate(resolve));
 
       const stem = path.basename(filename, path.extname(filename));
       const thumbnailUrl = await createWallpaperThumbnail(sourcePath, stem);
@@ -248,6 +258,7 @@ function createMediaIndexService({
 
   return {
     ensureMediaIndexReady,
+    isMediaIndexReady,
     upsertWallpaperAssetInIndex,
     removeWallpaperAssetFromIndex,
     createWallpaperThumbnail,
