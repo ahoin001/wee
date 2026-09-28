@@ -87,10 +87,7 @@ export const PERFORMANCE_CONTROLS = Object.freeze([
       const cur = normalizeSceneFxBeta(getState().ui?.sceneFxBeta);
       actions.setUIState({ sceneFxBeta: { ...cur, enabled: Boolean(value) } });
     },
-    learnMore: {
-      tabId: SETTINGS_TAB_ID.SURFACES,
-      options: { surfacesSegment: 'atmosphere' },
-    },
+    learnMore: null,
     formatValue: boolLabel,
   },
   {
@@ -102,10 +99,7 @@ export const PERFORMANCE_CONTROLS = Object.freeze([
     desc: 'Full-screen particle overlay (snow, rain, etc.). Runs a canvas animation loop while enabled.',
     get: (s) => Boolean(s.overlay?.enabled),
     set: (value, actions) => actions.setOverlayState({ enabled: Boolean(value) }),
-    learnMore: {
-      tabId: SETTINGS_TAB_ID.SURFACES,
-      options: { surfacesSegment: 'look' },
-    },
+    learnMore: null,
     formatValue: boolLabel,
   },
   {
@@ -117,10 +111,7 @@ export const PERFORMANCE_CONTROLS = Object.freeze([
     desc: 'Auto-rotates wallpapers with crossfades. Extra decode and paint during transitions.',
     get: (s) => Boolean(s.wallpaper?.cycleWallpapers),
     set: (value, actions) => actions.setWallpaperState({ cycleWallpapers: Boolean(value) }),
-    learnMore: {
-      tabId: SETTINGS_TAB_ID.SURFACES,
-      options: { surfacesSegment: 'library' },
-    },
+    learnMore: null,
     formatValue: boolLabel,
   },
   {

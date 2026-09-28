@@ -570,7 +570,7 @@ function App() {
 
 
 
-  // Global right-click handler for settings modal (wallpaper tab)
+  // Global right-click on empty chrome opens Live Board Studio (wallpaper lives there).
   const handleGlobalRightClick = useCallback((event) => {
     const target = event.target;
     const isInRibbon = target.closest('.interactive-footer') || target.closest('.wii-dock-wrapper');
@@ -578,7 +578,6 @@ function App() {
     const isInModal = target.closest('.modal-overlay') || target.closest('.modal-content');
     const isInGameHub = isHubSpace || target.closest('.aura-hub-space') || target.closest('.media-hub-space');
 
-    // Check if Ctrl key is held for DevTools
     if (event.ctrlKey) {
       event.preventDefault();
       event.stopPropagation();
@@ -587,23 +586,19 @@ function App() {
       return;
     }
 
-    // Game Hub uses Radix context menus; do not open wallpaper settings from empty hub chrome
     if (isInGameHub) {
       return;
     }
 
-    // Only open settings modal to wallpaper tab if not clicking on ribbon, dock, or existing modals
     if (!isInRibbon && !isInDock && !isInModal) {
       event.preventDefault();
       event.stopPropagation();
-      prefetchSettingsUI();
-      // Open settings modal and set active tab to wallpaper
-      setUIState({ 
-        showSettingsModal: true,
-        settingsActiveTab: 'wallpaper' // This will be handled by SettingsModal
+      setUIState({
+        homeBoardArrangeMode: true,
+        homeBoardPunchMode: false,
       });
     }
-  }, [prefetchSettingsUI, setUIState, openDevTools, isHubSpace]);
+  }, [setUIState, openDevTools, isHubSpace]);
   const toggleDarkMode = useCallback(() => setUIState(prev => ({ isDarkMode: !prev.isDarkMode })), [setUIState]);
   const toggleCustomCursor = useCallback(() => setUIState(prev => ({ useCustomCursor: !prev.useCustomCursor })), [setUIState]);
   const renderSpaceContent = useCallback((spaceId) => {
@@ -809,19 +804,16 @@ function App() {
             >
               ⚙️
             </div>
-            {/* Wallpaper Quick Access */}
+            {/* Edit board — wallpaper and overlay live here */}
             <div
               className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
               onClick={() => {
-                prefetchSettingsUI();
-                setUIState({ 
-                  showSettingsModal: true,
-                  settingsActiveTab: 'wallpaper'
+                setUIState({
+                  homeBoardArrangeMode: true,
+                  homeBoardPunchMode: false,
                 });
               }}
-              onMouseEnter={prefetchSettingsUI}
-              onFocus={prefetchSettingsUI}
-              title="Wallpaper Settings"
+              title="Edit board"
             >
               🖼️
             </div>

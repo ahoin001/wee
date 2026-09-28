@@ -204,8 +204,10 @@
   "202": "ChannelModalSuggestedTab.jsx",
   "203": "react",
   "204": "fs-extra",
+  "205": "HomeWidgetShell.jsx",
   "206": "SystemInfoWidget.jsx",
   "207": "windows-media-sessions",
+  "208": "channelReorder.js",
   "209": "react-dom",
   "210": "react-icons",
   "211": "README.md",
@@ -220,5 +222,14 @@
   "220": "express",
   "221": "20260412180000_app_wee_v1_storage_and_rls_session.sql",
   "222": "20260412180100_app_wee_v1_anon_delete_community.sql",
-  "223": "fix-download-tracking.sql"
+  "223": "fix-download-tracking.sql",
+  "224": "GameHubTileDialogsProvider.jsx",
+  "225": "env.js",
+  "226": "mediaHubStremio.js",
+  "227": "react",
+  "228": "@dnd-kit/core",
+  "229": "framer-motion",
+  "230": "fuse.js",
+  "231": "@radix-ui/react-context-menu",
+  "232": "better-sqlite3"
 }

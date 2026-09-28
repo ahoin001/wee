@@ -52,7 +52,11 @@ export function setOriginCovered(element, covered) {
       element.setAttribute('data-wee-origin-state', 'covered');
     }
   } else if (element.hasAttribute('data-wee-origin-state')) {
+    // Cut opacity instantly — tile easings would otherwise fade the slot back in.
+    element.style.setProperty('transition', 'none', 'important');
     element.removeAttribute('data-wee-origin-state');
+    void element.offsetWidth;
+    element.style.removeProperty('transition');
   }
 }
 

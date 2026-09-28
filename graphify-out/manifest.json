@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1790619324.7210605,
-    "ast_hash": "712494903db850d35bba725f5b5d6557",
+    "mtime": 1790629882.3058205,
+    "ast_hash": "b4233e82f1b83ac418438e06462b3735",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/App.jsx": {
-    "mtime": 1790628599.715015,
-    "ast_hash": "220db8d95a46464a65cc85867ff27e85",
+    "mtime": 1790630871.918391,
+    "ast_hash": "db220a64338ceae8afc6efe8a3bd5c84",
     "semantic_hash": ""
   },
   "src/components/admin/AdminPanel.jsx": {
@@ -205,8 +205,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/WeeChannelModal.jsx": {
-    "mtime": 1790629225.6247969,
-    "ast_hash": "446e3e1996c352ef863100466de6f235",
+    "mtime": 1790630836.8542655,
+    "ast_hash": "da0e4c00b9930042fc74c14d51aa3e0c",
     "semantic_hash": ""
   },
   "src/components/channels/WiiChannelStrip.jsx": {
@@ -670,8 +670,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/SettingsModal.jsx": {
-    "mtime": 1790621720.6586258,
-    "ast_hash": "08b505be5e05cb026a4a95c207ee8bd3",
+    "mtime": 1790630770.675578,
+    "ast_hash": "095b9875b61ece5920a2990b5f6c8432",
     "semantic_hash": ""
   },
   "src/components/settings/SettingsMultiToggleChips.jsx": {
@@ -750,8 +750,8 @@
     "semantic_hash": "bc56fd97e8acbbfd62f61a7de3601fcc"
   },
   "src/components/settings/dock/RibbonDockPanel.jsx": {
-    "mtime": 1790621376.6688366,
-    "ast_hash": "05cf98287289a8f932a044050b719f53",
+    "mtime": 1790630802.5264523,
+    "ast_hash": "a48ffe632b9278231dcedd7cad8f8ab7",
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
@@ -1145,8 +1145,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeModalShell.jsx": {
-    "mtime": 1790629223.0062776,
-    "ast_hash": "00504ff9925ac0d5025f9c2b6bff5e3c",
+    "mtime": 1790630831.2312226,
+    "ast_hash": "df28144647224c49461335940c078421",
     "semantic_hash": ""
   },
   "src/ui/wee/WeePillFloorShadow.jsx": {
@@ -1335,8 +1335,8 @@
     "semantic_hash": ""
   },
   "src/utils/keyboardShortcuts.js": {
-    "mtime": 1784434284.3231673,
-    "ast_hash": "f8df8befb7df0ff47d27eb19f6194393",
+    "mtime": 1790631181.8692293,
+    "ast_hash": "62ade677183058871988064fa2915784",
     "semantic_hash": ""
   },
   "src/utils/launchErrorMessages.js": {
@@ -1435,8 +1435,8 @@
     "semantic_hash": "2f9d59760e07f194ba3ec6911bd02abe"
   },
   "src/utils/settingsNavigation.js": {
-    "mtime": 1784646620.7750812,
-    "ast_hash": "f58fa9a9b1929c84f171e77abcf4c75e",
+    "mtime": 1790630769.404096,
+    "ast_hash": "4534b90b3779680b72232e7aa2917286",
     "semantic_hash": ""
   },
   "src/utils/spotifyService.js": {
@@ -2045,13 +2045,13 @@
     "semantic_hash": ""
   },
   "src/utils/commandCatalog.js": {
-    "mtime": 1784567306.4962175,
-    "ast_hash": "7f2acdba3d164ee52e31995c95c21974",
+    "mtime": 1790630769.8359213,
+    "ast_hash": "210a80928ccabc8cc5c13969db6e5ec6",
     "semantic_hash": ""
   },
   "src/utils/settingsRegistry.js": {
-    "mtime": 1790628928.4430702,
-    "ast_hash": "e426bc86b71fe7cb901e425b6eb9a4b1",
+    "mtime": 1790631171.048111,
+    "ast_hash": "a99a4f3418f0ffbc5377cf7da46313e5",
     "semantic_hash": ""
   },
   ".impeccable/critique/2026-07-15T16-35-33Z__src-components-home-grid.md": {
@@ -2505,8 +2505,8 @@
     "semantic_hash": ""
   },
   "src/features/sceneFxBeta/SceneFxBetaSettingsSection.jsx": {
-    "mtime": 1784563463.1861718,
-    "ast_hash": "05ad1b630e08c79d8ae5274cd234447a",
+    "mtime": 1790630854.767748,
+    "ast_hash": "c00dfcde658919692eab2522b8194f17",
     "semantic_hash": ""
   },
   "src/features/sceneFxBeta/effects/SceneFxAtmosphere.jsx": {
@@ -2605,8 +2605,8 @@
     "semantic_hash": ""
   },
   "src/utils/performanceControls.js": {
-    "mtime": 1790628903.3412862,
-    "ast_hash": "f18c4341f4522dc2bcfd07a1e1830e6f",
+    "mtime": 1790630806.1112964,
+    "ast_hash": "2c30ffe840aa2f73433a9249136d15be",
     "semantic_hash": ""
   },
   "src/utils/performanceProfile.js": {
@@ -2625,8 +2625,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useOriginFootprintSpring.js": {
-    "mtime": 1790629246.959208,
-    "ast_hash": "503e434180cb28c9b00623633185afff",
+    "mtime": 1790630819.3397257,
+    "ast_hash": "c0eb8c079bf25ad88e27bb539cc1b495",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGlyphField.jsx": {
@@ -2635,8 +2635,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/originRect.js": {
-    "mtime": 1790616834.6022754,
-    "ast_hash": "fcb90cd0670eff55013142d64972e0b9",
+    "mtime": 1790631470.3097777,
+    "ast_hash": "bfdea7c93cd03152bf096095d60d36f1",
     "semantic_hash": ""
   },
   "src/components/home-grid/EditSceneTools.jsx": {

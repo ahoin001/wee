@@ -1,6 +1,6 @@
 /**
  * BETA Scene FX — Music Bloom only (Settings → Beta).
- * Parallax / scene light / cursor wake live on Surfaces → Atmosphere.
+ * Parallax / scene light / cursor wake live on Edit board → Atmosphere.
  * Removable with `src/features/sceneFxBeta/` (see README).
  */
 import React, { useCallback, useMemo } from 'react';
@@ -9,7 +9,7 @@ import Text from '../../ui/Text';
 import { WeeHelpLinkButton, WeeSectionEyebrow } from '../../ui/wee';
 import SettingsToggleFieldCard from '../../components/settings/SettingsToggleFieldCard';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
+import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import { normalizeSceneFxBeta } from './sceneFxBetaPrefs.js';
 import SceneFxIntensityRow from './SceneFxIntensityRow.jsx';
 
@@ -41,9 +41,11 @@ function SceneFxBetaSettingsSection() {
     [setUIState]
   );
 
-  const openSurfacesSceneEffects = useCallback(() => {
-    openSettingsToTab(SETTINGS_TAB_ID.SURFACES, { surfacesSegment: 'atmosphere' });
-  }, []);
+  const { enterArrange } = useHomeBoardArrange();
+
+  const openEditBoardAtmosphere = useCallback(() => {
+    enterArrange({ closeSettings: true });
+  }, [enterArrange]);
 
   return (
     <section className="space-y-4">
@@ -56,10 +58,10 @@ function SceneFxBetaSettingsSection() {
       {!prefs.enabled ? (
         <div className="space-y-1">
           <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-            Scene effects master is off — enable it on Surfaces first, then opt in below.
+            Scene effects master is off — enable it on Edit board first, then opt in below.
           </Text>
-          <WeeHelpLinkButton className="!mt-0" onClick={openSurfacesSceneEffects}>
-            Open Surfaces → Atmosphere
+          <WeeHelpLinkButton className="!mt-0" onClick={openEditBoardAtmosphere}>
+            Open Edit board
           </WeeHelpLinkButton>
         </div>
       ) : null}
@@ -81,10 +83,10 @@ function SceneFxBetaSettingsSection() {
 
       <div className="space-y-1">
         <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-          Depth, scene light, and cursor wake live under Surfaces → Atmosphere.
+          Depth, scene light, and cursor wake live on the board — Edit board → Atmosphere.
         </Text>
-        <WeeHelpLinkButton className="!mt-0" onClick={openSurfacesSceneEffects}>
-          Open Surfaces → Atmosphere
+        <WeeHelpLinkButton className="!mt-0" onClick={openEditBoardAtmosphere}>
+          Open Edit board
         </WeeHelpLinkButton>
       </div>
     </section>

@@ -45,6 +45,7 @@ export const SETTINGS_TAB_META = Object.freeze([
       'edit home', 'arrange', 'board', 'grid', 'widgets', 'quick access',
       'ken burns', 'idle', 'auto fade', 'hover', 'channels', 'layout',
       'punch', 'holes', 'channel style', 'tiles',
+      'wallpaper', 'surfaces', 'overlay', 'edit board',
     ],
   },
   // —— Appearance ——
@@ -55,6 +56,11 @@ export const SETTINGS_TAB_META = Object.freeze([
     color: 'hsl(var(--settings-tab-wallpaper))',
     description: 'Wallpaper, ribbon, and looks per space & page',
     categoryId: 'appearance',
+    /**
+     * Parked: wallpaper, overlay, and ribbon-by-page live on the edit-board
+     * scene tools. Keep the id so deep links still normalize.
+     */
+    hidden: true,
     keywords: [
       'background', 'cycling', 'blur', 'overlay', 'particles', 'image', 'video',
       'wallpaper library', 'desktop wallpaper', 'wallpaper',
@@ -222,7 +228,11 @@ export function normalizeSettingsTabId(tabId) {
   if (!tabId) return tabId;
   if (tabId === 'layout') return 'channels';
   if (tabId === 'presets') return 'themes';
-  if (tabId === 'surfaces') return 'wallpaper';
+  /**
+   * Surfaces tab is parked — wallpaper and overlay live on the edit-board
+   * scene tools. Land on Channels & layout.
+   */
+  if (tabId === 'wallpaper' || tabId === 'surfaces') return 'channels';
   /** Shell / Media Hub tab archived with Media Hub — land on Channels & layout. */
   if (tabId === 'workspaces') return 'channels';
   if (tabId === 'navigation') return 'channels';
@@ -242,6 +252,11 @@ export function getSettingsTabMeta(id) {
   return SETTINGS_TAB_META.find((tab) => tab.id === normalized) ?? null;
 }
 
+/** Tabs shown in the Settings rail, search, and command palette. */
+export function isSettingsTabListed(tab) {
+  return Boolean(tab) && tab.hidden !== true;
+}
+
 /**
  * Search destinations by label, description, id, or keyword.
  * Returns matches in registry order; keyword hits include the matched term
@@ -252,11 +267,12 @@ export function getSettingsTabMeta(id) {
  */
 export function searchSettingsTabs(query) {
   const q = (query ?? '').trim().toLowerCase();
+  const listed = SETTINGS_TAB_META.filter(isSettingsTabListed);
   if (!q) {
-    return SETTINGS_TAB_META.map((tab) => ({ tab, matchedKeyword: null }));
+    return listed.map((tab) => ({ tab, matchedKeyword: null }));
   }
   const results = [];
-  for (const tab of SETTINGS_TAB_META) {
+  for (const tab of listed) {
     const direct =
       tab.label.toLowerCase().includes(q) ||
       tab.description.toLowerCase().includes(q) ||

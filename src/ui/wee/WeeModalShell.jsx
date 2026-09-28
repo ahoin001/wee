@@ -41,8 +41,8 @@ function WeeModalShell({
    */
   originMorph = false,
   /**
-   * Channel plate: the source face stays the shell ground for the whole
-   * open and close. The form and a darken scrim rise over it.
+     * Channel plate: the source face stays the shell ground for the whole
+     * open and close. The form and a darken scrim rise over it (no backdrop blur).
    */
   originPlate = false,
   /** Source face painted on the shell during the flight (originMorph only). */
@@ -122,7 +122,9 @@ function WeeModalShell({
     <Dialog as="div" className="relative z-[var(--z-modal-top)]" open={true} onClose={handleClose}>
       <div className="fixed inset-0 z-[calc(var(--z-modal-top)-1)] pointer-events-auto">
         <MotionDiv
-          className="fixed inset-0 backdrop-blur-[12px] bg-[hsl(var(--wee-overlay-backdrop))]"
+          className={`fixed inset-0 bg-[hsl(var(--wee-overlay-backdrop))] ${
+            originPlate ? '' : 'backdrop-blur-[12px]'
+          }`}
           aria-hidden="true"
           variants={backdropVariants}
           initial="closed"
@@ -179,7 +181,7 @@ function WeeModalShell({
               ) : null}
               {useOrigin && originPlate ? (
                 <MotionDiv
-                  className="pointer-events-none absolute inset-0 bg-[hsl(var(--wee-overlay-backdrop))]"
+                  className="pointer-events-none absolute inset-0 bg-[hsl(var(--bg-primary)/0.78)]"
                   style={{ opacity: contentOpacity }}
                   aria-hidden
                 />
@@ -193,7 +195,7 @@ function WeeModalShell({
               <MotionDiv
                 className={`flex min-h-0 min-w-0 flex-1 flex-col ${
                   originPlate
-                    ? 'bg-[hsl(var(--wee-surface-shell)/0.42)] backdrop-blur-xl'
+                    ? 'bg-[hsl(var(--wee-surface-shell)/0.92)]'
                     : 'bg-[hsl(var(--wee-surface-shell))]'
                 } ${panelClassName}`}
               >
@@ -218,14 +220,14 @@ function WeeModalShell({
                 </div>
 
                 <div className={`wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-8 py-8 md:px-12 md:py-10 [contain:layout] ${
-                  originPlate ? 'bg-[hsl(var(--wee-surface-well)/0.28)]' : 'bg-[hsl(var(--wee-surface-well))]'
+                  originPlate ? 'bg-[hsl(var(--wee-surface-well)/0.9)]' : 'bg-[hsl(var(--wee-surface-well))]'
                 }`}>
                   {children}
                 </div>
 
                 {footerContent && (
                   <div className={`shrink-0 border-t-2 border-[hsl(var(--border-primary)/0.35)] px-8 py-5 md:px-10 ${
-                    originPlate ? 'bg-[hsl(var(--wee-surface-input)/0.4)]' : 'bg-[hsl(var(--wee-surface-input))]'
+                    originPlate ? 'bg-[hsl(var(--wee-surface-input)/0.92)]' : 'bg-[hsl(var(--wee-surface-input))]'
                   }`}>
                     {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
                   </div>

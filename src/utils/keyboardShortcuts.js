@@ -48,14 +48,14 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'open-settings-wallpaper-tab',
-    name: 'Open Wallpaper Settings',
-    description: 'Open settings modal to wallpaper tab',
+    name: 'Open Channels & layout settings',
+    description: 'Wallpaper and overlay live on Edit board; this shortcut opens Channels & layout',
     defaultKey: 'w',
     defaultModifier: 'ctrl',
     action: 'openSettingsModal',
     actionParams: { tab: 'wallpaper' },
     category: 'Settings',
-    icon: '🖼️'
+    icon: '📺'
   },
   {
     id: 'open-settings-sounds-tab',

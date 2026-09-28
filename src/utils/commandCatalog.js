@@ -250,6 +250,7 @@ export function buildCommandCatalog(state, handlers = {}) {
 
   // —— Settings destinations (registry-driven) ——
   SETTINGS_TAB_META.forEach((tab) => {
+    if (tab.hidden) return;
     commands.push({
       id: `settings:${tab.id}`,
       group: 'settings',

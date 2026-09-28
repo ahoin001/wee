@@ -6,6 +6,7 @@ import Slider from '../../../ui/Slider';
 import { WeeHelpLinkButton, WeeHelpParagraph, WeeModalFieldCard, WeeRevealWhen, WeeSettingsCollapsibleSection, WeeGooeySelect } from '../../../ui/wee';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
 import RibbonLivePreview from './RibbonLivePreview';
+import { useHomeBoardArrange } from '../../../hooks/useHomeBoardArrange';
 import {
   DEFAULT_RIBBON_GLOW_HEX,
   DEFAULT_RIBBON_SURFACE_HEX,
@@ -17,7 +18,6 @@ import {
   normalizeRibbonChromeEffectId,
   RIBBON_NEON_COLOR_MODE_OPTIONS,
 } from '../../dock/ribbon/ribbonChromeEffectMeta';
-import { openSettingsToTab, SETTINGS_TAB_ID } from '../../../utils/settingsNavigation';
 
 const TOGGLE_TITLE =
   '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
@@ -199,14 +199,15 @@ function RibbonDockPanel({
   const chromeGlowStrength = ribbon?.chromeEffectGlowStrength ?? 0.6;
   const chromeNeonColorMode = ribbon?.chromeEffectNeonColorMode ?? 'mono';
   const chromeIdleOnly = ribbon?.chromeEffectIdleOnly ?? false;
+  const { enterArrange } = useHomeBoardArrange();
 
   return (
     <div className="flex flex-col gap-5">
       <RibbonLivePreview sticky={false} />
       <WeeHelpParagraph>
         Scope ribbon colors per Home / Second Home page in{' '}
-        <WeeHelpLinkButton onClick={() => openSettingsToTab(SETTINGS_TAB_ID.WALLPAPER)}>
-          Surfaces
+        <WeeHelpLinkButton onClick={() => enterArrange({ closeSettings: true })}>
+          Edit board
         </WeeHelpLinkButton>
         .
       </WeeHelpParagraph>

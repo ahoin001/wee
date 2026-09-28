@@ -1,4 +1,5 @@
 import useConsolidatedAppStore from './useConsolidatedAppStore';
+import { normalizeSettingsTabId } from './settingsRegistry';
 
 /**
  * Settings modal tab ids — must match `SETTINGS_TAB_META[].id` in `settingsRegistry.js`.
@@ -47,7 +48,7 @@ export const SETTINGS_TAB_ID = {
 export function openSettingsToTab(tabId, options = {}) {
   const patch = {
     showSettingsModal: true,
-    settingsActiveTab: tabId,
+    settingsActiveTab: normalizeSettingsTabId(tabId) || tabId,
   };
   if (tabId === SETTINGS_TAB_ID.DOCK && options.dockSubTab) {
     patch.dockSubTab = options.dockSubTab;

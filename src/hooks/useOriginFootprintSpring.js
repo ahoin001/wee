@@ -175,7 +175,10 @@ export function useOriginFootprintSpring({
         faceOpacity.set(1);
         shellBackground.set(tileFillOpaque ? tileFill : 'transparent');
         if (closingRef.current) {
-          if (shell <= 0.001) setOriginCovered(sourceRef.current, false);
+          // Keep the flying plate opaque and show the real tile immediately so
+          // the slot never goes empty while the shell fades or unmounts.
+          shellOpacity.set(1);
+          setOriginCovered(sourceRef.current, false);
         } else if (t >= HANDOFF_T) {
           setOriginCovered(sourceRef.current, true);
         } else {
@@ -183,7 +186,11 @@ export function useOriginFootprintSpring({
         }
       } else {
         faceOpacity.set(1 - form);
-        setOriginCovered(sourceRef.current, t >= HANDOFF_T);
+        if (closingRef.current) {
+          setOriginCovered(sourceRef.current, false);
+        } else {
+          setOriginCovered(sourceRef.current, t >= HANDOFF_T);
+        }
         if (tileFillOpaque && footprint.openFill) {
           shellBackground.set(mixColor(tileFill, footprint.openFill, smoothstep(0.25, 0.7, t)));
         }
@@ -192,6 +199,7 @@ export function useOriginFootprintSpring({
 
     if (!isOpen) {
       closingRef.current = true;
+      setOriginCovered(sourceRef.current, false);
       const stored = fromRef.current;
       if (!stored) {
         onClosed?.();
@@ -236,7 +244,6 @@ export function useOriginFootprintSpring({
       }
       Promise.all(running.map((tween) => tween.finished.catch(() => {}))).then(() => {
         if (cancelled) return;
-        if (plateRef.current) shellOpacity.set(0);
         setOriginCovered(sourceRef.current, false);
         onClosed?.();
       });

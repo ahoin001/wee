@@ -1,6 +1,9 @@
-/* Origin morph: the source control hides while the shell carries it, then shows again for the handoff. */
+/* Origin morph: hide the source without dropping its compositor layer, so the handoff is instant. */
 [data-wee-origin-state='covered'] {
-  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none;
+  /* Don't inherit tile opacity easings — uncover must be a cut, not a fade. */
+  transition: none !important;
 }
 
 /* Viewport-capped shell: content scrolls inside .wee-modal-scroll. */

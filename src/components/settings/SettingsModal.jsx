@@ -14,6 +14,7 @@ import {
   searchSettingsTabs,
   groupSettingsEntries,
   getSettingsTabMeta,
+  isSettingsTabListed,
 } from '../../utils/settingsRegistry';
 import SettingsRailTabButton from './SettingsRailTabButton';
 import DevReactProfiler from '../dev/DevReactProfiler';
@@ -60,7 +61,7 @@ const SETTINGS_TAB_COMPONENTS = {
 };
 
 /** Flat registry order for keyboard nav and lookups. */
-const SETTINGS_TAB_IDS = SETTINGS_TAB_META.map((tab) => tab.id);
+const SETTINGS_TAB_IDS = SETTINGS_TAB_META.filter(isSettingsTabListed).map((tab) => tab.id);
 
 const MAX_RECENT_TABS = 4;
 
