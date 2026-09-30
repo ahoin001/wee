@@ -17,8 +17,8 @@ const INPUT_CLASS = `
   px-[var(--control-padding-x-playful)] py-[var(--control-padding-y-playful)]
   text-[length:var(--control-font-size)] font-black tracking-[0.01em]
   text-[hsl(var(--text-primary))] placeholder-[hsl(var(--text-tertiary))]
-  rounded-[var(--wee-radius-pill)] border-0 focus:outline-none
-  disabled:cursor-not-allowed disabled:opacity-50
+  rounded-[var(--control-radius-playful)] border-0 focus:outline-none
+  disabled:cursor-not-allowed
 `;
 
 /**
@@ -77,7 +77,7 @@ const WeeGooeyField = forwardRef(function WeeGooeyField(
         </label>
       ) : null}
 
-      <div className={`relative w-full ${disabled ? 'opacity-50' : ''}`}>
+      <div className="relative w-full">
         <WeePillFloorShadow expanded={revealed} reducedMotion={reducedMotion} />
         <WeeGlassPill
           motion
@@ -88,12 +88,14 @@ const WeeGooeyField = forwardRef(function WeeGooeyField(
               : { scale: revealed ? 1.02 : 1 }
           }
           transition={revealed ? pillOpen : pillClose}
-          className={`relative z-10 overflow-hidden rounded-[var(--wee-radius-pill)] ${
-            error
-              ? 'border-[hsl(var(--state-error))]'
-              : revealed
-                ? 'shadow-[var(--shadow-hover-glow)]'
-                : ''
+          className={`relative z-10 overflow-hidden rounded-[var(--control-radius-playful)] ${
+            disabled
+              ? '!border-[hsl(var(--border-primary)/0.42)] !bg-[hsl(var(--surface-wii-tint))]'
+              : error
+                ? 'border-[hsl(var(--state-error))]'
+                : revealed
+                  ? 'shadow-[var(--shadow-hover-glow)]'
+                  : ''
           }`}
         >
           <input

@@ -2,12 +2,13 @@ import { useLayoutEffect, useRef } from 'react';
 import { animate, useMotionValue } from 'framer-motion';
 import { createWeeTransition } from '../design/weeMotion';
 import {
+  flushOriginSource,
   footprintFromOrigin,
   isOriginRectOnScreen,
   measureUntransformed,
-  readOriginRect,
+  readRestOriginRect,
   readTilePaint,
-  setOriginCovered,
+  setOriginHandoff,
 } from '../ui/wee/originRect';
 
 /** Below this morph progress the real element is visible under the fading shell. */
@@ -71,11 +72,11 @@ function compensatedCornerRadius(scaleXValue, scaleYValue, footprint) {
   return `${horizontal}px / ${vertical}px`;
 }
 
-/** Live tile rect when the control is still on screen. */
+/** Live idle tile rect when the control is still on screen (no hover scale). */
 function resolveLiveOrigin(originRect) {
   const source = originRect?.source;
   if (source && source.isConnected) {
-    const live = readOriginRect(source);
+    const live = readRestOriginRect(source);
     if (isOriginRectOnScreen(live)) return live;
   }
   return isOriginRectOnScreen(originRect) ? originRect : null;
@@ -132,7 +133,7 @@ export function useOriginFootprintSpring({
   plateRef.current = plate;
 
   useLayoutEffect(() => () => {
-    setOriginCovered(sourceRef.current, false);
+    flushOriginSource(sourceRef.current);
     sourceRef.current = null;
   }, []);
 
@@ -143,7 +144,7 @@ export function useOriginFootprintSpring({
         contentOpacity.set(1);
         faceOpacity.set(0);
         shellOpacity.set(1);
-        setOriginCovered(sourceRef.current, false);
+        flushOriginSource(sourceRef.current);
         sourceRef.current = null;
       }
       return undefined;
@@ -151,7 +152,7 @@ export function useOriginFootprintSpring({
 
     const trackSource = (source) => {
       if (sourceRef.current && sourceRef.current !== source) {
-        setOriginCovered(sourceRef.current, false);
+        flushOriginSource(sourceRef.current);
       }
       sourceRef.current = source || null;
     };
@@ -174,23 +175,8 @@ export function useOriginFootprintSpring({
       if (plateRef.current) {
         faceOpacity.set(1);
         shellBackground.set(tileFillOpaque ? tileFill : 'transparent');
-        if (closingRef.current) {
-          // Keep the flying plate opaque and show the real tile immediately so
-          // the slot never goes empty while the shell fades or unmounts.
-          shellOpacity.set(1);
-          setOriginCovered(sourceRef.current, false);
-        } else if (t >= HANDOFF_T) {
-          setOriginCovered(sourceRef.current, true);
-        } else {
-          setOriginCovered(sourceRef.current, false);
-        }
       } else {
         faceOpacity.set(1 - form);
-        if (closingRef.current) {
-          setOriginCovered(sourceRef.current, false);
-        } else {
-          setOriginCovered(sourceRef.current, t >= HANDOFF_T);
-        }
         if (tileFillOpaque && footprint.openFill) {
           shellBackground.set(mixColor(tileFill, footprint.openFill, smoothstep(0.25, 0.7, t)));
         }
@@ -199,7 +185,6 @@ export function useOriginFootprintSpring({
 
     if (!isOpen) {
       closingRef.current = true;
-      setOriginCovered(sourceRef.current, false);
       const stored = fromRef.current;
       if (!stored) {
         onClosed?.();
@@ -244,7 +229,7 @@ export function useOriginFootprintSpring({
       }
       Promise.all(running.map((tween) => tween.finished.catch(() => {}))).then(() => {
         if (cancelled) return;
-        setOriginCovered(sourceRef.current, false);
+        flushOriginSource(sourceRef.current);
         onClosed?.();
       });
       return () => {

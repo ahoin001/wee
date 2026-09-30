@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Search } from 'lucide-react';
 import { useUnifiedAppsState } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { WeeButton } from '../../ui/wee';
-
-const searchInputClass =
-  'w-full min-w-0 rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] py-4 pl-5 pr-14 font-[family-name:var(--font-ui)] text-left text-base font-black italic text-[hsl(var(--text-primary))] outline-none shadow-[var(--wee-shadow-field)] transition-[border-color,box-shadow] placeholder:font-[family-name:var(--font-ui)] placeholder:font-normal placeholder:not-italic placeholder:text-[hsl(var(--text-tertiary))] focus:border-[hsl(var(--border-accent))] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.12)] hover:border-[hsl(var(--wee-border-field-hover))] disabled:cursor-not-allowed disabled:opacity-60';
+import { WeeButton, WeeGooeyField, WeeSegmentedControl } from '../../ui/wee';
 
 const UnifiedAppPathSearch = ({
   value,
@@ -171,45 +167,32 @@ const UnifiedAppPathSearch = ({
 
   return (
     <div className="relative mb-1 w-full text-left font-[family-name:var(--font-ui)]">
-      <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">
-        <span className="text-[0.8125rem] font-semibold text-[hsl(var(--text-secondary))]" id={filterId}>
+      <div className="mb-3 flex flex-col gap-2">
+        <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]" id={filterId}>
           Show
         </span>
-        <div
-          className="flex flex-wrap gap-1.5"
-          role="group"
-          aria-labelledby={filterId}
-        >
-          {[
+        <WeeSegmentedControl
+          ariaLabel="Filter apps by source"
+          layoutId={filterId}
+          wrap
+          size="sm"
+          value={selectedAppType}
+          onChange={handleTypeFilterChange}
+          options={[
             { value: 'all', label: 'All' },
             { value: 'exe', label: 'Apps' },
             { value: 'steam', label: 'Steam' },
             { value: 'epic', label: 'Epic' },
-            { value: 'microsoft', label: 'Store' }
-          ].map(({ value: v, label }) => (
-            <button
-              key={v}
-              type="button"
-              aria-pressed={selectedAppType === v}
-              onClick={() => handleTypeFilterChange(v)}
-              className={`cursor-pointer rounded-[var(--radius-pill)] border px-3 py-1.5 text-[0.75rem] font-bold uppercase tracking-wide transition-[border-color,background,color,box-shadow,transform] ${
-                selectedAppType === v
-                  ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
-                  : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))] hover:border-[hsl(var(--border-secondary))] hover:bg-[hsl(var(--surface-tertiary))]'
-              } focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.2)]`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+            { value: 'microsoft', label: 'Store' },
+          ]}
+        />
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="relative min-w-0 flex-1">
-          <input
+          <WeeGooeyField
             id={inputId}
             type="text"
-            className={searchInputClass}
             placeholder={placeholder}
             value={localSearchQuery}
             onChange={handleInputChange}
@@ -217,10 +200,6 @@ const UnifiedAppPathSearch = ({
             onBlur={handleInputBlur}
             disabled={disabled}
             autoComplete="off"
-          />
-          <Search
-            className="pointer-events-none absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[hsl(var(--text-tertiary))]"
-            aria-hidden
           />
         </div>
 

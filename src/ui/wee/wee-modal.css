@@ -1,9 +1,8 @@
-/* Origin morph: hide the source without dropping its compositor layer, so the handoff is instant. */
+/* Origin morph: tile opacity follows --origin-handoff (same clock as shellOpacity). */
 [data-wee-origin-state='covered'] {
-  opacity: 0 !important;
+  opacity: var(--origin-handoff, 0);
   pointer-events: none;
-  /* Don't inherit tile opacity easings — uncover must be a cut, not a fade. */
-  transition: none !important;
+  transition: none;
 }
 
 /* Viewport-capped shell: content scrolls inside .wee-modal-scroll. */

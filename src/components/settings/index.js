@@ -19,6 +19,7 @@ export { default as NavigationPillSettingsTab } from './NavigationPillSettingsTa
 export { default as MotionFeedbackSettingsTab } from './MotionFeedbackSettingsTab';
 /** BETA: Immersive Sound Mode host — removable with feature folder. */
 export { default as BetaSettingsTab } from './BetaSettingsTab';
+export { default as KitLabSettingsTab } from './KitLabSettingsTab';
 export { default as SettingsTabPageHeader } from './SettingsTabPageHeader';
 export { default as SettingsModal } from './SettingsModal';
 export { default as SettingsActionMenu } from './SettingsActionMenu';

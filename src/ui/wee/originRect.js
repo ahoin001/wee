@@ -22,6 +22,26 @@ export function readOriginRect(element) {
 }
 
 /**
+ * Same as {@link readOriginRect} but with hover / gooey transform stripped so
+ * open and close share the idle tile footprint.
+ * @param {Element | null | undefined} element
+ */
+export function readRestOriginRect(element) {
+  if (!element || typeof element.getBoundingClientRect !== 'function') return null;
+  const previousTransform = element.style.transform;
+  const previousTransition = element.style.transition;
+  element.style.setProperty('transition', 'none', 'important');
+  element.style.setProperty('transform', 'none', 'important');
+  void element.offsetWidth;
+  const rect = readOriginRect(element);
+  if (previousTransition) element.style.transition = previousTransition;
+  else element.style.removeProperty('transition');
+  if (previousTransform) element.style.transform = previousTransform;
+  else element.style.removeProperty('transform');
+  return rect;
+}
+
+/**
  * Fill color and plus glyph of the source element, so the shell is in the right
  * color family mid-flight. The real element takes over for the last frames.
  * @param {Element | null | undefined} element
@@ -44,20 +64,38 @@ export function readTilePaint(element) {
   };
 }
 
+/**
+ * Crossfade the source tile with the flying shell. `tileOpacity` is 1 at rest
+ * and 0 when the shell fully covers the slot. Driven by the originMorph clock.
+ * @param {Element | null | undefined} element
+ * @param {number} tileOpacity
+ */
+export function setOriginHandoff(element, tileOpacity) {
+  if (!element || typeof element.setAttribute !== 'function') return;
+  const opacity = Math.min(1, Math.max(0, Number(tileOpacity) || 0));
+  if (element.getAttribute('data-wee-origin-state') !== 'covered') {
+    element.setAttribute('data-wee-origin-state', 'covered');
+  }
+  element.style.setProperty('--origin-handoff', String(opacity));
+}
+
+/** Remove origin handoff paint so the tile is the only layer. */
+export function flushOriginSource(element) {
+  if (!element || typeof element.removeAttribute !== 'function') return;
+  element.removeAttribute('data-wee-origin-state');
+  element.style.removeProperty('--origin-handoff');
+  element.style.removeProperty('transition');
+  element.style.removeProperty('opacity');
+  element.style.removeProperty('pointer-events');
+}
+
 /** Hide or reveal the element a shell is flying out of. Layout stays for remeasure. */
 export function setOriginCovered(element, covered) {
-  if (!element || typeof element.setAttribute !== 'function') return;
   if (covered) {
-    if (element.getAttribute('data-wee-origin-state') !== 'covered') {
-      element.setAttribute('data-wee-origin-state', 'covered');
-    }
-  } else if (element.hasAttribute('data-wee-origin-state')) {
-    // Cut opacity instantly — tile easings would otherwise fade the slot back in.
-    element.style.setProperty('transition', 'none', 'important');
-    element.removeAttribute('data-wee-origin-state');
-    void element.offsetWidth;
-    element.style.removeProperty('transition');
+    setOriginHandoff(element, 0);
+    return;
   }
+  flushOriginSource(element);
 }
 
 /** Element registered for a transient origin key (e.g. the ribbon clock). */

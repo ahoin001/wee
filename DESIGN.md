@@ -153,13 +153,16 @@ Depth in Wee is **floating glass**: chrome hovers over the wallpaper like object
 Component character: **gooey but confident** — soft springs and gentle overshoot, but precise and never mushy. Every interactive element compresses on press (`scale ~0.93`), lifts slightly on hover (`scale ~1.03`, `y -1.5px`), and settles with the shared `press` spring. All primitives live in `src/ui/` (and `src/ui/wee/`); new controls extend them rather than styling raw HTML.
 
 ### Buttons (`WButton` / `WeeButton`)
-- **Shape:** Playful super-ellipse feel via large radius (`--control-radius-playful`, 1.65rem) with a thick 3px border.
-- **Voice:** Uppercase italic, tracking 0.12em, weight 600 — every button label speaks in the signature playful voice.
-- **Primary:** Solid `hsl(var(--primary))` fill, white text with subtle text-shadow, elevated playful shadow.
-- **Hover / Focus:** Framer spring lift + soft primary glow; 2px primary focus ring with offset.
-- **Secondary:** `--surface-secondary` fill, 2px `--border-secondary` border, hover shifts border to primary.
-- **Tertiary:** Transparent ghost; hover paints `--state-hover` only.
-- **Disabled:** Not a gray slab — a resting Wii-tint chip (`--surface-wii-tint`) with gentle inset gloss.
+- **Shape:** Labeled actions are squircles (`--control-radius-playful`: `min(1.65rem, 30%)`) on `WeeGlassPill` + floor shadow — never stadium `rounded-full` text chips. The percentage cap keeps compact buttons from becoming capsules. True capsules stay for icon-only discs (space rail, page dots).
+- **Voice:** Uppercase italic, tracking 0.12em, weight 900 — every button label speaks in the signature playful voice.
+- **Primary:** Solid `hsl(var(--primary))` fill, on-accent text, hover glow.
+- **Hover / Focus:** `press` spring lift + scale (`PLAYFUL_AMPLITUDE`) + `--shadow-hover-glow`; footprint grows slightly, not a color-only oval.
+- **Secondary:** Glass fill; `active` is a primary wash + glow (space-rail selection), not a hard ring.
+- **Disabled:** Resting Wii-tint chip (`--surface-wii-tint`), not a grey `opacity-50` slab.
+
+### Segmented choices (`WeeSegmentedControl`)
+- **Shape:** A row of glass squircles with a traveling `WeeLayoutActiveDisc` — not oval chips inside a sausage track.
+- **Motion:** Same `press` hover/tap as `WeeButton`; selection liquid-slides between cells.
 
 ### Glass Pills (`WeeGlassPill` + `WeePillFloorShadow`) — the signature component
 - **Style:** `border-4` ring (`--wee-pill-border`), frosted fill (`--wee-pill-glass`), `backdrop-blur-xl`, `--wee-pill-shadow`.
@@ -172,9 +175,9 @@ Component character: **gooey but confident** — soft springs and gentle oversho
 - **Shadow Strategy:** Soft rest → soft hover; border shifts subtly on hover instead of flashy fills.
 - **Internal Padding:** Generous (`p-8 md:p-10` on Wee cards; `--playful-card-padding` for playful surfaces).
 
-### Inputs / Fields (`WInput`, `WSelect`, `WToggle`, `WeeSlider`, `WeeSegmentedControl`)
-- **Style:** Soft input wells (`--wee-surface-input`), near-flat field borders (`--wee-border-field`), minimal field shadow.
-- **Focus:** Primary ring, border shift toward accent.
+### Inputs / Fields (`WeeGooeyField`, `WSelect`, `WToggle`, `WeeSlider`)
+- **Style:** Glass well on `--control-radius-playful` (`WeeGooeyField`); focus uses `pillOpen` scale + glow, not a hard ring.
+- **Focus:** Soft primary glow; disabled is Wii-tint, not faded opacity.
 - **Toggles:** 44×24 track, 20px thumb, spring-animated.
 - **Reveal:** A toggle that reveals fields animates the space via `WeeRevealWhen` / `SettingsToggleFieldCard` — grid-rows morph, never height-auto.
 

@@ -221,6 +221,19 @@ export const SETTINGS_TAB_META = Object.freeze([
     ],
     beta: true,
   },
+  {
+    id: 'kit',
+    label: 'UI Lab',
+    icon: '🎛️',
+    color: 'hsl(var(--settings-tab-kit))',
+    description: 'Gooey control specimens — poke every state',
+    categoryId: 'system',
+    keywords: [
+      'ui lab', 'kit', 'gooey', 'button', 'segment', 'field', 'squircle',
+      'specimens', 'primitives', 'channel morph',
+    ],
+    beta: true,
+  },
 ]);
 
 /** Legacy route aliases — kept for deep links and persisted `ui.settingsActiveTab`. */

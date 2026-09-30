@@ -44,7 +44,7 @@ function WeeGooeyToggle({
           ${checked
             ? 'bg-[hsl(var(--primary))]'
             : 'bg-[hsl(var(--wee-pill-glass))]'}
-          ${disabled ? 'cursor-not-allowed opacity-50' : ''}
+          ${disabled ? 'cursor-not-allowed !border-[hsl(var(--border-primary)/0.42)] !bg-[hsl(var(--surface-wii-tint))]' : ''}
         `}
         {...props}
       >

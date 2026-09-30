@@ -28,9 +28,10 @@ function WeeChannelModal({
 }) {
   const { tabTransition } = useWeeMotion();
   const tilePaint = originRect?.source ? readTilePaint(originRect.source) : null;
+  const hasArt = Boolean(faceMedia?.url && !faceMedia.loading);
 
   const rail = (
-    <WeeModalRail tone="solid">
+    <WeeModalRail tone="solid" forceVisible>
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--text-primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--wee-shadow-rail-active)]">
@@ -106,7 +107,9 @@ function WeeChannelModal({
       originRect={originRect}
       originMorph
       originPlate
+      originPlateScrim={hasArt}
       face={<ChannelMorphFace media={faceMedia} paint={tilePaint} />}
+      headerLeading={<ChannelMorphFace media={faceMedia} paint={tilePaint} variant="chip" />}
     >
       <AnimatePresence mode="wait">
         <TabPanel

@@ -196,9 +196,23 @@ Animate **space** (`0fr → 1fr`), not opacity alone. One `--wee-collapse-*` clo
 |-------|-----|
 | `--wee-radius-shell` | Modal outer shell (~4rem) |
 | `--wee-radius-card` | Cards / wells (~3rem) |
-| `--wee-radius-pill` | Pill controls (~2rem) |
+| `--wee-radius-pill` | Edge chrome peeks (~2rem) |
 | `--wee-radius-rail-item` | Rail items |
-| `--radius-pill` / `rounded-full` | True capsules (page indicator, icon discs) |
+| `--control-radius-playful` | Labeled actions, segments, fields — `min(1.65rem, 30%)` so compact chips stay squircles |
+| `--radius-pill` / `rounded-full` | True capsules only — page indicator, icon discs. Never labeled chips. |
+
+### Labeled actions and segments
+
+Form and modal controls share space-rail *physics*, not stadium geometry:
+
+| Primitive | Geometry | Motion |
+|-----------|----------|--------|
+| `WeeButton` | Glass squircle + floor shadow | `press` hover/tap; glow, not hard rings |
+| `WeeSegmentedControl` | One squircle cell per option | `WeeLayoutActiveDisc` travels; `press` on cells |
+| `WeeGooeyField` | Glass squircle well | `pillOpen` / `pillClose` on focus |
+| `WeeSpaceRailPillButton` | Alias of `WeeButton` secondary | `active` = primary wash |
+
+Disabled = `--surface-wii-tint` chip. Do not grey the control with `opacity-50`.
 
 ### Semantic color (always)
 
@@ -253,11 +267,11 @@ Prefer `src/ui/` first:
 
 | Control | Component |
 |---------|-----------|
-| Button | `WButton` / `WeeButton` |
-| Text / number | `WInput` |
-| Select | `WSelect` |
-| Toggle | `WToggle` / `WeeToggle` |
-| Slider | `Slider` / `WeeSlider` |
+| Text / number | `WeeGooeyField` |
+| Button | `WeeButton` |
+| Select | `WeeGooeySelect` / `WSelect` |
+| Toggle | `WeeGooeyToggle` / `WeeToggle` |
+| Slider | `WeeSlider` |
 | Segmented | `WeeSegmentedControl` |
 | Choice tiles | `WeeChoiceTileGrid` |
 

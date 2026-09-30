@@ -1,12 +1,18 @@
 import React, { useId } from 'react';
 import PropTypes from 'prop-types';
 import { LayoutGroup } from 'framer-motion';
+import { createWeeTransition } from '../../design/weeMotion';
 import { useWeeMotion } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import { PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
+import WeeGlassPill from './WeeGlassPill';
 import WeeLayoutActiveDisc, { WEE_LIQUID_ROOT_ATTR } from './WeeLayoutActiveDisc';
 
+const SQUIRCLE = 'rounded-[var(--control-radius-playful)]';
+
 /**
- * Pill segmented control — `role="group"` with `aria-pressed` per option.
- * Active option uses shared {@link WeeLayoutActiveDisc} (space-pill selection chrome).
+ * Space-rail cells — one glass squircle per option, traveling liquid disc.
+ * Not a stadium capsule of oval chips.
  */
 function WeeSegmentedControl({
   value,
@@ -22,13 +28,16 @@ function WeeSegmentedControl({
 }) {
   const baseId = useId();
   const { reducedMotion } = useWeeMotion();
-  const pad = size === 'sm' ? 'px-4 py-2 text-[10px]' : 'px-6 py-2.5 text-[10px] md:px-8';
+  const { osReduced, prefs } = useMotionFeedback();
+  const motionOff = Boolean(reducedMotion || osReduced || prefs?.master === false);
+  const press = createWeeTransition('press', { reducedMotion: motionOff });
+  const pad = size === 'sm'
+    ? 'px-3.5 py-2 text-[length:var(--font-size-micro)]'
+    : 'px-5 py-2.5 text-[length:var(--font-size-micro)] md:px-6';
 
-  const trackClass =
-    'border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)] backdrop-blur-xl';
   const layoutClass = wrap
-    ? `flex w-full max-w-full flex-wrap gap-2 rounded-2xl ${trackClass} p-1.5`
-    : `inline-flex rounded-2xl ${trackClass} p-1.5`;
+    ? 'flex w-full max-w-full flex-wrap gap-2'
+    : 'inline-flex flex-wrap gap-2';
 
   return (
     <LayoutGroup id={layoutId}>
@@ -37,7 +46,7 @@ function WeeSegmentedControl({
         aria-label={ariaLabel}
         aria-disabled={disabled || undefined}
         {...{ [WEE_LIQUID_ROOT_ATTR]: '' }}
-        className={`relative ${layoutClass} ${disabled ? 'opacity-50' : ''} ${className}`.trim()}
+        className={`relative ${layoutClass} ${className}`.trim()}
       >
         {options.map((opt) => {
           const selected = opt.value === value;
@@ -45,14 +54,25 @@ function WeeSegmentedControl({
           const softDisable = Boolean(optionDisabled && onDisabledOption);
           const id = `${baseId}-${opt.value}`;
           return (
-            <button
+            <WeeGlassPill
               key={String(opt.value)}
+              as="button"
+              motion
               id={id}
               type="button"
               aria-pressed={selected}
               aria-disabled={optionDisabled || undefined}
               disabled={optionDisabled && !softDisable}
               title={opt.title}
+              whileHover={
+                motionOff || optionDisabled
+                  ? undefined
+                  : { scale: PLAYFUL_AMPLITUDE.hoverScale, y: PLAYFUL_AMPLITUDE.hoverLiftY }
+              }
+              whileTap={
+                motionOff || optionDisabled ? undefined : { scale: PLAYFUL_AMPLITUDE.pressScale }
+              }
+              transition={press}
               onClick={() => {
                 if (optionDisabled) {
                   onDisabledOption?.(opt.value);
@@ -60,23 +80,23 @@ function WeeSegmentedControl({
                 }
                 onChange(opt.value);
               }}
-              className={`relative rounded-xl font-black uppercase italic transition-colors ${pad} ${
+              className={`relative overflow-hidden ${SQUIRCLE} font-black uppercase italic tracking-wide ${pad} ${
                 selected
-                  ? 'text-[hsl(var(--wee-text-header))]'
+                  ? 'text-[hsl(var(--wee-text-header))] shadow-[var(--shadow-hover-glow)]'
                   : optionDisabled
-                    ? 'cursor-not-allowed text-[hsl(var(--text-tertiary))] opacity-45'
-                    : 'text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-secondary))]'
+                    ? 'cursor-not-allowed !bg-[hsl(var(--surface-wii-tint))] !text-[hsl(var(--text-secondary))]'
+                    : 'text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] hover:shadow-[var(--shadow-hover-glow)]'
               }`}
             >
               {selected ? (
                 <WeeLayoutActiveDisc
                   layoutId={layoutId}
-                  reducedMotion={reducedMotion}
-                    className="rounded-xl bg-[hsl(var(--primary)/0.28)] shadow-[var(--shadow-hover-glow)]"
+                  reducedMotion={motionOff}
+                  className={`${SQUIRCLE} !rounded-[var(--control-radius-playful)] bg-[hsl(var(--primary)/0.28)] shadow-[var(--shadow-hover-glow)]`}
                 />
               ) : null}
               <span className="relative z-10">{opt.label}</span>
-            </button>
+            </WeeGlassPill>
           );
         })}
       </div>

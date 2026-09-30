@@ -27,6 +27,8 @@ export const SETTINGS_TAB_ID = {
   MONITOR: 'monitor',
   MOTION: 'motion',
   BETA: 'beta',
+  /** Playground for Wee gooey primitives (beta). */
+  KIT: 'kit',
   /**
    * @deprecated Page arrows settings removed — Wee peeks are the only style.
    * normalizeSettingsTabId redirects to `channels`.

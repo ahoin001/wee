@@ -155,13 +155,13 @@
     "semantic_hash": "a4f476efda2d619727f90539362a8ed6"
   },
   "src/components/app-library/UnifiedAppPathCard.jsx": {
-    "mtime": 1790705098.161485,
-    "ast_hash": "887fddb8ea78f98a29ba58a3178ba7e6",
-    "semantic_hash": ""
+    "mtime": 1776482383.7352338,
+    "ast_hash": "03bbae416dae9db5192f1c01c303c766",
+    "semantic_hash": "03bbae416dae9db5192f1c01c303c766"
   },
   "src/components/app-library/UnifiedAppPathSearch.jsx": {
-    "mtime": 1790705103.371312,
-    "ast_hash": "c758a1a90e2ff8e3b1e2aa620ec596a4",
+    "mtime": 1783956709.7470853,
+    "ast_hash": "3b5d3d41445373a47c1dac6181db50d2",
     "semantic_hash": ""
   },
   "src/components/app-library/index.js": {
@@ -205,8 +205,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/WeeChannelModal.jsx": {
-    "mtime": 1790705089.4004421,
-    "ast_hash": "28ad296d79ea4ca2eb528fd355c8e6b5",
+    "mtime": 1790630836.8542655,
+    "ast_hash": "da0e4c00b9930042fc74c14d51aa3e0c",
     "semantic_hash": ""
   },
   "src/components/channels/WiiChannelStrip.jsx": {
@@ -670,8 +670,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/SettingsModal.jsx": {
-    "mtime": 1790705179.8253012,
-    "ast_hash": "da92c7735d88b44fdf3a9ef9514cdec2",
+    "mtime": 1790630770.675578,
+    "ast_hash": "095b9875b61ece5920a2990b5f6c8432",
     "semantic_hash": ""
   },
   "src/components/settings/SettingsMultiToggleChips.jsx": {
@@ -755,8 +755,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
-    "mtime": 1790705178.5154479,
-    "ast_hash": "a6a8746970fb80e9228c442706f22368",
+    "mtime": 1784646626.6162138,
+    "ast_hash": "c15b515f0b4741236c55e4e7185ced90",
     "semantic_hash": ""
   },
   "src/components/settings/presets/PresetsCommunityCard.jsx": {
@@ -1080,8 +1080,8 @@
     "semantic_hash": "ba6cccb086af33059bded08a4c90d571"
   },
   "src/ui/wee/WeeButton.jsx": {
-    "mtime": 1790705045.7932167,
-    "ast_hash": "0d2c3f235c5b3933ea09844a00ce88ef",
+    "mtime": 1790621270.7405784,
+    "ast_hash": "5506de7e487e38e2f1fdbc2e1f5b1f33",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeCard.jsx": {
@@ -1145,8 +1145,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeModalShell.jsx": {
-    "mtime": 1790705086.043601,
-    "ast_hash": "9a71bfebf774a68eaabfba0f9feb221b",
+    "mtime": 1790630831.2312226,
+    "ast_hash": "df28144647224c49461335940c078421",
     "semantic_hash": ""
   },
   "src/ui/wee/WeePillFloorShadow.jsx": {
@@ -1170,8 +1170,8 @@
     "semantic_hash": "3e5fb0a2750a09efc950fd882f66a9e4"
   },
   "src/ui/wee/WeeSegmentedControl.jsx": {
-    "mtime": 1790705231.1557822,
-    "ast_hash": "6dcac51a34ad6a3e80c550deef4c254d",
+    "mtime": 1790626970.286516,
+    "ast_hash": "937ea122142fcf1b22aa6de398b4c4b5",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeSettingsCollapsibleSection.jsx": {
@@ -1195,9 +1195,9 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeSpaceRailPillButton.jsx": {
-    "mtime": 1790705051.8220942,
-    "ast_hash": "bedd7be1a5da4608eb360929fb76416c",
-    "semantic_hash": ""
+    "mtime": 1783871556.5034337,
+    "ast_hash": "ceba07ca1d59818763d736928be6955f",
+    "semantic_hash": "ceba07ca1d59818763d736928be6955f"
   },
   "src/ui/wee/WeeToggle.jsx": {
     "mtime": 1790621271.8719766,
@@ -1435,8 +1435,8 @@
     "semantic_hash": "2f9d59760e07f194ba3ec6911bd02abe"
   },
   "src/utils/settingsNavigation.js": {
-    "mtime": 1790705178.4862294,
-    "ast_hash": "aa8bef4a3d9cc67c470d017b868322e3",
+    "mtime": 1790630769.404096,
+    "ast_hash": "4534b90b3779680b72232e7aa2917286",
     "semantic_hash": ""
   },
   "src/utils/spotifyService.js": {
@@ -2025,8 +2025,8 @@
     "semantic_hash": ""
   },
   "docs/wee-chrome-style-reference.md": {
-    "mtime": 1790705392.5890937,
-    "ast_hash": "527e6fbed5e1ee0571855ec8961a8e96",
+    "mtime": 1784427387.438754,
+    "ast_hash": "5586bd805e223c8f1a62a3aace1d3078",
     "semantic_hash": ""
   },
   ".impeccable/design.json": {
@@ -2050,8 +2050,8 @@
     "semantic_hash": ""
   },
   "src/utils/settingsRegistry.js": {
-    "mtime": 1790705178.1266115,
-    "ast_hash": "1d40b9933dffe2cd1e685b27a8dea16f",
+    "mtime": 1790631171.048111,
+    "ast_hash": "a99a4f3418f0ffbc5377cf7da46313e5",
     "semantic_hash": ""
   },
   ".impeccable/critique/2026-07-15T16-35-33Z__src-components-home-grid.md": {
@@ -2060,8 +2060,8 @@
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1790705392.5940034,
-    "ast_hash": "b51758f21093bf575045daf71b8a3406",
+    "mtime": 1784139451.8846004,
+    "ast_hash": "ff9864a4008df83909ccd0388ee79c74",
     "semantic_hash": ""
   },
   "PRODUCT.md": {
@@ -2655,8 +2655,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/ChannelMorphFace.jsx": {
-    "mtime": 1790705258.1234722,
-    "ast_hash": "a634ff2abfaffced0e4dcdf60bbcb2db",
+    "mtime": 1790629223.4645593,
+    "ast_hash": "db099d29e1fb3620075ddb09c936638c",
     "semantic_hash": ""
   },
   "src/components/channels/stripCellVisibility.js": {
@@ -2690,8 +2690,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGooeyField.jsx": {
-    "mtime": 1790705058.673505,
-    "ast_hash": "427f679079ca8827505902aa9737560b",
+    "mtime": 1790621152.2089708,
+    "ast_hash": "823561025dd8bc87f1a15e8db0af747b",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGooeySelect.jsx": {
@@ -2700,8 +2700,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGooeyToggle.jsx": {
-    "mtime": 1790705210.3433669,
-    "ast_hash": "3e316c394530c59c13a21f31d537b3e9",
+    "mtime": 1790621208.345634,
+    "ast_hash": "f4fdbb726dfedc9557eb513b4d652127",
     "semantic_hash": ""
   },
   "src/utils/showHomeBoardAck.js": {
@@ -2732,11 +2732,6 @@
   "src/utils/appearance/resolveEffectiveOverlay.js": {
     "mtime": 1790628558.049773,
     "ast_hash": "ec28d2a8ee9942a70fa51c5ffc02b632",
-    "semantic_hash": ""
-  },
-  "src/components/settings/KitLabSettingsTab.jsx": {
-    "mtime": 1790705251.6175647,
-    "ast_hash": "afa85ba46c671a75e0b78f5a286b1f30",
     "semantic_hash": ""
   }
 }

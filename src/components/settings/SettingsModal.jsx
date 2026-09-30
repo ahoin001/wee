@@ -36,6 +36,7 @@ import {
   NavigationPillSettingsTab,
   MotionFeedbackSettingsTab,
   BetaSettingsTab,
+  KitLabSettingsTab,
   PerformanceSettingsTab,
 } from './index';
 
@@ -58,6 +59,7 @@ const SETTINGS_TAB_COMPONENTS = {
   monitor: MonitorSettingsTab,
   shortcuts: ShortcutsSettingsTab,
   beta: BetaSettingsTab,
+  kit: KitLabSettingsTab,
 };
 
 /** Flat registry order for keyboard nav and lookups. */

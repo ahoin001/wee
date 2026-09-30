@@ -8,10 +8,8 @@ import {
   WeeSegmentedControl,
   WeeHelpParagraph,
   WeeHelpLinkButton,
+  WeeGooeyField,
 } from '../../ui/wee';
-
-const inputWeeClass =
-  'w-full rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-5 py-4 font-[family-name:var(--font-ui)] text-left text-base font-bold italic text-[hsl(var(--text-primary))] outline-none shadow-[var(--wee-shadow-field)] transition-[border-color,box-shadow] placeholder:font-[family-name:var(--font-ui)] placeholder:font-normal placeholder:not-italic placeholder:text-[hsl(var(--text-tertiary))] focus:border-[hsl(var(--border-accent))] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.12)] hover:border-[hsl(var(--wee-border-field-hover))] disabled:cursor-not-allowed disabled:opacity-60';
 
 const UnifiedAppPathCard = React.memo(({
   value = {},
@@ -252,29 +250,29 @@ const UnifiedAppPathCard = React.memo(({
           ) : (
             <div className="space-y-6">
               <WeeSectionEyebrow>Target path</WeeSectionEyebrow>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-                <input
-                  id="channel-launch-path"
-                  type="text"
-                  className={`${inputWeeClass} flex-1 truncate text-sm font-bold not-italic sm:min-w-0 ${displayPathError ? 'border-[hsl(var(--state-error))]' : ''}`}
-                  placeholder="Browse or paste a path"
-                  value={path}
-                  onChange={(e) => handlePathChange(e.target.value)}
-                  disabled={disabled}
-                />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <WeeGooeyField
+                    id="channel-launch-path"
+                    type="text"
+                    placeholder="Browse or paste a path"
+                    value={path}
+                    onChange={(e) => handlePathChange(e.target.value)}
+                    disabled={disabled}
+                    error={Boolean(displayPathError)}
+                    helperText={displayPathError || undefined}
+                  />
+                </div>
                 <WeeButton
                   type="button"
                   variant="primary"
                   onClick={handleBrowseFile}
                   disabled={disabled}
-                  className="shrink-0 whitespace-nowrap px-8 !py-4"
+                  className="shrink-0 whitespace-nowrap"
                 >
                   Browse
                 </WeeButton>
               </div>
-              {displayPathError ? (
-                <div className="text-[0.75rem] text-[hsl(var(--state-error))]">{displayPathError}</div>
-              ) : null}
             </div>
           )}
         </>
@@ -283,18 +281,16 @@ const UnifiedAppPathCard = React.memo(({
       {launchType === 'url' && (
         <div className="space-y-4">
           <WeeSectionEyebrow>Website address</WeeSectionEyebrow>
-          <input
+          <WeeGooeyField
             id="channel-website-url"
-            type="text"
-            className={`${inputWeeClass} ${displayPathError ? 'border-[hsl(var(--state-error))]' : ''}`}
+            type="url"
             placeholder="https://…"
             value={path}
             onChange={(e) => handlePathChange(e.target.value)}
             disabled={disabled}
+            error={Boolean(displayPathError)}
+            helperText={displayPathError || undefined}
           />
-          {displayPathError ? (
-            <div className="text-[0.75rem] text-[hsl(var(--state-error))]">{displayPathError}</div>
-          ) : null}
         </div>
       )}
     </div>
