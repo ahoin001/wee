@@ -88,6 +88,19 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Rest footprint while the origin plate is flying — no hover scale / glow. */
+.channel.channel--origin-locked,
+.channel.channel--origin-locked:hover,
+.channel.channel--origin-locked:focus,
+.channel.channel--origin-locked:active {
+  transform: translateZ(0);
+  box-shadow: var(--shadow-md);
+}
+
+.channel.channel--origin-locked::after {
+  opacity: 0;
+}
+
 /* Keyboard focus must always be visible — even when gooey motion owns hover/glow. */
 .channel:focus {
   outline: none;

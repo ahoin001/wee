@@ -5,6 +5,37 @@
   transition: none;
 }
 
+/*
+ * Art plate mid-flight: chrome mixes from cinema black into rest surfaces so the
+ * expanding face never becomes a white card. --origin-form is the same morphT.
+ */
+[data-wee-origin-plate='art'] {
+  --wee-plate-chrome: color-mix(
+    in srgb,
+    hsl(var(--wee-surface-shell)) calc(var(--origin-form, 1) * 100%),
+    hsl(var(--color-pure-black) / 0.72)
+  );
+  --wee-plate-well: color-mix(
+    in srgb,
+    hsl(var(--wee-surface-well)) calc(var(--origin-form, 1) * 100%),
+    hsl(var(--color-pure-black) / 0.66)
+  );
+  --wee-plate-rail: color-mix(
+    in srgb,
+    hsl(var(--wee-surface-rail)) calc(var(--origin-form, 1) * 100%),
+    hsl(var(--color-pure-black) / 0.78)
+  );
+  --wee-plate-input: color-mix(
+    in srgb,
+    hsl(var(--wee-surface-input)) calc(var(--origin-form, 1) * 100%),
+    hsl(var(--color-pure-black) / 0.68)
+  );
+}
+
+[data-wee-origin-plate='art'] .wee-modal-rail {
+  background-color: var(--wee-plate-rail);
+}
+
 /* Viewport-capped shell: content scrolls inside .wee-modal-scroll. */
 .wee-modal-panel {
   width: 100%;

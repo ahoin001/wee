@@ -1,11 +1,11 @@
 # Graph Report - wee  (2026-10-01)
 
 ## Corpus Check
-- 530 files · ~365,193 words
+- 530 files · ~365,175 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3102 nodes · 7877 edges · 216 communities (157 shown, 59 thin omitted)
+- 3102 nodes · 7877 edges · 217 communities (158 shown, 59 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
@@ -176,6 +176,7 @@
 - 15. DEFAULT SITE PACKS
 - 20. EXAMPLE INTERPRETATIONS
 - ApiIntegrationsSettingsTab.jsx
+- useNowPlayingSources.js
 - Database Setup
 - useUnifiedSettingsPersistence.js
 - SpotifyBrowseView.jsx
@@ -245,7 +246,7 @@
 ## Import Cycles
 - 4-file cycle: `src/components/app-library/CommunityPresets.jsx -> src/components/modals/index.js -> src/components/modals/PrimaryActionsModal.jsx -> src/components/app-library/index.js -> src/components/app-library/CommunityPresets.jsx`
 
-## Communities (216 total, 59 thin omitted)
+## Communities (217 total, 59 thin omitted)
 
 ### Community 0 - "PresetsSettingsTab.jsx"
 Cohesion: 0.22
@@ -257,7 +258,7 @@ Nodes (64): MANUAL, SPOTIFY, WALLPAPER_PALETTE, appliedWallpaperUrl(), ATMOSPHER
 
 ### Community 2 - "PaginatedChannels.jsx"
 Cohesion: 0.09
-Nodes (14): CommunityPresets(), PresetListItem, ChannelPathSmartSuggestions(), LaunchErrorToast(), ImageModal(), buttonVariants, variantSecondarySurface, WButton (+6 more)
+Nodes (15): CommunityPresets(), PresetListItem, UnifiedAppPathCard, ChannelPathSmartSuggestions(), LaunchErrorToast(), ImageModal(), buttonVariants, variantSecondarySurface (+7 more)
 
 ### Community 3 - "FloatingSpotifyWidget.jsx"
 Cohesion: 0.18
@@ -284,8 +285,8 @@ Cohesion: 0.06
 Nodes (36): App(), LazyAdminPanelWidget, LazyClassicWiiDock, LazyCommandPalette, LazyGameHubSpace, LazyHomePageIndicator, LazyImmersiveSoundModeController, LazyMediaHubSpace (+28 more)
 
 ### Community 10 - "SettingsModal.jsx"
-Cohesion: 0.06
-Nodes (23): UnifiedAppPathCard, UnifiedAppPathSearch(), ChannelMorphFace(), hasChannelArt(), WeeChannelModal(), PrimaryActionsModal, WallpaperLibrarySection(), ResourceUsageIndicator() (+15 more)
+Cohesion: 0.05
+Nodes (24): ChannelMorphFace(), hasChannelArt(), WeeChannelModal(), EMPTY_PAINT, FIVE_OPTIONS, FIVE_WITH_DISABLED, KitLabSettingsTab, TWO_OPTIONS (+16 more)
 
 ### Community 11 - "AdminPanel.jsx"
 Cohesion: 0.14
@@ -516,8 +517,8 @@ Cohesion: 0.42
 Nodes (7): resolveSpaceShellEntranceTiming(), SPACE_SHELL_ENTRANCE_TIERS, hubEntranceStorageKey(), memoryFullComplete, readTier(), useHubSpaceEntrance(), writeFullComplete()
 
 ### Community 84 - "HomeWidgetGlassControls.jsx"
-Cohesion: 0.08
-Nodes (23): ChannelsLayoutSettingsTab, KEN_BURNS_EASING_OPTIONS, KEN_BURNS_MODE_OPTIONS, LAYOUT_SUB_TABS, LayoutStepper(), CHROME_EFFECT_OPTIONS, SettingsToggleFieldCard(), CYCLE_INTERVAL_PRESETS (+15 more)
+Cohesion: 0.06
+Nodes (35): AdvancedSettingsTab, INTEGRATION_SUBTABS, ChannelsLayoutSettingsTab, KEN_BURNS_EASING_OPTIONS, KEN_BURNS_MODE_OPTIONS, LAYOUT_SUB_TABS, LayoutStepper(), ColorsSettingsTab (+27 more)
 
 ### Community 85 - "p-queue"
 Cohesion: 0.60
@@ -536,8 +537,8 @@ Cohesion: 0.30
 Nodes (11): DEFAULT_AMBIENT_COLOR, extractImagePalette(), getPaletteWorker(), paletteViaWorker(), pendingPaletteRequests, settlePending(), paletteFromPixels(), paletteSampleSize() (+3 more)
 
 ### Community 89 - "channelSpaces.js"
-Cohesion: 0.09
-Nodes (22): AdvancedSettingsTab, INTEGRATION_SUBTABS, ColorsSettingsTab, GameHubSettingsTab, EMPTY_PAINT, FIVE_OPTIONS, FIVE_WITH_DISABLED, KitLabSettingsTab (+14 more)
+Cohesion: 0.14
+Nodes (13): UnifiedAppPathSearch(), ChannelHoverSoundPicker(), PrimaryActionsModal, SettingsActionMenu, WallpaperLibrarySection(), WeeButton(), WeeHelpLinkButton(), WeeHelpParagraph() (+5 more)
 
 ### Community 90 - "CommandPalette.jsx"
 Cohesion: 0.39
@@ -572,8 +573,8 @@ Cohesion: 0.11
 Nodes (23): ArrangeKindBloom, ArrangeTileSatellite, ChannelDragOverlayFrame(), ChannelDropTargetMotion(), buildDropMicroSparks(), buildDropParticles(), buildLiftParticles(), ChannelReorderVfxPortal() (+15 more)
 
 ### Community 98 - "SoundsSettingsTab.jsx"
-Cohesion: 0.08
-Nodes (26): ChannelHoverSoundPicker(), DevReactProfiler(), BetaSettingsTab, GeneralSettingsTab, MonitorSettingsTab, MotionFeedbackSettingsTab, NavigationPillSettingsTab, PresetsSettingsTab (+18 more)
+Cohesion: 0.11
+Nodes (21): DevReactProfiler(), BetaSettingsTab, GeneralSettingsTab, MonitorSettingsTab, MotionFeedbackSettingsTab, NavigationPillSettingsTab, PresetsSettingsTab, SETTINGS_TAB_COMPONENTS (+13 more)
 
 ### Community 110 - "useKeyboardShortcuts.js"
 Cohesion: 0.25
@@ -684,8 +685,8 @@ Cohesion: 0.17
 Nodes (12): 4.10 Quotes & Testimonials, 4.11 Page Theme Lock (Light / Dark Mode Consistency), 4.1 Typography, 4.2 Color Calibration, 4.3 Layout Diversification, 4.4 Materiality, Shadows, Cards, 4.5 Interactive UI States, 4.6 Data & Form Patterns (+4 more)
 
 ### Community 141 - "How to Set Up Supabase"
-Cohesion: 0.13
-Nodes (15): 0.A Read these signals first, 0.B Output a one-line "Design Read" before generating, 0. BRIEF INFERENCE (Read the Room Before Anything Else), 0.C If the brief is ambiguous, ask one question, do not guess, 0.D Anti-Default Discipline, 13. OUT OF SCOPE, 14. FINAL PRE-FLIGHT CHECK, 1.A Dial Inference (design read → dial values) (+7 more)
+Cohesion: 0.18
+Nodes (11): 0.A Read these signals first, 0.B Output a one-line "Design Read" before generating, 0. BRIEF INFERENCE (Read the Room Before Anything Else), 0.C If the brief is ambiguous, ask one question, do not guess, 0.D Anti-Default Discipline, 13. OUT OF SCOPE, 14. FINAL PRE-FLIGHT CHECK, 2.A When to reach for a real design system (use official packages) (+3 more)
 
 ### Community 142 - "Components Organization"
 Cohesion: 0.50
@@ -791,6 +792,10 @@ Nodes (4): 12-section pack, 15. DEFAULT SITE PACKS, 4-section pack, 8-section pa
 Cohesion: 0.50
 Nodes (4): 20. EXAMPLE INTERPRETATIONS, Example 1, Example 2, Example 3
 
+### Community 169 - "useNowPlayingSources.js"
+Cohesion: 0.50
+Nodes (4): 1.A Dial Inference (design read → dial values), 1.B Use-Case Presets, 1.C How the Dials Drive Output, 1. THE THREE DIALS (Core Configuration)
+
 ### Community 170 - "Database Setup"
 Cohesion: 0.30
 Nodes (10): getStartupPhaseReached(), useSplashHandoff(), useStartupPhaseOrchestrator(), isStartupPhaseAtLeast(), PHASE_RANK, runStartupPhaseOrchestrator(), scheduleIdle(), STARTUP_PHASES (+2 more)
@@ -831,13 +836,13 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.079) - this node is a cross-community bridge._
 - **Why does `react` connect `react` to `useChannelMediaPreview.js`, `settingsRegistry.js`?**
   _High betweenness centrality (0.073) - this node is a cross-community bridge._
-- **Why does `WiiRibbonComponent()` connect `useChannelMediaPreview.js` to `useConsolidatedAppStore.js`, `SoundsSettingsTab.jsx`, `react`, `WiiRibbon.jsx`, `FloatingSpotifyWidget.jsx`, `WallpaperSettingsTab.jsx`, `@vitejs/plugin-react`, `react`, `electron-updater`, `ChannelModal.jsx`, `AdminPanel.jsx`, `WToggle.jsx`, `supabase.js`, `index.js`, `useWallpaperDataFileSync.js`, `GameHubSpace.jsx`, `react`, `useWeeMotion`?**
+- **Why does `WiiRibbonComponent()` connect `useChannelMediaPreview.js` to `channelSpaces.js`, `useConsolidatedAppStore.js`, `react`, `WiiRibbon.jsx`, `FloatingSpotifyWidget.jsx`, `WallpaperSettingsTab.jsx`, `@vitejs/plugin-react`, `react`, `electron-updater`, `ChannelModal.jsx`, `AdminPanel.jsx`, `WToggle.jsx`, `supabase.js`, `index.js`, `useWallpaperDataFileSync.js`, `GameHubSpace.jsx`, `react`, `useWeeMotion`?**
   _High betweenness centrality (0.052) - this node is a cross-community bridge._
 - **What connects `PLAYLISTS`, `SONGS`, `name` to the rest of the system?**
   _878 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `useConsolidatedAppStore.js` be split into smaller, more focused modules?**
   _Cohesion score 0.08105263157894736 - nodes in this community are weakly interconnected._
 - **Should `PaginatedChannels.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.09291521486643438 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08970099667774087 - nodes in this community are weakly interconnected._
 - **Should `WiiRibbon.jsx` be split into smaller, more focused modules?**
   _Cohesion score 0.06604938271604938 - nodes in this community are weakly interconnected._

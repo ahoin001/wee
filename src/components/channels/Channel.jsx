@@ -138,6 +138,12 @@ const Channel = React.memo(({
 
   useEffect(() => () => setIsLaunchPressed(false), [id]);
 
+  useEffect(() => {
+    if (!channelModalMounted) return;
+    setIsHovered(false);
+    setIsLaunchPressed(false);
+  }, [channelModalMounted]);
+
   /** Soft launch choreography: brief press-down before the real launch, gated by channel tap motion feedback. */
   const handleTileClick = useCallback(
     (event) => {
@@ -340,13 +346,17 @@ const Channel = React.memo(({
     <MotionDiv
       className={
         effectiveIsEmpty && !effectiveMedia 
-          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}`
+          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${selected ? ' channel--arrange-selected' : ''}${showChannelModal || channelModalMounted ? ' channel--origin-locked' : ''}${launchFxClass}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}${showChannelModal || channelModalMounted ? ' channel--origin-locked' : ''}${launchFxClass}`
       }
       data-channel-id={id}
       data-gooey-hover-mode={channelGooeyHover.enabled ? channelGooeyHover.mode : undefined}
       onClick={handleTileClick}
-      onMouseEnter={e => { handleMouseEnter(e); setIsHovered(true); }}
+      onMouseEnter={e => {
+        if (showChannelModal || channelModalMounted) return;
+        handleMouseEnter(e);
+        setIsHovered(true);
+      }}
       onMouseLeave={e => { handleMouseLeave(e); setIsHovered(false); }}
       tabIndex={0}
       role="button"
@@ -372,7 +382,7 @@ const Channel = React.memo(({
           effectiveKenBurnsEnabled={effectiveKenBurnsEnabled}
           effectiveKenBurnsMode={effectiveKenBurnsMode}
           channelSettings={channelSettings}
-          isHovered={isHovered}
+          isHovered={showChannelModal || channelModalMounted ? false : isHovered}
           setIsHovered={setIsHovered}
           mp4Preview={mp4Preview}
           videoRef={videoRef}

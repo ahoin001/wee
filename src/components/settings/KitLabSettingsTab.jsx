@@ -48,17 +48,25 @@ function MiniPlate({ kind }) {
       {!empty ? (
         <>
           <div
-            className="pointer-events-none absolute inset-0 bg-[hsl(var(--primary))]"
+            className="pointer-events-none absolute inset-0 z-0 bg-[hsl(var(--primary))]"
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute inset-0 bg-[hsl(var(--bg-primary)/0.78)]"
+            className="pointer-events-none absolute inset-0 z-[1] bg-[hsl(var(--color-pure-black)/0.55)]"
             aria-hidden
           />
         </>
       ) : null}
-      <div className="relative z-10">
-        <div className="flex items-center gap-4 border-b-2 border-[hsl(var(--border-primary)/0.35)] px-5 py-4">
+      <div className="relative z-10 flex min-h-0">
+        {!empty ? (
+          <div className="flex w-24 shrink-0 flex-col justify-start bg-[hsl(var(--wee-surface-rail))] px-3 py-4">
+            <span className="text-[10px] font-black uppercase italic tracking-tight text-[hsl(var(--wee-text-header))]">
+              Config
+            </span>
+          </div>
+        ) : null}
+        <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-4 border-b-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--wee-surface-shell))] px-5 py-4">
           {empty ? (
             <ChannelMorphFace variant="chip" paint={EMPTY_PAINT} />
           ) : (
@@ -82,6 +90,7 @@ function MiniPlate({ kind }) {
         <div className="flex flex-wrap justify-end gap-2 border-t-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--wee-surface-input))] px-5 py-4">
           <WeeButton variant="secondary" size="sm">Cancel</WeeButton>
           <WeeButton variant="primary" size="sm">Save</WeeButton>
+        </div>
         </div>
       </div>
     </div>

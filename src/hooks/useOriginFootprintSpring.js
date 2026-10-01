@@ -110,6 +110,8 @@ export function useOriginFootprintSpring({
   morph = false,
   /** Channel plate: the face stays for the whole flight; the form darkens over it. */
   plate = false,
+  /** With-art plate: Game Space darken, delayed chrome, never a white mid-flight fill. */
+  plateScrim = false,
 }) {
   const fromRef = useRef(null);
   const sourceRef = useRef(null);
@@ -122,15 +124,17 @@ export function useOriginFootprintSpring({
   const faceOpacity = useMotionValue(morph ? 1 : 0);
   const shellOpacity = useMotionValue(morph && active ? 0 : 1);
   const shellBackground = useMotionValue('');
+  const darkenOpacity = useMotionValue(0);
   const openIntentRef = useRef(openIntent);
   const closeIntentRef = useRef(closeIntent);
   const morphRef = useRef(morph);
   const plateRef = useRef(plate);
-  const closingRef = useRef(false);
+  const plateScrimRef = useRef(plateScrim);
   openIntentRef.current = openIntent;
   closeIntentRef.current = closeIntent;
   morphRef.current = morph;
   plateRef.current = plate;
+  plateScrimRef.current = plateScrim;
 
   useLayoutEffect(() => () => {
     flushOriginSource(sourceRef.current);
@@ -144,6 +148,7 @@ export function useOriginFootprintSpring({
         contentOpacity.set(1);
         faceOpacity.set(0);
         shellOpacity.set(1);
+        darkenOpacity.set(0);
         flushOriginSource(sourceRef.current);
         sourceRef.current = null;
       }
@@ -164,19 +169,30 @@ export function useOriginFootprintSpring({
       radiusMv.set(compensatedCornerRadius(scaleXValue, scaleY.get(), footprint));
       if (!morphRef.current) return;
       const t = morphT(scaleXValue, footprint);
-      const form = smoothstep(0.35, 0.75, t);
+      const artPlate = plateRef.current && plateScrimRef.current;
+      // Art plate: chrome settles late so the expanding face stays cinema-dark,
+      // not a white card. Empty / form morphs keep the earlier reveal.
+      const form = artPlate ? smoothstep(0.52, 0.9, t) : smoothstep(0.35, 0.75, t);
       const shell = smoothstep(0, HANDOFF_T, t);
       contentOpacity.set(form);
       shellOpacity.set(shell);
+      setOriginHandoff(sourceRef.current, 1 - shell);
       el.style.setProperty('--origin-morph-scale', String(Math.max(scaleXValue, 0.05)));
       el.style.setProperty('--origin-form', String(form));
       const tileFill = footprint.tilePaint?.backgroundColor;
       const tileFillOpaque = tileFill && parseColor(tileFill)[3] > 0.05;
       if (plateRef.current) {
         faceOpacity.set(1);
-        shellBackground.set(tileFillOpaque ? tileFill : 'transparent');
+        if (artPlate) {
+          darkenOpacity.set(smoothstep(0.1, 0.45, t));
+          shellBackground.set('hsl(var(--color-pure-black))');
+        } else {
+          darkenOpacity.set(0);
+          shellBackground.set(tileFillOpaque ? tileFill : 'transparent');
+        }
       } else {
         faceOpacity.set(1 - form);
+        darkenOpacity.set(0);
         if (tileFillOpaque && footprint.openFill) {
           shellBackground.set(mixColor(tileFill, footprint.openFill, smoothstep(0.25, 0.7, t)));
         }
@@ -184,7 +200,6 @@ export function useOriginFootprintSpring({
     };
 
     if (!isOpen) {
-      closingRef.current = true;
       const stored = fromRef.current;
       if (!stored) {
         onClosed?.();
@@ -241,7 +256,6 @@ export function useOriginFootprintSpring({
       };
     }
 
-    closingRef.current = false;
     trackSource(originRect?.source);
     const box = measureUntransformed(el);
     const from = footprintFromOrigin(originRect, box);
@@ -283,6 +297,7 @@ export function useOriginFootprintSpring({
   }, [
     active,
     contentOpacity,
+    darkenOpacity,
     element,
     elementRef,
     faceOpacity,
@@ -308,5 +323,6 @@ export function useOriginFootprintSpring({
     faceOpacity,
     shellOpacity,
     shellBackground,
+    darkenOpacity,
   };
 }

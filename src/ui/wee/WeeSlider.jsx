@@ -6,7 +6,7 @@ import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 const MotionDiv = m.div;
 const STRETCH_PX = 12;
-const THUMB_PX = 28;
+const THUMB_PX = 18;
 
 function snapToStep(raw, min, max, step) {
   const span = max - min;
@@ -18,8 +18,8 @@ function snapToStep(raw, min, max, step) {
 }
 
 /**
- * Thick glass range on the space-rail clock.
- * Pointer tracks 1:1; the track stretches past the ends and springs home on pillClose.
+ * Range control: a thin track and a disc handle.
+ * Pointer tracks 1:1; the handle springs home on pillClose after an end stretch.
  */
 function WeeSlider({
   value,
@@ -55,8 +55,9 @@ function WeeSlider({
       const track = trackRef.current;
       if (!track) return;
       const rect = track.getBoundingClientRect();
-      const width = rect.width || 1;
-      const x = clientX - rect.left;
+      const inset = THUMB_PX / 2;
+      const width = Math.max(1, rect.width - THUMB_PX);
+      const x = clientX - rect.left - inset;
       const t = x / width;
       const over = x < 0 ? x : x > width ? x - width : 0;
       const visual = Math.max(-STRETCH_PX, Math.min(STRETCH_PX, over * 0.45));
@@ -118,7 +119,7 @@ function WeeSlider({
     }
   };
 
-  const thumbLeft = `calc(${clampedRatio * 100}% - ${THUMB_PX / 2}px)`;
+  const thumbLeft = `calc(${clampedRatio} * (100% - ${THUMB_PX}px))`;
 
   return (
     <div
@@ -136,21 +137,30 @@ function WeeSlider({
       onPointerUp={release}
       onPointerCancel={release}
       onKeyDown={onKeyDown}
-      className={`relative flex h-10 w-full cursor-pointer items-center touch-none focus-visible:outline-none focus-visible:shadow-[var(--shadow-hover-glow)] ${
-        disabled ? 'cursor-not-allowed opacity-50' : ''
+      className={`relative flex h-8 w-full touch-none items-center focus-visible:outline-none focus-visible:[&_.wee-slider-thumb]:shadow-[var(--shadow-hover-glow)] ${
+        disabled ? 'cursor-not-allowed' : 'cursor-pointer'
       } ${className}`.trim()}
     >
       <MotionDiv
-        className="h-10 w-full overflow-hidden rounded-full border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)] backdrop-blur-xl"
+        className="pointer-events-none absolute inset-x-[9px] top-1/2 h-2 -translate-y-1/2"
         style={{ scaleX, originX }}
       >
         <div
-          className="h-full rounded-full bg-[hsl(var(--primary))] shadow-[var(--shadow-hover-glow)]"
+          className={`absolute inset-0 rounded-full ${
+            disabled ? 'bg-[hsl(var(--surface-wii-tint))]' : 'bg-[hsl(var(--text-tertiary)/0.35)]'
+          }`}
+        />
+        <div
+          className={`absolute inset-y-0 left-0 rounded-full ${
+            disabled ? 'bg-[hsl(var(--text-tertiary))]' : 'bg-[hsl(var(--primary))]'
+          }`}
           style={{ width: `${clampedRatio * 100}%` }}
         />
       </MotionDiv>
       <MotionDiv
-        className="pointer-events-none absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--primary))] shadow-[var(--shadow-hover-glow)]"
+        className={`wee-slider-thumb pointer-events-none absolute top-1/2 size-[1.125rem] -translate-y-1/2 rounded-full border-2 bg-[hsl(var(--wee-surface-card))] shadow-[var(--shadow-soft)] ${
+          disabled ? 'border-[hsl(var(--text-tertiary))]' : 'border-[hsl(var(--primary))]'
+        }`}
         style={{ left: thumbLeft, x: stretch }}
         animate={reducedMotion ? undefined : { scale: dragging ? 1.12 : 1 }}
         transition={press}

@@ -13,7 +13,7 @@ export function WeeModalRail({
   const visibility = forceVisible ? 'flex' : 'hidden md:flex';
   return (
     <div
-      className={`${visibility} w-[min(20rem,28vw)] shrink-0 flex-col gap-8 border-r-[0.25rem] border-[hsl(var(--wee-border-rail))] p-8 ${surface} ${className}`.trim()}
+      className={`wee-modal-rail ${visibility} w-[min(20rem,28vw)] shrink-0 flex-col gap-8 border-r-[0.25rem] border-[hsl(var(--wee-border-rail))] p-8 ${surface} ${className}`.trim()}
     >
       {children}
     </div>

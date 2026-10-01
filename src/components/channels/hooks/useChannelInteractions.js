@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { readOriginRect } from '../../../ui/wee/originRect';
+import { readRestOriginRect } from '../../../ui/wee/originRect';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import { useChannelSpaceKey } from '../../../contexts/ChannelSpaceContext';
 import {
@@ -162,7 +162,7 @@ export function useChannelInteractions({
     if (interactionsLocked) return;
     e.preventDefault();
     e.stopPropagation();
-    openChannelModal(readOriginRect(e.currentTarget));
+    openChannelModal(readRestOriginRect(e.currentTarget));
   }, [interactionsLocked, openChannelModal]);
 
   const handleMouseEnter = useCallback(() => {
@@ -202,7 +202,7 @@ export function useChannelInteractions({
 
     const isChannelEmpty = (!effectiveConfig || !effectiveConfig.path) && !effectiveConfig?.isApiChannel;
     if (isChannelEmpty) {
-      const origin = event?.currentTarget ? readOriginRect(event.currentTarget) : null;
+      const origin = event?.currentTarget ? readRestOriginRect(event.currentTarget) : null;
       openChannelModal(origin);
       return;
     }

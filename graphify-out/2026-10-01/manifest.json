@@ -1190,8 +1190,8 @@
     "semantic_hash": "88844e795b5a72aaa19e736862f79649"
   },
   "src/ui/wee/WeeSlider.jsx": {
-    "mtime": 1790866713.438113,
-    "ast_hash": "448e863e5c243d354e99d89ad19a7e30",
+    "mtime": 1790628552.36013,
+    "ast_hash": "aea470fbc4e5e6c842f62c7f8c1529fe",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeSpaceRailPillButton.jsx": {
@@ -2625,8 +2625,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useOriginFootprintSpring.js": {
-    "mtime": 1790866492.5057619,
-    "ast_hash": "808533c0d81a759e5f403e6e432ab65b",
+    "mtime": 1790866322.9964976,
+    "ast_hash": "a48749ad42e20b675e1749469b1b9172",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGlyphField.jsx": {

@@ -83,7 +83,7 @@ function WeeModalShell({
   }, [onPanelAnimationComplete]);
   const {
     x, y, scaleX, scaleY, radiusMv, contentOpacity, faceOpacity,
-    shellOpacity, shellBackground,
+    shellOpacity, shellBackground, darkenOpacity,
   } = useOriginFootprintSpring({
     active: useOrigin && allowMount,
     isOpen,
@@ -95,7 +95,9 @@ function WeeModalShell({
     closeIntent: originMorph ? 'originMorphClose' : 'pillClose',
     morph: originMorph,
     plate: originPlate,
+    plateScrim: originPlateScrim,
   });
+  const artPlate = originPlate && originPlateScrim;
 
   const backdropVariants = useMemo(
     () => ({
@@ -148,6 +150,7 @@ function WeeModalShell({
             {/* Plain Panel + inner motion.div: Framer completion/variants on a real motion node (not Headless `as={motion}`). */}
             <MotionDiv
               ref={assignShell}
+              data-wee-origin-plate={originPlate ? (originPlateScrim ? 'art' : 'empty') : undefined}
               className={`
                   relative flex w-full min-h-0 overflow-hidden flex-col
                   ${heightClass}
@@ -187,7 +190,7 @@ function WeeModalShell({
               {useOrigin && originPlate && originPlateScrim ? (
                 <MotionDiv
                   className="pointer-events-none absolute inset-0 z-[1] bg-[hsl(var(--color-pure-black)/0.55)]"
-                  style={{ opacity: contentOpacity }}
+                  style={{ opacity: darkenOpacity }}
                   aria-hidden
                 />
               ) : null}
@@ -198,9 +201,13 @@ function WeeModalShell({
               {showRail && rail}
 
               <MotionDiv
-                className={`flex min-h-0 min-w-0 flex-1 flex-col bg-[hsl(var(--wee-surface-shell))] ${panelClassName}`}
+                className={`wee-modal-form flex min-h-0 min-w-0 flex-1 flex-col ${
+                  artPlate ? 'bg-[var(--wee-plate-chrome)]' : 'bg-[hsl(var(--wee-surface-shell))]'
+                } ${panelClassName}`}
               >
-                <div className="flex shrink-0 items-center justify-between border-b-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--wee-surface-shell))] px-8 py-6 md:px-10 md:py-7">
+                <div className={`wee-modal-form-header flex shrink-0 items-center justify-between border-b-2 border-[hsl(var(--border-primary)/0.35)] px-8 py-6 md:px-10 md:py-7 ${
+                  artPlate ? 'bg-[var(--wee-plate-chrome)]' : 'bg-[hsl(var(--wee-surface-shell))]'
+                }`}>
                   <div className="flex min-w-0 items-center gap-4">
                     {headerLeading}
                     <Dialog.Title
@@ -220,12 +227,16 @@ function WeeModalShell({
                   </button>
                 </div>
 
-                <div className="wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain bg-[hsl(var(--wee-surface-well))] px-8 py-8 md:px-12 md:py-10 [contain:layout]">
+                <div className={`wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-8 py-8 md:px-12 md:py-10 [contain:layout] ${
+                  artPlate ? 'bg-[var(--wee-plate-well)]' : 'bg-[hsl(var(--wee-surface-well))]'
+                }`}>
                   {children}
                 </div>
 
                 {footerContent && (
-                  <div className="shrink-0 border-t-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--wee-surface-input))] px-8 py-5 md:px-10">
+                  <div className={`wee-modal-form-footer shrink-0 border-t-2 border-[hsl(var(--border-primary)/0.35)] px-8 py-5 md:px-10 ${
+                    artPlate ? 'bg-[var(--wee-plate-input)]' : 'bg-[hsl(var(--wee-surface-input))]'
+                  }`}>
                     {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
                   </div>
                 )}
