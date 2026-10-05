@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { m } from 'framer-motion';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
-import { useFloatingWidgetsState, useUIState } from '../../utils/useConsolidatedAppHooks';
+import { useFloatingWidgetsState, useUIActions } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useFloatingWidgetFrame } from '../../hooks/useFloatingWidgetFrame';
 import { createWeeTransition } from '../../design/weeMotion';
@@ -21,7 +21,7 @@ import './AdminPanelWidget.css';
 
 const AdminPanelWidget = ({ isVisible, onClose, onExitAnimationComplete }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
-  const { confirmAction } = useUIState();
+  const { confirmAction } = useUIActions();
 
   const { osReduced, prefs } = useMotionFeedback();
   const reducedMotion = Boolean(osReduced) || prefs?.master === false;

@@ -4,6 +4,7 @@ import { applyAmbientRoleTokens } from '../utils/theme/extractImagePalette';
 import { resolveEffectiveAccent } from '../utils/theme/resolveEffectiveAccent';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { handleShellEscapeKey } from '../utils/overlayEscape';
+import { usePowerPolicy } from './usePowerPolicy';
 
 /**
  * Session-level guard so remounts / Strict Mode do not re-force the start-in-fullscreen
@@ -68,6 +69,15 @@ export const useThemeEffect = (isDarkMode) => {
     document.body.classList.remove('dark-mode');
     document.documentElement.setAttribute('data-theme', 'light');
   }, [isDarkMode]);
+};
+
+/** Root `.wee-power-efficient` — CSS swaps backdrop blur for opaque glass tokens. */
+export const usePowerEfficientGlassEffect = () => {
+  const { isEfficient } = usePowerPolicy();
+  useEffect(() => {
+    document.documentElement.classList.toggle('wee-power-efficient', isEfficient);
+  }, [isEfficient]);
+  useEffect(() => () => document.documentElement.classList.remove('wee-power-efficient'), []);
 };
 
 /**

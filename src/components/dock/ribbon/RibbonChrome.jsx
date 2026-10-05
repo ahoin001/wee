@@ -28,50 +28,57 @@ function RibbonChrome({
     : fillColor;
 
   return (
-    <div
-      className="absolute inset-0 z-0 svg-container-glow ribbon-svg-glow-dynamic"
-      style={{ ['--ribbon-glow-filter']: ribbonGlowFilter }}
-      onMouseEnter={() => hoverAnimationEnabled && onHoverChange?.(true)}
-      onMouseLeave={() => onHoverChange?.(false)}
-    >
-      <svg width="100%" height="100%" viewBox={RIBBON_VIEWBOX} preserveAspectRatio="none">
-        {glassWiiRibbon ? (
-          <defs>
-            <filter id="glass-blur" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation={glassBlur ?? 2.5} result="blur" />
-              <feComponentTransfer>
-                <feFuncA type="linear" slope="1.2" />
-              </feComponentTransfer>
-              <feMerge>
-                <feMergeNode />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            <linearGradient id="glass-shine" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={`rgba(255,255,255,${glassShineOpacity ?? 0.7})`} />
-              <stop offset="60%" stopColor="rgba(255,255,255,0.05)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0.0)" />
-            </linearGradient>
-          </defs>
-        ) : null}
-        <path
-          d={RIBBON_SILHOUETTE_PATH}
-          fill={pathFill}
-          stroke={`rgba(255,255,255,${glassBorderOpacity ?? 0.5})`}
-          strokeWidth="2"
-          filter={glassWiiRibbon ? 'url(#glass-blur)' : undefined}
-          className="transition-[fill] duration-300"
-        />
-        {glassWiiRibbon ? (
+    <>
+      <div className="ribbon-svg-glow-pulse-layer pointer-events-none absolute inset-0 z-0" aria-hidden>
+        <svg width="100%" height="100%" viewBox={RIBBON_VIEWBOX} preserveAspectRatio="none">
+          <path d={RIBBON_SILHOUETTE_PATH} fill={pathFill} />
+        </svg>
+      </div>
+      <div
+        className="absolute inset-0 z-0 svg-container-glow ribbon-svg-glow-dynamic"
+        style={{ ['--ribbon-glow-filter']: ribbonGlowFilter }}
+        onMouseEnter={() => hoverAnimationEnabled && onHoverChange?.(true)}
+        onMouseLeave={() => onHoverChange?.(false)}
+      >
+        <svg width="100%" height="100%" viewBox={RIBBON_VIEWBOX} preserveAspectRatio="none">
+          {glassWiiRibbon ? (
+            <defs>
+              <filter id="glass-blur" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation={glassBlur ?? 2.5} result="blur" />
+                <feComponentTransfer>
+                  <feFuncA type="linear" slope="1.2" />
+                </feComponentTransfer>
+                <feMerge>
+                  <feMergeNode />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <linearGradient id="glass-shine" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={`rgba(255,255,255,${glassShineOpacity ?? 0.7})`} />
+                <stop offset="60%" stopColor="rgba(255,255,255,0.05)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.0)" />
+              </linearGradient>
+            </defs>
+          ) : null}
           <path
-            d={RIBBON_SHINE_PATH}
-            fill="url(#glass-shine)"
-            className="pointer-events-none glass-shine-opacity-path"
-            style={{ ['--glass-shine-opacity']: glassShineOpacity ?? 0.7 }}
+            d={RIBBON_SILHOUETTE_PATH}
+            fill={pathFill}
+            stroke={`rgba(255,255,255,${glassBorderOpacity ?? 0.5})`}
+            strokeWidth="2"
+            filter={glassWiiRibbon ? 'url(#glass-blur)' : undefined}
+            className="transition-[fill] duration-300"
           />
-        ) : null}
-      </svg>
-    </div>
+          {glassWiiRibbon ? (
+            <path
+              d={RIBBON_SHINE_PATH}
+              fill="url(#glass-shine)"
+              className="pointer-events-none glass-shine-opacity-path"
+              style={{ ['--glass-shine-opacity']: glassShineOpacity ?? 0.7 }}
+            />
+          ) : null}
+        </svg>
+      </div>
+    </>
   );
 }
 

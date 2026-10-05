@@ -8,6 +8,29 @@ import { resolveActiveBoardCurrentPage } from './channelSpaces';
 import { preloadImageUrl } from './mediaWarmCache';
 import { registerWallpaperCycleManual } from './wallpaperCyclingBridge';
 
+const IDLE_CYCLE_STATE = Object.freeze({
+  phase: 'idle',
+  isTransitioning: false,
+  progress: 0,
+  slideDirection: 'right',
+  nextWallpaper: null,
+  durationMs: 0,
+  easingCss: 'linear',
+});
+
+/** Settings easing ids → `--wee-wallpaper-cycle-ease-*` tokens (match the old JS curves). */
+const CYCLE_EASING_TOKENS = Object.freeze({
+  'ease-out': 'var(--wee-wallpaper-cycle-ease-out)',
+  'ease-in': 'var(--wee-wallpaper-cycle-ease-in)',
+  'ease-in-out': 'var(--wee-wallpaper-cycle-ease-in-out)',
+  'cubic-bezier': 'var(--wee-wallpaper-cycle-ease-smooth)',
+  linear: 'linear',
+});
+
+function resolveWallpaperCycleEasingCss(easing) {
+  return CYCLE_EASING_TOKENS[easing] || 'linear';
+}
+
 const useWallpaperCycling = () => {
   const {
     wallpaper,
@@ -16,7 +39,7 @@ const useWallpaperCycling = () => {
     activeSpaceId,
     sessionPower,
     appearanceBySpace,
-    channels,
+    currentPage,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       wallpaper: state.wallpaper,
@@ -25,7 +48,10 @@ const useWallpaperCycling = () => {
       activeSpaceId: state.spaces.activeSpaceId,
       sessionPower: state.ui.sessionPower ?? 'normal',
       appearanceBySpace: state.appearanceBySpace,
-      channels: state.channels,
+      currentPage: resolveActiveBoardCurrentPage({
+        activeSpaceId: state.spaces.activeSpaceId,
+        channels: state.channels,
+      }),
     }))
   );
   const { isAppActive } = useAppActivity();
@@ -38,20 +64,19 @@ const useWallpaperCycling = () => {
   const intervalRef = useRef(null);
   const isTransitioningRef = useRef(false);
   const cycleRafRef = useRef(null);
+  const cycleTimerRef = useRef(null);
 
   // Use refs to avoid triggering re-renders during transitions
   const currentWallpaperRef = useRef(wallpaper.current);
   const nextWallpaperRef = useRef(null);
 
-  // Local state for transitions to avoid triggering store re-renders
-  const [localTransitionState, setLocalTransitionState] = useState({
-    isTransitioning: false,
-    progress: 0,
-    slideDirection: 'right',
-    nextWallpaper: null,
-  });
+  /**
+   * One render per phase — the layers' CSS transition owns the in-between frames.
+   * `from` paints progress 0, `run` flips to 1 with the transition armed,
+   * `settle` is the committed frame where layers snap (no transition) before idle.
+   */
+  const [localTransitionState, setLocalTransitionState] = useState(IDLE_CYCLE_STATE);
 
-  const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
   const displayEligible = useMemo(
     () =>
       isWallpaperCyclingEligible({
@@ -71,21 +96,25 @@ const useWallpaperCycling = () => {
     displayEligibleRef.current = displayEligible;
   }, [displayEligible]);
 
-  const abortCycleTransition = useCallback(() => {
+  const clearCycleTimers = useCallback(() => {
     if (cycleRafRef.current != null) {
       cancelAnimationFrame(cycleRafRef.current);
       cycleRafRef.current = null;
     }
-    if (!isTransitioningRef.current) return;
+    if (cycleTimerRef.current != null) {
+      clearTimeout(cycleTimerRef.current);
+      cycleTimerRef.current = null;
+    }
+  }, []);
+
+  const abortCycleTransition = useCallback(() => {
+    clearCycleTimers();
     isTransitioningRef.current = false;
     nextWallpaperRef.current = null;
-    setLocalTransitionState({
-      isTransitioning: false,
-      progress: 0,
-      slideDirection: 'right',
-      nextWallpaper: null,
-    });
-  }, []);
+    setLocalTransitionState(IDLE_CYCLE_STATE);
+  }, [clearCycleTimers]);
+
+  useEffect(() => clearCycleTimers, [clearCycleTimers]);
 
   useEffect(() => {
     if (isAppActive) return undefined;
@@ -181,15 +210,6 @@ const useWallpaperCycling = () => {
       isTransitioningRef.current = true;
       nextWallpaperRef.current = normalized;
 
-      setLocalTransitionState({
-        isTransitioning: true,
-        progress: 0,
-        slideDirection: slideRandomDirection
-          ? ['left', 'right', 'up', 'down'][Math.floor(Math.random() * 4)]
-          : slideDirection,
-        nextWallpaper: normalized,
-      });
-
       let duration;
       let easing;
 
@@ -221,68 +241,55 @@ const useWallpaperCycling = () => {
           break;
       }
 
-      const startTime = Date.now();
+      const durationMs = Math.max(0, Number(duration) || 0) * 1000;
+      const phaseBase = {
+        isTransitioning: true,
+        slideDirection: slideRandomDirection
+          ? ['left', 'right', 'up', 'down'][Math.floor(Math.random() * 4)]
+          : slideDirection,
+        nextWallpaper: normalized,
+        durationMs,
+        easingCss: resolveWallpaperCycleEasingCss(easing),
+      };
 
-      const animate = () => {
+      clearCycleTimers();
+      setLocalTransitionState({ ...phaseBase, phase: 'from', progress: 0 });
+
+      const settle = () => {
+        cycleRafRef.current = requestAnimationFrame(() => {
+          cycleRafRef.current = requestAnimationFrame(() => {
+            cycleRafRef.current = null;
+            setLocalTransitionState(IDLE_CYCLE_STATE);
+          });
+        });
+      };
+
+      const commit = () => {
+        cycleTimerRef.current = null;
         if (!isAppActiveRef.current || !displayEligibleRef.current) {
           abortCycleTransition();
           return;
         }
-
-        const elapsed = (Date.now() - startTime) / 1000;
-        const progress = Math.min(elapsed / duration, 1);
-
-        let easedProgress = progress;
-
-        switch (easing) {
-          case 'ease-out':
-            easedProgress = 1 - Math.pow(1 - progress, 3);
-            break;
-          case 'ease-in':
-            easedProgress = Math.pow(progress, 3);
-            break;
-          case 'ease-in-out':
-            easedProgress =
-              progress < 0.5
-                ? 4 * progress * progress * progress
-                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-            break;
-          case 'cubic-bezier':
-            easedProgress = progress * progress * (3 - 2 * progress);
-            break;
-          case 'linear':
-          default:
-            easedProgress = progress;
-            break;
-        }
-
-        setLocalTransitionState((prev) => ({ ...prev, progress: easedProgress }));
-
-        if (progress < 1) {
-          cycleRafRef.current = requestAnimationFrame(animate);
-        } else {
-          cycleRafRef.current = null;
-          currentWallpaperRef.current = normalized;
-          nextWallpaperRef.current = null;
-
-          setWallpaperState({
-            current: normalized,
-          });
-
-          setLocalTransitionState({
-            isTransitioning: false,
-            progress: 0,
-            slideDirection: 'right',
-            nextWallpaper: null,
-          });
-
-          isTransitioningRef.current = false;
-        }
+        currentWallpaperRef.current = normalized;
+        nextWallpaperRef.current = null;
+        isTransitioningRef.current = false;
+        setWallpaperState({ current: normalized });
+        setLocalTransitionState({ ...IDLE_CYCLE_STATE, phase: 'settle' });
+        settle();
       };
 
-      cycleRafRef.current = requestAnimationFrame(animate);
+      // Two frames so the `from` styles paint before the transition is armed.
+      cycleRafRef.current = requestAnimationFrame(() => {
+        cycleRafRef.current = requestAnimationFrame(() => {
+          cycleRafRef.current = null;
+          if (!isTransitioningRef.current) return;
+          setLocalTransitionState({ ...phaseBase, phase: 'run', progress: 1 });
+          cycleTimerRef.current = setTimeout(commit, durationMs);
+        });
+      });
     },
     [
+      clearCycleTimers,
       setWallpaperState,
       cycleAnimation,
       slideRandomDirection,
@@ -366,6 +373,13 @@ const useWallpaperCycling = () => {
     crossfadeProgress: localTransitionState.progress,
     slideProgress: localTransitionState.progress,
     slideDirection: localTransitionState.slideDirection,
+    /** CSS `transition` for cycle layers; `none` outside the `run` phase so layers snap. */
+    cycleLayerTransition:
+      localTransitionState.phase === 'run'
+        ? `opacity ${localTransitionState.durationMs}ms ${localTransitionState.easingCss}, transform ${localTransitionState.durationMs}ms ${localTransitionState.easingCss}`
+        : 'none',
+    /** Committed frame after a cycle — base layer must not run its idle fade-in. */
+    isCycleSettling: localTransitionState.phase === 'settle',
     cycleToNextWallpaper: manualCycle,
     debug: {
       cycleWallpapers,

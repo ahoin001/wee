@@ -13,7 +13,7 @@ import {
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { useUIState } from '../../utils/useConsolidatedAppHooks';
+import { useUIActions } from '../../utils/useConsolidatedAppHooks';
 import {
   createDefaultKeyboardShortcuts,
   formatShortcut,
@@ -44,7 +44,7 @@ const ShortcutsSettingsTab = React.memo(() => {
       ? keyboardShortcutsFromStore
       : createDefaultKeyboardShortcuts();
 
-  const { confirmAction } = useUIState();
+  const { confirmAction } = useUIActions();
 
   const handleResetShortcuts = useCallback(() => {
     confirmAction(

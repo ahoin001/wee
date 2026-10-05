@@ -20,7 +20,7 @@ import {
 } from '../../utils/adminPanelCommands';
 import { matchSizePresetBySpan } from '../../utils/homeSlotSizePresets';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { useFloatingWidgetsState, useUIState } from '../../utils/useConsolidatedAppHooks';
+import { useFloatingWidgetsState, useUIActions } from '../../utils/useConsolidatedAppHooks';
 import AdminPanel from '../admin/AdminPanel';
 
 const MotionDiv = m.div;
@@ -85,7 +85,7 @@ function AdminQuickAccessSlot({
   );
 
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
-  const { confirmAction } = useUIState();
+  const { confirmAction } = useUIActions();
   const [moreOpen, setMoreOpen] = useState(false);
   const [configureOpen, setConfigureOpen] = useState(false);
   const [actionError, setActionError] = useState('');

@@ -389,7 +389,7 @@
   border-radius: clamp(1.5rem, 3vw, 2.25rem);
   border: 1px solid hsl(var(--border-primary) / 0.55);
   background: hsl(var(--surface-primary) / 0.88);
-  backdrop-filter: blur(20px) saturate(118%);
+  backdrop-filter: blur(var(--wee-glass-blur-xl)) saturate(118%);
   box-shadow: var(--shadow-lg);
 }
 
@@ -685,7 +685,7 @@
   border: 1px solid hsl(var(--border-primary) / 0.4);
   border-radius: 999px;
   padding: 0.35rem;
-  backdrop-filter: blur(10px) saturate(112%);
+  backdrop-filter: blur(var(--wee-glass-blur-md)) saturate(112%);
   box-shadow:
     0 16px 32px -24px hsl(var(--color-pure-black) / 0.72),
     inset 0 1px 0 hsl(var(--color-pure-white) / 0.12);
@@ -731,7 +731,7 @@
   border-radius: 2rem;
   border: 1px solid hsl(var(--border-primary) / 0.42);
   background: hsl(var(--color-pure-black) / 0.28);
-  backdrop-filter: blur(12px) saturate(112%);
+  backdrop-filter: blur(var(--wee-glass-blur-lg)) saturate(112%);
   box-shadow:
     0 16px 30px -22px hsl(var(--color-pure-black) / 0.72),
     inset 0 1px 0 hsl(var(--color-pure-white) / 0.1);
@@ -825,7 +825,7 @@
   border-radius: 1.85rem;
   border: none;
   background: hsl(var(--color-pure-black) / 0.2);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--wee-glass-blur-sm));
   padding: 0.45rem;
   transition: box-shadow 180ms ease;
 }
@@ -893,7 +893,7 @@
   text-transform: uppercase;
   font-style: italic;
   padding: 0.4rem 0.7rem;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--wee-glass-blur-sm));
 }
 
 .media-hub-demo-card__rating-star {
@@ -1102,7 +1102,7 @@
     hsl(var(--surface-primary) / 0.92) 55%,
     hsl(var(--surface-primary) / 0.72) 100%
   );
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--wee-glass-blur-md));
 }
 
 .media-hub-detail-surface--aside .media-hub-detail__hero {

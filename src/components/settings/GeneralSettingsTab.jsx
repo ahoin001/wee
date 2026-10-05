@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { useUIState } from '../../utils/useConsolidatedAppHooks';
+import { useUIActions } from '../../utils/useConsolidatedAppHooks';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
 import { WeeHelpLinkButton } from '../../ui/wee';
@@ -14,7 +14,7 @@ import SettingsWeeSection from './SettingsWeeSection';
 const GeneralSettingsTab = React.memo(() => {
   const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
   const { setUIState } = useConsolidatedAppStore((state) => state.actions);
-  const { confirmAction, openConfirmationModal } = useUIState();
+  const { confirmAction, openConfirmationModal } = useUIActions();
 
   useEffect(() => {
     const loadInitialState = async () => {

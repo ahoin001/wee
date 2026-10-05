@@ -13,7 +13,7 @@ import {
   normalizeAdminPanelConfig,
   validateAdminCommand,
 } from '../../utils/adminPanelCommands';
-import { useUIState } from '../../utils/useConsolidatedAppHooks';
+import { useUIActions } from '../../utils/useConsolidatedAppHooks';
 
 const EMPTY_CUSTOM = {
   name: '',
@@ -23,7 +23,7 @@ const EMPTY_CUSTOM = {
 };
 
 function AdminPanel({ isOpen, onClose, onSave, config }) {
-  const { confirmAction } = useUIState();
+  const { confirmAction } = useUIActions();
   const normalized = normalizeAdminPanelConfig(config);
   const [powerActions, setPowerActions] = useState(normalized.powerActions);
   const [searchQuery, setSearchQuery] = useState('');

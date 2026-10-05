@@ -125,6 +125,13 @@
   --glass-bg: 0 0% 100% / 0.15;
   --glass-border: 0 0% 100% / 0.2;
   --glass-shadow: 0 8px 32px rgb(31 38 135 / 0.2);
+  /* Opaque glass for `.wee-power-efficient` (no backdrop sampling) */
+  --glass-bg-opaque: 0 0% 96% / 0.88;
+  /* Backdrop blur radii — shared by glass utilities, ribbon, hubs */
+  --wee-glass-blur-sm: 8px;
+  --wee-glass-blur-md: 10px;
+  --wee-glass-blur-lg: 12px;
+  --wee-glass-blur-xl: 20px;
 
   /* Shell: space slide + wallpaper crossfade + dock + Game Hub hero (App sets --space-shell-transition-ms on documentElement when switching) */
   --space-shell-transition-ms: 780ms;
@@ -441,6 +448,11 @@
   --wee-collapse-duration: 420ms;
   --wee-collapse-duration-reduced: 100ms;
   --wee-collapse-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Wallpaper cycle crossfade (useWallpaperCycling) — CSS transition curves for settings easing ids */
+  --wee-wallpaper-cycle-ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --wee-wallpaper-cycle-ease-in: cubic-bezier(0.32, 0, 0.67, 0);
+  --wee-wallpaper-cycle-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --wee-wallpaper-cycle-ease-smooth: cubic-bezier(0.45, 0, 0.55, 1);
   /* Soft edge fade for scrollable shelves (WeeFadeScroll) */
   --wee-scroll-fade: 40px;
 
@@ -558,6 +570,7 @@
   --glass-bg: 220 15% 12% / 0.8;
   --glass-border: 220 15% 30% / 0.3;
   --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.4);
+  --glass-bg-opaque: 220 15% 12% / 0.94;
   --playful-shadow-elevated: 0 22px 46px rgb(0 0 0 / 0.42);
   --playful-shadow-active: 0 0 0 3px hsl(var(--color-pure-white) / 0.16), 0 0 26px hsl(var(--primary) / 0.52);
   --playful-inner-glow: inset 0 1px 0 hsl(var(--color-pure-white) / 0.3), inset 0 -3px 10px hsl(var(--color-pure-black) / 0.35);
@@ -792,25 +805,42 @@
 /* Glass Effect Utilities */
 .glass {
   background: hsl(var(--glass-bg));
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(var(--wee-glass-blur-lg)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-lg)) saturate(180%);
   border: 1px solid hsl(var(--glass-border));
   box-shadow: var(--glass-shadow);
 }
 
 .glass-light {
   background: hsl(var(--glass-bg));
-  backdrop-filter: blur(8px) saturate(150%);
-  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  backdrop-filter: blur(var(--wee-glass-blur-sm)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-sm)) saturate(150%);
   border: 1px solid hsl(var(--glass-border));
 }
 
 .glass-heavy {
   background: hsl(var(--glass-bg));
-  backdrop-filter: blur(20px) saturate(200%);
-  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  backdrop-filter: blur(var(--wee-glass-blur-xl)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-xl)) saturate(200%);
   border: 1px solid hsl(var(--glass-border));
   box-shadow: var(--glass-shadow), inset 0 1px 0 hsl(var(--glass-border));
+}
+
+/*
+ * Power-efficient glass (root class from usePowerEfficientGlassEffect ← usePowerPolicy().isEfficient).
+ * Backdrop sampling is the most expensive compositor op on a full-screen wallpaper; swap it
+ * for opaque glass so surfaces stay legible.
+ */
+html.wee-power-efficient *,
+html.wee-power-efficient *::before,
+html.wee-power-efficient *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.wee-power-efficient,
+html.wee-power-efficient body {
+  --glass-bg: var(--glass-bg-opaque);
 }
 
 /**
@@ -898,8 +928,8 @@
   background: hsl(var(--color-pure-black) / 0.38) !important;
   border-color: hsl(var(--color-pure-white) / 0.16) !important;
   box-shadow: 0 4px 14px hsl(var(--color-pure-black) / 0.22) !important;
-  backdrop-filter: blur(8px) saturate(1.2);
-  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  backdrop-filter: blur(var(--wee-glass-blur-sm)) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-sm)) saturate(1.2);
 }
 
 .home-widget-shell--clear .home-widget-float-tile,
@@ -914,8 +944,8 @@
   background: hsl(var(--color-pure-black) / 0.4) !important;
   border-color: hsl(var(--color-pure-white) / 0.14) !important;
   box-shadow: 0 8px 24px hsl(var(--color-pure-black) / 0.28) !important;
-  backdrop-filter: blur(10px) saturate(1.15);
-  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+  backdrop-filter: blur(var(--wee-glass-blur-md)) saturate(1.15);
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-md)) saturate(1.15);
 }
 
 /**
@@ -999,13 +1029,13 @@
 /* Responsive Design System */
 @media (max-width: 768px) {
   .glass {
-    backdrop-filter: blur(8px) saturate(150%);
-    -webkit-backdrop-filter: blur(8px) saturate(150%);
+    backdrop-filter: blur(var(--wee-glass-blur-sm)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--wee-glass-blur-sm)) saturate(150%);
   }
   
   .glass-heavy {
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    backdrop-filter: blur(var(--wee-glass-blur-lg)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--wee-glass-blur-lg)) saturate(180%);
   }
 }
 

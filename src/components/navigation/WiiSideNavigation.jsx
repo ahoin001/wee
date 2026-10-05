@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import useChannelOperations from '../../utils/useChannelOperations';
+import { useChannelNavigation } from '../../utils/useChannelOperations';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { resolveActiveChannelSpaceKey } from '../../utils/channelSpaces';
 import { playChannelClick } from '../../utils/soundPlayback';
@@ -41,7 +41,7 @@ function rgbToRgba(rgbString, alpha = 1) {
 const WiiSideNavigation = () => {
   const activeSpaceId = useConsolidatedAppStore((s) => s.spaces?.activeSpaceId);
   const channelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
-  const { navigation, nextPage, prevPage } = useChannelOperations(channelSpaceKey);
+  const { navigation, nextPage, prevPage } = useChannelNavigation(channelSpaceKey);
   const { totalPages, isAnimating, mode } = navigation;
 
   const spotifyColors = useConsolidatedAppStore((state) => state.spotify.extractedColors);

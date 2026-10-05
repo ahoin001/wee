@@ -1,11 +1,11 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Pause, Play, Settings2, SkipBack, SkipForward, X } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useWeeMotion } from '../../design/weeMotion';
-import { useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
+import { musicLevelVar, useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 import WButton from '../../ui/WButton';
 import {
@@ -20,6 +20,7 @@ import {
 } from '../../utils/nowPlayingAlbumPaint.js';
 
 const EMPTY_NOW_PLAYING = Object.freeze({});
+const IMMERSIVE_BAND_COUNT = 10;
 
 /**
  * Full-screen Listening Stage.
@@ -57,12 +58,14 @@ function ImmersiveSoundModeStage() {
 
   const useSystemKeys = controlsVia === 'system-keys';
   const showBars = look.showBars && Boolean(trackName);
-  const vizLevels = useMusicReactiveLevels({
+  const vizRef = useRef(null);
+  useMusicReactiveLevels({
+    targetRef: vizRef,
     isPlaying,
     progressMs,
     durationMs,
     enabled: showBars && active && shouldAnimate && !reducedMotion,
-    bandCount: 10,
+    bandCount: IMMERSIVE_BAND_COUNT,
   });
 
   const runTransport = useCallback(async (action) => {
@@ -261,14 +264,14 @@ function ImmersiveSoundModeStage() {
             </div>
 
             {showBars ? (
-              <div className="flex h-10 items-end justify-center gap-1" aria-hidden>
-                {vizLevels.map((level, i) => (
+              <div ref={vizRef} className="flex h-10 items-end justify-center gap-1" aria-hidden>
+                {Array.from({ length: IMMERSIVE_BAND_COUNT }, (_, i) => (
                   <span
                     key={i}
-                    className="w-1.5 rounded-full"
+                    className="h-full w-1.5 origin-bottom rounded-full transition-transform duration-[60ms] ease-linear"
                     style={{
-                      height: `${Math.max(12, Math.round(level * 100))}%`,
-                      opacity: 0.55 + level * 0.45,
+                      transform: `scaleY(max(0.12, var(${musicLevelVar(i)}, 0)))`,
+                      opacity: `calc(0.55 + var(${musicLevelVar(i)}, 0) * 0.45)`,
                       backgroundColor: paint.accent,
                     }}
                   />

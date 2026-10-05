@@ -5,9 +5,9 @@ import useWallpaperCycling from '../../utils/useWallpaperCycling';
 import { useSpaceWallpaperCrossfade } from '../../hooks/useSpaceWallpaperCrossfade';
 import {
   DEFAULT_SHELL_SPACE_ORDER,
-  getSecondaryChannelSpaceData,
   normalizeShellSpaceOrder,
   resolveActiveBoardCurrentPage,
+  resolveActiveChannelSpaceKey,
 } from '../../utils/channelSpaces';
 import {
   SPACE_SHELL_EASE_CSS,
@@ -33,34 +33,63 @@ function spaceParallaxBackgroundYPercent(spaceIndex) {
 function IsolatedWallpaperBackgroundInner({
   shellTransitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
 }) {
-  const { wallpaper, activeSpaceId, spaceOrder, mediaHubEnabled, appearanceBySpace, channels, wallpaperPeekUrl } =
-    useConsolidatedAppStore(
-      useShallow((state) => ({
-        wallpaper: state.wallpaper,
-        activeSpaceId: state.spaces.activeSpaceId,
+  const {
+    wallpaperCurrent,
+    opacity,
+    blur,
+    cycleAnimation,
+    workspaceBrightness,
+    workspaceSaturate,
+    gameHubBrightness,
+    gameHubSaturate,
+    activeSpaceId,
+    spaceOrder,
+    mediaHubEnabled,
+    activeSpaceAppearance,
+    currentPage,
+    boardAnimationDirection,
+    boardTotalPages,
+    wallpaperPeekUrl,
+  } = useConsolidatedAppStore(
+    useShallow((state) => {
+      const spaceId = state.spaces.activeSpaceId;
+      const boardKey = resolveActiveChannelSpaceKey(spaceId);
+      const boardRaw = state.channels?.dataBySpace?.[boardKey];
+      const wp = state.wallpaper || {};
+      return {
+        wallpaperCurrent: wp.current,
+        opacity: wp.opacity,
+        blur: wp.blur,
+        cycleAnimation: wp.cycleAnimation,
+        workspaceBrightness: wp.workspaceBrightness,
+        workspaceSaturate: wp.workspaceSaturate,
+        gameHubBrightness: wp.gameHubBrightness,
+        gameHubSaturate: wp.gameHubSaturate,
+        activeSpaceId: spaceId,
         spaceOrder: state.spaces.order,
         mediaHubEnabled: state.spaces.mediaHubEnabled === true,
-        appearanceBySpace: state.appearanceBySpace,
-        channels: state.channels,
+        activeSpaceAppearance: state.appearanceBySpace?.[spaceId]?.wallpaper || null,
+        currentPage: resolveActiveBoardCurrentPage({ activeSpaceId: spaceId, channels: state.channels }),
+        boardAnimationDirection: boardRaw?.navigation?.animationDirection ?? 'none',
+        boardTotalPages: Math.max(1, Number(resolveLayout(boardRaw || {})?.totalPages) || 1),
         wallpaperPeekUrl: state.ui?.homeBoardWallpaperPeek?.url || null,
-      }))
-    );
-  const currentPage = resolveActiveBoardCurrentPage({ activeSpaceId, channels });
-  const boardNav =
-    activeSpaceId === 'workspaces'
-      ? getSecondaryChannelSpaceData(channels)?.navigation
-      : channels?.dataBySpace?.home?.navigation;
+      };
+    })
+  );
+  // Resolvers only read the active space's wallpaper appearance.
+  const appearanceBySpace = useMemo(
+    () => ({ [activeSpaceId]: { wallpaper: activeSpaceAppearance } }),
+    [activeSpaceId, activeSpaceAppearance]
+  );
   const pageDirection =
-    boardNav?.animationDirection === 'left'
+    boardAnimationDirection === 'left'
       ? -1
-      : boardNav?.animationDirection === 'right'
+      : boardAnimationDirection === 'right'
         ? 1
         : 0;
-
-  const activeSpaceAppearance = appearanceBySpace?.[activeSpaceId]?.wallpaper || null;
   const settledWallpaperUrl = resolveDisplayWallpaperUrl({
     activeSpaceId,
-    wallpaperCurrent: wallpaper.current,
+    wallpaperCurrent,
     appearanceBySpace,
     wallpaperEntryUrlKey,
     currentPage,
@@ -69,7 +98,6 @@ function IsolatedWallpaperBackgroundInner({
     typeof wallpaperPeekUrl === 'string' && wallpaperPeekUrl.length > 0
       ? wallpaperPeekUrl
       : settledWallpaperUrl;
-  const wallpaperCurrent = wallpaper.current;
   // Cycle only when this page/space falls through to global wallpaper.current.
   const canCycleCurrentSpace = isWallpaperCyclingEligible({
     activeSpaceId,
@@ -86,14 +114,12 @@ function IsolatedWallpaperBackgroundInner({
     return () => mq.removeEventListener('change', fn);
   }, []);
 
-  const {
-    workspaceBrightness,
-    workspaceSaturate,
-    gameHubBrightness,
-    gameHubSaturate,
-  } = wallpaper;
-
-  const applySpaceWallpaperTone = useMemo(() => {
+  /**
+   * Dimming (brightness < 1) is painted by a black overlay so the full-viewport
+   * plate carries no filter at all in the common case. Only blur, brightening,
+   * or saturation keep a filter.
+   */
+  const { toneFilter, toneDarken } = useMemo(() => {
     const isHubSpace = activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub';
     const legacyB = isHubSpace ? gameHubBrightness : workspaceBrightness;
     const legacyS = isHubSpace ? gameHubSaturate : workspaceSaturate;
@@ -103,10 +129,12 @@ function IsolatedWallpaperBackgroundInner({
     const s = typeof spaceS === 'number' && Number.isFinite(spaceS) ? spaceS : legacyS;
     const bb = typeof b === 'number' && !Number.isNaN(b) ? b : isHubSpace ? 0.78 : 1;
     const ss = typeof s === 'number' && !Number.isNaN(s) ? s : 1;
-    return (filterCss = '') => {
-      const base = typeof filterCss === 'string' ? filterCss.trim() : '';
-      const tone = `brightness(${bb}) saturate(${ss})`;
-      return base ? `${base} ${tone}` : tone;
+    const parts = [];
+    if (bb > 1) parts.push(`brightness(${bb})`);
+    if (ss !== 1) parts.push(`saturate(${ss})`);
+    return {
+      toneFilter: parts.join(' '),
+      toneDarken: bb < 1 ? Math.min(1, Math.max(0, 1 - bb)) : 0,
     };
   }, [
     activeSpaceId,
@@ -117,13 +145,14 @@ function IsolatedWallpaperBackgroundInner({
     gameHubSaturate,
   ]);
 
-  /** Skip `blur(0px)` so the compositor can avoid unnecessary full-layer blur passes when blur is off. */
+  /** Skip `blur(0px)` and neutral tone so the plate composites without a filter pass. */
   const toneBlurPx = useCallback(
     (px) => {
       const n = typeof px === 'number' && Number.isFinite(px) ? px : 0;
-      return applySpaceWallpaperTone(n > 0 ? `blur(${n}px)` : '');
+      const filter = [n > 0 ? `blur(${n}px)` : '', toneFilter].filter(Boolean).join(' ');
+      return filter || 'none';
     },
-    [applySpaceWallpaperTone]
+    [toneFilter]
   );
   const {
     isTransitioning: cyclingTransitioning,
@@ -131,9 +160,10 @@ function IsolatedWallpaperBackgroundInner({
     nextWallpaper,
     crossfadeProgress: cyclingProgress,
     slideDirection: cyclingSlideDirection,
+    cycleLayerTransition,
+    isCycleSettling,
   } = useWallpaperCycling();
   const setWallpaperState = useConsolidatedAppStore((state) => state.actions.setWallpaperState);
-  const { opacity, blur, cycleAnimation } = wallpaper;
   const effectiveSpaceBlur =
     typeof activeSpaceAppearance?.spaceBlur === 'number'
       ? activeSpaceAppearance.spaceBlur
@@ -178,13 +208,8 @@ function IsolatedWallpaperBackgroundInner({
     if (!(activeSpaceId === 'home' || activeSpaceId === 'workspaces')) return undefined;
     if (activeSpaceAppearance?.wallpaperScope !== 'perPage') return undefined;
 
-    const boardSpaceData =
-      activeSpaceId === 'workspaces'
-        ? getSecondaryChannelSpaceData(channels)
-        : channels?.dataBySpace?.home;
-    const totalPages = Math.max(1, Number(resolveLayout(boardSpaceData || {})?.totalPages) || 1);
     const neighbors = [currentPage - 1, currentPage + 1].filter(
-      (p) => p >= 0 && p < totalPages && p !== currentPage
+      (p) => p >= 0 && p < boardTotalPages && p !== currentPage
     );
 
     const timer = window.setTimeout(() => {
@@ -204,7 +229,7 @@ function IsolatedWallpaperBackgroundInner({
   }, [
     activeSpaceId,
     activeSpaceAppearance?.wallpaperScope,
-    channels,
+    boardTotalPages,
     currentPage,
     wallpaperCurrent,
     appearanceBySpace,
@@ -261,7 +286,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.5),
           transform: `scale(${zoomScale})`,
-          filter: toneBlurPx(effectiveSpaceBlur + progress * 2),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       case 'ken-burns': {
@@ -281,15 +306,14 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.7),
           transform: `scale(${morphScale}) rotate(${morphRotate}deg) skew(${morphSkew}deg)`,
-          filter: toneBlurPx(effectiveSpaceBlur + progress),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       case 'blur': {
-        const blurIntensity = effectiveSpaceBlur + (progress * 10);
         return {
           opacity: opacity * (1 - progress * 0.8),
           transform: 'none',
-          filter: toneBlurPx(blurIntensity),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       default:
@@ -360,7 +384,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: `scale(${zoomScale})`,
-          filter: toneBlurPx(effectiveSpaceBlur + (1 - progress) * 2),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       case 'ken-burns': {
@@ -380,15 +404,14 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: `scale(${morphScale}) rotate(-${morphRotate}deg) skew(-${morphSkew}deg)`,
-          filter: toneBlurPx(effectiveSpaceBlur + (1 - progress) * 1),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       case 'blur': {
-        const blurIntensity = effectiveSpaceBlur + (1 - progress) * 10;
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: toneBlurPx(blurIntensity),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       default:
@@ -442,9 +465,17 @@ function IsolatedWallpaperBackgroundInner({
     : currentLayerStyle;
 
   const baseLayerTransition = useMemo(() => {
-    if (effectiveCyclingTransitioning || crossfadeActive) return 'none';
+    if (crossfadeActive) return 'none';
+    if (effectiveCyclingTransitioning) return cycleLayerTransition;
+    if (isCycleSettling) return 'none';
     return `opacity 0.35s ease-out, filter 0.45s ease-out, background-position ${shellTransitionMs}ms ${SPACE_SHELL_EASE_CSS}`;
-  }, [effectiveCyclingTransitioning, crossfadeActive, shellTransitionMs]);
+  }, [
+    effectiveCyclingTransitioning,
+    crossfadeActive,
+    cycleLayerTransition,
+    isCycleSettling,
+    shellTransitionMs,
+  ]);
 
   // Opacity-only overlay — keeps page flips on the compositor without blur thrashing.
   const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
@@ -523,8 +554,16 @@ function IsolatedWallpaperBackgroundInner({
             backgroundPosition: `center ${parallaxBgY}%`,
             backgroundRepeat: 'no-repeat',
             ...nextLayerStyle,
-            transition: 'none',
+            transition: cycleLayerTransition,
           }}
+        />
+      ) : null}
+
+      {toneDarken > 0 && baseWallpaperUrl ? (
+        <div
+          className="pointer-events-none fixed inset-0 z-[3] bg-[hsl(var(--color-pure-black))] transition-opacity duration-[450ms] ease-out"
+          style={{ opacity: toneDarken }}
+          aria-hidden
         />
       ) : null}
     </div>

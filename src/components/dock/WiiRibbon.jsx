@@ -12,7 +12,7 @@ import RibbonChromeEffects from './ribbon/RibbonChromeEffects';
 import RibbonAccessories from './ribbon/RibbonAccessories';
 import './WiiRibbon.css';
 import intervalManager from '../../utils/IntervalManager';
-import { useUIState } from '../../utils/useConsolidatedAppHooks';
+import { useUIActions } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { playChannelClick } from '../../utils/soundPlayback';
 import { readOriginRect } from '../../ui/wee/originRect';
@@ -30,6 +30,7 @@ import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { openSettingsToDockSubtab } from '../../utils/settingsNavigation';
 import { useRibbonChromeIdleGate } from '../../hooks/useRibbonChromeIdleGate';
+import { useAnimationActivity } from '../../hooks/useAnimationActivity';
 import {
   useRibbonLookTransition,
   RIBBON_PAGE_TRANSITION_MS,
@@ -248,7 +249,7 @@ const WiiRibbonComponent = ({
       : propGlassShineOpacity;
   
   // Use consolidated store for modal states and UI settings
-  const { setUIState } = useUIState();
+  const { setUIState } = useUIActions();
   const {
     chromeEffect,
     chromeEffectIntensity,
@@ -280,6 +281,7 @@ const WiiRibbonComponent = ({
   const [presetsButtonModalMounted, setPresetsButtonModalMounted] = useState(false);
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
   const chromeIdleReady = useRibbonChromeIdleGate(chromeEffectIdleOnly, isRibbonHovered);
+  const { shouldAnimate: ribbonFxAnimate } = useAnimationActivity();
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [tintedImages, setTintedImages] = useState({});
   const [activeButton, setActiveButton] = useState(null);
@@ -779,7 +781,9 @@ const WiiRibbonComponent = ({
         {...dockBarEntrance}
         className={`interactive-footer ${ribbonHoverAnimationEnabled ? 'ribbon-hover-enabled' : ''}${
           pulseChromeActive ? ' ribbon-fx-pulse-active' : ''
-        }${dockLaunchYield ? ' ribbon--launch-yield' : ''}`}
+        }${pulseChromeActive && !ribbonFxAnimate ? ' ribbon-fx-paused' : ''}${
+          dockLaunchYield ? ' ribbon--launch-yield' : ''
+        }`}
         style={{
           ['--ribbon-fx-duration']: `${chromeFxDurationSec}s`,
           ['--ribbon-fx-glow']: ribbonGlowHex,

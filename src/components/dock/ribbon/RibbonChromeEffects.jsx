@@ -1,10 +1,10 @@
-import React, { useId, useMemo } from 'react';
+import React, { useId, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import { useMotionFeedback } from '../../../hooks/useMotionFeedback';
 import { useAnimationActivity } from '../../../hooks/useAnimationActivity';
 import { useRibbonChromeIdleGate } from '../../../hooks/useRibbonChromeIdleGate';
-import { useMusicReactiveLevels } from '../../../hooks/useMusicReactiveLevels';
+import { musicLevelVar, useMusicReactiveLevels } from '../../../hooks/useMusicReactiveLevels';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import {
   CSS_WII_BLUE,
@@ -33,6 +33,7 @@ import './RibbonChromeEffects.css';
 export { RIBBON_CHROME_EFFECTS };
 
 const FALLBACK_GLOW_RGB = [0, 153, 255];
+const RIBBON_MUSIC_BAND_COUNT = 16;
 const IDLE_NOW_PLAYING = Object.freeze({
   isPlaying: false,
   progressMs: 0,
@@ -247,12 +248,14 @@ function RibbonChromeEffects({
     })
   );
 
-  const musicLevels = useMusicReactiveLevels({
+  const musicBandRef = useRef(null);
+  useMusicReactiveLevels({
+    targetRef: musicBandRef,
     isPlaying: nowPlaying.isPlaying,
     progressMs: nowPlaying.progressMs,
     durationMs: nowPlaying.durationMs,
     enabled: musicMode && animate,
-    bandCount: 16,
+    bandCount: RIBBON_MUSIC_BAND_COUNT,
   });
 
   const baseIntensity = Math.min(1, Math.max(0, intensity ?? 0.55));
@@ -769,22 +772,27 @@ function RibbonChromeEffects({
         ) : null}
 
         {mode === 'musicBand' ? (
-          <g mask={`url(#${maskId})`}>
-            {musicLevels.map((level, i) => {
-              const n = musicLevels.length || 1;
-              const x = 80 + (i / Math.max(1, n - 1)) * 1280;
-              const barH = 12 + level * (48 + clampedIntensity * 36);
-              const y = 168 - barH;
+          <g ref={musicBandRef} mask={`url(#${maskId})`}>
+            {Array.from({ length: RIBBON_MUSIC_BAND_COUNT }, (_, i) => {
+              const x = 80 + (i / (RIBBON_MUSIC_BAND_COUNT - 1)) * 1280;
+              const range = 48 + clampedIntensity * 36;
+              const maxH = 12 + range;
+              const lvl = `var(${musicLevelVar(i)}, 0)`;
               return (
                 <rect
                   key={`mb-${i}`}
                   x={x - 8}
-                  y={y}
+                  y={168 - maxH}
                   width={14}
-                  height={barH}
+                  height={maxH}
                   rx={5}
                   fill={resolvedGlow}
-                  opacity={0.1 + clampedIntensity * 0.28 + level * 0.2}
+                  style={{
+                    transformBox: 'fill-box',
+                    transformOrigin: 'bottom',
+                    transform: `scaleY(calc((12 + ${lvl} * ${range}) / ${maxH}))`,
+                    opacity: `calc(${0.1 + clampedIntensity * 0.28} + ${lvl} * 0.2)`,
+                  }}
                 />
               );
             })}

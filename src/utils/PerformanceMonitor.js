@@ -256,8 +256,13 @@ class PerformanceMonitor {
 // Create a singleton instance
 const performanceMonitor = new PerformanceMonitor();
 
-// Auto-start monitoring in development
-if (IS_DEV) {
+// Opt-in only: an always-on sampler skews every dev profile.
+const monitorOptIn =
+  IS_DEV
+  && typeof window !== 'undefined'
+  && window.localStorage?.getItem('wee.perf.monitor') === '1';
+
+if (monitorOptIn) {
   performanceMonitor.startMonitoring();
   
   // Log performance report every 30 seconds in development

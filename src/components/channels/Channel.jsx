@@ -389,10 +389,11 @@ const Channel = React.memo(({
           icon={icon}
           imageError={imageError}
           setImageError={setImageError}
-                      iconLoadError={iconLoadError}
-                      setIconLoadError={setIconLoadError}
+          iconLoadError={iconLoadError}
+          setIconLoadError={setIconLoadError}
           fallbackIcon={fallbackIcon}
           setFallbackIcon={setFallbackIcon}
+          onCurrentPage={onCurrentStripPage}
         />
       </WeeTapLayer>
       {showRecentLaunchHint ? (

@@ -60,6 +60,40 @@ Revisit this decision when Phases 1–3 are measured against the baselines above
 
 ## Baseline session log
 
+- Dev samplers are opt-in: set `localStorage['wee.perf.monitor'] = '1'` for `utils/PerformanceMonitor.js`; the store sampler only runs while the Performance Monitor widget has monitoring on. Leave both off when recording traces.
+
+### 2026-10-05 — Performance budget refactor (static audit, before)
+
+| Hot path | Before |
+|----------|--------|
+| `useAppActivity` | 3 DOM listeners + 1 IPC listener + 2 `useState` per caller (each tile, preview, interval hook) |
+| `useUIState` | Whole `ui` slice subscribed by action-only callers (ribbon, admin widgets, system pad) |
+| `useChannelOperations` | Whole `channels` slice subscribed per tile via `useChannelEffectiveState` |
+| `IsolatedWallpaperBackground` | Whole `channels` + `appearanceBySpace` subscribed |
+| `useMusicReactiveLevels` | `setLevels` at 24 fps re-rendering ribbon + Now Playing |
+| `useWallpaperCycling` | `setState` every RAF frame during a cycle |
+| Wallpaper tone | `filter: brightness() saturate()` on the full-viewport layer even when neutral |
+| Ribbon glow pulse | Infinite `filter: drop-shadow` keyframes |
+
+Fill CPU / GPU / long-task numbers per scenario in the template above when a live trace is recorded.
+
+### 2026-10-05 — Performance budget refactor (after)
+
+| Hot path | After |
+|----------|-------|
+| `useAppActivity` | One `useSyncExternalStore` signal; listeners attach on first subscriber, detach after last; notifies only on change |
+| `useUIState` | Action-only callers use `useUIActions` (subscribes to `setUIState` only); `useUIState` reads 4 modal fields via `useShallow` |
+| `useChannelOperations` | Tiles use `useChannelActions` + `useChannelConfig(id)`; navigation chrome uses `useChannelNavigation` (one space, shallow) |
+| `IsolatedWallpaperBackground` | Flat primitive selector (active space appearance, page, direction, page count) |
+| `useMusicReactiveLevels` | Writes `--lvl-i` on a ref'd host; bars use `scaleY(var(--lvl-i))` — zero React commits per frame |
+| `useWallpaperCycling` | 4 renders per cycle (`from` → `run` → `settle` → idle); CSS transition with `--wee-wallpaper-cycle-ease-*`; blur static |
+| Wallpaper tone | `filter: none` when neutral; darkening via black overlay `opacity` instead of `brightness()` |
+| Ribbon glow pulse | Static drop-shadow on a sibling halo layer; only `opacity` animates; `ribbon-fx-paused` when inactive |
+| Backdrop blur | `--wee-glass-blur-sm/md/lg/xl`; `html.wee-power-efficient` (from `usePowerPolicy().isEfficient`) drops all backdrop filters and swaps `--glass-bg` → `--glass-bg-opaque` |
+| Per tile | `useMotionFeedback` shared module cache; Ken Burns pauses off the current strip page; one shared `IntersectionObserver` |
+
+Verified in a dev browser session: 24-tile Home renders, page flips (rapid next ×4, then prev) settle correctly with no console errors, and toggling `.wee-power-efficient` takes backdrop-filter surfaces from 10 to 0. Live CPU/GPU trace numbers and Electron-only paths (IPC window activity, wallpaper cycling with a real liked list, music visualizer) are still to be recorded in the packaged app.
+
 - Use this section to log each profiling run before/after a perf phase.
 - Recommended fields per entry:
   - Date/time + branch/commit

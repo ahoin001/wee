@@ -4,7 +4,10 @@ import {
   CHANNEL_HOVER_ENTER_DWELL_MS,
   CHANNEL_HOVER_FADE_IN_MS,
 } from '../../utils/soundPlayback';
+import { observeIntersection } from '../../utils/sharedIntersectionObserver';
 import './KenBurnsImage.css';
+
+const KEN_BURNS_OBSERVER_OPTIONS = Object.freeze({ threshold: 0.1, rootMargin: '50px' });
 
 /** Soft return to identity after hover Ken Burns — matches channel hover exit feel. */
 const KEN_BURNS_HOVER_UNWIND_MS = 320;
@@ -87,7 +90,6 @@ const KenBurnsImage = ({
   const animationTimeoutRef = useRef(null);
   const hoverDwellTimeoutRef = useRef(null);
   const unwindTimeoutRef = useRef(null);
-  const intersectionObserverRef = useRef(null);
   const currentImageRef = useRef(null);
   const nextImageRef = useRef(null);
   const brokenImagesRef = useRef(new Set()); // Track broken image URLs without causing re-renders
@@ -170,25 +172,8 @@ const KenBurnsImage = ({
 
   // Intersection Observer setup
   useEffect(() => {
-    if (!enableIntersectionObserver || !containerRef.current) return;
-
-    intersectionObserverRef.current = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '50px',
-      }
-    );
-
-    intersectionObserverRef.current.observe(containerRef.current);
-
-    return () => {
-      if (intersectionObserverRef.current) {
-        intersectionObserverRef.current.disconnect();
-      }
-    };
+    if (!enableIntersectionObserver || !containerRef.current) return undefined;
+    return observeIntersection(containerRef.current, setIsVisible, KEN_BURNS_OBSERVER_OPTIONS);
   }, [enableIntersectionObserver]);
 
   // Autoplay animation
@@ -399,9 +384,6 @@ const KenBurnsImage = ({
       }
       if (unwindTimeoutRef.current) {
         clearTimeout(unwindTimeoutRef.current);
-      }
-      if (intersectionObserverRef.current) {
-        intersectionObserverRef.current.disconnect();
       }
     };
   }, []);

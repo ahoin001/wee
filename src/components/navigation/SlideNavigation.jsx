@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import useChannelOperations from '../../utils/useChannelOperations';
+import { useChannelNavigation } from '../../utils/useChannelOperations';
 import './SlideNavigation.css';
 
 const SlideNavigation = ({ children }) => {
@@ -8,9 +8,9 @@ const SlideNavigation = ({ children }) => {
     navigation,
     nextPage,
     prevPage
-  } = useChannelOperations();
+  } = useChannelNavigation();
   
-  const { totalPages } = navigation;
+  const { totalPages, currentPage } = navigation;
   
   const containerRef = useRef(null);
   const pagesRef = useRef(null);

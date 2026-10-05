@@ -76,8 +76,8 @@
 }
 
 .svg-container-glow.glass-effect {
-  backdrop-filter: blur(10px) saturate(180%);
-  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  backdrop-filter: blur(var(--wee-glass-blur-md)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-md)) saturate(180%);
 }
 
 .button-container {
@@ -96,8 +96,8 @@
 
 .glass-effect .button-container {
   background: var(--ribbon-white-soft-strong);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--wee-glass-blur-md));
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-md));
   border: 1px solid var(--ribbon-white-soft);
 }
 
@@ -174,8 +174,8 @@
 
 .glass-effect.settings-cog-button {
   background-color: var(--ribbon-cog-glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--wee-glass-blur-md));
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-md));
   border: 1px solid var(--ribbon-white-soft-strong);
 }
 
@@ -201,8 +201,8 @@
 }
 .glass-effect.presets-cog-button {
   background-color: var(--ribbon-cog-glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--wee-glass-blur-md));
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-md));
   border: 1px solid var(--ribbon-white-soft-strong);
 }
 .presets-cog-button svg {
@@ -422,7 +422,7 @@
   border-radius: var(--radius-md);
   font-size: 12px;
   font-weight: 600;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--wee-glass-blur-sm));
   z-index: 25;
   display: flex;
   align-items: center;
@@ -443,40 +443,78 @@
   filter: var(--ribbon-glow-filter);
 }
 
-.interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic,
-.ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
-  animation: ribbon-chrome-glow-pulse var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
+/*
+ * Pulse: the static glow filter is rasterized once on a sibling halo layer; only
+ * opacity animates (compositor-only). Body keeps its static `--ribbon-glow-filter`.
+ */
+.ribbon-svg-glow-pulse-layer {
+  display: none;
+  opacity: 0;
+  filter: drop-shadow(0 0 calc(var(--ribbon-glow-blur-boost, 4px) + 4px) var(--ribbon-fx-glow, hsl(var(--wii-blue))));
+  will-change: opacity;
 }
 
-@keyframes ribbon-chrome-glow-pulse {
+.interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic,
+.ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
+  animation: ribbon-chrome-body-pulse var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
+}
+
+.interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-pulse-layer,
+.ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-pulse-layer {
+  display: block;
+  animation: ribbon-chrome-halo-pulse var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
+}
+
+.ribbon-fx-paused .ribbon-svg-glow-dynamic,
+.ribbon-fx-paused .ribbon-svg-glow-pulse-layer {
+  animation-play-state: paused;
+}
+
+@keyframes ribbon-chrome-body-pulse {
   0%,
   100% {
-    filter: var(--ribbon-glow-filter);
     opacity: 1;
   }
   18% {
-    filter: drop-shadow(0 0 calc(var(--ribbon-glow-blur-boost, 4px) + 4px) var(--ribbon-fx-glow, hsl(var(--wii-blue))))
-      var(--ribbon-glow-filter);
     opacity: 0.88;
   }
   32% {
-    filter: var(--ribbon-glow-filter);
     opacity: 0.94;
   }
   48% {
-    filter: drop-shadow(0 0 6px var(--ribbon-fx-glow, hsl(var(--wii-blue)))) var(--ribbon-glow-filter);
     opacity: 0.9;
   }
   70% {
-    filter: var(--ribbon-glow-filter);
     opacity: 0.97;
+  }
+}
+
+@keyframes ribbon-chrome-halo-pulse {
+  0%,
+  32%,
+  70%,
+  100% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 0.7;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic,
-  .ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
+  .ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic,
+  .interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-pulse-layer,
+  .ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-pulse-layer {
     animation: none;
+  }
+
+  .interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-pulse-layer,
+  .ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-pulse-layer {
+    display: none;
   }
 }
 
@@ -512,8 +550,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--wee-glass-blur-lg));
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-lg));
   border: 4px solid hsl(var(--wee-pill-border));
   box-shadow: var(--wee-pill-shadow);
   background: hsl(var(--wee-pill-glass));
@@ -625,7 +663,7 @@
   position: absolute;
   left: calc(50% + 170px);
   top: 170px;
-  backdrop-filter: blur(12px) saturate(1.5);
+  backdrop-filter: blur(var(--wee-glass-blur-lg)) saturate(1.5);
   background: hsl(var(--surface-elevated) / 0.45);
   border: 1.5px solid hsl(var(--border-primary) / 0.22);
   box-shadow: var(--shadow-md);

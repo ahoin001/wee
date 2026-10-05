@@ -1,47 +1,50 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
+import { musicLevelVar } from '../../hooks/useMusicReactiveLevels';
 
 /**
  * Compact music-reactive bar strip — shared by floating widget + ribbon chrome.
- * Levels are 0–1; idle (all zero) keeps bars at a tiny resting height.
+ * Bars read `--lvl-i` (0–1) from this container, written by `useMusicReactiveLevels`
+ * via the forwarded ref. Height is fixed; motion is a compositor-only `scaleY`.
  */
-function MusicReactiveBars({
-  levels = [],
-  className = '',
-  barClassName = '',
-  color = 'hsl(var(--primary))',
-  minHeightPx = 3,
-  maxHeightPx = 28,
-  opacity = 0.85,
-}) {
-  const bars = Array.isArray(levels) && levels.length ? levels : [0, 0, 0, 0, 0, 0, 0, 0];
+const MusicReactiveBars = forwardRef(function MusicReactiveBars(
+  {
+    bandCount = 8,
+    className = '',
+    barClassName = '',
+    color = 'hsl(var(--primary))',
+    minHeightPx = 3,
+    maxHeightPx = 28,
+    opacity = 0.85,
+  },
+  ref
+) {
+  const restScale = Math.min(1, minHeightPx / Math.max(1, maxHeightPx));
 
   return (
     <div
+      ref={ref}
       className={`flex items-end justify-center gap-[3px] ${className}`.trim()}
       aria-hidden
       style={{ opacity }}
     >
-      {bars.map((level, i) => {
-        const h = minHeightPx + Math.max(0, Math.min(1, level || 0)) * (maxHeightPx - minHeightPx);
-        return (
-          <span
-            key={i}
-            className={`inline-block w-[3px] rounded-full ${barClassName}`.trim()}
-            style={{
-              height: `${h}px`,
-              background: color,
-              transition: 'height 60ms linear',
-            }}
-          />
-        );
-      })}
+      {Array.from({ length: bandCount }, (_, i) => (
+        <span
+          key={i}
+          className={`inline-block w-[3px] origin-bottom rounded-full transition-transform duration-[60ms] ease-linear ${barClassName}`.trim()}
+          style={{
+            height: `${maxHeightPx}px`,
+            background: color,
+            transform: `scaleY(calc(${restScale} + var(${musicLevelVar(i)}, 0) * ${1 - restScale}))`,
+          }}
+        />
+      ))}
     </div>
   );
-}
+});
 
 MusicReactiveBars.propTypes = {
-  levels: PropTypes.arrayOf(PropTypes.number),
+  bandCount: PropTypes.number,
   className: PropTypes.string,
   barClassName: PropTypes.string,
   color: PropTypes.string,

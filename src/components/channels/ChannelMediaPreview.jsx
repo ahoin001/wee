@@ -56,8 +56,10 @@ function ChannelMediaPreview({
   setIconLoadError,
   fallbackIcon,
   setFallbackIcon,
+  onCurrentPage = true,
 }) {
-  const { shouldAnimate } = useAnimationActivity({ activeFps: 8, lowPowerFps: 2 });
+  const { shouldAnimate: activityAnimate } = useAnimationActivity({ activeFps: 8, lowPowerFps: 2 });
+  const shouldAnimate = activityAnimate && onCurrentPage;
   const [gallerySlideUrl, setGallerySlideUrl] = useState(null);
 
   const handleImageError = useCallback((e) => {
@@ -367,6 +369,7 @@ ChannelMediaPreview.propTypes = {
   setIconLoadError: PropTypes.func.isRequired,
   fallbackIcon: PropTypes.string,
   setFallbackIcon: PropTypes.func.isRequired,
+  onCurrentPage: PropTypes.bool,
 };
 
 function gallerySignature(media) {
@@ -392,7 +395,8 @@ function arePropsEqual(prev, next) {
     prev.icon === next.icon &&
     prev.imageError === next.imageError &&
     prev.iconLoadError === next.iconLoadError &&
-    prev.fallbackIcon === next.fallbackIcon
+    prev.fallbackIcon === next.fallbackIcon &&
+    prev.onCurrentPage === next.onCurrentPage
   );
 }
 

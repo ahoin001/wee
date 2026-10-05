@@ -15,7 +15,7 @@ import {
   executeAdminCommand,
   isDestructiveAdminAction,
 } from '../../utils/adminPanelCommands';
-import { useUIState } from '../../utils/useConsolidatedAppHooks';
+import { useUIActions } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useReducedMotion } from 'framer-motion';
 
@@ -30,7 +30,7 @@ function SystemPadSlot({
   onArrangeSelect,
 }) {
   const reducedMotion = useReducedMotion();
-  const { confirmAction } = useUIState();
+  const { confirmAction } = useUIActions();
   const onBattery = useConsolidatedAppStore((s) => Boolean(s.ui?.systemPower?.onBattery));
 
   const actions = useMemo(

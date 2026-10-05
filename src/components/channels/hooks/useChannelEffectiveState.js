@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import useChannelOperations from '../../../utils/useChannelOperations';
+import { useChannelActions, useChannelConfig } from '../../../utils/useChannelOperations';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import useChannelMediaPreview from './useChannelMediaPreview';
 import useChannelAdaptiveEmptyStyle from './useChannelAdaptiveEmptyStyle';
@@ -16,15 +16,10 @@ export function useChannelEffectiveState({
   hoverSound,
   wiiMode = false,
 }) {
-  const {
-    getChannelConfig,
-    isChannelEmpty,
-    updateChannelConfig,
-    updateChannelMedia,
-  } = useChannelOperations();
+  const { updateChannelConfig, updateChannelMedia } = useChannelActions();
 
-  const storeChannelConfig = getChannelConfig(id);
-  const storeIsEmpty = isChannelEmpty(id);
+  const storeChannelConfig = useChannelConfig(id);
+  const storeIsEmpty = !storeChannelConfig || (!storeChannelConfig.media && !storeChannelConfig.path);
 
   const ribbonAccent = useConsolidatedAppStore(
     useShallow((state) => ({

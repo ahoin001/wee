@@ -16,6 +16,8 @@ import {
   useGlobalKeyHandlers,
 } from './hooks/useAppShellEffects';
 import { useWallpaperAmbientColor } from './hooks/useWallpaperAmbientColor';
+import WeeShellFab from './ui/wee/WeeShellFab';
+import PowerEfficientGlassRoot from './components/core/PowerEfficientGlassRoot';
 import { useAppInitialization } from './hooks/useAppInitialization';
 import { useNowPlayingSources } from './hooks/useNowPlayingSources';
 import { useAppUpdater } from './hooks/useAppUpdater';
@@ -794,73 +796,54 @@ function App() {
         {/* Floating Quick Access Buttons */}
         {!showDock && (
           <div className="fixed bottom-5 right-5 z-[1000] flex flex-col gap-2">
-            {/* Quick Settings Menu */}
-            <div
-              className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
+            <WeeShellFab
+              title="Quick Settings (Escape key)"
               onClick={handleSettingsActionMenuOpen}
               onMouseEnter={prefetchSettingsUI}
               onFocus={prefetchSettingsUI}
-              title="Quick Settings (Escape key)"
             >
               ⚙️
-            </div>
+            </WeeShellFab>
             {/* Edit board — wallpaper and overlay live here */}
-            <div
-              className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
+            <WeeShellFab
+              title="Edit board"
               onClick={() => {
                 setUIState({
                   homeBoardArrangeMode: true,
                   homeBoardPunchMode: false,
                 });
               }}
-              title="Edit board"
             >
               🖼️
-            </div>
-            {/* Settings Quick Access */}
-            <div
-              className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
+            </WeeShellFab>
+            <WeeShellFab
+              title="Settings"
               onClick={openSettingsModal}
               onMouseEnter={prefetchSettingsUI}
               onFocus={prefetchSettingsUI}
-              title="Settings"
             >
               🔧
-            </div>
-            
-            {/* Cycling Status Indicator */}
+            </WeeShellFab>
             {isCycling && (
-              <div
-                className="cursor-pointer p-3 bg-green-500/20 backdrop-blur-md rounded-full border border-green-400/30 hover:bg-green-500/30 transition-all duration-200 shadow-lg"
-                onClick={cycleToNextWallpaper}
+              <WeeShellFab
+                tone="success"
                 title={`Cycling active (${cycleIntervalSeconds}s interval) - Click to cycle manually`}
+                onClick={cycleToNextWallpaper}
               >
                 🔄
-                </div>
+              </WeeShellFab>
             )}
-            
-            {/* Dark Mode Indicator */}
             {isDarkMode && (
-              <div
-                className="cursor-pointer p-3 bg-blue-500/20 backdrop-blur-md rounded-full border border-blue-400/30 hover:bg-blue-500/30 transition-all duration-200 shadow-lg"
-                onClick={toggleDarkMode}
-                title="Dark Mode Active - Click to toggle"
-              >
+              <WeeShellFab tone="primary" title="Dark Mode Active - Click to toggle" onClick={toggleDarkMode}>
                 🌙
-              </div>
+              </WeeShellFab>
             )}
-            
-            {/* Debug Button - Only in development */}
             {IS_DEV && (
-              <div
-                className="cursor-pointer p-3 bg-red-500/20 backdrop-blur-md rounded-full border border-red-400/30 hover:bg-red-500/30 transition-all duration-200 shadow-lg"
-                onClick={openDevTools}
-                title="Open Developer Tools (Debug)"
-              >
+              <WeeShellFab tone="danger" title="Open Developer Tools (Debug)" onClick={openDevTools}>
                 🐛
-              </div>
+              </WeeShellFab>
             )}
-                </div>
+          </div>
         )}
 
         {/* Modals — mount on first open, then stay mounted so close animations always play. */}
@@ -879,6 +862,7 @@ function App() {
         </Suspense>
 
         <CommandPaletteMount />
+        <PowerEfficientGlassRoot />
 
         {/* Settings Action Menu - Keep mounted once visited so close animation always runs. */}
         <Suspense

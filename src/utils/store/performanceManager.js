@@ -5,10 +5,12 @@ export const createPerformanceManager = (getStore) => {
   const manager = {
     fpsInterval: null,
     memoryInterval: null,
+    frameRaf: 0,
     startMonitoring() {
       if (!IS_DEV) {
         return;
       }
+      manager.clearTimers();
       const store = getStore();
       store.actions.setPerformanceState({ isMonitoring: true, loading: false });
       manager.startFpsMonitoring();
@@ -17,11 +19,20 @@ export const createPerformanceManager = (getStore) => {
     stopMonitoring() {
       const store = getStore();
       store.actions.setPerformanceState({ isMonitoring: false });
+      manager.clearTimers();
+    },
+    clearTimers() {
       if (manager.fpsInterval) {
         clearInterval(manager.fpsInterval);
+        manager.fpsInterval = null;
       }
       if (manager.memoryInterval) {
         clearInterval(manager.memoryInterval);
+        manager.memoryInterval = null;
+      }
+      if (manager.frameRaf) {
+        cancelAnimationFrame(manager.frameRaf);
+        manager.frameRaf = 0;
       }
     },
     startFpsMonitoring() {
@@ -58,9 +69,9 @@ export const createPerformanceManager = (getStore) => {
 
       const countFrame = () => {
         frameCount++;
-        requestAnimationFrame(countFrame);
+        manager.frameRaf = requestAnimationFrame(countFrame);
       };
-      requestAnimationFrame(countFrame);
+      manager.frameRaf = requestAnimationFrame(countFrame);
     },
     startMemoryMonitoring() {
       manager.memoryInterval = setInterval(() => {

@@ -5,7 +5,7 @@ import {
   useWeeMotion,
 } from '../../design/weeMotion';
 import { WeeGlassPill, WeePillFloorShadow } from '../../ui/wee';
-import useChannelOperations from '../../utils/useChannelOperations';
+import { useChannelNavigation } from '../../utils/useChannelOperations';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { resolveActiveChannelSpaceKey } from '../../utils/channelSpaces';
 
@@ -26,7 +26,7 @@ const DOT_STEP_PX = 22;
 function HomePageIndicator() {
   const activeSpaceId = useConsolidatedAppStore((s) => s.spaces?.activeSpaceId);
   const channelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
-  const { navigation, goToPage } = useChannelOperations(channelSpaceKey);
+  const { navigation, goToPage } = useChannelNavigation(channelSpaceKey);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const reducedMotion = useReducedMotion();

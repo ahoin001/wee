@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { useChannelSpaceKey } from '../contexts/ChannelSpaceContext';
 import {
@@ -20,6 +21,129 @@ import {
 } from './channelSpaces';
 import { normalizeChannelMedia } from './channelMediaFit';
 
+function useResolvedSpaceKey(explicitSpaceKey) {
+  const contextKey = useChannelSpaceKey();
+  return normalizeChannelSpaceKey(
+    explicitSpaceKey !== undefined && explicitSpaceKey !== null ? explicitSpaceKey : contextKey
+  );
+}
+
+/** Raw `dataBySpace[spaceKey]` — the only channel data a space-scoped consumer depends on. */
+function selectRawSpaceData(state, spaceKey) {
+  return state.channels?.dataBySpace?.[spaceKey];
+}
+
+/**
+ * Per-tile write actions for one space. Subscribes to no channel data, so tiles
+ * do not re-render when another tile, page, or space changes.
+ */
+export const useChannelActions = (explicitSpaceKey) => {
+  const spaceKey = useResolvedSpaceKey(explicitSpaceKey);
+  const updateChannelForSpace = useConsolidatedAppStore((state) => state.actions.updateChannelForSpace);
+
+  return useMemo(() => {
+    const update = (channelId, patch) => updateChannelForSpace(spaceKey, channelId, patch);
+    return {
+      channelSpaceKey: spaceKey,
+      updateChannelConfig: (channelId, config) => update(channelId, config),
+      updateChannelMedia: (channelId, media) =>
+        update(channelId, { media: media == null ? null : normalizeChannelMedia(media) }),
+      updateChannelPath: (channelId, path) => update(channelId, { path }),
+      updateChannelIcon: (channelId, icon) => update(channelId, { icon }),
+      updateChannelType: (channelId, type) => update(channelId, { type }),
+      clearChannel: (channelId) =>
+        update(channelId, { media: null, path: null, icon: null, type: null, empty: true }),
+    };
+  }, [spaceKey, updateChannelForSpace]);
+};
+
+/** One tile's configured channel entry (or null) — re-renders only when that entry changes. */
+export const useChannelConfig = (channelId, explicitSpaceKey) => {
+  const spaceKey = useResolvedSpaceKey(explicitSpaceKey);
+  return useConsolidatedAppStore(
+    (state) => selectRawSpaceData(state, spaceKey)?.configuredChannels?.[channelId] ?? null
+  );
+};
+
+/**
+ * Page navigation for one space without subscribing to slots / configs.
+ * Mirrors the `navigation` shape returned by {@link useChannelOperations}.
+ */
+export const useChannelNavigation = (explicitSpaceKey) => {
+  const spaceKey = useResolvedSpaceKey(explicitSpaceKey);
+  const layoutInputs = useConsolidatedAppStore(
+    useShallow((state) => {
+      const raw = selectRawSpaceData(state, spaceKey) || {};
+      return {
+        navigation: raw.navigation,
+        layout: raw.layout,
+        gridColumns: raw.gridColumns,
+        gridRows: raw.gridRows,
+        totalChannels: raw.totalChannels,
+      };
+    })
+  );
+  const setChannelNavigationForSpace = useConsolidatedAppStore(
+    (state) => state.actions.setChannelNavigationForSpace
+  );
+
+  const layout = useMemo(() => resolveLayout(layoutInputs), [layoutInputs]);
+  const rawNavigation = useMemo(
+    () => resolveNavigation(layoutInputs.navigation),
+    [layoutInputs.navigation]
+  );
+  const navigation = useMemo(
+    () => ({
+      ...rawNavigation,
+      mode: 'wii',
+      currentPage: clampPageIndex(rawNavigation.currentPage || 0, layout.totalPages),
+      totalPages: layout.totalPages,
+      animationType: 'slide',
+      animationDuration: CHANNEL_PAGE_FLIP_MS,
+      enableSlideAnimation: true,
+    }),
+    [rawNavigation, layout.totalPages]
+  );
+
+  const goToPage = useCallback(
+    (pageIndex, options = {}) => {
+      const validPage = clampPageIndex(pageIndex, navigation.totalPages);
+      if (validPage === navigation.currentPage || navigation.isAnimating) return;
+      const explicitDir = options.direction;
+      const direction =
+        explicitDir === 'left' || explicitDir === 'right'
+          ? explicitDir
+          : validPage > navigation.currentPage
+            ? 'right'
+            : 'left';
+      setChannelNavigationForSpace(spaceKey, {
+        currentPage: validPage,
+        isAnimating: true,
+        animationDirection: direction,
+        animationWrapped: Boolean(options.wrapped),
+        animationDuration: CHANNEL_PAGE_FLIP_MS,
+      });
+    },
+    [navigation, setChannelNavigationForSpace, spaceKey]
+  );
+
+  const nextPage = useCallback(() => {
+    if (navigation.isAnimating) return;
+    const stepped = resolveSteppedChannelPage(navigation.currentPage, 1, navigation.totalPages);
+    if (stepped.direction === 'none' || stepped.page === navigation.currentPage) return;
+    goToPage(stepped.page, { direction: stepped.direction, wrapped: stepped.wrapped });
+  }, [navigation.currentPage, navigation.totalPages, navigation.isAnimating, goToPage]);
+
+  const prevPage = useCallback(() => {
+    if (navigation.isAnimating) return;
+    const stepped = resolveSteppedChannelPage(navigation.currentPage, -1, navigation.totalPages);
+    if (stepped.direction === 'none' || stepped.page === navigation.currentPage) return;
+    goToPage(stepped.page, { direction: stepped.direction, wrapped: stepped.wrapped });
+  }, [navigation.currentPage, navigation.totalPages, navigation.isAnimating, goToPage]);
+
+  return { channelSpaceKey: spaceKey, navigation, goToPage, nextPage, prevPage };
+};
+
 /**
  * Channel grid operations scoped to one shell space (`home` | `workspaces`).
  * Pass `spaceKey` explicitly for components outside `ChannelSpaceProvider` (e.g. page chrome).
@@ -32,12 +156,11 @@ import { normalizeChannelMedia } from './channelMediaFit';
 export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   const enableGlobalPageShortcuts = options.enableGlobalPageShortcuts === true;
   const runLayoutNormalization = options.runLayoutNormalization === true;
-  const contextKey = useChannelSpaceKey();
-  const spaceKey = normalizeChannelSpaceKey(
-    explicitSpaceKey !== undefined && explicitSpaceKey !== null ? explicitSpaceKey : contextKey
-  );
+  const spaceKey = useResolvedSpaceKey(explicitSpaceKey);
 
-  const channels = useConsolidatedAppStore((state) => state.channels);
+  const rawSpaceData = useConsolidatedAppStore((state) => selectRawSpaceData(state, spaceKey));
+  const rawChannelSettings = useConsolidatedAppStore((state) => state.channels?.settings);
+  const rawChannelOperations = useConsolidatedAppStore((state) => state.channels?.operations);
   const setChannelDataForSpace = useConsolidatedAppStore((state) => state.actions.setChannelDataForSpace);
   const setChannelSettings = useConsolidatedAppStore((state) => state.actions.setChannelSettings);
   const setChannelOperations = useConsolidatedAppStore((state) => state.actions.setChannelOperations);
@@ -50,11 +173,11 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   );
 
   const channelData = useMemo(
-    () => getChannelDataSlice(channels, spaceKey),
-    [channels, spaceKey]
+    () => getChannelDataSlice({ dataBySpace: { [spaceKey]: rawSpaceData } }, spaceKey),
+    [rawSpaceData, spaceKey]
   );
-  const channelSettings = useMemo(() => channels?.settings || {}, [channels?.settings]);
-  const channelOperations = useMemo(() => channels?.operations || {}, [channels?.operations]);
+  const channelSettings = useMemo(() => rawChannelSettings || {}, [rawChannelSettings]);
+  const channelOperations = useMemo(() => rawChannelOperations || {}, [rawChannelOperations]);
 
   const layout = useMemo(() => resolveLayout(channelData), [channelData]);
 

@@ -26,7 +26,7 @@ import {
   normalizeShellSpaceOrder,
   resolveActiveChannelSpaceKey,
 } from '../../utils/channelSpaces';
-import useChannelOperations from '../../utils/useChannelOperations';
+import { useChannelNavigation } from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import {
   SPACE_RAIL_HIDE_DELAY_MS,
@@ -258,7 +258,7 @@ export default function WeeGooeySpacePill() {
   }, [isTransitioning, railPinned, autoHideRail, hovered, focusWithin, scheduleHideIfEligible]);
 
   const channelKey = resolveActiveChannelSpaceKey(activeSpaceId);
-  const { navigation } = useChannelOperations(channelKey);
+  const { navigation } = useChannelNavigation(channelKey);
   const showLeftNav =
     activeSpaceId !== 'gamehub' &&
     activeSpaceId !== 'mediahub' &&

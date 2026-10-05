@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 
 // Optimized hooks for selective state access
@@ -15,14 +16,12 @@ export const useAppState = () => {
   };
 };
 
-export const useUIState = () => {
-  const ui = useConsolidatedAppStore((state) => state.ui);
+/**
+ * UI actions only — subscribes to no `ui` state, so action-only callers
+ * (ribbon, admin widgets, settings rows) do not re-render on unrelated UI churn.
+ */
+export const useUIActions = () => {
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
-
-  const isAuthModalOpen = ui.isAuthModalOpen === true;
-  const authModalMode = ui.authModalMode === 'signup' ? 'signup' : 'signin';
-  const showConfirmationModal = ui.showConfirmationModal === true;
-  const confirmationModalData = ui.confirmationModalData;
 
   const openAuthModal = useCallback(
     (mode = 'signin') => {
@@ -85,20 +84,49 @@ export const useUIState = () => {
     [openConfirmationModal]
   );
 
+  return useMemo(
+    () => ({
+      setUIState,
+      openAuthModal,
+      closeAuthModal,
+      toggleAuthModalMode,
+      openConfirmationModal,
+      closeConfirmationModal,
+      confirmDelete,
+      confirmAction,
+    }),
+    [
+      setUIState,
+      openAuthModal,
+      closeAuthModal,
+      toggleAuthModalMode,
+      openConfirmationModal,
+      closeConfirmationModal,
+      confirmDelete,
+      confirmAction,
+    ]
+  );
+};
+
+/** Auth / confirmation flags via narrow selectors, plus the shared UI actions. */
+export const useUIState = () => {
+  const actions = useUIActions();
+  const { isAuthModalOpen, authModalMode, showConfirmationModal, confirmationModalData } =
+    useConsolidatedAppStore(
+      useShallow((state) => ({
+        isAuthModalOpen: state.ui.isAuthModalOpen === true,
+        authModalMode: state.ui.authModalMode === 'signup' ? 'signup' : 'signin',
+        showConfirmationModal: state.ui.showConfirmationModal === true,
+        confirmationModalData: state.ui.confirmationModalData,
+      }))
+    );
+
   return {
-    ui,
-    setUIState,
+    ...actions,
     isAuthModalOpen,
     authModalMode,
     showConfirmationModal,
     confirmationModalData,
-    openAuthModal,
-    closeAuthModal,
-    toggleAuthModalMode,
-    openConfirmationModal,
-    closeConfirmationModal,
-    confirmDelete,
-    confirmAction,
   };
 };
 

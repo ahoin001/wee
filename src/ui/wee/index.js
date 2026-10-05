@@ -12,6 +12,7 @@ export { default as WeeLayoutActiveDisc } from './WeeLayoutActiveDisc';
 export { default as WeePlayPauseGlyph } from './WeePlayPauseGlyph';
 export { default as WeePillFloorShadow } from './WeePillFloorShadow';
 export { default as WeeGooeyStatusPill } from './WeeGooeyStatusPill';
+export { default as WeeShellFab } from './WeeShellFab';
 export {
   WeePressSurface,
   WeeTapLayer,

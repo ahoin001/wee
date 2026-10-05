@@ -538,12 +538,15 @@ function NowPlayingSlot({
     hasTrack &&
     !interactionsLocked;
 
-  const vizLevels = useMusicReactiveLevels({
+  const vizRef = useRef(null);
+  const vizBandCount = isWide || isCompact ? 8 : 12;
+  useMusicReactiveLevels({
+    targetRef: vizRef,
     isPlaying,
     progressMs,
     durationMs,
     enabled: showVisualizer,
-    bandCount: isWide || isCompact ? 8 : 12,
+    bandCount: vizBandCount,
   });
 
   const runTransport = useCallback(async (action) => {
@@ -833,7 +836,8 @@ function NowPlayingSlot({
     showVisualizer && chrome.vizMaxH > 0 ? (
       <div className="relative z-10 flex w-full shrink-0 justify-center py-0.5">
         <MusicReactiveBars
-          levels={vizLevels}
+          ref={vizRef}
+          bandCount={vizBandCount}
           color={accentColor}
           minHeightPx={3}
           maxHeightPx={chrome.vizMaxH}

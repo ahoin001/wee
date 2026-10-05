@@ -1158,7 +1158,7 @@
   background: hsl(var(--color-pure-black) / 0.4);
   border-color: hsl(var(--color-pure-white) / 0.15);
   color: hsl(var(--color-pure-white));
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--wee-glass-blur-sm));
 }
 
 .aura-hub-space--floating .aura-hub-rail__launch {
@@ -1181,7 +1181,7 @@
   background: hsl(var(--color-pure-black) / 0.38);
   border-color: hsl(var(--color-pure-white) / 0.2);
   color: hsl(var(--color-pure-white) / 0.92);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--wee-glass-blur-md));
 }
 
 .aura-hub-space--floating .aura-game-card {
@@ -1338,8 +1338,8 @@
   border: 4px solid hsl(var(--wee-pill-border));
   background: hsl(var(--wee-pill-glass));
   box-shadow: var(--wee-pill-shadow), var(--playful-shadow-elevated);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--wee-glass-blur-xl));
+  -webkit-backdrop-filter: blur(var(--wee-glass-blur-xl));
   box-sizing: border-box;
   transform-origin: var(--radix-context-menu-content-transform-origin, center);
   scrollbar-width: none;
