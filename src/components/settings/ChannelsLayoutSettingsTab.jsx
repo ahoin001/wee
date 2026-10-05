@@ -504,12 +504,13 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             min={CHANNEL_LAYOUT_LIMITS.peekPercent.min}
             max={CHANNEL_LAYOUT_LIMITS.peekPercent.max}
             onChange={(v) => handleLayoutFieldChange('peekPercent', v)}
-            ariaLabel="next-page peek percent"
+            ariaLabel="neighbouring page peek percent"
           />
         </div>
         <p className="mt-2 text-xs text-[hsl(var(--text-secondary))]">
-          Channel tiles stay ~{WII_TILE_ASPECT.toFixed(2)}:1 (classic Wii). With 2–3 rows, the board
-          keeps that scale instead of stretching into tall empty shelves.
+          Peek is the sliver of the neighbouring page showing on each side of the board — tap one
+          to travel there. Channel tiles stay ~{WII_TILE_ASPECT.toFixed(2)}:1 (classic Wii), so with
+          2–3 rows the board keeps that scale instead of stretching into tall empty shelves.
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">

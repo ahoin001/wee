@@ -79,7 +79,11 @@ export const WII_STRIP_LAYOUT_PRESET = Object.freeze({
   peekPercent: WII_STRIP_PEEK_PERCENT,
 });
 
-/** Page flip duration (ms) — shared by goToPage timeout + CSS/Framer strip. */
+/**
+ * Page flip duration (ms) — shared by goToPage timeout + Framer strip pan.
+ * Keep in sync with `--channel-page-flip-duration` (design-system.css), which puts the
+ * CSS-side shelf states (off-page recede) on the same clock.
+ */
 export const CHANNEL_PAGE_FLIP_MS = 520;
 
 /**
@@ -100,7 +104,7 @@ export const DEFAULT_CHANNEL_NAVIGATION = Object.freeze({
   mode: 'wii',
   isAnimating: false,
   animationDirection: 'none',
-  /** True when next/prev wrapped last↔first — strip uses one-step enter, not a long scrub. */
+  /** True only for explicit last↔first jumps — shelf enters one page-step off, never scrubs the middle. */
   animationWrapped: false,
   animationType: 'slide',
   animationDuration: CHANNEL_PAGE_FLIP_MS,
@@ -117,7 +121,7 @@ export const clampPageIndex = (currentPage, totalPages) =>
   Math.max(0, Math.min(currentPage || 0, Math.max(1, totalPages) - 1));
 
 /**
- * Circular page index — used for infinite Home board paging (last ↔ first).
+ * Circular page index — for explicit carousel jumps only; the shelf itself is finite.
  * @param {number} pageIndex
  * @param {number} totalPages
  * @returns {number}
@@ -163,21 +167,32 @@ export function resolveShelfGeometry({ stripWidthPx = 0, totalPages = 1 } = {}) 
 }
 
 /**
- * Step ±1 (or more) with wrap. Direction follows the step, including wrap-around.
+ * Step ±1 (or more) along the shelf. Direction follows the step.
+ *
+ * The shelf is finite: stepping stops at the ends (`direction: 'none'`, which every caller
+ * already treats as a no-op) so the outer peek stays empty margin instead of teleporting
+ * the board. Pass `{ wrap: true }` for explicit carousel jumps.
+ *
  * @param {number} currentPage
  * @param {number} delta
  * @param {number} totalPages
+ * @param {{ wrap?: boolean }} [options]
  * @returns {{ page: number, direction: 'left' | 'right' | 'none', wrapped: boolean }}
  */
-export function resolveSteppedChannelPage(currentPage, delta, totalPages) {
+export function resolveSteppedChannelPage(currentPage, delta, totalPages, options = {}) {
   const total = Math.max(1, Math.floor(Number(totalPages)) || 1);
   const from = clampPageIndex(currentPage, total);
   const step = Math.trunc(Number(delta)) || 0;
   if (total <= 1 || step === 0) {
     return { page: from, direction: 'none', wrapped: false };
   }
-  const page = wrapPageIndex(from + step, total);
   const direction = step > 0 ? 'right' : 'left';
+  if (options.wrap !== true) {
+    const page = clampPageIndex(from + step, total);
+    if (page === from) return { page: from, direction: 'none', wrapped: false };
+    return { page, direction, wrapped: false };
+  }
+  const page = wrapPageIndex(from + step, total);
   const wrapped = step > 0 ? page < from : page > from;
   return { page, direction, wrapped };
 }

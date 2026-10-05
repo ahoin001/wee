@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useWallpaperCycling from '../../utils/useWallpaperCycling';
 import { useSpaceWallpaperCrossfade } from '../../hooks/useSpaceWallpaperCrossfade';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import {
   DEFAULT_SHELL_SPACE_ORDER,
   normalizeShellSpaceOrder,
@@ -105,6 +106,8 @@ function IsolatedWallpaperBackgroundInner({
     currentPage,
   });
 
+  const motionFeedback = useMotionFeedback();
+
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -182,7 +185,8 @@ function IsolatedWallpaperBackgroundInner({
   const effectiveCyclingSlideDirection = canCycleCurrentSpace ? cyclingSlideDirection : 'right';
   const effectiveCycleAnimation = canCycleCurrentSpace ? cycleAnimation : 'fade';
 
-  const pageParallaxEnabled = false;
+  /** Plaza drift on page flips — playful motion, so it follows the channel motion gate. */
+  const pageParallaxEnabled = !reducedMotion && motionFeedback.channelTap;
 
   const spaceFade = useSpaceWallpaperCrossfade({
     displayUrl: displayWallpaperUrl,
@@ -493,6 +497,23 @@ function IsolatedWallpaperBackgroundInner({
           'translate3d(var(--wee-scene-fx-px, 0px), var(--wee-scene-fx-py, 0px), 0) scale(var(--wee-scene-fx-ps, 1))',
       }}
     >
+      {/*
+        Shelf drift lives on its own layer so Scene FX keeps an untransitioned transform.
+        The offset snaps, then glides home on the page-flip clock.
+      */}
+      <div
+        className="wallpaper-shelf-drift"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          transform: `translate3d(${spaceFade.parallaxXPercent}%, 0, 0)`,
+          transition:
+            spaceFade.parallaxXPercent === 0
+              ? `transform ${CHANNEL_PAGE_FLIP_MS}ms ${SPACE_SHELL_EASE_CSS}`
+              : 'none',
+        }}
+      >
       {baseWallpaperUrl ? (
         <div
           className={`wallpaper-bg${crossfadeActive ? ' wallpaper-bg--crossfading' : ''}`}
@@ -566,6 +587,7 @@ function IsolatedWallpaperBackgroundInner({
           aria-hidden
         />
       ) : null}
+      </div>
     </div>
   );
 }

@@ -42,7 +42,7 @@ const WiiSideNavigation = () => {
   const activeSpaceId = useConsolidatedAppStore((s) => s.spaces?.activeSpaceId);
   const channelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
   const { navigation, nextPage, prevPage } = useChannelNavigation(channelSpaceKey);
-  const { totalPages, isAnimating, mode } = navigation;
+  const { currentPage, totalPages, isAnimating, mode } = navigation;
 
   const spotifyColors = useConsolidatedAppStore((state) => state.spotify.extractedColors);
   const spotifyEnabled = useConsolidatedAppStore((state) => state.ui.spotifyMatchEnabled);
@@ -137,8 +137,9 @@ const WiiSideNavigation = () => {
     return null;
   }
 
-  const canGoLeft = totalPages > 1;
-  const canGoRight = totalPages > 1;
+  // Finite shelf: the peeks retract at the ends rather than silently wrapping.
+  const canGoLeft = currentPage > 0;
+  const canGoRight = currentPage < totalPages - 1;
 
   return (
     <>
@@ -146,7 +147,7 @@ const WiiSideNavigation = () => {
         side="left"
         variant="wee"
         isOpen={canGoLeft}
-        disabled={isAnimating}
+        disabled={isAnimating || !canGoLeft}
         surfaceStyle={getGlassStyleVars(leftGlassSettings)}
         title="Previous page"
         aria-label="Previous page"
@@ -162,7 +163,7 @@ const WiiSideNavigation = () => {
         side="right"
         variant="wee"
         isOpen={canGoRight}
-        disabled={isAnimating}
+        disabled={isAnimating || !canGoRight}
         surfaceStyle={getGlassStyleVars(rightGlassSettings)}
         title="Next page"
         aria-label="Next page"

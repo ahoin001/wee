@@ -42,6 +42,7 @@ export function useSpaceWallpaperCrossfade({
   const lastPageRef = useRef(pageIndex);
   const prevCyclingRef = useRef(Boolean(cyclingTransitioning));
   const rafRef = useRef(null);
+  const parallaxRafRef = useRef(null);
   const stallTimerRef = useRef(null);
   const preloadGenRef = useRef(0);
   const pendingTargetRef = useRef(null);
@@ -115,21 +116,31 @@ export function useSpaceWallpaperCrossfade({
     [clearStallTimer, commitOverlayToBase]
   );
 
+  /**
+   * Offset the plaza opposite strip travel, then let it glide home on the flip clock.
+   * Fires on every page flip, not only when the wallpaper itself changes — pages that
+   * share a wallpaper still have to feel tied to the shelf.
+   */
+  const pulsePageParallax = useCallback(() => {
+    if (!parallaxEnabledRef.current) return;
+    const dir = pageDirectionRef.current || 0;
+    if (!dir) return;
+    setParallaxXPercent(dir < 0 ? PAGE_PARALLAX_NUDGE_PERCENT : -PAGE_PARALLAX_NUDGE_PERCENT);
+    if (parallaxRafRef.current) cancelAnimationFrame(parallaxRafRef.current);
+    // Offset snaps, settle eases — consumers drop the transition while the value is non-zero.
+    parallaxRafRef.current = requestAnimationFrame(() => {
+      parallaxRafRef.current = null;
+      setParallaxXPercent(0);
+    });
+  }, []);
+
   const beginOverlayFade = useCallback(
-    (fromUrl, toUrl, { usePageParallax = false } = {}) => {
+    (fromUrl, toUrl) => {
       setBase(fromUrl);
       baseRef.current = fromUrl;
       setOverlay(toUrl);
       setOverlayOpacity(0);
       fadeInIntentRef.current = false;
-      if (usePageParallax && parallaxEnabledRef.current) {
-        const dir = pageDirectionRef.current || 0;
-        // Nudge opposite strip travel so wallpaper feels tied to the page flip.
-        const nudge = dir < 0 ? PAGE_PARALLAX_NUDGE_PERCENT : dir > 0 ? -PAGE_PARALLAX_NUDGE_PERCENT : 0;
-        setParallaxXPercent(nudge);
-      } else {
-        setParallaxXPercent(0);
-      }
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       // Single rAF is enough for CSS to register opacity:0 before fading in.
       // Double-rAF added a visible stall vs the channel page strip.
@@ -137,7 +148,6 @@ export function useSpaceWallpaperCrossfade({
         rafRef.current = null;
         fadeInIntentRef.current = true;
         setOverlayOpacity(1);
-        setParallaxXPercent(0);
         armStallRecovery(transitionMsRef.current + 320);
       });
     },
@@ -145,7 +155,7 @@ export function useSpaceWallpaperCrossfade({
   );
 
   const startCrossfade = useCallback(
-    (fromUrl, toUrl, opts = {}) => {
+    (fromUrl, toUrl) => {
       if (!fromUrl || !toUrl || fromUrl === toUrl) {
         snapTo(toUrl ?? fromUrl ?? null);
         return;
@@ -164,7 +174,7 @@ export function useSpaceWallpaperCrossfade({
           snapTo(latest);
           return;
         }
-        beginOverlayFade(stillFrom, latest, opts);
+        beginOverlayFade(stillFrom, latest);
       });
     },
     [beginOverlayFade, snapTo]
@@ -207,6 +217,8 @@ export function useSpaceWallpaperCrossfade({
     }
     if (pageChanged) {
       lastPageRef.current = pageIndex;
+      // Before any crossfade early-return: the shelf moved, so the plaza reacts either way.
+      if (!spaceChanged) pulsePageParallax();
     }
 
     const nextMs = spaceChanged ? spaceTransitionMs : pageTransitionMs;
@@ -255,11 +267,13 @@ export function useSpaceWallpaperCrossfade({
     snapTo,
     startCrossfade,
     beginOverlayFade,
+    pulsePageParallax,
   ]);
 
   useEffect(
     () => () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (parallaxRafRef.current) cancelAnimationFrame(parallaxRafRef.current);
       clearStallTimer();
       preloadGenRef.current += 1;
     },
@@ -287,7 +301,11 @@ export function useSpaceWallpaperCrossfade({
     spaceCrossfadeMs: activeTransitionMs,
     /** Settled wallpaper URL after snap/crossfade/cycle — for ambient + scene waiters. */
     committedUrl,
-    /** Subtle page-flip X nudge (percent); 0 when idle / reduced motion. */
+    /**
+     * Subtle page-flip X nudge (percent); 0 when idle / reduced motion.
+     * Non-zero means "just offset" — render it without a transition, and let the
+     * return to 0 ease on the flip clock.
+     */
     parallaxXPercent,
   };
 }

@@ -210,13 +210,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/WiiChannelStrip.jsx": {
-    "mtime": 1791236354.3061082,
-    "ast_hash": "6e1e7aa44cf0275b86eade39e57f385c",
-    "semantic_hash": ""
-  },
-  "src/components/channels/channelGridStyles.js": {
-    "mtime": 1784562742.886255,
-    "ast_hash": "6e66b933b724f45d7106d963d3785562",
+    "mtime": 1791237107.617129,
+    "ast_hash": "dde9288f5f7f33d8509e27fc095e6522",
     "semantic_hash": ""
   },
   "src/components/channels/channelModal/ChannelModalBehaviorTab.jsx": {
@@ -550,8 +545,8 @@
     "semantic_hash": ""
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1791236454.1862648,
-    "ast_hash": "5839b0c2686a03ad982098578402fd0e",
+    "mtime": 1791236600.3474276,
+    "ast_hash": "a0715e50626d04a0b380d1400f78929b",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -565,8 +560,8 @@
     "semantic_hash": "0799be658e18f6191de145ee6205f8ce"
   },
   "src/components/navigation/WiiSideNavigation.jsx": {
-    "mtime": 1791221410.018334,
-    "ast_hash": "1b3355f84601db42f3188360c3b2eaa0",
+    "mtime": 1791236669.8668993,
+    "ast_hash": "6451675767e5c592cfcf4199ddbbcf2c",
     "semantic_hash": ""
   },
   "src/components/navigation/index.js": {
@@ -575,8 +570,8 @@
     "semantic_hash": "b944ffb38644906d326267aa5fb662f9"
   },
   "src/components/overlays/IsolatedWallpaperBackground.jsx": {
-    "mtime": 1791221784.2506304,
-    "ast_hash": "c771d64824fa98965b3d25153c0549b7",
+    "mtime": 1791236830.6272004,
+    "ast_hash": "ad061c0fa31816235965d5764f0e3bc0",
     "semantic_hash": ""
   },
   "src/components/overlays/SpotifyGradientOverlay.jsx": {
@@ -615,8 +610,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
-    "mtime": 1790621376.6673162,
-    "ast_hash": "7c07efdc1e22f880db8e8bab93834bbd",
+    "mtime": 1791236873.280656,
+    "ast_hash": "ff5bf9f8387bd6fb4aa53ee1dbc5aeb7",
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
@@ -1000,8 +995,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useSpaceWallpaperCrossfade.js": {
-    "mtime": 1784302200.484419,
-    "ast_hash": "38eedd2ee7fdd95ad330476e31c7c3c8",
+    "mtime": 1791236799.6126344,
+    "ast_hash": "3220dc6953c722d80f195b90219b06a7",
     "semantic_hash": ""
   },
   "src/hooks/useSpotifyPlaybackSample.js": {
@@ -1245,8 +1240,8 @@
     "semantic_hash": "94a8c4a1e74adaf131627b9dd302479c"
   },
   "src/utils/channelLayoutSystem.js": {
-    "mtime": 1791236290.5508442,
-    "ast_hash": "2aaaef30428e706cfba525b8b1c80fa6",
+    "mtime": 1791236645.62766,
+    "ast_hash": "216636bff38bca1d63f3c9f45b69468d",
     "semantic_hash": ""
   },
   "src/utils/channelMediaType.js": {

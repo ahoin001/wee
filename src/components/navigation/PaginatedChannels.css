@@ -206,11 +206,41 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity var(--channel-page-flip-duration) var(--wee-collapse-ease),
+    transform var(--channel-page-flip-duration) var(--wee-collapse-ease);
 }
 
 .wii-strip-channel-cell--hidden {
   pointer-events: none;
   visibility: hidden;
+}
+
+/*
+ * Peeked neighbours sit back so the current page stays the subject — CSS-only (opacity +
+ * scale), on the page-flip clock, so the arriving page brightens as the shelf lands.
+ */
+.wii-strip-channel-cell[data-shelf-offpage] {
+  opacity: 0.72;
+  transform: scale(0.97);
+}
+
+.wii-strip-channel-cell[data-shelf-peekable] {
+  cursor: pointer;
+}
+
+.wii-strip-channel-cell[data-shelf-peekable]:hover {
+  opacity: 0.88;
+  transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wii-strip-channel-cell {
+    transition-duration: var(--wee-collapse-duration-reduced, 100ms);
+  }
+
+  .wii-strip-channel-cell[data-shelf-offpage] {
+    transform: none;
+  }
 }
 
 /* Tile enter: Framer stagger in WiiChannelStrip (weeMotion.js), not CSS keyframes */

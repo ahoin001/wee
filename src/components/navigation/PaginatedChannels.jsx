@@ -52,6 +52,7 @@ import {
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../utils/supportedUploadMedia';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { playChannelClick } from '../../utils/soundPlayback';
 import { WeeNotice } from '../../ui/wee';
 import {
   createHomeChannelEntranceBandVariants,
@@ -1159,6 +1160,20 @@ const PaginatedChannelsInner = React.memo(() => {
     finishAnimation();
   }, [finishAnimation]);
 
+  /** Tap a peeked neighbour to travel to it — same sound + step as the side nav. */
+  const handlePeekPageSelect = useCallback(
+    async (pageIndex) => {
+      const currentPage = Number(navigation.currentPage) || 0;
+      if (pageIndex === currentPage || navigation.isAnimating) return;
+      await playChannelClick();
+      goToPage(pageIndex, {
+        direction: pageIndex > currentPage ? 'right' : 'left',
+        wrapped: false,
+      });
+    },
+    [goToPage, navigation.currentPage, navigation.isAnimating]
+  );
+
   // Micro-delights: idle ambient/attract by default; optional “while browsing” via config.
   // Attract raises the cadence so a populated tile gets spotlighted more often.
   const idleAnimationProps = useMemo(() => ({
@@ -1414,6 +1429,7 @@ const PaginatedChannelsInner = React.memo(() => {
           onArrangeSelectIndex={
             arrangeModeActive && !punchModeActive ? handleArrangeSelectIndex : undefined
           }
+          onPeekPageSelect={handlePeekPageSelect}
         />
       </div>
     );
@@ -1436,6 +1452,7 @@ const PaginatedChannelsInner = React.memo(() => {
     punchModeActive,
     handleTogglePunchSlot,
     handleArrangeSelectIndex,
+    handlePeekPageSelect,
   ]);
 
   const channelsContent = (

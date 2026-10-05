@@ -28,8 +28,8 @@ import { pointFromElement } from '../../utils/boardSlotRect';
  * Live Board Studio (`arrangeModeActive` + `punchModeActive`) intercepts tile taps to punch
  * or restore a wallpaper hole — punch applies to the **anchor** slot only.
  *
- * Infinite wrap (last→first / first→last): enter from one page-step off the target so the
- * pan never scrubs middle boards.
+ * The shelf is finite, so stepping stops at the ends. An explicit last↔first jump enters
+ * one page-step off the target so the pan never scrubs the middle boards.
  */
 const WiiChannelStrip = ({
   totalPages,
@@ -102,7 +102,7 @@ const WiiChannelStrip = ({
     [slots, safeColumns, safeRows, totalChannelSlots]
   );
 
-  // Page window: current page always; the cut neighbours either side of it from startup idle1.
+  // Page window: current page always; whole neighbour pages from startup idle1.
   // The page being flipped away from stays mounted until the pan settles (no blank slide-out).
   const neighborsReady = useStartupPhase('idle1');
   const previousPageRef = useRef(safeCurrentPage);
@@ -122,6 +122,26 @@ const WiiChannelStrip = ({
     if (flipSourcePage != null && flipSourcePage < safeTotalPages) pages.add(flipSourcePage);
     return pages;
   }, [safeCurrentPage, safeTotalPages, neighborsReady, visiblePages, flipSourcePage]);
+
+  /**
+   * Before idle1 the neighbour pages are still deferred, but their edge column is already
+   * inside the peek band — so paint that column rather than leaving the peek blank. The
+   * band is capped below one column width (16cqi vs ~21cqi), so one column always covers it.
+   *
+   * @param {number} pageIndex
+   * @param {number} localCol — column within the page
+   * @param {number} colSpan
+   */
+  const isCellInWindow = useCallback(
+    (pageIndex, localCol, colSpan) => {
+      if (mountedPages.has(pageIndex)) return true;
+      if (!visiblePages.has(pageIndex)) return false;
+      return pageIndex > safeCurrentPage
+        ? localCol === 0
+        : localCol + colSpan - 1 === safeColumns - 1;
+    },
+    [mountedPages, visiblePages, safeCurrentPage, safeColumns]
+  );
 
   /** Only the page shown when this entrance began staggers in; later pages mount already open. */
   const entranceRef = useRef({ key: hubEntranceKey, page: safeCurrentPage });
@@ -253,7 +273,8 @@ const WiiChannelStrip = ({
 
             const punchTransition = reducedMotion ? { duration: 0.12 } : pillClose;
 
-            if (!hidden && !mountedPages.has(pageIndex)) {
+            const localCol = placement.col - pageIndex * safeColumns;
+            if (!hidden && !isCellInWindow(pageIndex, localCol, placement.colSpan)) {
               return (
                 <div
                   key={`tile-idle-${hubEntranceKey}-${i}`}

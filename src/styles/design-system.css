@@ -283,6 +283,8 @@
 
   /* Wii channel shelf: a page is the window minus one peek band per side, so a cut neighbour is always in frame */
   --wii-shelf-peek-ratio: 0.08;
+  /* One page-flip clock for the shelf: keep in sync with CHANNEL_PAGE_FLIP_MS (channelLayoutSystem.js) */
+  --channel-page-flip-duration: 520ms;
   /* Short feather on the clipped lip of the shelf — a soft edge, not an invisible wall */
   --wii-shelf-feather: clamp(16px, 1.6vw, 24px);
   --wii-strip-board-max: min(1680px, 100%);
