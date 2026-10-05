@@ -15,12 +15,14 @@ import {
   getStripGridPlacement,
 } from '../../utils/homeGridOccupancy';
 import { useStartupPhase } from '../../hooks/useStartupPhase';
+import useChannelShelfPan from '../../hooks/useChannelShelfPan';
 import { StripCellOnCurrentPageContext } from './stripCellVisibility';
 import { pointFromElement } from '../../utils/boardSlotRect';
 
 /**
- * Continuous channel strip: uniform gap grid, pan via Framer (`channelPageFlip`).
- * Peek / page math use `--wii-strip-peek` / `--wii-total-pages` from the parent.
+ * Continuous channel shelf: one window onto a uniform-gap grid, with a cut neighbour
+ * peeking either side. Pan is owned by `useChannelShelfPan` (`channelPageFlip`); the peek
+ * band itself is CSS (`--wii-shelf-peek`), sized off `--wii-strip-peek` / `--wii-total-pages`.
  * Hidden slots (`slotMeta`) keep absolute cells as wallpaper holes.
  * Spanned slots (`slots[].colSpan` / `rowSpan`) occupy multiple cells; covered cells skip render.
  * Live Board Studio (`arrangeModeActive` + `punchModeActive`) intercepts tile taps to punch
@@ -55,6 +57,7 @@ const WiiChannelStrip = ({
   punchModeActive = false,
   onTogglePunch,
   onArrangeSelectIndex,
+  onPeekPageSelect,
 }) => {
   const { pillOpen, pillClose, reducedMotion } = useWeeMotion();
   const tileItemVariants = useMemo(
@@ -78,37 +81,28 @@ const WiiChannelStrip = ({
   );
   const channelsPerPage = safeColumns * safeRows;
   const totalChannelSlots = channelsPerPage * safeTotalPages;
-  const pageStepPercent = 100 / safeTotalPages;
-  const targetStripX = -safeCurrentPage * pageStepPercent;
   const isWrap =
     Boolean(animationWrapped) &&
     safeTotalPages > 1 &&
     (animationDirection === 'left' || animationDirection === 'right');
-  const wrapForward = isWrap && animationDirection === 'right';
 
-  const stripAnimate = useMemo(() => {
-    if (!isWrap || reducedMotion) {
-      return { x: `${targetStripX}%` };
-    }
-    const enterFrom = wrapForward
-      ? targetStripX + pageStepPercent
-      : targetStripX - pageStepPercent;
-    return { x: [`${enterFrom}%`, `${targetStripX}%`] };
-  }, [isWrap, reducedMotion, targetStripX, wrapForward, pageStepPercent]);
-
-  const stripTransition = useMemo(() => {
-    if (!(isAnimating || reducedMotion || isWrap)) {
-      return { duration: 0 };
-    }
-    return pageFlipTransition;
-  }, [isAnimating, reducedMotion, isWrap, pageFlipTransition]);
+  const { stripRef, stripX, visiblePages } = useChannelShelfPan({
+    totalPages: safeTotalPages,
+    currentPage: safeCurrentPage,
+    isAnimating,
+    animationDirection,
+    animationWrapped,
+    transition: pageFlipTransition,
+    reducedMotion,
+    onSettled: onPageFlipComplete,
+  });
 
   const occupancy = useMemo(
     () => buildOccupancyMap(slots, safeColumns, safeRows, totalChannelSlots),
     [slots, safeColumns, safeRows, totalChannelSlots]
   );
 
-  // Page window: current page always; neighbors (peek + flip targets) from startup idle1.
+  // Page window: current page always; the cut neighbours either side of it from startup idle1.
   // The page being flipped away from stays mounted until the pan settles (no blank slide-out).
   const neighborsReady = useStartupPhase('idle1');
   const previousPageRef = useRef(safeCurrentPage);
@@ -123,12 +117,11 @@ const WiiChannelStrip = ({
   const mountedPages = useMemo(() => {
     const pages = new Set([safeCurrentPage]);
     if (neighborsReady) {
-      if (safeCurrentPage > 0) pages.add(safeCurrentPage - 1);
-      if (safeCurrentPage < safeTotalPages - 1) pages.add(safeCurrentPage + 1);
+      for (const page of visiblePages) pages.add(page);
     }
     if (flipSourcePage != null && flipSourcePage < safeTotalPages) pages.add(flipSourcePage);
     return pages;
-  }, [safeCurrentPage, safeTotalPages, neighborsReady, flipSourcePage]);
+  }, [safeCurrentPage, safeTotalPages, neighborsReady, visiblePages, flipSourcePage]);
 
   /** Only the page shown when this entrance began staggers in; later pages mount already open. */
   const entranceRef = useRef({ key: hubEntranceKey, page: safeCurrentPage });
@@ -149,12 +142,6 @@ const WiiChannelStrip = ({
       }),
     [safeColumns, safeRows, safeTotalPages]
   );
-
-  const handleStripAnimationComplete = useCallback(() => {
-    if (isAnimating && typeof onPageFlipComplete === 'function') {
-      onPageFlipComplete();
-    }
-  }, [isAnimating, onPageFlipComplete]);
 
   const canPunch = arrangeModeActive && punchModeActive && typeof onTogglePunch === 'function';
   const canSelect =
@@ -184,6 +171,17 @@ const WiiChannelStrip = ({
       onArrangeSelectIndex(selectIndex, 'click');
     },
     [canSelect, onArrangeSelectIndex, occupancy]
+  );
+
+  /** Tapping a cut neighbour travels to it — the peek is an affordance, not a dead zone. */
+  const canSelectPeekPage = typeof onPeekPageSelect === 'function' && !isAnimating;
+  const handlePeekPageSelect = useCallback(
+    (pageIndex) => (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onPeekPageSelect(pageIndex);
+    },
+    [onPeekPageSelect]
   );
 
   const handleArrangeContextMenuCapture = useCallback(
@@ -219,13 +217,7 @@ const WiiChannelStrip = ({
       onWheel={onGridWheel}
     >
       <LayoutGroup id="homeArrangeSelectionGroup">
-      <m.div
-        className="wii-strip-continuous"
-        initial={false}
-        animate={stripAnimate}
-        transition={stripTransition}
-        onAnimationComplete={handleStripAnimationComplete}
-      >
+      <m.div ref={stripRef} className="wii-strip-continuous" style={{ x: stripX }}>
         <div
           className={`wii-strip-board wii-strip-board--continuous${
             focusRecedeEnabled && !arrangeModeActive
@@ -272,12 +264,21 @@ const WiiChannelStrip = ({
               );
             }
 
+            // Peeked neighbour: recede it, and let a tap on the cut tile page toward it
+            // rather than launch. `inert` keeps the clipped lip out of the tab order —
+            // the click still lands, because it falls through to this cell.
+            const offPage = pageIndex !== safeCurrentPage && !arrangeModeActive;
+            const peekable = offPage && canSelectPeekPage;
+
             return (
               <div
                 key={`tile-cell-${hubEntranceKey}-${i}`}
                 className="wii-strip-channel-cell relative min-h-0 min-w-0"
                 data-wee-board-slot={i}
+                data-shelf-offpage={offPage ? '' : undefined}
+                data-shelf-peekable={peekable ? '' : undefined}
                 style={gridStyle}
+                onClick={peekable ? handlePeekPageSelect(pageIndex) : undefined}
               >
                 <AnimatePresence initial={false} mode="wait">
                   {hidden ? (
@@ -315,6 +316,7 @@ const WiiChannelStrip = ({
                     <m.div
                       key={`tile-${i}`}
                       className={`h-full w-full${canPunch ? ' wii-strip-channel-cell--punchable' : ''}`}
+                      inert={offPage}
                       variants={tileItemVariants}
                       custom={idxInPage}
                       initial={pageIndex === entrancePage ? 'closed' : false}
@@ -378,6 +380,7 @@ WiiChannelStrip.propTypes = {
   punchModeActive: PropTypes.bool,
   onTogglePunch: PropTypes.func,
   onArrangeSelectIndex: PropTypes.func,
+  onPeekPageSelect: PropTypes.func,
 };
 
 export default React.memo(WiiChannelStrip);

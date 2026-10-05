@@ -77,7 +77,6 @@ export const WII_STRIP_PEEK_PERCENT = 8;
 
 export const WII_STRIP_LAYOUT_PRESET = Object.freeze({
   peekPercent: WII_STRIP_PEEK_PERCENT,
-  pageAdvancePercent: 100 - WII_STRIP_PEEK_PERCENT,
 });
 
 /** Page flip duration (ms) — shared by goToPage timeout + CSS/Framer strip. */
@@ -129,6 +128,38 @@ export function wrapPageIndex(pageIndex, totalPages) {
   const raw = Math.floor(Number(pageIndex));
   const n = Number.isFinite(raw) ? raw : 0;
   return ((n % total) + total) % total;
+}
+
+/**
+ * Shelf window geometry — where page N parks the continuous strip.
+ *
+ * The board is one long shelf behind a window that is `peek` wider than a page on each
+ * side, so a cut neighbour is always in frame. CSS owns the peek band (`--wii-shelf-peek`)
+ * so its rail-gutter floor stays tokenized; JS only measures the laid-out strip and
+ * divides, which makes one page exactly `stripWidth / totalPages` whatever peek resolved to.
+ *
+ * @param {{ stripWidthPx?: number, totalPages?: number }} [opts]
+ */
+export function resolveShelfGeometry({ stripWidthPx = 0, totalPages = 1 } = {}) {
+  const pages = Math.max(1, Math.floor(Number(totalPages)) || 1);
+  const stripWidth = Math.max(0, Number(stripWidthPx) || 0);
+  const pageWidth = stripWidth / pages;
+
+  return {
+    pages,
+    stripWidth,
+    pageWidth,
+    /** Resting translateX (px) that parks `page` in the window with a peek either side. */
+    pageX: (page) => -clampPageIndex(page, pages) * pageWidth,
+    /** Pages intersecting the window at rest — both peeks always cut into a neighbour. */
+    visiblePages: (page) => {
+      const current = clampPageIndex(page, pages);
+      const visible = new Set([current]);
+      if (current > 0) visible.add(current - 1);
+      if (current < pages - 1) visible.add(current + 1);
+      return visible;
+    },
+  };
 }
 
 /**

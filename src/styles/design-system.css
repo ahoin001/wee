@@ -281,8 +281,10 @@
   --ambient-secondary: var(--primary);
   --ambient-accent: var(--primary);
 
-  /* Wii channel strip: one “page” width = 100% − peek (adjacent page visible on left/right when not on that edge) */
-  --wii-strip-peek: 8%;
+  /* Wii channel shelf: a page is the window minus one peek band per side, so a cut neighbour is always in frame */
+  --wii-shelf-peek-ratio: 0.08;
+  /* Short feather on the clipped lip of the shelf — a soft edge, not an invisible wall */
+  --wii-shelf-feather: clamp(16px, 1.6vw, 24px);
   --wii-strip-board-max: min(1680px, 100%);
   /* Same gap between grid columns/rows and between carousel pages (Wii “always more” strip) */
   --wii-strip-channel-gap: clamp(10px, 1.15vw, 18px);

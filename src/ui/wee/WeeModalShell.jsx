@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { Dialog } from '@headlessui/react';
@@ -31,6 +31,8 @@ function WeeModalShell({
   panelClassName = '',
   /** When true, panel uses a fixed viewport height so inner content growth doesn’t resize the shell. */
   stableHeight = false,
+  /** Changing this scrolls the body back to the top (tab switches share one scroller). */
+  bodyScrollKey = null,
   onExitAnimationComplete,
   /** Footprint of the control this dialog grows out of. Settings opened from the rail omit this. */
   originRect = null,
@@ -73,6 +75,10 @@ function WeeModalShell({
 
   const useOrigin = Boolean(originRect && modalSpringTransitions && isOriginRectOnScreen(originRect));
   const shellRef = useRef(null);
+  const bodyScrollRef = useRef(null);
+  useLayoutEffect(() => {
+    if (bodyScrollRef.current) bodyScrollRef.current.scrollTop = 0;
+  }, [bodyScrollKey]);
   const [shellNode, setShellNode] = useState(null);
   const assignShell = useCallback((node) => {
     shellRef.current = node;
@@ -227,7 +233,9 @@ function WeeModalShell({
                   </button>
                 </div>
 
-                <div className={`wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-8 py-8 md:px-12 md:py-10 [contain:layout] ${
+                <div
+                  ref={bodyScrollRef}
+                  className={`wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-8 py-8 md:px-12 md:py-10 [contain:layout] ${
                   artPlate ? 'bg-[var(--wee-plate-well)]' : 'bg-[hsl(var(--wee-surface-well))]'
                 }`}>
                   {children}
@@ -264,6 +272,7 @@ WeeModalShell.propTypes = {
   className: PropTypes.string,
   panelClassName: PropTypes.string,
   stableHeight: PropTypes.bool,
+  bodyScrollKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onExitAnimationComplete: PropTypes.func,
   originRect: PropTypes.shape({
     x: PropTypes.number,
@@ -288,6 +297,7 @@ WeeModalShell.defaultProps = {
   className: '',
   panelClassName: '',
   stableHeight: false,
+  bodyScrollKey: null,
   onExitAnimationComplete: undefined,
   originRect: null,
   originMorph: false,

@@ -36,7 +36,12 @@ import {
 } from '../../utils/homeSlotSizePresets';
 import { ChannelSpaceProvider } from '../../contexts/ChannelSpaceContext';
 import useIdleChannelAnimations from '../../utils/useIdleChannelAnimations';
-import { CHANNEL_PAGE_FLIP_MS, isSlotHidden } from '../../utils/channelLayoutSystem';
+import {
+  CHANNEL_LAYOUT_LIMITS,
+  CHANNEL_PAGE_FLIP_MS,
+  WII_STRIP_PEEK_PERCENT,
+  isSlotHidden,
+} from '../../utils/channelLayoutSystem';
 import { WiiChannelStrip } from '../channels';
 import ChannelSlotDnd, { parseChannelDnDId } from './ChannelSlotDnd';
 import { ChannelDragOverlayFrame } from './ChannelDragMotion';
@@ -838,20 +843,19 @@ const PaginatedChannelsInner = React.memo(() => {
     };
   }, []);
 
-  /** Wii strip: drive peek + layout math via inherited custom properties */
+  /** Wii shelf: drive page count + peek band via inherited custom properties */
   const wiiStripCssVars = useMemo(() => {
     const safeTotalPages = Math.max(1, Number(gridConfig.totalPages || navigation.totalPages) || 1);
-    const safeCurrentPage = Math.max(
-      0,
-      Math.min(Number(navigation.currentPage) || 0, safeTotalPages - 1)
+    const peek = Math.max(
+      CHANNEL_LAYOUT_LIMITS.peekPercent.min,
+      Math.min(CHANNEL_LAYOUT_LIMITS.peekPercent.max, Number(gridConfig.peekPercent) || WII_STRIP_PEEK_PERCENT)
     );
-    const peek = Math.max(4, Math.min(14, Number(gridConfig.peekPercent) || 8));
     return {
-      '--wii-strip-current-page': safeCurrentPage,
       '--wii-total-pages': safeTotalPages,
-      '--wii-strip-peek': `${peek}%`,
+      // Unitless so CSS can multiply it by the window's container width.
+      '--wii-shelf-peek-ratio': peek / 100,
     };
-  }, [navigation.currentPage, navigation.totalPages, gridConfig.totalPages, gridConfig.peekPercent]);
+  }, [navigation.totalPages, gridConfig.totalPages, gridConfig.peekPercent]);
 
   useEffect(() => {
     weeMarkChannelPage(Number(navigation.currentPage) || 0);

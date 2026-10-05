@@ -44,14 +44,13 @@
   position: relative;
 }
 
-/* Wii mode: right edge flush for next-page peek; left inset clears fixed space rail on every page */
+/*
+ * Wii mode: the shelf spans the viewport edge to edge — the peek band (`--wii-shelf-peek`)
+ * does the insetting and already clears the floating space rail, so no chrome padding here.
+ */
 .channels-content:has(.wii-mode-container) {
+  padding-left: 0;
   padding-right: 0;
-  --wii-channel-pad-base: clamp(10px, 2vw, 20px);
-  padding-left: max(
-    calc((1 - min(1, var(--wii-strip-current-page, 0))) * var(--wii-channel-pad-base)),
-    calc(env(safe-area-inset-left, 0px) + var(--channel-space-rail-gutter))
-  );
   padding-top: clamp(10px, 2vw, 20px);
   padding-bottom: clamp(10px, 2vw, 20px);
 }
@@ -132,24 +131,44 @@
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
-  /* Size container so --wii-row-max can key off visible board width (not the full strip). */
+  /* Size container so the page width (and --wii-row-max) key off the window, not the strip. */
   container-type: size;
   container-name: wii-board;
-  /* top right bottom left — right flush; left inset only when --wii-strip-current-page is 0 */
-  padding: clamp(10px, 1.4vh, 20px) 0 var(--channel-dock-clearance)
-    calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(12px, 1.8vw, 28px));
+  /* Horizontally flush — the peek band insets the board on both sides instead. */
+  padding: clamp(10px, 1.4vh, 20px) 0 var(--channel-dock-clearance);
   overflow: hidden;
-  /* No edge mask — it hid the “next page” peek */
-  
+  /*
+   * A lip, not a wall: feather only the few px the clip actually cuts, so peeked art keeps
+   * reading as a cut tile. Deliberately not blur — too costly for an all-day session, and
+   * it would muddy the very art that makes the peek an affordance.
+   */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--wii-shelf-feather),
+    #000 calc(100% - var(--wii-shelf-feather)),
+    transparent 100%
+  );
+
   /* Auto-fade effect */
   transition: opacity 0.5s ease-out;
 }
 
-/* One continuous grid: N×pages columns × rows; uniform gap; pan via Framer Motion */
+/*
+ * One continuous shelf: N×pages columns × rows, uniform gap, panned by useChannelShelfPan.
+ * A page is the window minus one peek band per side, so a cut neighbour is always in frame
+ * and the first/last page read as symmetric margin rather than a shifted board.
+ */
 .wii-strip-continuous {
   display: block;
-  /* 100% = .wii-mode-grid content box; full strip width for translateX(…%) math */
-  width: calc(var(--wii-total-pages, 1) * (100% - var(--wii-strip-peek)));
+  /* Peek never undercuts the floating space rail — the rail only ever covers a cut tile. */
+  --wii-shelf-peek: min(
+    16cqi,
+    max(calc(var(--wii-shelf-peek-ratio, 0.08) * 100cqi), var(--channel-space-rail-gutter))
+  );
+  --wii-page-w: calc(100cqi - 2 * var(--wii-shelf-peek));
+  width: calc(var(--wii-total-pages, 1) * var(--wii-page-w));
+  margin-left: var(--wii-shelf-peek);
   max-width: none;
   height: 100%;
   min-height: 0;
@@ -168,12 +187,12 @@
   min-width: 0;
   box-sizing: border-box;
   /*
-   * Cap each row to classic Wii tile height for the visible page column width.
-   * 100cqi = .wii-mode-grid content box (one page), not the multi-page strip.
-   * With few rows (2–3) this stops 3/4-column boards from ballooning into giant shelves.
+   * Cap each row to classic Wii tile height for one page's column width — `--wii-page-w`,
+   * not `100cqi`: the window is a page plus two peek bands, so keying off the window would
+   * oversize every tile. With few rows (2–3) this stops 3/4-column boards from ballooning.
    */
   --wii-col-width: calc(
-    (100cqi - (var(--wii-strip-channel-gap) * (var(--wii-page-columns, 4) - 1))) /
+    (var(--wii-page-w) - (var(--wii-strip-channel-gap) * (var(--wii-page-columns, 4) - 1))) /
       var(--wii-page-columns, 4)
   );
   --wii-row-max: calc(var(--wii-col-width) / var(--wii-tile-aspect, 1.95));
@@ -381,12 +400,6 @@ button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable:hover {
   }
 
   .channels-content:has(.wii-mode-container) {
-    padding-right: 0;
-    --wii-channel-pad-base: clamp(8px, 1.5vw, 15px);
-    padding-left: max(
-      calc((1 - min(1, var(--wii-strip-current-page, 0))) * var(--wii-channel-pad-base)),
-      calc(env(safe-area-inset-left, 0px) + var(--channel-space-rail-gutter))
-    );
     padding-top: clamp(8px, 1.5vw, 15px);
     padding-bottom: clamp(8px, 1.5vw, 15px);
   }
@@ -403,12 +416,6 @@ button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable:hover {
   }
 
   .channels-content:has(.wii-mode-container) {
-    padding-right: 0;
-    --wii-channel-pad-base: clamp(5px, 1vw, 10px);
-    padding-left: max(
-      calc((1 - min(1, var(--wii-strip-current-page, 0))) * var(--wii-channel-pad-base)),
-      calc(env(safe-area-inset-left, 0px) + var(--channel-space-rail-gutter))
-    );
     padding-top: clamp(5px, 1vw, 10px);
     padding-bottom: clamp(5px, 1vw, 10px);
   }

@@ -102,6 +102,8 @@ function WeeChannelModal({
       rail={rail}
       footerContent={footerContent}
       maxWidth={maxWidth}
+      stableHeight
+      bodyScrollKey={activeTab}
       showRail
       onExitAnimationComplete={onExitAnimationComplete}
       originRect={originRect}
@@ -118,6 +120,7 @@ function WeeChannelModal({
           animate={WEE_VARIANTS.tabBodyAnimate}
           exit={WEE_VARIANTS.tabBodyExit}
           transition={tabTransition}
+          className="min-w-0"
         >
           {children}
         </TabPanel>
