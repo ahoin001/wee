@@ -7,7 +7,7 @@ import { X } from 'lucide-react';
 import { useDialogExitPresence } from '../../hooks/useDialogExitPresence';
 import { useOriginFootprintSpring } from '../../hooks/useOriginFootprintSpring';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
-import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
+import { createWeeTransition, ORIGIN_MORPH_ENTER_FALLBACK_MS, useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 import { isOriginRectOnScreen } from './originRect';
 import './wee-modal.css';
 
@@ -82,7 +82,7 @@ function WeeModalShell({
      can never be stranded. */
   useEffect(() => {
     if (entered || !isOpen || !allowMount) return undefined;
-    const timer = window.setTimeout(markEntered, 900);
+    const timer = window.setTimeout(markEntered, ORIGIN_MORPH_ENTER_FALLBACK_MS);
     return () => window.clearTimeout(timer);
   }, [allowMount, entered, isOpen, markEntered]);
 
@@ -142,8 +142,18 @@ function WeeModalShell({
   const panelVariants = useMemo(() => {
     if (!modalSpringTransitions) {
       return {
-        open: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.18 } },
-        closed: { opacity: 0, scale: 0.96, y: 12, transition: { duration: 0.14 } },
+        open: {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          transition: createWeeTransition('modalPanelOpen', { reducedMotion: true }),
+        },
+        closed: {
+          opacity: 0,
+          scale: 0.96,
+          y: 12,
+          transition: createWeeTransition('modalPanelClose', { reducedMotion: true }),
+        },
       };
     }
     return gooey.modalPanelVariants;
@@ -162,7 +172,7 @@ function WeeModalShell({
       <div className="fixed inset-0 z-[calc(var(--z-modal-top)-1)] pointer-events-auto">
         <MotionDiv
           className={`wee-modal-backdrop fixed inset-0 bg-[hsl(var(--wee-overlay-backdrop))] ${
-            originPlate ? '' : 'backdrop-blur-[12px]'
+            originPlate ? '' : 'backdrop-blur-[var(--wee-glass-blur-lg)]'
           }`}
           aria-hidden="true"
           variants={backdropVariants}

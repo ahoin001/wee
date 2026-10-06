@@ -48,7 +48,7 @@ const ArrangeKindBloom = forwardRef(function ArrangeKindBloom({ slotIndex, onPic
           ? { opacity: 0 }
           : { opacity: 0.85, scale: 0.28, y: placeAbove ? 18 : -18, transition: pillClose }
       }
-      transition={reducedMotion ? { duration: 0.12 } : pillOpen}
+      transition={pillOpen}
     >
       <WeeGlassPill className="pointer-events-auto relative flex max-h-[min(42vh,22rem)] flex-col gap-3 overflow-y-auto rounded-[var(--wee-radius-pill)] px-3 py-3">
         <WeePillFloorShadow expanded reducedMotion={reducedMotion} />

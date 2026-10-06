@@ -46,20 +46,21 @@ export const WEE_SPRINGS = {
     mass: 1,
   },
   /**
-   * Channel tile → settings dialog. Near-critical, no bounce, short enough to
-   * read the shape change without dragging. Not the space-rail clock.
+   * Control → dialog footprint morph. `duration` is seconds and the spring is
+   * cut there, so the shell unmounts when the motion looks finished instead of
+   * riding an overdamped tail. Open is long enough to read the shape change;
+   * close is critically damped and shorter so dismiss feels immediate.
+   * Bounce stays small — a large panel that overshoots reads as jelly.
    */
   originMorphOpen: {
     type: 'spring',
-    stiffness: 150,
-    damping: 26,
-    mass: 1,
+    duration: 0.5,
+    bounce: 0.12,
   },
   originMorphClose: {
     type: 'spring',
-    stiffness: 150,
-    damping: 26,
-    mass: 1,
+    duration: 0.4,
+    bounce: 0,
   },
   pillFloor: {
     type: 'spring',
@@ -196,6 +197,13 @@ export const WEE_SPRINGS = {
     mass: 1.05,
   },
 };
+
+/**
+ * Safety latch for a deferred modal body. Longer than `originMorphOpen`'s
+ * duration so a normal open always settles first; short enough that a hidden
+ * window cannot strand the body.
+ */
+export const ORIGIN_MORPH_ENTER_FALLBACK_MS = 700;
 
 /**
  * Intent → spring key map for uniform transitions across surfaces.
@@ -980,17 +988,17 @@ export function useWeeMotion() {
   const reducedMotion = useReducedMotion();
 
   if (reducedMotion) {
-    const fast = { duration: 0.15 };
+    const reduced = (intent) => createWeeTransition(intent, { reducedMotion: true });
     return {
       reducedMotion: true,
-      backdropTransition: { duration: 0.12 },
-      modalTransition: { duration: 0.18 },
-      pillOpen: fast,
-      pillClose: fast,
-      pillFloor: fast,
-      pillSurfacePress: fast,
-      tabTransition: { duration: 0.12 },
-      createTransition: (intent) => createWeeTransition(intent, { reducedMotion: true }),
+      backdropTransition: reduced('modalBackdrop'),
+      modalTransition: reduced('modalPanel'),
+      pillOpen: reduced('pillOpen'),
+      pillClose: reduced('pillClose'),
+      pillFloor: reduced('pillClose'),
+      pillSurfacePress: reduced('press'),
+      tabTransition: reduced('tab'),
+      createTransition: reduced,
     };
   }
 

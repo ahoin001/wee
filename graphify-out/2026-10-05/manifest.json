@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   "src/components/channels/WiiChannelStrip.jsx": {
-    "mtime": 1791237107.617129,
-    "ast_hash": "dde9288f5f7f33d8509e27fc095e6522",
+    "mtime": 1791254744.1673207,
+    "ast_hash": "c0954bad4d30000bdb0f3f15df652be0",
     "semantic_hash": ""
   },
   "src/components/channels/channelModal/ChannelModalBehaviorTab.jsx": {
@@ -560,8 +560,8 @@
     "semantic_hash": "0799be658e18f6191de145ee6205f8ce"
   },
   "src/components/navigation/WiiSideNavigation.jsx": {
-    "mtime": 1791236669.8668993,
-    "ast_hash": "6451675767e5c592cfcf4199ddbbcf2c",
+    "mtime": 1791254766.8157759,
+    "ast_hash": "461f5fbd7a3a0fcb9b861ee41778adbe",
     "semantic_hash": ""
   },
   "src/components/navigation/index.js": {
@@ -795,8 +795,8 @@
     "semantic_hash": ""
   },
   "src/components/spaces/WeeGooeySpacePill.jsx": {
-    "mtime": 1791221422.6040127,
-    "ast_hash": "0f8e7ed46ea0088f21c6b3ec2a136245",
+    "mtime": 1791254742.754506,
+    "ast_hash": "804c24337e997e9c8752627543aa24c9",
     "semantic_hash": ""
   },
   "src/components/spaces/index.js": {
@@ -1240,8 +1240,8 @@
     "semantic_hash": "94a8c4a1e74adaf131627b9dd302479c"
   },
   "src/utils/channelLayoutSystem.js": {
-    "mtime": 1791236645.62766,
-    "ast_hash": "216636bff38bca1d63f3c9f45b69468d",
+    "mtime": 1791254738.1760764,
+    "ast_hash": "4f4c6488698d7a5e6538c5551cd9726f",
     "semantic_hash": ""
   },
   "src/utils/channelMediaType.js": {
@@ -1495,8 +1495,8 @@
     "semantic_hash": ""
   },
   "src/utils/useChannelOperations.js": {
-    "mtime": 1791221393.9099627,
-    "ast_hash": "b01197dc1afff7bdffa03422433728c4",
+    "mtime": 1791254742.9699776,
+    "ast_hash": "75c2be3731280ef0067d54936d482182",
     "semantic_hash": ""
   },
   "src/utils/useConsolidatedAppHooks.js": {
@@ -1515,8 +1515,8 @@
     "semantic_hash": ""
   },
   "src/utils/useKeyboardShortcuts.js": {
-    "mtime": 1784568561.0962522,
-    "ast_hash": "dc84fba2a042745221c1c0ce503a6c3a",
+    "mtime": 1791254746.0340457,
+    "ast_hash": "321a45e8d41caf4d04f0a91e7c896c09",
     "semantic_hash": ""
   },
   "src/utils/usePerformanceOptimization.js": {
@@ -1895,8 +1895,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useWheelNavigation.js": {
-    "mtime": 1784568538.848518,
-    "ast_hash": "e7006563807ddb8989d2c06f783d45fa",
+    "mtime": 1791254744.814606,
+    "ast_hash": "7024ae6e5998ceea15c1d4066a247ca1",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeContentCollapse.jsx": {
@@ -1965,8 +1965,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
-    "mtime": 1791253455.9012327,
-    "ast_hash": "4569e40d129de8d5e0a3dd0e329e394d",
+    "mtime": 1791254747.169613,
+    "ast_hash": "841f1a0f77bdc8781739340fd000c760",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomePageIndicator.jsx": {

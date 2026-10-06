@@ -900,8 +900,8 @@
     "semantic_hash": ""
   },
   "src/design/weeMotion.js": {
-    "mtime": 1790616880.347381,
-    "ast_hash": "c15a7cbd6c7717a8ba0217fa0a22a9b1",
+    "mtime": 1791255190.5077395,
+    "ast_hash": "6c4556ee02fd7065f95c6fc8349e4052",
     "semantic_hash": ""
   },
   "src/dev/hub-modal-overhaul-reference.jsx": {
@@ -1140,8 +1140,8 @@
     "semantic_hash": ""
   },
   "src/ui/wee/WeeModalShell.jsx": {
-    "mtime": 1791254071.1608105,
-    "ast_hash": "6a8c1a04c9c5cd8faf11f95667147c76",
+    "mtime": 1791254973.7808454,
+    "ast_hash": "80591eaa8bb3f86ddc31590ba6a6da00",
     "semantic_hash": ""
   },
   "src/ui/wee/WeePillFloorShadow.jsx": {
@@ -1965,8 +1965,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
-    "mtime": 1791254747.169613,
-    "ast_hash": "841f1a0f77bdc8781739340fd000c760",
+    "mtime": 1791254971.2530477,
+    "ast_hash": "39b61d18060edf9a294697dd872fff6e",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomePageIndicator.jsx": {
@@ -2620,8 +2620,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useOriginFootprintSpring.js": {
-    "mtime": 1791254136.7079887,
-    "ast_hash": "0e2fce4932fc7be05d669901135f7921",
+    "mtime": 1791254965.69445,
+    "ast_hash": "5f8947c22d48e58098eebe62b1820c2b",
     "semantic_hash": ""
   },
   "src/ui/wee/WeeGlyphField.jsx": {
@@ -2705,13 +2705,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/ArrangeKindBloom.jsx": {
-    "mtime": 1791252988.3043666,
-    "ast_hash": "27f55f741778685320f7465ebe5a084a",
+    "mtime": 1791254971.3391852,
+    "ast_hash": "4e7dda985f6c77860618d869f1a6f23d",
     "semantic_hash": ""
   },
   "src/components/home-grid/ArrangeTileSatellite.jsx": {
-    "mtime": 1791252985.0693076,
-    "ast_hash": "2dc5943216f4243390aeafd714ed7a37",
+    "mtime": 1791254971.3410463,
+    "ast_hash": "f0b2298c0786127d3f7809efd907e794",
     "semantic_hash": ""
   },
   "src/utils/boardSlotRect.js": {

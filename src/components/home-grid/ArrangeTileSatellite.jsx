@@ -145,7 +145,7 @@ const ArrangeTileSatellite = forwardRef(function ArrangeTileSatellite(
           ? { opacity: 0 }
           : { opacity: 0.85, scale: 0.28, y: placeAbove ? 18 : -18, transition: pillClose }
       }
-      transition={reducedMotion ? { duration: 0.12 } : pillOpen}
+      transition={pillOpen}
     >
       <div ref={panelRef} className="pointer-events-auto relative w-max max-w-[min(92vw,36rem)]">
         <WeeGlassPill className="relative flex flex-col items-stretch rounded-[var(--wee-radius-pill)] px-3 py-2.5">

@@ -195,7 +195,7 @@ function HomeBoardArrangeBar({
             <WeeGlassPill
               motion
               layout
-              transition={reducedMotion ? { duration: 0.12 } : pillOpen}
+              transition={transition}
               className="pointer-events-auto relative flex w-[min(92vw,34rem)] max-w-full flex-col items-stretch rounded-[var(--wee-radius-pill)] px-3 py-2.5"
             >
               <WeePillFloorShadow expanded={sceneOpen} reducedMotion={reducedMotion} />

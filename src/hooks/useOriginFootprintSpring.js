@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import { animate, useMotionValue } from 'framer-motion';
 import { createWeeTransition } from '../design/weeMotion';
+import { useMotionFeedback } from './useMotionFeedback';
 import {
   flushOriginSource,
   footprintFromOrigin,
@@ -130,8 +131,12 @@ export function useOriginFootprintSpring({
   const shellOpacity = useMotionValue(morph && active ? 0 : 1);
   const shellBackground = useMotionValue('');
   const darkenOpacity = useMotionValue(0);
+  const { osReduced, prefs } = useMotionFeedback();
+  const playfulOff = Boolean(osReduced || prefs.master === false);
   const openIntentRef = useRef(openIntent);
   const closeIntentRef = useRef(closeIntent);
+  const playfulOffRef = useRef(playfulOff);
+  playfulOffRef.current = playfulOff;
   const restRadiusVarRef = useRef(restRadiusVar);
   restRadiusVarRef.current = restRadiusVar;
   const morphRef = useRef(morph);
@@ -244,7 +249,7 @@ export function useOriginFootprintSpring({
       syncFromScale();
       let cancelled = false;
       const closeTransition = {
-        ...createWeeTransition(closeIntentRef.current, { reducedMotion: false }),
+        ...createWeeTransition(closeIntentRef.current, { reducedMotion: playfulOffRef.current }),
         velocity: 0,
       };
       const running = [
@@ -257,13 +262,7 @@ export function useOriginFootprintSpring({
       const unsubY = scaleY.on('change', syncFromScale);
       let contentTween = null;
       if (!morphRef.current) {
-        contentTween = animate(contentOpacity, 0, {
-          type: 'spring',
-          stiffness: (closeTransition.stiffness || 300) * 3,
-          damping: (closeTransition.damping || 25) * 1.5,
-          mass: closeTransition.mass || 1,
-          velocity: 0,
-        });
+        contentTween = animate(contentOpacity, 0, closeTransition);
       }
       Promise.all(running.map((tween) => tween.finished.catch(() => {}))).then(() => {
         if (cancelled) return;
@@ -307,7 +306,10 @@ export function useOriginFootprintSpring({
     syncFromScale();
     if (!morphRef.current) contentOpacity.set(0);
 
-    const openTransition = createWeeTransition(openIntentRef.current, { reducedMotion: false });
+    const openTransition = {
+      ...createWeeTransition(openIntentRef.current, { reducedMotion: playfulOffRef.current }),
+      velocity: 0,
+    };
     const running = [
       animate(x, 0, openTransition),
       animate(y, 0, openTransition),
@@ -343,6 +345,7 @@ export function useOriginFootprintSpring({
     onClosed,
     onOpened,
     originRect,
+    playfulOff,
     radiusMv,
     scaleX,
     scaleY,
