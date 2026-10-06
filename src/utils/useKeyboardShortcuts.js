@@ -6,7 +6,7 @@ import { openSettingsToTab } from './settingsNavigation';
 import { toggleHomeBoardArrange } from '../hooks/useHomeBoardArrange';
 import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
 import { closeTopOverlayOnEscape, isBlockingOverlayOpen } from './overlayEscape';
-import { CHANNEL_PAGE_FLIP_MS, resolveSteppedChannelPage } from './channelLayoutSystem';
+import { CHANNEL_PAGE_FLIP_MS, CHANNEL_PAGE_LOOP, resolveSteppedChannelPage } from './channelLayoutSystem';
 import { setSpaceRailPinned } from './spaceRailVisibility';
 
 /** Stable empty fallback — never allocate `|| []` inside a useShallow selector. */
@@ -93,7 +93,7 @@ const useKeyboardShortcuts = () => {
       const currentPage = Number(nav.currentPage) || 0;
       const totalPages = Math.max(1, Number(nav.totalPages) || 1);
       if (nav.isAnimating) return;
-      const stepped = resolveSteppedChannelPage(currentPage, 1, totalPages);
+      const stepped = resolveSteppedChannelPage(currentPage, 1, totalPages, CHANNEL_PAGE_LOOP);
       if (stepped.direction === 'none' || stepped.page === currentPage) return;
 
       // Settle via Framer onAnimationComplete + PaginatedChannels safety timer only.
@@ -118,7 +118,7 @@ const useKeyboardShortcuts = () => {
       const currentPage = Number(nav.currentPage) || 0;
       const totalPages = Math.max(1, Number(nav.totalPages) || 1);
       if (nav.isAnimating) return;
-      const stepped = resolveSteppedChannelPage(currentPage, -1, totalPages);
+      const stepped = resolveSteppedChannelPage(currentPage, -1, totalPages, CHANNEL_PAGE_LOOP);
       if (stepped.direction === 'none' || stepped.page === currentPage) return;
 
       const { setChannelNavigationForSpace } = getState().actions;

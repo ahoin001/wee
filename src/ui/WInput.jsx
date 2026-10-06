@@ -16,7 +16,7 @@ const playfulBaseClasses = `
     border-[var(--control-border-width-playful)] border-transparent
     text-[hsl(var(--text-primary))]
     placeholder-[hsl(var(--text-tertiary))]
-    rounded-[var(--control-radius-playful)]
+    rounded-[var(--control-radius-lg)]
     focus:outline-none
     disabled:opacity-50 disabled:cursor-not-allowed
   `;
@@ -60,7 +60,7 @@ const WInput = forwardRef(({
   const errorClasses = error ? 'border-[hsl(var(--state-error))]' : '';
   const wellClass = variant === 'wee'
     ? 'rounded-[var(--radius-lg)] border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] shadow-[var(--wee-shadow-field)]'
-    : 'rounded-[var(--control-radius-playful)] border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] shadow-[var(--playful-inner-glow)]';
+    : 'rounded-[var(--control-radius-lg)] border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] shadow-[var(--playful-inner-glow)]';
 
   const handleFocus = useCallback((event) => {
     setFocused(true);

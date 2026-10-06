@@ -32,7 +32,7 @@ const buttonVariants = tv({
     "font-medium",
     "focus:ring-2 focus:ring-primary focus:ring-offset-2",
     "disabled:cursor-not-allowed disabled:opacity-50",
-    "border-[var(--control-border-width-playful)] border-solid rounded-[var(--control-radius-playful)]",
+    "border-[var(--control-border-width-playful)] border-solid",
     "uppercase italic tracking-[0.12em]",
   ],
   variants: {
@@ -83,10 +83,11 @@ const buttonVariants = tv({
         "disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_4px_rgba(15,36,61,0.04)] disabled:rounded-[var(--radius-lg)]",
       ],
     },
+    /** Radius rides with height so every size reads as one corner family. */
     size: {
-      sm: "text-[13px] px-[0.86rem] py-[0.38rem]",
-      md: "text-[15px] px-[1.18rem] py-[0.52rem]",
-      lg: "text-[18px] px-[1.65rem] py-[0.75rem]",
+      sm: "text-[13px] px-[0.86rem] py-[0.38rem] rounded-[var(--control-radius-sm)]",
+      md: "text-[15px] px-[1.18rem] py-[0.52rem] rounded-[var(--control-radius-md)]",
+      lg: "text-[18px] px-[1.65rem] py-[0.75rem] rounded-[var(--control-radius-lg)]",
     },
     weight: {
       400: "font-normal",
@@ -94,9 +95,10 @@ const buttonVariants = tv({
       600: "font-semibold",
       700: "font-bold",
     },
+    /** Opt-in capsule; `false` leaves the size radius in place. */
     rounded: {
       true: "rounded-[var(--radius-pill)]",
-      false: "rounded-[var(--radius-md)]",
+      false: "",
     },
     fullWidth: {
       true: "w-full",

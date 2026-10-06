@@ -5,6 +5,7 @@ import { useChannelSpaceKey } from '../contexts/ChannelSpaceContext';
 import {
   CHANNEL_PAGE_FLIP_MS,
   clampPageIndex,
+  CHANNEL_PAGE_LOOP,
   resolveSteppedChannelPage,
   getPageBounds,
   getWiiNormalization,
@@ -129,14 +130,24 @@ export const useChannelNavigation = (explicitSpaceKey) => {
 
   const nextPage = useCallback(() => {
     if (navigation.isAnimating) return;
-    const stepped = resolveSteppedChannelPage(navigation.currentPage, 1, navigation.totalPages);
+    const stepped = resolveSteppedChannelPage(
+      navigation.currentPage,
+      1,
+      navigation.totalPages,
+      CHANNEL_PAGE_LOOP
+    );
     if (stepped.direction === 'none' || stepped.page === navigation.currentPage) return;
     goToPage(stepped.page, { direction: stepped.direction, wrapped: stepped.wrapped });
   }, [navigation.currentPage, navigation.totalPages, navigation.isAnimating, goToPage]);
 
   const prevPage = useCallback(() => {
     if (navigation.isAnimating) return;
-    const stepped = resolveSteppedChannelPage(navigation.currentPage, -1, navigation.totalPages);
+    const stepped = resolveSteppedChannelPage(
+      navigation.currentPage,
+      -1,
+      navigation.totalPages,
+      CHANNEL_PAGE_LOOP
+    );
     if (stepped.direction === 'none' || stepped.page === navigation.currentPage) return;
     goToPage(stepped.page, { direction: stepped.direction, wrapped: stepped.wrapped });
   }, [navigation.currentPage, navigation.totalPages, navigation.isAnimating, goToPage]);
@@ -314,14 +325,24 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
 
   const nextPage = useCallback(() => {
     if (navigation.isAnimating) return;
-    const stepped = resolveSteppedChannelPage(navigation.currentPage, 1, navigation.totalPages);
+    const stepped = resolveSteppedChannelPage(
+      navigation.currentPage,
+      1,
+      navigation.totalPages,
+      CHANNEL_PAGE_LOOP
+    );
     if (stepped.direction === 'none' || stepped.page === navigation.currentPage) return;
     goToPage(stepped.page, { direction: stepped.direction, wrapped: stepped.wrapped });
   }, [navigation.currentPage, navigation.totalPages, navigation.isAnimating, goToPage]);
 
   const prevPage = useCallback(() => {
     if (navigation.isAnimating) return;
-    const stepped = resolveSteppedChannelPage(navigation.currentPage, -1, navigation.totalPages);
+    const stepped = resolveSteppedChannelPage(
+      navigation.currentPage,
+      -1,
+      navigation.totalPages,
+      CHANNEL_PAGE_LOOP
+    );
     if (stepped.direction === 'none' || stepped.page === navigation.currentPage) return;
     goToPage(stepped.page, { direction: stepped.direction, wrapped: stepped.wrapped });
   }, [navigation.currentPage, navigation.totalPages, navigation.isAnimating, goToPage]);

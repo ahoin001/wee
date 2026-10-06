@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { Dialog } from '@headlessui/react';
@@ -34,6 +34,11 @@ function WeeModalShell({
   /** Changing this scrolls the body back to the top (tab switches share one scroller). */
   bodyScrollKey = null,
   onExitAnimationComplete,
+  /**
+   * Fires once, after the first entrance settles. Lets a heavy body mount off the
+   * opening frames; reopens stay instant because the latch never resets.
+   */
+  onEnterAnimationComplete,
   /** Footprint of the control this dialog grows out of. Settings opened from the rail omit this. */
   originRect = null,
   /**
@@ -60,6 +65,26 @@ function WeeModalShell({
   const { backdropTransition } = useWeeMotion();
   const { modalSpringTransitions, gooey } = useMotionFeedback();
   const { allowMount, onPanelAnimationComplete } = useDialogExitPresence(isOpen, onExitAnimationComplete);
+
+  /**
+   * Latches on the first completed entrance and never resets, so a heavy body pays the
+   * mount cost once — off the opening frames — and reopens instantly afterwards.
+   */
+  const [entered, setEntered] = useState(false);
+  const enterCbRef = useRef(onEnterAnimationComplete);
+  enterCbRef.current = onEnterAnimationComplete;
+  const markEntered = useCallback(() => setEntered(true), []);
+  useEffect(() => {
+    if (entered) enterCbRef.current?.();
+  }, [entered]);
+  /* Springs only advance while the window paints. If the open is interrupted or the
+     window is hidden, completion never arrives — latch anyway so a deferred body
+     can never be stranded. */
+  useEffect(() => {
+    if (entered || !isOpen || !allowMount) return undefined;
+    const timer = window.setTimeout(markEntered, 900);
+    return () => window.clearTimeout(timer);
+  }, [allowMount, entered, isOpen, markEntered]);
 
   const handleClose = useCallback(() => {
     onClose();
@@ -97,6 +122,7 @@ function WeeModalShell({
     element: shellNode,
     originRect,
     onClosed: finishOriginClose,
+    onOpened: markEntered,
     openIntent: originMorph ? 'originMorphOpen' : 'pillOpen',
     closeIntent: originMorph ? 'originMorphClose' : 'pillClose',
     morph: originMorph,
@@ -135,7 +161,7 @@ function WeeModalShell({
     <Dialog as="div" className="relative z-[var(--z-modal-top)]" open={true} onClose={handleClose}>
       <div className="fixed inset-0 z-[calc(var(--z-modal-top)-1)] pointer-events-auto">
         <MotionDiv
-          className={`fixed inset-0 bg-[hsl(var(--wee-overlay-backdrop))] ${
+          className={`wee-modal-backdrop fixed inset-0 bg-[hsl(var(--wee-overlay-backdrop))] ${
             originPlate ? '' : 'backdrop-blur-[12px]'
           }`}
           aria-hidden="true"
@@ -157,11 +183,14 @@ function WeeModalShell({
             <MotionDiv
               ref={assignShell}
               data-wee-origin-plate={originPlate ? (originPlateScrim ? 'art' : 'empty') : undefined}
+              /* Compositor hint for the flight only — a permanent one would hold a layer
+                 for the life of the app. Dropped the moment the entrance lands. */
+              data-wee-modal-flight={entered ? undefined : 'true'}
               className={`
                   relative flex w-full min-h-0 overflow-hidden flex-col
                   ${heightClass}
                   border-[length:var(--wee-modal-shell-border)] border-[hsl(var(--wee-border-outer))]
-                  ${useOrigin ? '' : 'rounded-[var(--wee-radius-shell)]'} ${
+                  rounded-[var(--wee-radius-shell)] ${
                     originPlate ? 'bg-transparent' : 'bg-[hsl(var(--wee-surface-shell))]'
                   }
                   shadow-[var(--wee-shadow-modal)]
@@ -182,7 +211,14 @@ function WeeModalShell({
               variants={useOrigin ? undefined : panelVariants}
               initial={useOrigin ? false : 'closed'}
               animate={useOrigin ? undefined : (isOpen ? 'open' : 'closed')}
-              onAnimationComplete={useOrigin ? undefined : onPanelAnimationComplete}
+              onAnimationComplete={
+                useOrigin
+                  ? undefined
+                  : (definition) => {
+                      if (definition === 'open') markEntered();
+                      onPanelAnimationComplete(definition);
+                    }
+              }
             >
               {useOrigin && originMorph && face ? (
                 <MotionDiv
@@ -274,6 +310,7 @@ WeeModalShell.propTypes = {
   stableHeight: PropTypes.bool,
   bodyScrollKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onExitAnimationComplete: PropTypes.func,
+  onEnterAnimationComplete: PropTypes.func,
   originRect: PropTypes.shape({
     x: PropTypes.number,
     y: PropTypes.number,
@@ -299,6 +336,7 @@ WeeModalShell.defaultProps = {
   stableHeight: false,
   bodyScrollKey: null,
   onExitAnimationComplete: undefined,
+  onEnterAnimationComplete: undefined,
   originRect: null,
   originMorph: false,
   originPlate: false,

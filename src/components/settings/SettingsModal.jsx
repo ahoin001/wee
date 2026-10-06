@@ -71,25 +71,39 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
   const tabContentRef = useRef(null);
   const { tabTransition } = useWeeMotion();
 
-  const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
+  /* Only the three fields this tree actually reads. Subscribing to the whole `ui`
+     slice re-rendered every settings tab on unrelated UI churn, including the churn
+     that happens while the modal is opening. */
+  const { settingsActiveTab, settingsRecentTabs, settingsOriginKey } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      settingsActiveTab: state.ui.settingsActiveTab,
+      settingsRecentTabs: state.ui.settingsRecentTabs,
+      settingsOriginKey: state.ui.settingsOriginKey,
+    }))
+  );
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
   const effectiveInitialTab = useMemo(() => {
-    const raw = ui.settingsActiveTab || initialActiveTab;
+    const raw = settingsActiveTab || initialActiveTab;
     return normalizeSettingsTabId(raw);
-  }, [ui.settingsActiveTab, initialActiveTab]);
+  }, [settingsActiveTab, initialActiveTab]);
 
   const [activeTab, setActiveTab] = useState(effectiveInitialTab);
   const [, setShowMonitorModal] = useState(false);
+  /* All 14 tabs are statically imported, so the active one is a heavy synchronous
+     mount. Holding it until the shell has landed keeps the opening frames cheap;
+     the latch never resets, so every reopen after the first is immediate. */
+  const [shellEntered, setShellEntered] = useState(false);
+  const markShellEntered = useCallback(() => setShellEntered(true), []);
 
   const [searchQuery, setSearchQuery] = useState('');
 
   const recentTabIds = useMemo(() => {
-    const raw = Array.isArray(ui.settingsRecentTabs) ? ui.settingsRecentTabs : [];
+    const raw = Array.isArray(settingsRecentTabs) ? settingsRecentTabs : [];
     return raw
       .map(normalizeSettingsTabId)
       .filter((id, i, arr) => arr.indexOf(id) === i && getSettingsTabMeta(id))
       .slice(0, MAX_RECENT_TABS);
-  }, [ui.settingsRecentTabs]);
+  }, [settingsRecentTabs]);
 
   const groupedResults = useMemo(
     () => groupSettingsEntries(searchSettingsTabs(searchQuery)),
@@ -99,7 +113,6 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
   const isSearching = searchQuery.trim().length > 0;
 
   /** Control Settings grows out of (e.g. the ribbon clock). Held through close so it lands back there. */
-  const settingsOriginKey = ui.settingsOriginKey || null;
   const [originRect, setOriginRect] = useState(null);
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -213,8 +226,10 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, activeTab, handleTabChange, onClose, navigableTabIds]);
 
+  /* Deferred to the same gate as the body: this query forces layout, and focusing a
+     control can scroll the well — neither belongs in the opening frames. */
   useEffect(() => {
-    if (isOpen && tabContentRef.current) {
+    if (isOpen && shellEntered && tabContentRef.current) {
       const firstFocusable = tabContentRef.current.querySelector(
         'button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
@@ -222,7 +237,7 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
         firstFocusable.focus();
       }
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, shellEntered, activeTab]);
 
   const rail = (
     <WeeModalRail className="!flex min-h-0 w-[min(19rem,92vw)] shrink-0 flex-col gap-0 self-stretch overflow-hidden py-6 pl-6 pr-4 md:min-h-0 md:w-[min(20rem,28vw)] md:py-8 md:pl-8 md:pr-6">
@@ -336,6 +351,7 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
       originRect={originRect}
       originMorph={Boolean(originRect)}
       onExitAnimationComplete={handleExitComplete}
+      onEnterAnimationComplete={markShellEntered}
       footerContent={({ handleClose }) => (
         <div className="flex justify-end">
           <WeeButton variant="secondary" onClick={handleClose}>
@@ -345,18 +361,20 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
       )}
     >
       <AnimatePresence mode="wait">
-        <TabPanel
-          key={activeTab}
-          role="tabpanel"
-          aria-label={currentTab?.label}
-          initial={WEE_VARIANTS.tabBodyInitial}
-          animate={WEE_VARIANTS.tabBodyAnimate}
-          exit={WEE_VARIANTS.tabBodyExit}
-          transition={tabTransition}
-          className="min-h-0 flex-1 [contain:layout]"
-        >
-          {renderTabContent}
-        </TabPanel>
+        {shellEntered ? (
+          <TabPanel
+            key={activeTab}
+            role="tabpanel"
+            aria-label={currentTab?.label}
+            initial={WEE_VARIANTS.tabBodyInitial}
+            animate={WEE_VARIANTS.tabBodyAnimate}
+            exit={WEE_VARIANTS.tabBodyExit}
+            transition={tabTransition}
+            className="min-h-0 flex-1 [contain:layout]"
+          >
+            {renderTabContent}
+          </TabPanel>
+        ) : null}
       </AnimatePresence>
     </WeeModalShell>
   );

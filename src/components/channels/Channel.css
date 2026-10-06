@@ -3,7 +3,7 @@
 .channel {
   position: relative;
   background: hsl(var(--surface-primary));
-  border-radius: 32px;
+  border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
@@ -145,7 +145,7 @@
   height: auto;
   min-width: clamp(96px, 10vw, 220px);
   min-height: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   border: 1px solid hsl(var(--color-pure-white) / 0.92);
   background: linear-gradient(
     180deg,
@@ -235,7 +235,7 @@
 }
 
 .channel.wii-mode-tile .channel-media {
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 }
 
 .channel.empty.wii-mode-tile {
@@ -333,7 +333,7 @@
   height: 100%;
   object-fit: cover;
   object-position: 50% 50%;
-  border-radius: 32px;
+  border-radius: var(--radius-2xl);
   display: block;
   z-index: 1;
 }

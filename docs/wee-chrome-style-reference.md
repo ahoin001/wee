@@ -192,13 +192,18 @@ Animate **space** (`0fr → 1fr`), not opacity alone. One `--wee-collapse-*` clo
 
 ### Wee surface radii (settings / modals / cards)
 
+Radii are **lengths only**. A percentage `border-radius` resolves horizontally against width and vertically against height, so it paints an ellipse on any box that is not square — `scripts/design-system-check.cjs` fails the build on one.
+
+Containers are **concentric**: a container's radius is the radius it wraps plus its own padding. That is why `--wee-radius-pill` is a `calc()` off `--control-radius-md`, not a number of its own.
+
 | Token | Use |
 |-------|-----|
-| `--wee-radius-shell` | Modal outer shell (~4rem) |
-| `--wee-radius-card` | Cards / wells (~3rem) |
-| `--wee-radius-pill` | Edge chrome peeks (~2rem) |
-| `--wee-radius-rail-item` | Rail items |
-| `--control-radius-playful` | Labeled actions, segments, fields — `min(1.65rem, 30%)` so compact chips stay squircles |
+| `--wee-radius-shell` | Modal outer shell (36px) |
+| `--wee-radius-card` | Cards / wells (28px) |
+| `--wee-radius-pill` | Floating studio pills — arrange bar, tile satellite, kind bloom (`--control-radius-md` + `--wee-pill-pad`) |
+| `--wee-radius-rail-item` | Rail items (`--radius-lg`) |
+| `--control-radius-sm` / `-md` / `-lg` | Labeled actions, segments, fields — 12 / 14 / 16px, keyed to control height so every size is one corner family |
+| `--radius-2xl` | Channel tile (32px) |
 | `--radius-pill` / `rounded-full` | True capsules only — page indicator, icon discs. Never labeled chips. |
 
 ### Labeled actions and segments
@@ -275,7 +280,7 @@ Prefer `src/ui/` first:
 | Segmented | `WeeSegmentedControl` |
 | Choice tiles | `WeeChoiceTileGrid` |
 
-Use `--control-*` / `--toggle-*` tokens. Playful radius via `--control-radius-playful` when matching gooey chrome; otherwise `--control-radius`.
+Use `--control-*` / `--toggle-*` tokens. Pick the radius that matches the control's height — `--control-radius-sm` for compact chips and segments, `--control-radius-md` for default buttons, `--control-radius-lg` for tall playful fields and selects. `--control-radius` aliases `md`.
 
 ### Text
 

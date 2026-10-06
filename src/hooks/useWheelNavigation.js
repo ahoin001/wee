@@ -5,7 +5,11 @@ import {
   normalizeShellSpaceOrder,
   resolveActiveChannelSpaceKey,
 } from '../utils/channelSpaces';
-import { CHANNEL_PAGE_FLIP_MS, resolveSteppedChannelPage } from '../utils/channelLayoutSystem';
+import {
+  CHANNEL_PAGE_FLIP_MS,
+  CHANNEL_PAGE_LOOP,
+  resolveSteppedChannelPage,
+} from '../utils/channelLayoutSystem';
 import { revealSpaceRail } from '../utils/spaceRailVisibility';
 
 const SPACE_WHEEL_COOLDOWN_MS = 320;
@@ -98,7 +102,8 @@ export default function useWheelNavigation() {
         const stepped = resolveSteppedChannelPage(
           currentPage,
           goingNext ? 1 : -1,
-          totalPages
+          totalPages,
+          CHANNEL_PAGE_LOOP
         );
         if (stepped.direction === 'none' || stepped.page === currentPage) return;
 

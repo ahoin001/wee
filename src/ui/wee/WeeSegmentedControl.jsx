@@ -8,7 +8,17 @@ import { PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
 import WeeGlassPill from './WeeGlassPill';
 import WeeLayoutActiveDisc, { WEE_LIQUID_ROOT_ATTR } from './WeeLayoutActiveDisc';
 
-const SQUIRCLE = 'rounded-[var(--control-radius-playful)]';
+/** Chip and traveling disc share one radius, or the disc skews off the corner mid-flight. */
+const RADIUS_CLASS = {
+  sm: 'rounded-[var(--control-radius-sm)]',
+  md: 'rounded-[var(--control-radius-md)]',
+};
+
+/** The disc bakes in `rounded-full`, so overriding it needs the important flag. */
+const DISC_RADIUS_CLASS = {
+  sm: '!rounded-[var(--control-radius-sm)]',
+  md: '!rounded-[var(--control-radius-md)]',
+};
 
 /**
  * Space-rail cells — one glass squircle per option, traveling liquid disc.
@@ -34,6 +44,8 @@ function WeeSegmentedControl({
   const pad = size === 'sm'
     ? 'px-3.5 py-2 text-[length:var(--font-size-micro)]'
     : 'px-5 py-2.5 text-[length:var(--font-size-micro)] md:px-6';
+  const radius = RADIUS_CLASS[size] || RADIUS_CLASS.md;
+  const discRadius = DISC_RADIUS_CLASS[size] || DISC_RADIUS_CLASS.md;
 
   const layoutClass = wrap
     ? 'flex w-full max-w-full flex-wrap gap-2'
@@ -80,7 +92,7 @@ function WeeSegmentedControl({
                 }
                 onChange(opt.value);
               }}
-              className={`relative overflow-hidden ${SQUIRCLE} font-black uppercase italic tracking-wide ${pad} ${
+              className={`relative overflow-hidden ${radius} font-black uppercase italic tracking-wide ${pad} ${
                 selected
                   ? 'text-[hsl(var(--wee-text-header))] shadow-[var(--shadow-hover-glow)]'
                   : optionDisabled
@@ -92,7 +104,7 @@ function WeeSegmentedControl({
                 <WeeLayoutActiveDisc
                   layoutId={layoutId}
                   reducedMotion={motionOff}
-                  className={`${SQUIRCLE} !rounded-[var(--control-radius-playful)] bg-[hsl(var(--primary)/0.28)] shadow-[var(--shadow-hover-glow)]`}
+                  className={`${discRadius} bg-[hsl(var(--primary)/0.28)] shadow-[var(--shadow-hover-glow)]`}
                 />
               ) : null}
               <span className="relative z-10">{opt.label}</span>

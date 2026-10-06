@@ -170,8 +170,8 @@ export function resolveShelfGeometry({ stripWidthPx = 0, totalPages = 1 } = {}) 
  * Step ±1 (or more) along the shelf. Direction follows the step.
  *
  * The shelf is finite: stepping stops at the ends (`direction: 'none'`, which every caller
- * already treats as a no-op) so the outer peek stays empty margin instead of teleporting
- * the board. Pass `{ wrap: true }` for explicit carousel jumps.
+ * already treats as a no-op) so the outer peek stays empty margin. Channel steppers pass
+ * {@link CHANNEL_PAGE_LOOP} so last↔first is one step, never a scrub across the middle.
  *
  * @param {number} currentPage
  * @param {number} delta
@@ -196,6 +196,9 @@ export function resolveSteppedChannelPage(currentPage, delta, totalPages, option
   const wrapped = step > 0 ? page < from : page > from;
   return { page, direction, wrapped };
 }
+
+/** Page steppers loop. Direct `goToPage` stays clamped. */
+export const CHANNEL_PAGE_LOOP = Object.freeze({ wrap: true });
 
 const clampInt = (value, min, max, fallback) => {
   const n = Number(value);

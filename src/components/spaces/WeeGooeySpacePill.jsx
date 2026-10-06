@@ -263,8 +263,7 @@ export default function WeeGooeySpacePill() {
     activeSpaceId !== 'gamehub' &&
     activeSpaceId !== 'mediahub' &&
     navigation.mode === 'wii' &&
-    navigation.totalPages > 1 &&
-    navigation.currentPage > 0;
+    navigation.totalPages > 1;
 
   /** Sit below the peeking prev-page control; Wee compact nub is fully on-screen (less x tuck). */
   const railNudgeWithLeftNav = useMemo(() => ({ y: 78, x: -12, scale: 0.92 }), []);

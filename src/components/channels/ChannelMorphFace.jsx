@@ -7,7 +7,7 @@ function hasChannelArt(media) {
 }
 
 const CHIP_SHELL =
-  'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[var(--control-radius-playful)] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)]';
+  'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[var(--control-radius-sm)] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)]';
 
 /**
  * The channel's face on the flying shell, plus a still chip in the open header.
@@ -19,7 +19,7 @@ function ChannelMorphFace({ media, variant = 'fill', paint = null }) {
   if (variant === 'chip') {
     if (hasArt) {
       return (
-        <div className="relative h-10 w-20 shrink-0 overflow-hidden rounded-[var(--control-radius-playful)] border-4 border-[hsl(var(--wee-pill-border))]" aria-hidden>
+        <div className="relative h-10 w-20 shrink-0 overflow-hidden rounded-[var(--control-radius-sm)] border-4 border-[hsl(var(--wee-pill-border))]" aria-hidden>
           <ChannelTileArtFrame media={media} fill autoPlayVideo={false} />
         </div>
       );

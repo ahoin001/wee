@@ -43,6 +43,20 @@
   max-height: min(88dvh, 920px);
 }
 
+/*
+ * Entrance only. The shell scales a large subtree while the backdrop fades a
+ * full-viewport blur; without the hint Chromium re-rasterizes the subtree each
+ * frame. The attribute is dropped once the entrance lands, so no layer is held
+ * for the life of the app.
+ */
+[data-wee-modal-flight='true'] {
+  will-change: transform, opacity;
+}
+
+.wee-modal-backdrop {
+  will-change: opacity;
+}
+
 /* Wee modal — scroll region uses design-system scrollbar tokens */
 .wee-modal-scroll {
   /* Reserve gutter when scrollbar appears so tab content width doesn’t jump (disclosures open/close) */

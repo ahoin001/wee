@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Disc, LayoutGrid, MousePointerClick, Sparkles, Type, Zap } from 'lucide-react';
+import { Disc, LayoutGrid, MousePointerClick, Shapes, Sparkles, Type, Zap } from 'lucide-react';
 import {
   WeeButton,
   WeeGooeyField,
@@ -40,6 +40,18 @@ const FIVE_WITH_DISABLED = FIVE_OPTIONS.map((opt) =>
   opt.value === 'epic' ? { ...opt, disabled: true } : opt
 );
 
+/** The shipped ladder, smallest first. Swatches read straight from the tokens. */
+const RADIUS_LADDER = [
+  { token: '--control-radius-sm', label: 'Control sm', note: '12 · chips, segments' },
+  { token: '--control-radius-md', label: 'Control md', note: '14 · default button' },
+  { token: '--control-radius-lg', label: 'Control lg', note: '16 · fields, selects' },
+  { token: '--wee-radius-rail-item', label: 'Rail item', note: '18 · list rows' },
+  { token: '--wee-radius-pill', label: 'Studio pill', note: 'md + pad · concentric' },
+  { token: '--wee-radius-card', label: 'Card', note: '28 · wells' },
+  { token: '--radius-2xl', label: 'Channel tile', note: '32' },
+  { token: '--wee-radius-shell', label: 'Modal shell', note: '36' },
+];
+
 function MiniPlate({ kind }) {
   const [path, setPath] = useState('');
   const empty = kind === 'empty';
@@ -71,7 +83,7 @@ function MiniPlate({ kind }) {
             <ChannelMorphFace variant="chip" paint={EMPTY_PAINT} />
           ) : (
             <div
-              className="h-10 w-20 shrink-0 overflow-hidden rounded-[var(--control-radius-playful)] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--primary))]"
+              className="h-10 w-20 shrink-0 overflow-hidden rounded-[var(--control-radius-sm)] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--primary))]"
               aria-hidden
             />
           )}
@@ -128,9 +140,33 @@ const KitLabSettingsTab = React.memo(() => {
       </WeeModalFieldCard>
 
       <WeeSettingsSection
+        icon={Shapes}
+        label="Corner ladder"
+        description="Every radius is a length, so corners stay circular. Containers are concentric — their radius is the control they wrap plus their own padding."
+      >
+        <div className="flex flex-wrap gap-3">
+          {RADIUS_LADDER.map(({ token, label, note }) => (
+            <div key={token} className="flex w-28 flex-col gap-1.5">
+              <div
+                className="h-14 w-full border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))]"
+                style={{ borderRadius: `var(${token})` }}
+                aria-hidden
+              />
+              <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.1em] text-[hsl(var(--text-secondary))]">
+                {label}
+              </span>
+              <span className="text-[length:var(--font-size-caption)] text-[hsl(var(--text-tertiary))]">
+                {note}
+              </span>
+            </div>
+          ))}
+        </div>
+      </WeeSettingsSection>
+
+      <WeeSettingsSection
         icon={MousePointerClick}
         label="Actions"
-        description="Primary cyan fill, glass secondary, danger signal — same squircle geometry."
+        description="Primary cyan fill, glass secondary, danger signal. Radius rides with height, so all three sizes read as one corner family."
       >
         <div className="flex flex-wrap items-center gap-3">
           <WeeButton variant="primary">Primary</WeeButton>
@@ -138,6 +174,11 @@ const KitLabSettingsTab = React.memo(() => {
           <WeeButton variant="danger">Danger</WeeButton>
           <WeeButton variant="primary" disabled>Disabled</WeeButton>
           <WeeButton variant="secondary" active>Selected</WeeButton>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <WeeButton variant="secondary" size="sm">Small</WeeButton>
+          <WeeButton variant="secondary" size="md">Medium</WeeButton>
+          <WeeButton variant="secondary" size="lg">Large</WeeButton>
         </div>
       </WeeSettingsSection>
 
@@ -270,7 +311,7 @@ const KitLabSettingsTab = React.memo(() => {
             type="button"
             aria-pressed={morphKind === 'empty'}
             onClick={() => setMorphKind((current) => (current === 'empty' ? null : 'empty'))}
-            className="relative flex h-24 w-44 items-center justify-center overflow-hidden rounded-[var(--control-radius-playful)] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)]"
+            className="relative flex h-24 w-44 items-center justify-center overflow-hidden rounded-[var(--radius-2xl)] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)]"
           >
             <span className="text-3xl font-light text-[hsl(var(--text-primary))]" aria-hidden>+</span>
             <span className="sr-only">Empty channel tile</span>
@@ -279,7 +320,7 @@ const KitLabSettingsTab = React.memo(() => {
             type="button"
             aria-pressed={morphKind === 'art'}
             onClick={() => setMorphKind((current) => (current === 'art' ? null : 'art'))}
-            className="relative flex h-24 w-44 items-center justify-center overflow-hidden rounded-[var(--control-radius-playful)] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--primary))] shadow-[var(--wee-pill-shadow)]"
+            className="relative flex h-24 w-44 items-center justify-center overflow-hidden rounded-[var(--radius-2xl)] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--primary))] shadow-[var(--wee-pill-shadow)]"
           >
             <span className="sr-only">Channel tile with art</span>
           </button>

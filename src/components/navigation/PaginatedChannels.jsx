@@ -406,6 +406,11 @@ const PaginatedChannelsInner = React.memo(() => {
       ? boardSlots[homeBoardSelectedSlotIndex] ?? null
       : null;
 
+  /** What the arrange bar calls the tile in hand. */
+  const selectedSlotLabel = selectedSlot
+    ? getHomeSlotKind(selectedSlot.kind ?? 'channel')?.label ?? null
+    : null;
+
   /**
    * Strip tile selection. A left click on an empty tile also opens the tray's
    * widget picker (the tile CTA says "Add widget here" — honor it); right-click
@@ -1591,6 +1596,7 @@ const PaginatedChannelsInner = React.memo(() => {
             arrangeMode={arrangeModeActive && !channelConfigureModalOpen}
             spaceId={channelSpaceKey}
             punchMode={punchModeActive}
+            selectedSlotLabel={selectedSlotLabel}
             onTogglePunch={toggleHomeBoardPunchMode}
             onDone={exitHomeBoardArrange}
           />

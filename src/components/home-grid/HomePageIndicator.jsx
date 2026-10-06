@@ -25,6 +25,7 @@ const DOT_STEP_PX = 22;
  */
 function HomePageIndicator() {
   const activeSpaceId = useConsolidatedAppStore((s) => s.spaces?.activeSpaceId);
+  const arrangeMode = useConsolidatedAppStore((s) => Boolean(s.ui?.homeBoardArrangeMode));
   const channelSpaceKey = resolveActiveChannelSpaceKey(activeSpaceId);
   const { navigation, goToPage } = useChannelNavigation(channelSpaceKey);
   const [hovered, setHovered] = useState(false);
@@ -51,6 +52,9 @@ function HomePageIndicator() {
   );
 
   if (totalPages <= 1) return null;
+  /* Live Board Studio puts a page stepper in the arrange bar, right where this pill
+     sits. Stand down rather than stack two page controls on top of each other. */
+  if (arrangeMode) return null;
 
   return (
     <div

@@ -28,8 +28,8 @@ import { pointFromElement } from '../../utils/boardSlotRect';
  * Live Board Studio (`arrangeModeActive` + `punchModeActive`) intercepts tile taps to punch
  * or restore a wallpaper hole — punch applies to the **anchor** slot only.
  *
- * The shelf is finite, so stepping stops at the ends. An explicit last↔first jump enters
- * one page-step off the target so the pan never scrubs the middle boards.
+ * Steppers loop (last↔first). The strip stays straight, so that jump enters one page-step
+ * off the target and the resting peek at each end stays empty.
  */
 const WiiChannelStrip = ({
   totalPages,

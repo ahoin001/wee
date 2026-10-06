@@ -58,7 +58,7 @@ function WeeGooeySelect({
               initial={false}
                 animate={reduced ? { scale: 1 } : { scale: open ? 1.02 : 1 }}
                 transition={open ? pillOpen : undefined}
-                className={`relative z-10 flex w-full cursor-pointer items-center justify-between overflow-hidden rounded-[var(--wee-radius-pill)] px-[var(--control-padding-x-playful)] py-[var(--control-padding-y-playful)] pr-12 text-left text-[length:var(--control-font-size)] font-black ${
+                className={`relative z-10 flex w-full cursor-pointer items-center justify-between overflow-hidden rounded-[var(--control-radius-lg)] px-[var(--control-padding-x-playful)] py-[var(--control-padding-y-playful)] pr-12 text-left text-[length:var(--control-font-size)] font-black ${
                   error ? 'border-[hsl(var(--state-error))]' : ''
                 } ${open ? 'shadow-[var(--shadow-hover-glow)]' : ''} ${className}`.trim()}
                 disabled={disabled}

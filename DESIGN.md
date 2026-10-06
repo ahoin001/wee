@@ -153,7 +153,7 @@ Depth in Wee is **floating glass**: chrome hovers over the wallpaper like object
 Component character: **gooey but confident** — soft springs and gentle overshoot, but precise and never mushy. Every interactive element compresses on press (`scale ~0.93`), lifts slightly on hover (`scale ~1.03`, `y -1.5px`), and settles with the shared `press` spring. All primitives live in `src/ui/` (and `src/ui/wee/`); new controls extend them rather than styling raw HTML.
 
 ### Buttons (`WButton` / `WeeButton`)
-- **Shape:** Labeled actions are squircles (`--control-radius-playful`: `min(1.65rem, 30%)`) on `WeeGlassPill` + floor shadow — never stadium `rounded-full` text chips. The percentage cap keeps compact buttons from becoming capsules. True capsules stay for icon-only discs (space rail, page dots).
+- **Shape:** Labeled actions are squircles on `WeeGlassPill` + floor shadow — never stadium `rounded-full` text chips. Radius rides with height (`--control-radius-sm` 12px / `-md` 14px / `-lg` 16px) so every size reads as one corner family. True capsules stay for icon-only discs (space rail, page dots). Never use a percentage radius: it resolves per axis and paints an ellipse on any box that is not square.
 - **Voice:** Uppercase italic, tracking 0.12em, weight 900 — every button label speaks in the signature playful voice.
 - **Primary:** Solid `hsl(var(--primary))` fill, on-accent text, hover glow.
 - **Hover / Focus:** `press` spring lift + scale (`PLAYFUL_AMPLITUDE`) + `--shadow-hover-glow`; footprint grows slightly, not a color-only oval.
@@ -170,13 +170,13 @@ Component character: **gooey but confident** — soft springs and gentle oversho
 - **Canonical uses:** space rail, edge page nav, Home page indicator.
 
 ### Cards / Containers (`WeeCard`, `Card`)
-- **Corner Style:** Generous — `--wee-radius-card` (3rem) for Wee cards, `--radius-lg` (18px) for legacy cards.
+- **Corner Style:** Generous — `--wee-radius-card` (28px) for Wee cards, `--radius-lg` (18px) for legacy cards. Containers are **concentric**: a container's radius is the radius it wraps plus its own padding, which is why `--wee-radius-pill` is `calc(--control-radius-md + --wee-pill-pad)` rather than a number of its own.
 - **Background:** `--wee-surface-card` / `--surface-primary`; wells use `--wee-surface-well`.
 - **Shadow Strategy:** Soft rest → soft hover; border shifts subtly on hover instead of flashy fills.
 - **Internal Padding:** Generous (`p-8 md:p-10` on Wee cards; `--playful-card-padding` for playful surfaces).
 
 ### Inputs / Fields (`WeeGooeyField`, `WSelect`, `WToggle`, `WeeSlider`)
-- **Style:** Glass well on `--control-radius-playful` (`WeeGooeyField`); focus uses `pillOpen` scale + glow, not a hard ring.
+- **Style:** Glass well on `--control-radius-lg` (`WeeGooeyField`, `WeeGooeySelect` — tall playful controls share one radius so a field and the select beside it match); focus uses `pillOpen` scale + glow, not a hard ring.
 - **Focus:** Soft primary glow; disabled is Wii-tint, not faded opacity.
 - **Toggles:** 44×24 track, 20px thumb, spring-animated.
 - **Reveal:** A toggle that reveals fields animates the space via `WeeRevealWhen` / `SettingsToggleFieldCard` — grid-rows morph, never height-auto.

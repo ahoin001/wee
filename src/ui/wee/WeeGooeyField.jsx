@@ -17,7 +17,7 @@ const INPUT_CLASS = `
   px-[var(--control-padding-x-playful)] py-[var(--control-padding-y-playful)]
   text-[length:var(--control-font-size)] font-black tracking-[0.01em]
   text-[hsl(var(--text-primary))] placeholder-[hsl(var(--text-tertiary))]
-  rounded-[var(--control-radius-playful)] border-0 focus:outline-none
+  rounded-[var(--control-radius-lg)] border-0 focus:outline-none
   disabled:cursor-not-allowed
 `;
 
@@ -88,7 +88,7 @@ const WeeGooeyField = forwardRef(function WeeGooeyField(
               : { scale: revealed ? 1.02 : 1 }
           }
           transition={revealed ? pillOpen : pillClose}
-          className={`relative z-10 overflow-hidden rounded-[var(--control-radius-playful)] ${
+          className={`relative z-10 overflow-hidden rounded-[var(--control-radius-lg)] ${
             disabled
               ? '!border-[hsl(var(--border-primary)/0.42)] !bg-[hsl(var(--surface-wii-tint))]'
               : error

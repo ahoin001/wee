@@ -6,13 +6,12 @@ import { PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
 import WeeGlassPill from './WeeGlassPill';
 import WeePillFloorShadow from './WeePillFloorShadow';
 
+/** Radius rides with height so every size reads as one corner family. */
 const SIZE_CLASS = {
-  sm: 'min-h-[40px] px-4 py-2 text-[length:var(--font-size-micro)]',
-  md: 'min-h-[44px] px-5 py-2.5 text-[length:var(--font-size-caption)]',
-  lg: 'min-h-[48px] px-6 py-3 text-xs',
+  sm: 'min-h-[40px] px-4 py-2 text-[length:var(--font-size-micro)] rounded-[var(--control-radius-sm)]',
+  md: 'min-h-[44px] px-5 py-2.5 text-[length:var(--font-size-caption)] rounded-[var(--control-radius-md)]',
+  lg: 'min-h-[48px] px-6 py-3 text-xs rounded-[var(--control-radius-lg)]',
 };
-
-const SQUIRCLE = 'rounded-[var(--control-radius-playful)]';
 
 const VARIANT_CLASS = {
   primary:
@@ -85,7 +84,7 @@ function WeeButton({
           setFocused(false);
           onBlur?.(event);
         }}
-        className={`relative z-10 inline-flex items-center justify-center ${SQUIRCLE} font-black uppercase italic tracking-widest focus:outline-none focus-visible:shadow-[var(--shadow-hover-glow)] ${
+        className={`relative z-10 inline-flex items-center justify-center font-black uppercase italic tracking-widest focus:outline-none focus-visible:shadow-[var(--shadow-hover-glow)] ${
           SIZE_CLASS[size] || SIZE_CLASS.md
         } ${
           disabled

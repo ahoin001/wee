@@ -105,8 +105,12 @@ export function useOriginFootprintSpring({
   element = null,
   originRect,
   onClosed,
+  /** Fires once the open flight settles — lets a shell defer heavy body mounting. */
+  onOpened,
   openIntent = 'pillOpen',
   closeIntent = 'pillClose',
+  /** Token holding the element's resting corner radius. See `openRadius` below. */
+  restRadiusVar = '--wee-radius-shell',
   morph = false,
   /** Channel plate: the face stays for the whole flight; the form darkens over it. */
   plate = false,
@@ -119,7 +123,8 @@ export function useOriginFootprintSpring({
   const y = useMotionValue(0);
   const scaleX = useMotionValue(1);
   const scaleY = useMotionValue(1);
-  const radiusMv = useMotionValue('64px');
+  /* Empty until the first measured sync, so CSS owns the corner until the flight does. */
+  const radiusMv = useMotionValue('');
   const contentOpacity = useMotionValue(active ? 0 : 1);
   const faceOpacity = useMotionValue(morph ? 1 : 0);
   const shellOpacity = useMotionValue(morph && active ? 0 : 1);
@@ -127,6 +132,8 @@ export function useOriginFootprintSpring({
   const darkenOpacity = useMotionValue(0);
   const openIntentRef = useRef(openIntent);
   const closeIntentRef = useRef(closeIntent);
+  const restRadiusVarRef = useRef(restRadiusVar);
+  restRadiusVarRef.current = restRadiusVar;
   const morphRef = useRef(morph);
   const plateRef = useRef(plate);
   const plateScrimRef = useRef(plateScrim);
@@ -162,6 +169,22 @@ export function useOriginFootprintSpring({
       sourceRef.current = source || null;
     };
 
+    /*
+     * Custom properties inherit, so writing one on the shell invalidates computed
+     * style for its whole subtree — with Settings mounted that is the entire tab
+     * tree, every frame. `--origin-form` has to live here (the plate chrome mixes
+     * off it across the subtree), so instead write only when the value visibly
+     * moves: both consumers are a color-mix percentage and a font-size divisor,
+     * neither of which can show more than 1% of precision.
+     */
+    const written = { scale: -1, form: -1 };
+    const writeMorphVar = (name, value, key) => {
+      const quantized = Math.round(value * 100) / 100;
+      if (written[key] === quantized) return;
+      written[key] = quantized;
+      el.style.setProperty(name, String(quantized));
+    };
+
     const syncFromScale = () => {
       const footprint = fromRef.current;
       if (!footprint) return;
@@ -177,8 +200,8 @@ export function useOriginFootprintSpring({
       contentOpacity.set(form);
       shellOpacity.set(shell);
       setOriginHandoff(sourceRef.current, 1 - shell);
-      el.style.setProperty('--origin-morph-scale', String(Math.max(scaleXValue, 0.05)));
-      el.style.setProperty('--origin-form', String(form));
+      writeMorphVar('--origin-morph-scale', Math.max(scaleXValue, 0.05), 'scale');
+      writeMorphVar('--origin-form', form, 'form');
       const tileFill = footprint.tilePaint?.backgroundColor;
       const tileFillOpaque = tileFill && parseColor(tileFill)[3] > 0.05;
       if (plateRef.current) {
@@ -259,7 +282,17 @@ export function useOriginFootprintSpring({
     trackSource(originRect?.source);
     const box = measureUntransformed(el);
     const from = footprintFromOrigin(originRect, box);
-    const openRadius = Number.parseFloat(window.getComputedStyle(el).borderTopLeftRadius) || 64;
+    /*
+     * Resting radius comes from the token, not `borderTopLeftRadius`: this element
+     * carries an inline radius left over from the previous flight, and inline beats
+     * the class — measuring it would feed the last frame's compensated value back in
+     * and the shell would rest on a corner that grows every open.
+     */
+    const shellStyle = window.getComputedStyle(el);
+    const openRadius =
+      Number.parseFloat(shellStyle.getPropertyValue(restRadiusVarRef.current)) ||
+      Number.parseFloat(shellStyle.borderTopLeftRadius) ||
+      0;
     const footprint = {
       ...from,
       openRadius,
@@ -288,7 +321,12 @@ export function useOriginFootprintSpring({
       : scaleX.on('change', (value) => {
         if (value > 0.9 && scaleY.get() > 0.9) contentOpacity.set(1);
       });
+    let openCancelled = false;
+    Promise.all(running.map((tween) => tween.finished.catch(() => {}))).then(() => {
+      if (!openCancelled) onOpened?.();
+    });
     return () => {
+      openCancelled = true;
       unsubX();
       unsubY();
       unsubReveal();
@@ -303,6 +341,7 @@ export function useOriginFootprintSpring({
     faceOpacity,
     isOpen,
     onClosed,
+    onOpened,
     originRect,
     radiusMv,
     scaleX,

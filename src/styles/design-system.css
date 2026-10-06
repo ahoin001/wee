@@ -85,11 +85,15 @@
   --shadow-selection-glow: 0 0 0 3px hsl(var(--primary) / 0.22), 0 10px 26px -8px hsl(var(--primary) / 0.4), 0 0 34px hsl(var(--primary) / 0.26);
   --shadow-selection-glow-soft: 0 0 0 2px hsl(var(--primary) / 0.14), 0 0 24px hsl(var(--primary) / 0.18);
 
-  /* Radius scale */
+  /* Radius scale — lengths only.
+     A percentage border-radius resolves horizontally against width and vertically
+     against height, so it paints an ellipse on any box that is not square. */
+  --radius-xs: 8px;
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
   --radius-xl: 24px;
+  --radius-2xl: 32px; /* channel tile */
   --radius-pill: 999px;
   
   /* Light Mode States */
@@ -305,11 +309,14 @@
   );
 
   /* Form controls */
-  --control-radius: var(--radius-md);
-  /* Cap vs box size so compact chips stay squircles, not stadiums. */
-  --control-radius-playful: min(1.65rem, 30%);
-  --control-radius-pill: 999px;
-  --control-radius-sm: var(--radius-sm);
+  /* One corner family keyed to control height, so a 34px chip and a 48px button read
+     as the same shape. Containers that wrap these add their own padding on top
+     (concentric corners) rather than picking a radius of their own. */
+  --control-radius-sm: 12px; /* min-h 32–40: segments, chips, compact buttons */
+  --control-radius-md: 14px; /* min-h 44: default button */
+  --control-radius-lg: 16px; /* min-h 48+: large buttons, playful fields and selects */
+  --control-radius: var(--control-radius-md);
+  --control-radius-pill: var(--radius-pill);
   --control-padding-x: 16px;
   --control-padding-y: 12px;
   --control-padding-x-playful: 1.4rem;
@@ -436,12 +443,15 @@
   --wee-text-rail-muted: 215 16% 47%;
   --wee-text-header: 222 47% 11%;
   --wee-text-destructive: 0 72% 51%;
-  --wee-radius-shell: 4rem;
+  /** Containers are concentric: each one is the radius it wraps plus its own padding. */
+  --wee-radius-shell: 36px;
   /** Modal outer ring width — playful parity with floating widgets */
   --wee-modal-shell-border: 0.55rem;
-  --wee-radius-card: 3rem;
-  --wee-radius-pill: 2rem;
-  --wee-radius-rail-item: 2rem;
+  --wee-radius-card: 28px;
+  /** Floating studio pill (arrange bar, tile satellite): md control + its own padding. */
+  --wee-pill-pad: 10px;
+  --wee-radius-pill: calc(var(--control-radius-md) + var(--wee-pill-pad));
+  --wee-radius-rail-item: var(--radius-lg);
   --wee-shadow-modal: 0 25px 50px -12px rgb(15 23 42 / 0.12);
   --wee-shadow-rail-active: 0 10px 24px -8px rgb(15 23 42 / 0.08);
   --wee-pill-glass: 0 0% 100% / 0.82;

@@ -7,7 +7,7 @@ const playfulButtonClasses = `
     bg-[hsl(var(--surface-primary))]
     border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))]
     text-[hsl(var(--text-primary))]
-    rounded-[var(--control-radius-playful)]
+    rounded-[var(--control-radius-lg)]
     shadow-[var(--playful-inner-glow)]
     transition-all duration-[var(--control-transition-duration)] ease-[var(--control-ease)]
     hover:border-[hsl(var(--border-secondary))] hover:-translate-y-[1px]
@@ -30,7 +30,7 @@ const weeButtonClasses = `
   `;
 
 const playfulOptionsClasses =
-  'absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-[var(--control-radius-playful)] bg-[hsl(var(--surface-primary))] py-1 shadow-[var(--playful-shadow-elevated)] border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))] focus:outline-none';
+  'absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-[var(--radius-xl)] bg-[hsl(var(--surface-primary))] py-1 shadow-[var(--playful-shadow-elevated)] border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))] focus:outline-none';
 
 const weeOptionsClasses =
   'absolute z-10 mt-1.5 max-h-60 w-full overflow-auto rounded-[var(--radius-lg)] bg-[hsl(var(--wee-surface-card))] py-1.5 shadow-[var(--shadow-lg)] border border-[hsl(var(--wee-border-field))] focus:outline-none';
